@@ -14,3 +14,5 @@ Automatisch von der Test-Schranke geschrieben.
 | 2026-11-04 15:38 | dd9285f | solo | 🔴 | 112 | 1 | – |
 | 2026-11-04 16:33 | cd5b0fc | solo | 🟢 | 139 | 0 | – |
 | 2026-11-04 20:41 | 61821f8 | projektleiter | 🔴 | 163 | 1 | – |
+| 2026-11-04 20:42 | 46b0041 | projektleiter | 🟢 | 169 | 0 | – |
+| 2026-11-04 20:42 | 46b0041 | entwickler | 🔴 | 169 | 5 | – |
