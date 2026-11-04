@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -69,7 +69,32 @@ export class Spiel {
   }
 
   // ---------- Abfragen ----------
-  neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte, this.stand.innen, this.stand.preisstufe); }
+  get vorlauf_c(): number { return this.stand.vorlauf_c ?? VORLAUF.start_c; }
+  /** Vorlauftemperatur in 5-K-Schritten setzen (A33). */
+  vorlaufSetzen(c: number): void {
+    const w = Math.max(VORLAUF.min_c, Math.min(VORLAUF.max_c, Math.round(c / VORLAUF.schritt_c) * VORLAUF.schritt_c));
+    this.stand.vorlauf_c = w; this.neuBerechnen();
+  }
+  /** Vorlauftemperatur, die dieses Haus für ausreichend Wärme braucht (sinkt mit Upgrades). */
+  mindestVorlauf_c(o: Objekt): number {
+    const basis = MIN_VORLAUF_C[o.typ] ?? 70;
+    return basis - UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
+  }
+  /** Nächstes Hausupgrade kaufen (Arbeiter werden beauftragt, Bauzeit entfällt im Spiel). */
+  upgradeKaufen(id: number): Ergebnis {
+    const o = this.objekt(id), n = o?.upgrade ?? 0;
+    if (!o || !(KATALOG[o.typ].kategorie === 'haus' || KATALOG[o.typ].kategorie === 'gross') || n >= UPGRADES.length) return { ok: false };
+    if (o.ohne_station) return this.nein('Erst eine Übergabestation einbauen');
+    const b = this.bezahlen({ eur: UPGRADES[n].kosten_eur });
+    if (!b.ok) return b;
+    o.upgrade = n + 1; o._pop = this.uhr();
+    this.ereignisse.push({ art: 'funken', objekt_id: o.id });
+    this.hinweis(`${UPGRADES[n].name}: Rücklauf gesenkt, das Haus kommt mit ${UPGRADES[n].senkung_k} K weniger Vorlauf aus`);
+    this.neuBerechnen();
+    return ok();
+  }
+
+  neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c); }
   get hz(): Objekt { return heizzentrale(this.stand.objekte); }
   get hzStufe(): number { return this.hz.stufe; }
   anzahl(t: TypId): number {
@@ -479,7 +504,8 @@ export class Spiel {
     for (const o of s.objekte) {
       if (!istKunde(o) || !this.netz.anschluss.has(o.id)) continue;
       const gross = KATALOG[o.typ].kategorie === 'gross';
-      const ziel = Math.max(0, Math.min(100, P.zufriedenheit_pct + (this.netz.warm.has(o.id) ? 0 : gross ? -KONSTANTEN.kalt_abzug_gross_pct : -KONSTANTEN.kalt_abzug_haus_pct) + (o.stufe - 1) * 3));
+      const kuehl = Math.max(0, this.mindestVorlauf_c(o) - this.vorlauf_c) * 4; // A33: Vorlauf zu niedrig → Räume zu kühl
+      const ziel = Math.max(0, Math.min(100, P.zufriedenheit_pct - kuehl + (this.netz.warm.has(o.id) ? 0 : gross ? -KONSTANTEN.kalt_abzug_gross_pct : -KONSTANTEN.kalt_abzug_haus_pct) + (o.stufe - 1) * 3));
       const jetzt = o.zufriedenheit_pct ?? 80, tau = gross ? 60 : 90;
       o.zufriedenheit_pct = ziel + (jetzt - ziel) * Math.exp(-dt_s / tau);
       if (o.zufriedenheit_pct < KONSTANTEN.kuendigung_haus_pct && KATALOG[o.typ].kategorie === 'haus') {

@@ -1,4 +1,4 @@
-import { istLeitung, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
+import { istLeitung, UPGRADES, VORLAUF, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { groesse, istAktiv } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
@@ -128,8 +128,21 @@ export class Kontext {
     else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
     if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => { this.ui.einsammeln(o.id); }, 'los')));
+    this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true })));
+  }
+
+  /** A33: Hausupgrades senken die nötige Vorlauftemperatur (Rücklauf). */
+  private upgradeBereich(c: HTMLElement, o: Objekt): void {
+    const sp = this.ui.spiel, n = o.upgrade ?? 0, mind = sp.mindestVorlauf_c(o);
+    const k = kasten('Rücklauf und Heizflächen');
+    k.append(zeile('Braucht mindestens', `${mind} °C Vorlauf`), h('p', { class: 'gedaempft' }, `Die Heizzentrale fährt gerade ${sp.vorlauf_c} °C.${mind > sp.vorlauf_c ? ' Das ist diesem Haus zu kalt – die Zufriedenheit sinkt.' : ''}`));
+    if (n < UPGRADES.length) {
+      const u = UPGRADES[n];
+      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(`${u.name} · −${u.senkung_k} K`, () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(u.kosten_eur), aus: !!o.ohne_station })));
+    } else k.append(h('p', { class: 'gedaempft' }, 'Alle Upgrades erledigt.'));
+    c.append(k);
   }
 
   /** A32: Auswahl der Übergabestation – nur Typen, die den Bedarf schaffen; die kleinste passende ist empfohlen. */
@@ -203,7 +216,13 @@ export class Kontext {
     });
     if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Quelle einbauen', () => this.ui.katalog('innen'), 'los')));
     else k.append(h('p', { class: 'gedaempft' }, 'Kein Platz mehr im Heizhaus – baue erst die Heizzentrale aus.'));
-    c.append(k, zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
+    const vl = kasten(`Vorlauftemperatur · ${sp.vorlauf_c} °C`);
+    vl.append(h('div', { class: 'knopfreihe' },
+      knopf('−', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, '', { klein: true, aus: sp.vorlauf_c <= VORLAUF.min_c }),
+      h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
+      knopf('+', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, '', { klein: true, aus: sp.vorlauf_c >= VORLAUF.max_c })),
+      h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
+    c.append(k, vl, zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
     void groesse;
   }

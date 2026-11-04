@@ -26,6 +26,8 @@ export interface Objekt {
   foerderung_eur?: number;
   /** Bäume der Landschaft: zählen nicht zur Deko-Obergrenze */
   landschaft?: boolean;
+  /** A33: Anzahl durchgeführter Hausupgrades (0–3) */
+  upgrade?: number;
   /** A32: Haus/Großabnehmer hat noch keine Übergabestation und ist deshalb kein Wärmekunde */
   ohne_station?: boolean;
   /** gekaufte Übergabestation (Id aus STATIONEN) */
@@ -60,6 +62,8 @@ export interface Spielstand {
   naechste_id: number;
   innen: InnenQuelle[];
   preisstufe: number;
+  /** A33: Vorlauftemperatur der Heizzentrale in °C (fehlt bei alten Ständen = Startwert) */
+  vorlauf_c?: number;
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;

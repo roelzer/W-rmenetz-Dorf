@@ -142,3 +142,37 @@ describe('A32 Übergabestationen', () => {
     (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 10;
   });
 });
+
+describe('A33 Vorlauftemperatur und Hausupgrades', () => {
+  const haus = (s: Spiel) => s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
+  it('Vorlauf wird auf 5-K-Schritte und 55–85 °C begrenzt', () => {
+    const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
+    s.vorlaufSetzen(20); expect(s.vorlauf_c).toBe(55);
+    s.vorlaufSetzen(99); expect(s.vorlauf_c).toBe(85);
+    s.vorlaufSetzen(68); expect(s.vorlauf_c).toBe(70);
+  });
+  it('Niedrigerer Vorlauf senkt die Betriebskosten', () => {
+    const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
+    s.vorlaufSetzen(85); const hoch = s.netz.betriebskosten_eur_min;
+    s.vorlaufSetzen(65); expect(s.netz.betriebskosten_eur_min).toBeLessThan(hoch);
+  });
+  it('Upgrade kostet Geld und senkt den Mindest-Vorlauf des Hauses', () => {
+    const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
+    const h = haus(s), vor = s.mindestVorlauf_c(h), geld = s.stand.geld_eur;
+    expect(s.upgradeKaufen(h.id).ok).toBe(true);
+    expect(s.mindestVorlauf_c(h)).toBe(vor - 5);
+    expect(geld - s.stand.geld_eur).toBe(1500);
+  });
+  it('Zu niedriger Vorlauf senkt die Zufriedenheit, ein Upgrade hebt sie wieder', () => {
+    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    const h = haus(s);
+    for (let i = 0; i < 200; i++) { t += 10_000; s.bis(t); } // erst Bau fertig, Haus warm
+    expect(s.netz.warm.has(h.id)).toBe(true);
+    s.vorlaufSetzen(65);
+    for (let i = 0; i < 40; i++) { t += 5000; s.bis(t); }
+    const kalt = h.zufriedenheit_pct!; expect(h.gekuendigt).toBeFalsy();
+    s.upgradeKaufen(h.id); s.upgradeKaufen(h.id); s.upgradeKaufen(h.id);
+    for (let i = 0; i < 40; i++) { t += 5000; s.bis(t); }
+    expect(h.zufriedenheit_pct!).toBeGreaterThan(kalt);
+  });
+});

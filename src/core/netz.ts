@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGSRANG, PREISSTUFEN, istLeitung, stationHolen,
+  KATALOG, KONSTANTEN, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
   type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
@@ -56,7 +56,7 @@ const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0,
  *  - Es wird nie mehr Wärme verteilt als erzeugt (genutzt ≤ verfügbar).
  *  - Einnahmen nur für warme Kunden, Betriebskosten nur für tatsächlich erzeugte Wärme.
  */
-export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe: number): Netz {
+export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe: number, vorlauf_c: number = VORLAUF.start_c): Netz {
   const belegung = belegungskarte(objekte);
   const nachId = new Map(objekte.map((o) => [o.id, o]));
   const hz = heizzentrale(objekte);
@@ -206,6 +206,8 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     laeuft_mit_kw.set(k, h);
     betriebskosten_eur_min += h * preis(k);
   }
+  // A33: niedrigere Vorlauftemperatur spart Betriebskosten (Pumpen, Netzverluste)
+  betriebskosten_eur_min *= Math.max(0.5, 1 - (VORLAUF.start_c - vorlauf_c) * VORLAUF.ersparnis_je_k);
   const P = PREISSTUFEN[preisstufe ?? 2];
   let einnahmen_eur_min = 0;
   for (const o of objekte) {
