@@ -22,7 +22,7 @@ export class Kamera {
     this.basis = Math.min(breite / (N + 2), hoehe / (N / 2 + 3));
     if (!this.initial && breite > 0) {
       this.initial = true;
-      this.zoom = breite < 600 ? 3 : 1.9;
+      this.zoom = Math.min(breite, hoehe) < 500 ? 2.2 : 1.9;
       return true; // erster Aufruf: Aufrufer zentriert auf die Heizzentrale
     }
     this.begrenzen();
@@ -63,6 +63,13 @@ export class Kamera {
     this.schiebe_x = 0; this.schiebe_y = 0;
     const [cx, cy] = this.mitte(x + (kante - 1) / 2, y + (kante - 1) / 2);
     this.schiebe_x = this.breite / 2 - cx; this.schiebe_y = this.hoehe / 2 - cy + 30;
+    this.begrenzen();
+  }
+  /** Schiebt das Objekt auf einen Zielpunkt im Bild (z. B. in die freie obere Hälfte, wenn unten ein Blatt offen ist). */
+  zentrierenBei(x: number, y: number, kante: number, ziel_x: number, ziel_y: number): void {
+    this.schiebe_x = 0; this.schiebe_y = 0;
+    const [cx, cy] = this.mitte(x + (kante - 1) / 2, y + (kante - 1) / 2);
+    this.schiebe_x = ziel_x - cx; this.schiebe_y = ziel_y - cy;
     this.begrenzen();
   }
 }

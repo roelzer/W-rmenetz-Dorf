@@ -8,7 +8,7 @@ Muss = für die erste spielbare Fassung · Soll = danach · Idee = nur notiert.
 
 | Nr. | Stufe | Anforderung | Abnahmekriterium |
 |---|---|---|---|
-| A1 | Muss | Das Spiel läuft im Handy-Browser im Hochformat (390 px) mit Touch-Bedienung: Schieben, Zwei-Finger-Zoomen, Antippen. | Bei 390 px Breite kein waagrechtes Scrollen; alle Tippflächen ≥ 44 px (Bildschirmfoto + Messung); Pinch und Ziehen bewegen die Karte. |
+| A1 | Muss | Das Spiel läuft im Handy-Browser **nur im Querformat** (Entscheidung Simon 2026-11-04; Prüfgröße 844×390 px, im Hochformat erscheint „Bitte drehe dein Handy“) mit Touch-Bedienung: Schieben, Zwei-Finger-Zoomen, Antippen. | Bei 844×390 px kein Scrollen der Seite; alle Tippflächen ≥ 44 px (Bildschirmfoto + Messung); Pinch und Ziehen bewegen die Karte. |
 | A2 | Muss | Isometrische Dorfansicht im Stil von „Mein Wärmedorf“: warme Farben, Umrisse, Schatten, Bewegung (Rauch, Wasser, Münzen). | Designer bestätigt Treue zu `docs/DESIGN.md` per Bildschirmfoto; Animation läuft flüssig (60 Bilder/s Ziel). |
 | A3 | Muss | Zum Start wählt der Spieler seine erste Wärmequelle (Hackschnitzelkessel, Großwärmepumpe, Power-to-Heat-Kessel) mit Vor- und Nachteil. | Neues Spiel zeigt die Auswahl; die gewählte Quelle steht danach im Heizhaus und liefert Wärme. |
 | A4 | Muss | Bauen aus einem Katalog mit Kategorien (Heizhaus, Außenanlagen, Leitungen, Häuser, Dorf, Deko); Platzieren mit Vorschau (grün/rot), Verschieben, Entfernen. | Jedes Objekt lässt sich platzieren, verschieben (außer Großabnehmer), wo sinnvoll entfernen; ungültige Plätze werden abgelehnt. |

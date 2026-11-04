@@ -20,7 +20,7 @@ Wärmenetze (Nahwärme): Erzeugung, Leitungen, Hausanschlüsse, Verluste, Speich
 - Spielstand an genau einer Stelle; Speichern lokal auf dem Gerät, kein Konto nötig.
 - Physikalische Größen mit Einheit im Namen (`leistung_kw`, `laenge_m`, `waerme_kwh`); Zahlen aus der Fachwissen-Bibliothek mit Quelle.
 - Menüs und Bedienoberflächen nach dem Oberflächen-Standard des Dev-Teams (`wissen/oberflaeche.md`); die Spielgrafik bekommt ihren eigenen, einheitlichen Stil vom Designer.
-- Bildschirm: zuerst Hochformat auf dem Handy (390 px Breite), Tippflächen mindestens 44 px, flüssig mit 60 Bildern pro Sekunde.
+- Bildschirm: **nur Querformat** auf dem Handy (Prüfgröße 844×390 px, Entscheidung Simon 2026-11-04), Tippflächen mindestens 44 px, flüssig mit 60 Bildern pro Sekunde.
 
 ## Wichtige Dateien
 - `docs/lastenheft.md` – Anforderungen A1 … mit Abnahmekriterien (entsteht beim ersten Auftrag)
@@ -33,6 +33,7 @@ Wärmenetze (Nahwärme): Erzeugung, Leitungen, Hausanschlüsse, Verluste, Speich
 ## Entscheidungslog
 Format: `Datum – Entscheidung – Grund`
 - 2026-11-04 – Dev-Team eingerichtet, Besetzung Solo – eigenes Spielprojekt (Simon)
+- 2026-11-04 – Nur Querformat am Handy, Blätter als Seitenfläche rechts, Hochformat zeigt Dreh-Hinweis – Simon: „eigentlich nur quer“
 
 ## Projekt-Lektionen
 <!-- Nur was speziell für dieses Projekt gilt. Allgemeines gehört in die Lessons des Dev-Teams. -->

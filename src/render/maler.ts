@@ -11,6 +11,8 @@ export class Maler {
   tw = 50;
   th = 25;
   zeit_s = 0;
+  /** „Weniger Bewegung“: Animationen stehen still, Überlast bleibt dauerhaft rot */
+  reduziert = false;
   constructor(public X: CanvasRenderingContext2D) {}
 
   bahn(p: Punkt[]): void {
