@@ -319,6 +319,20 @@ for (const D of Object.values(KATALOG)) {
   if (D.kassenspeicher_eur) D.kassenspeicher_eur = D.kassenspeicher_eur.map((k) => k * KONSTANTEN.kosten_faktor);
 }
 
+/** Hausübergabestationen (A32). Leistung = größter Hausbedarf, den die Station übergibt. Preise sind Spielwerte nach der ENERPIPE-Recherche (docs/recherche/enerpipe_rohre_stationen.md, Preise nicht aus Katalog, Gegenprüfung steht aus). */
+export interface Station { id: string; name: string; leistung_kw: number; kosten_eur: number; beschreibung: string }
+export const STATIONEN: ReadonlyArray<Station> = [
+  { id: 'st_15', name: 'Wandstation Typ 15', leistung_kw: 15, kosten_eur: 2400, beschreibung: 'Kleine Hausstation für ein Einfamilienhaus.' },
+  { id: 'st_25', name: 'Wandstation Typ 25', leistung_kw: 25, kosten_eur: 3600, beschreibung: 'Für Reihenhaus, Bäckerei und Einfamilienhaus mit Reserve.' },
+  { id: 'st_40', name: 'Wandstation Typ 40', leistung_kw: 40, kosten_eur: 4800, beschreibung: 'Für kleine Mehrfamilienhäuser.' },
+  { id: 'st_60', name: 'Wandstation Typ 60', leistung_kw: 60, kosten_eur: 7000, beschreibung: 'Für größere Gebäude und Gewerbe.' },
+  { id: 'st_80', name: 'Wandstation Typ 80', leistung_kw: 80, kosten_eur: 9000, beschreibung: 'Größte Wandstation, für große Mehrfamilienhäuser.' },
+  { id: 'st_cad', name: 'CAD-Großabnehmerstation', leistung_kw: 150, kosten_eur: 20000, beschreibung: 'Für Hallenbad, Klinik und Industrie (ab ca. 100 kW, nach ENERPIPE-Systematik).' },
+];
+export const stationHolen = (id: string | undefined): Station | undefined => STATIONEN.find((s) => s.id === id);
+/** Kleinste Station, die den Bedarf übergibt. */
+export const passendeStation = (bedarf_kw: number): Station => STATIONEN.find((s) => s.leistung_kw >= bedarf_kw) ?? STATIONEN[STATIONEN.length - 1];
+
 export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110'];
 export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);
 export const istQuelle = (t: TypId): boolean =>

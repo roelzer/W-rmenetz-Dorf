@@ -1,4 +1,4 @@
-import { istLeitung, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, hatStufen, type TypId } from '../core/katalog';
+import { istLeitung, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { groesse, istAktiv } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
@@ -107,12 +107,15 @@ export class Kontext {
     const chips = h('div', { class: 'chips' });
     if (o.gekuendigt) chips.append(chip('hat gekündigt', 'rot'));
     else if (!an) chips.append(chip('heizt mit Öl', 'rot'));
+    else if (o.ohne_station) chips.append(chip('Übergabestation fehlt', 'rot'));
+    else if (n.kalt.get(o.id) === 'station') chips.append(chip('Station zu klein', 'rot'));
     else if (n.kalt.get(o.id) === 'leitung') chips.append(chip('Leitung zu dünn', 'rot'));
     else if (!warm) chips.append(chip('kalt', 'blau'));
     else chips.append(chip('warm', 'gruen'));
     c.append(chips);
     const einnahme = (D.einnahmen_eur_min as number[])[o.stufe - 1] * PREISSTUFEN[sp.stand.preisstufe].einnahmefaktor;
-    c.append(zeile('Wärmebedarf', `braucht ${D.bedarf_kw} kW`), zeile('Einnahmen', `${zahl(einnahme)} €/min`));
+    const st = stationHolen(o.station);
+    c.append(zeile('Wärmebedarf', `braucht ${D.bedarf_kw} kW`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'), zeile('Einnahmen', `${zahl(einnahme)} €/min`));
     const z = o.zufriedenheit_pct ?? 80;
     c.append(zeile('Zufriedenheit', `${zahl(z)} %`), balken(z / 100));
     if (o.gekuendigt) {
@@ -120,12 +123,27 @@ export class Kontext {
         h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'los', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
       return;
     }
-    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('d25'), 'los')));
+    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('d25'), 'los')));
+    if (o.ohne_station || n.kalt.get(o.id) === 'station') this.stationswahl(c, o);
     else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
     if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => { this.ui.einsammeln(o.id); }, 'los')));
     this.ausbauKnopf(c, o);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true })));
+  }
+
+  /** A32: Auswahl der Übergabestation – nur Typen, die den Bedarf schaffen; die kleinste passende ist empfohlen. */
+  private stationswahl(c: HTMLElement, o: Objekt): void {
+    const sp = this.ui.spiel, bedarf = KATALOG[o.typ].bedarf_kw ?? 0, k = kasten('Übergabestation wählen');
+    const empfohlen = passendeStation(bedarf).id, alt = stationHolen(o.station);
+    k.append(h('p', { class: 'gedaempft' }, `Das Gebäude braucht ${bedarf} kW. Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.`));
+    const reihe = h('div', { class: 'knopfreihe' });
+    for (const st of STATIONEN.filter((x) => x.leistung_kw >= bedarf && (!alt || x.leistung_kw > alt.leistung_kw)).slice(0, 3)) {
+      const preis = st.kosten_eur - (alt ? Math.round(alt.kosten_eur * KONSTANTEN.rueckkauf_anteil) : 0);
+      reihe.append(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'los' : '', { klein: true, unter: eur(preis) }));
+    }
+    k.append(reihe);
+    c.append(k);
   }
 
   private gross(c: HTMLElement, o: Objekt): void {
@@ -141,6 +159,7 @@ export class Kontext {
       return;
     }
     c.append(h('div', { class: 'chips' }, chip('Vertrag läuft', 'gruen'), chip(n.anschluss.has(o.id) ? (n.warm.has(o.id) || o.typ === 'gewerbe' ? 'angeschlossen' : 'kalt') : 'nicht angeschlossen', n.anschluss.has(o.id) ? '' : 'rot')));
+    if (D.bedarf_kw && (o.ohne_station || n.kalt.get(o.id) === 'station')) this.stationswahl(c, o);
     if (D.bedarf_kw) c.append(zeile('Wärmebedarf', `braucht ${D.bedarf_kw} kW`), zeile('Einnahmen', `${zahl((D.einnahmen_eur_min as number[])[0] * PREISSTUFEN[sp.stand.preisstufe].einnahmefaktor)} €/min`));
     if (D.abwaerme_kw) c.append(zeile('Abwärme ins Netz', `bis ${D.abwaerme_kw} kW`));
     if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => this.ui.einsammeln(o.id), 'los')));

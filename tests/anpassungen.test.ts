@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
-import { KATALOG, KONSTANTEN, PREISSTUFEN, istLeitung } from '../src/core/katalog';
+import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation } from '../src/core/katalog';
 
 const T0 = 1_000_000_000_000;
 const neuesSpiel = (): Spiel => new Spiel(neuerSpielstand(T0), () => T0);
@@ -11,9 +11,9 @@ describe('A22/A29 Start', () => {
     expect(s.stand.geld_eur).toBe(100_000);
     expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(12);
     s.ersteQuelleWaehlen('kessel');
-    const nah = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && Math.hypot(o.x - 11, o.y - 10) < 5);
-    expect(nah).toHaveLength(3);
-    expect(nah.filter((o) => s.netz.warm.has(o.id))).toHaveLength(2);
+    const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus');
+    expect(haeuser.filter((o) => s.netz.warm.has(o.id))).toHaveLength(2);
+    expect(haeuser.filter((o) => o.station)).toHaveLength(2);
     expect(s.stand.quelle_gewaehlt).toBe(true);
   });
   it('A29: Wärmepreis reicht von 7 bis 15 ct/kWh; die Vergütung folgt dem Preis je kWh', () => {
@@ -105,5 +105,40 @@ describe('A26 Spieltempo', () => {
     s.platzieren('efh', 1, 1);
     const b = s.stand.objekte.at(-1)!.bau!;
     expect(b.ende_ms - b.start_ms).toBe(KATALOG.efh.bauzeit_s![0] * KONSTANTEN.bauzeit_faktor * 1000);
+  });
+});
+
+describe('A32 Übergabestationen', () => {
+  const mitNetz = () => {
+    const s = neuesSpiel();
+    s.ersteQuelleWaehlen('kessel');
+    for (const [x, y] of [[12, 12]]) s.platzieren('d50', x, y);
+    return s;
+  };
+  it('A32: Haus ohne Station wird trotz Leitung nicht warm; mit passender Station schon', () => {
+    const s = mitNetz();
+    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 13 && o.y === 12)!;
+    expect(s.netz.warm.has(haus.id)).toBe(false);
+    const geld = s.stand.geld_eur;
+    expect(s.stationKaufen(haus.id, 'st_15').ok).toBe(true);
+    expect(geld - s.stand.geld_eur).toBe(STATIONEN.find((x) => x.id === 'st_15')!.kosten_eur);
+    expect(s.netz.warm.has(haus.id)).toBe(true);
+  });
+  it('A32: eine zu kleine Station wird abgelehnt, die kleinste passende ist empfohlen', () => {
+    const s = mitNetz();
+    s.stand.objekte.push({ id: 901, typ: 'mfh', x: 2, y: 20, stufe: 1, bau: null, kasse_eur: 0, ohne_station: true });
+    expect(s.stationKaufen(901, 'st_15').ok).toBe(false);
+    expect(passendeStation(KATALOG.mfh.bedarf_kw!).leistung_kw).toBeGreaterThanOrEqual(KATALOG.mfh.bedarf_kw!);
+  });
+  it('A32: Großabnehmer-Station kostet 20.000 €', () => {
+    expect(STATIONEN.at(-1)!.kosten_eur).toBe(20_000);
+  });
+  it('A32: Station, die für einen gewachsenen Bedarf zu klein ist, macht das Haus kalt (Grund „station“)', () => {
+    const s = mitNetz();
+    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9)!;
+    haus.station = 'st_15';
+    (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 20; s.neuBerechnen();
+    expect(s.netz.kalt.get(haus.id)).toBe('station');
+    (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 10;
   });
 });

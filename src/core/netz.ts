@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGSRANG, PREISSTUFEN, istLeitung,
+  KATALOG, KONSTANTEN, LEITUNGSRANG, PREISSTUFEN, istLeitung, stationHolen,
   type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
@@ -39,8 +39,8 @@ export function belegungskarte(objekte: Objekt[], ohne?: Objekt): Int32Array {
 export function istKunde(o: Objekt): boolean {
   const k = KATALOG[o.typ].kategorie;
   return (
-    (k === 'haus' && istAktiv(o) && !o.gekuendigt) ||
-    (k === 'gross' && o.zustand === 'vertrag' && !!KATALOG[o.typ].bedarf_kw)
+    !o.ohne_station && ((k === 'haus' && istAktiv(o) && !o.gekuendigt) ||
+    (k === 'gross' && o.zustand === 'vertrag' && !!KATALOG[o.typ].bedarf_kw))
   );
 }
 
@@ -174,7 +174,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
 
   // Wärme verteilen: nah zuerst, nur wenn die Leitungen reichen
   const warm = new Set<number>();
-  const kalt = new Map<number, 'leitung' | 'waerme'>();
+  const kalt = new Map<number, 'leitung' | 'waerme' | 'station'>();
   let genutzt_kw = 0, bedarf_kw = 0;
   const geordnet = [...kunden].sort(
     (a, b) => (anschluss.get(a.id) as { tiefe: number }).tiefe - (anschluss.get(b.id) as { tiefe: number }).tiefe || a.id - b.id,
@@ -184,6 +184,8 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     const a = anschluss.get(o.id) as { feld: number };
     bedarf_kw += n;
     if (a.feld >= 0 && !kapazitaet_ok.get(a.feld)) { kalt.set(o.id, 'leitung'); continue; }
+    const st = stationHolen(o.station);
+    if (st && st.leistung_kw < n) { kalt.set(o.id, 'station'); continue; } // A32: Station zu klein
     if (genutzt_kw + n <= verfuegbar_kw) { genutzt_kw += n; warm.add(o.id); } else kalt.set(o.id, 'waerme');
   }
 

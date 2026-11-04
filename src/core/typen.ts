@@ -26,6 +26,10 @@ export interface Objekt {
   foerderung_eur?: number;
   /** Bäume der Landschaft: zählen nicht zur Deko-Obergrenze */
   landschaft?: boolean;
+  /** A32: Haus/Großabnehmer hat noch keine Übergabestation und ist deshalb kein Wärmekunde */
+  ohne_station?: boolean;
+  /** gekaufte Übergabestation (Id aus STATIONEN) */
+  station?: string;
   /** Gebäude des Ortes (A21): zählen nicht gegen die Baugrenzen der Heizzentralen-Stufe */
   bestand?: boolean;
   /** nur Darstellung: Zeitpunkt für Aufpop-Animation */
@@ -79,7 +83,7 @@ export interface Netz {
   anschluss: Map<number, { feld: number; tiefe: number }>;
   warm: Set<number>;
   /** kalt: 'leitung' (Engpass) oder 'waerme' (Erzeugung reicht nicht) */
-  kalt: Map<number, 'leitung' | 'waerme'>;
+  kalt: Map<number, 'leitung' | 'waerme' | 'station'>;
   verfuegbar_kw: number;
   genutzt_kw: number;
   bedarf_kw: number;

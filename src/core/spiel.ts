@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -32,8 +32,13 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
   // A29: zwei Starthäuser sind von Anfang an mit 50er-Leitung angeschlossen (Hauptleitung zum Heizhaus); alle weiteren Häuser heizen noch mit Öl.
   for (const [x, y] of [[11, 12], [11, 13], [11, 14], [10, 13]]) add('d50', x, y);
-  for (const h of ort.haeuser) add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true });
-  for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt' });
+  // Die ersten zwei Starthäuser haben bereits eine Übergabestation, alle anderen müssen eine kaufen (A32).
+  ort.haeuser.forEach((h, i) => {
+    const bedarf = KATALOG[h.typ].bedarf_kw as number;
+    const start = i < 2;
+    add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true, ...(start ? { station: passendeStation(bedarf).id } : { ohne_station: true }) });
+  });
+  for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt', ohne_station: true });
   const r = zufall(9 + ortId.length);
   for (let i = 0; i < 46; i++) {
     const x = Math.floor(r() * N), y = Math.floor(r() * N);
@@ -295,6 +300,22 @@ export class Spiel {
     if (!o || o.landschaft || !(istLeitung(o.typ) || KATALOG[o.typ].kategorie === 'deko')) return { ok: false };
     if (istLeitung(o.typ)) this.stand.geld_eur += this.rueckkauf_eur(o.typ, 1); // A30: 50 % zurück
     this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
+    this.neuBerechnen();
+    return ok();
+  }
+
+  /** A32: Übergabestation für ein Haus/einen Großabnehmer kaufen (auch größere, z. B. als Reserve für einen Anbau). */
+  stationKaufen(id: number, stationId: string): Ergebnis {
+    const o = this.objekt(id), st = stationHolen(stationId);
+    if (!o || !st || !(o.ohne_station || o.station) || o.bau) return { ok: false };
+    const bedarf = KATALOG[o.typ].bedarf_kw ?? 0;
+    if (st.leistung_kw < bedarf) return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${bedarf} kW`);
+    const alt = stationHolen(o.station);
+    if (alt && alt.leistung_kw >= st.leistung_kw) return this.nein('Es steht schon eine gleich große oder größere Station');
+    const b = this.bezahlen({ eur: st.kosten_eur - (alt ? Math.round(alt.kosten_eur * KONSTANTEN.rueckkauf_anteil) : 0) });
+    if (!b.ok) return b;
+    o.station = st.id; delete o.ohne_station; o._pop = this.uhr();
+    this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     this.neuBerechnen();
     return ok();
   }

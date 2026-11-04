@@ -159,8 +159,8 @@ function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: b
   const D = KATALOG[o.typ], kat = D.kategorie;
   if (kat === 'haus' || (kat === 'gross' && o.zustand === 'vertrag' && D.bedarf_kw)) {
     if (o.gekuendigt) return 'weg';
-    if (!angeschlossen) return 'stecker';
-    if (netz.kalt.get(o.id) === 'leitung') return 'leitung';
+    if (!angeschlossen || o.ohne_station) return 'stecker';
+    if (netz.kalt.get(o.id) === 'leitung' || netz.kalt.get(o.id) === 'station') return 'leitung';
     if (!warm) return 'kalt';
     if ((o.zufriedenheit_pct ?? 80) < 40) return 'wuetend';
     if (o.kasse_eur >= sp.kassenCap_eur(o) * 0.08) return 'muenze';

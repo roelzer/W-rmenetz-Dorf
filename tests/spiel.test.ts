@@ -17,7 +17,7 @@ function laufend() {
 }
 /** Legt die Leitung zum dritten Starthaus; die ersten zwei sind von Anfang an angeschlossen (A29). */
 function verlegeStartnetz(s: Spiel): void {
-  for (const [x, y] of [[10, 11], [9, 11]]) expect(s.platzieren('d50', x, y).ok).toBe(true);
+  for (const [x, y] of [[12, 12]]) expect(s.platzieren('d50', x, y).ok).toBe(true);
 }
 /** Bau-/Ausbauzeit in Millisekunden inkl. Spieltempo-Faktor (A26). */
 const ms = (sek: number): number => sek * KONSTANTEN.bauzeit_faktor * 1000;

@@ -27,7 +27,7 @@ export function typAusGrundflaeche(m2: number): TypId | null {
 
 const N = 24;
 const STARTHAEUSER: Array<{ typ: TypId; x: number; y: number }> = [
-  { typ: 'efh', x: 9, y: 13 }, { typ: 'efh', x: 12, y: 14 }, { typ: 'efh', x: 8, y: 11 },
+  { typ: 'efh', x: 9, y: 13 }, { typ: 'efh', x: 12, y: 14 }, { typ: 'efh', x: 13, y: 12 },
 ];
 
 interface Plan { id: string; name: string; beschreibung: string; seed: number; anzahl: number; mfhAnteil: number; klinik: boolean }
