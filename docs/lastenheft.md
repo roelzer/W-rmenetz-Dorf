@@ -35,3 +35,4 @@ Muss = für die erste spielbare Fassung · Soll = danach · Idee = nur notiert.
 | A25 | Muss | Verbrauch je Haus ist sichtbar (kW, Wohn-/Großverbraucher). | Kontextkarte und Karte zeigen den Verbrauch. |
 | A26 | Muss | Spieltempo langsamer: Warten über längere Zeit, Verbesserungen und Ausbau schalten sich nach und nach frei. | Bau-/Einnahmezeiten neu abgestimmt (Balancing-Test). |
 | A27 | Muss | Optik moderner, detailreicher, weniger klobig/kindlich (Simon wiederholt) – Entwurf „Ruhige Miniatur“, Umsetzung steht aus. | Designer-Treueprüfung 844×390. |
+| A28 | Soll | Häuser frei am Ort platzierbar/ortbar und **Upgrades pro Haus** (Simon 2026-11-04: „zum Beispiel Rücklauftemperaturen verbessern“). Fachliche Grundlage wird recherchiert (docs/recherche/hausupgrades.md), Spielregeln danach als Vorschlag. | Offen: Recherche, Entwurf der Upgrade-Mechanik, Bestätigung durch Simon. |
