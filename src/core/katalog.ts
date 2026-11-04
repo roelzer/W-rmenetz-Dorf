@@ -261,6 +261,9 @@ export const KONSTANTEN = {
   /** Zufriedenheit, unter der Häuser kündigen / Großabnehmer den Vertrag beenden */
   kuendigung_haus_pct: 20,
   kuendigung_gross_pct: 15,
+  /** Abzug von der Ziel-Zufriedenheit, wenn ein Kunde kalt bleibt (Prozentpunkte) */
+  kalt_abzug_haus_pct: 55,
+  kalt_abzug_gross_pct: 70,
   /** Kosten, einen gekündigten Kunden zurückzugewinnen */
   zurueckgewinnen_eur: 300,
   /** Sekunden pro Dorftaler beim Beschleunigen */

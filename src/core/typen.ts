@@ -24,6 +24,8 @@ export interface Objekt {
   zustand?: 'gesperrt' | 'vertrag';
   /** bei bewilligter Förderung: Baukosten in €, von denen die Quote zurückfließt */
   foerderung_eur?: number;
+  /** Bäume der Landschaft: zählen nicht zur Deko-Obergrenze */
+  landschaft?: boolean;
   /** nur Darstellung: Zeitpunkt für Aufpop-Animation */
   _pop?: number;
 }
