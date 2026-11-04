@@ -5,7 +5,7 @@
 > **Jetzt:** F6 Abschluss: Designer-Treue, Reviewer, Fachprüfer, restliche Tests · **Zuletzt fertig:** F5 Nachbardörfer (A17), App-Installation + offline (A16), Schriften selbst gehostet, Leitungen in 8 Durchmessern mit Simons Farben · **Als Nächstes:** Prüfungen, Abschlussbericht · **Geschätzt fertig:** nach F6 · **Fortschritt:** 5 von 6 Features · **Frage an Simon:** siehe docs/OFFENE_FRAGEN.md („in den jeweiligen Orten“)
 
 ## Gerade läuft
-Phase Solo: Bauen. Keine Agenten laufen.
+Phase Solo: Abschnittsprüfung F3–F5. Laufen: `designer` (Treue, Querformat), `reviewer` (gesamt), `fachpruefer` (Spieltexte/Zahlen, A18).
 
 **Arbeitsbranch:** claude/youthful-feynman-jaegcj
 
