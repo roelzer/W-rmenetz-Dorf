@@ -2,7 +2,7 @@
 
 **Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Zuletzt aktualisiert:** 2026-11-04
 
-> **Jetzt:** F3 Darstellung (Karte, Gebäude, Leitungen) wird gebaut · **Zuletzt fertig:** F2 Spielablauf, 92 Tests grün · **Als Nächstes:** F4 Oberfläche · **Geschätzt fertig:** erste spielbare Fassung nach F5 · **Fortschritt:** 2 von 6 Features
+> **Jetzt:** F4 Oberfläche (HUD, Bau-Katalog, Karten, Quellenwahl) wird gebaut · **Zuletzt fertig:** F3 Darstellung (Karte, Gebäude, Leitungen, Baustellen, Effekte; Bildschirmfoto 390 px geprüft) · **Als Nächstes:** F5 Antippen/Bauen verdrahten, Nachbardörfer, App-Installation/offline · **Geschätzt fertig:** erste spielbare Fassung nach F5 · **Fortschritt:** 3 von 6 Features
 
 ## Gerade läuft
 Phase Solo: Bauen. Keine Agenten laufen.
