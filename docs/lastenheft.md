@@ -46,3 +46,10 @@ Muss = für die erste spielbare Fassung · Soll = danach · Idee = nur notiert.
 | A36 | Muss | **PV und Strom:** PV auf dem Hausdach und außen baubar; genug PV senkt die Stromkosten; Überschuss wird ins Stromnetz eingespeist (Vergütung). Laufende Kosten (Strom, Hackschnitzelpreis, Abnahmemenge/Bezugspreise) werden berücksichtigt. | Test: PV senkt Stromkosten; Einspeisung bringt Einnahme. |
 | A37 | Muss | **Planbarkeit der Ansicht:** Objekte hinter Gebäuden dürfen nicht verschwinden (Durchsicht/Drehen/Draufsicht), damit man detailliert planen kann. | Designer-Treueprüfung; Test der Sichtbarkeits-Regel. |
 
+
+## Ergänzungen Simon, 2026-11-04 (abends)
+- **A38** – „die App weiterläuft wenn Spiel zu ist“: Das Spiel rechnet beim Wiederöffnen die Zeit nach (Einnahmen, Bau, Zufriedenheit). Abnahme: Test mit simulierter Abwesenheit; Obergrenze der Nachrechnung als Entscheidung dokumentieren.
+- **A39** – Heizzentrale-Stufen „rathausmäßig“: größere Kessel (z. B. Hackschnitzel) kosten deutlich mehr; Stufenaufstieg wird erst durch Erreichen von Zielen freigeschaltet (Wärmeabsatz, Zahl der Anschlüsse, erreichte Spreizung). Man muss sich den Ausbau leisten können. Abnahme: Test – ohne Ziel gesperrt, mit Ziel und Geld möglich.
+- **A40** – Drei Helfer **Sebastian, Christian, Manfred**: Man beauftragt sie, den Rücklauf eines Hauses zu senken (ersetzt die direkten Upgrade-Knöpfe aus A33; Helfer sind beschäftigt, solange sie arbeiten). Abnahme: Test – ein Helfer, ein Auftrag zugleich.
+- **A41** – Kein Rohr-für-Rohr-Ausbau, sondern **Bauabschnitte**: neuen Bauabschnitt planen (Helfer **Philipp**), im Baumenü abschließen, Material bestellen (Helferin **Laura**), danach ca. **ein Spieljahr** warten, bis gebaut ist. Abnahme: Test – Abschnitt erst nach Wartezeit fertig.
+- Zeitmaß (A35) dazu: 1 Woche echt ≈ 10 Jahre → 1 Spieljahr ≈ 17 Stunden echt.
