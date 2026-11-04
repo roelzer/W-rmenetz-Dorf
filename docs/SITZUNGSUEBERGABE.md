@@ -1,41 +1,30 @@
-# Sitzungsübergabe
+# Sitzungsübergabe – Wärmenetz-Dorf (Stand 2026-11-04, nach F5)
 
-**Übergeben am:** 2026-11-04 · **Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Dev-Team-Version:** 3.16.3
-**Durchlauf:** an (Simons „fang jetzt an zu bauen“ gilt als Freigabe; Besetzung Solo)
+## Lage
+Solo-Durchlauf (stiller Durchlauf, `.dev-team/durchlauf` besteht). Arbeitsbranch `claude/youthful-feynman-jaegcj`, nur dorthin pushen, kein PR. Commit-Nachrichten enden mit den Zeilen `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` und `Claude-Session: https://claude.ai/code/session_01LNTyRMMFnSVN6BzAwYHrbm`. Gate: `bash /root/.cache/roelz-plugins/plugins/dev-team/scripts/pruefe-tests.sh --basis <Commit> --rolle solo` (Schrift-Pakete scheitern an der Download-Zahl-Prüfung: Umgebungsproblem, in ENTSCHEIDUNGEN begründet; Abschluss mit `--rolle projektleiter`).
 
-## Wo wir stehen
-- **Phase:** Solo-Bauen · F1 und F2 fertig und gepusht, F3 (Darstellung) beginnt
-- **Arbeitsbranch:** claude/youthful-feynman-jaegcj · **Letzter Commit:** 92c3340 (gepusht: ja)
-- **Letzter grüner Stand:** 92 Tests bestanden, tsc und Build grün
+## Fertig (committet und gepusht bis F5)
+F1–F5: Kern (`src/core`), Darstellung (`src/render`), Oberfläche (`src/ui`, `src/steuerung.ts`), Nachbardörfer, PWA-Dateien, Schriften (`@fontsource`), Leitungen in 8 Durchmessern (d25…d110, Farben nach Simon). 119 Tests grün.
 
-## Nächster Schritt
-F3: Darstellung nach src/render/ übernehmen (Canvas-2D-Code des Prototyps, Felder auf neue Namen umstellen), danach F4 Oberfläche in src/ui/ nach docs/DESIGN.md.
+## Neue Vorgaben von Simon (alle in docs/ENTSCHEIDUNGEN.md bzw. OFFENE_FRAGEN.md, außer die letzte)
+1. **Nur Querformat** am Handy (844×390). Umgesetzt.
+2. Leitungen 25er rot, 32er grün, 40er hellblau, 50er dunkelblau, 63er pink, 75er gelb, 90er braun, 110er dunkelgrün. Umgesetzt.
+3. „in den jeweiligen Orten dann das alles gebaut“ – unklar, Frage steht in docs/OFFENE_FRAGEN.md.
+4. **„mach die Optik mehr modern, weniger kindlich“ – NEU, noch offen.** Heißt: Oberfläche (Knöpfe, Pillen, Blätter, Schrift) und Kartenstil sachlicher/moderner: weniger dicke Umrisse, harte Schatten und Verläufe, weniger Cartoon-Schrift (Baloo 2 → ruhigere Schrift, z. B. Nunito Sans/Inter-artig), gedecktere Farben, flache Flächen, feine Linien, dezente Schatten; Karte weniger bunt/verspielt. Designer (`entwurf`-Überarbeitung von docs/DESIGN.md + design/tokens.json) einbinden, dann umsetzen (CSS-Variablen kommen aus tokens.json via src/ui/tokens.ts; Zeichenfunktionen in src/render/).
 
-## Features
-| Nr. | Stand | Was fehlt |
-|---|---|---|
-| F1 Gerüst, Katalog, Netz | fertig | – |
-| F2 Spielablauf (src/core/spiel.ts, auftraege.ts, speichern.ts) | fertig | – |
-| F3 Darstellung (src/render) | offen | Kamera, Boden, Objekte, Leitungen, Effekte aus Prototyp |
-| F4 Oberfläche (src/ui) | offen | HUD, Katalog, Kontextkarte, Quellenwahl, Aufträge, Einstellungen mit Fiktiv-Hinweis |
-| F5 PWA, Nachbardörfer | offen | Manifest, Service Worker, Schriften lokal (offline), Beispieldörfer (src/core/nachbarn.ts) |
-| F6 Abschluss | offen | Designer treue (Test-Spielstände: neu, Baustelle, Engpass, Kasse voll, gekündigt, Besuch), Reviewer gesamt, Fachprüfer, Schranke projektleiter |
+## Offene Arbeit (in dieser Reihenfolge)
+A. **Reviewer-Befunde (rot)**, Bericht nur im Verlauf; Stand der Behebung:
+ - K1 Offline erst ab 2. Laden: Dateiliste im Build. IN ARBEIT: `tools/sw.ts` (Vite-Plugin + `erzeugeServiceWorker`), `tools/sw-vorlage.js` sind angelegt, `public/sw.js` entfernt. Noch: Plugin in `vite.config.ts` eintragen (`plugins: [serviceWorker()]`), Test für A16 (tests/pwa.test.ts: Manifest, Vorlage, erzeugeServiceWorker, Dateiliste enthält Skript/CSS/Schriften nach Build; Test mit Namen „A16“), echten Offline-Test mit Playwright (1. Laden online, dann offline neu laden), `main.ts` registriert `./sw.js` (schon da).
+ - H1/M1 alter/defekter Spielstand: ERLEDIGT (Version 2, Migration p1/p2/p3, Prüfung gegen Katalog, Sicherung unter `…-defekt`, Hinweis in main.ts).
+ - M2: Warndreieck bei Überlast (`kapazitaet_ok === false`) in `src/render/szene.ts` zeichnen (nicht nur bei `engpass`).
+ - M3 + Fachprüfer (docs/FACHPRUEFUNG_F5.md): Texte korrigieren (Reihenhaus, PV-Karte „Verbindung legen“, Erdsonde, Puffer, 110er-Beschreibung/Kontext-Text/Auftrag „main“, Planungsfehler-Text, „Überlastet“ in zwei Fälle trennen, „bis zu 40 %“); Einnahmefaktoren = ct/14 (0,714/0,857/1/1,143/1,286) plus Test (B7). Regeln V1/V2 im Kern ERLEDIGT (netz.ts, Tests im Block „A7 Fachregeln V1/V2“); V1–V4 stehen Simon zur Bestätigung in der Abschlussmeldung.
+ - M4: Ausbau-/Kaufknöpfe bei zu wenig Geld tippbar lassen und Toast „Es fehlen … €“ (src/ui/kontext.ts, `aus:` entfernen).
+ - M5: Tastatur in `src/steuerung.ts`: Enter/Pfeile/B ignorieren, wenn Fokus auf Knopf/Blatt oder Besuch aktiv.
+ - M6: Test „Besuch verändert Spielstand nicht“ ersetzen; „Gefällt mir“ als `Spiel.moegen(name)` im Kern + Test.
+ - Niedrig: toter Code (`void n/groesse/s/tp`, `voll ? X : X` in hud.ts, `classList.add('waerme')`), Regel „Münze ab 8 %“ doppelt (steuerung.ts/szene.ts → Kernfunktion), `Date.now()` in kontext.ts, Einstellungen-Speicherfehler, Fokusfalle Shift+Tab, Testnamen „Hausanschluss“.
+B. **Designer-Bericht** (Agent `a8caf8244e36025c9`, Modus treue) steht noch aus; Datei `docs/DESIGN_TREUE_F5.md` erwartet. Mängel einarbeiten (wenn sie die neue „moderne“ Optik nicht überholt).
+C. Optik modern/weniger kindlich (siehe oben, Punkt 4).
+D. Reviewer `nachpruefung` bei kritisch/hoch; Tests mit A-Nummern für A16 (offen), A20 (Idee, braucht Simons Abdeckung); Gate `--rolle projektleiter`; Abschlussbericht; Merge nach `main` nur nach Skill-Regeln (Phase 9); am Ende `.dev-team/durchlauf` und diese Datei löschen.
 
-## Laufende Agenten
-keine.
-
-## Nur in dieser Sitzung entschieden
-- Vorlage ist Artefakt „Mein Wärmedorf“ (HTML liegt unter /root/.claude/projects/-home-user-W-rmenetz-Dorf/0f22298d-d754-58d5-a139-ea7ff6b6cb63/tool-results/artifact-73a196c8-1793803700-7861.html, nur in dieser Sitzung vorhanden; Zeilen 330-500 sind der Zeichencode). Die anderen drei Spiel-Artefakte hat Simon löschen lassen.
-- Landschaftsbäume tragen Objekt.landschaft=true und zählen nicht zur Deko-Grenze.
-- Kalt-Abzug der Zufriedenheit: Haus 55, Großabnehmer 70 Prozentpunkte (Prototyp 45 hätte bei fairem Preis nie zur Kündigung geführt).
-- Designer: Hinweis „Alle Wärmenetze und Werte sind fiktiv“ bleibt in den Einstellungen (S8).
-
-## Fallstricke
-- Kern (src/core) darf keine Browser-API, kein Date.now, kein Math.random nutzen (Architekturtest); Uhr wird dem Spiel als Funktion übergeben.
-- Darstellung mit Zeit statt Bildzähler animieren (Designer M9), Schriften lokal einbinden, Symbole als Formen statt Emoji.
-- Dependency-Schranke meldet „Downloadzahl nicht abrufbar“ (kein Netz zur npm-Statistik): bekannte Einschränkung, nicht beheben.
-- Schranke bei Rolle solo meldet dev-team.json geändert (einmalige Ersteinrichtung durch den Projektleiter, erlaubt bei Rolle projektleiter).
-- Vor dem Fertigmelden: Lastenheft-Nummern A1…A20 müssen in Testnamen vorkommen (Schranke projektleiter), also auch für A1, A2, A16, A17, A18 Tests/Kommentare mit der Nummer.
-
-## Erst lesen
-docs/STATUS.md, docs/lastenheft.md, docs/DESIGN.md, design/tokens.json, docs/ENTSCHEIDUNGEN.md
+## Wichtige Befehle
+`npm test`, `npx tsc --noEmit`, `npm run build`, `npx vite preview --port 4173` (Build ansehen), Playwright: `require('playwright')`, Querformat-Skripte liegen im Scratchpad (`ql.cjs`, `ql2.cjs`).

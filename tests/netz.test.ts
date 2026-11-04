@@ -209,7 +209,7 @@ describe('A12 Großabnehmer', () => {
   it('Sägewerk mit Vertrag und Anschluss liefert günstige Abwärme', () => {
     const saege = neu('gewerbe', 13, 10, { zustand: 'vertrag' });
     const h = neu('efh', 12, 9);
-    const n = berechneNetz(dorf(neu('d50', 12, 10), saege, h), [], 2);
+    const n = berechneNetz(dorf(neu('d63', 12, 10), saege, h), [], 2); // 63er (80 kW) trägt die 60 kW Abwärme (Regel V1)
     expect(n.verfuegbar_kw).toBe(60);
     expect(ID(n, h)).toBe(true);
     expect(n.betriebskosten_eur_min).toBeCloseTo(10 * 0.1, 6);
@@ -241,5 +241,27 @@ describe('Kunden und Gebäude', () => {
     const klein = dorfwert(dorf(), [quelle('kessel')]);
     const gross = dorfwert(dorf(neu('efh', 14, 14, { stufe: 3 })), [quelle('kessel', 2)]);
     expect(gross).toBeGreaterThan(klein);
+  });
+});
+
+describe('A7 Fachregeln V1/V2 (Einspeisung und Speicher, vorgeschlagen)', () => {
+  it('V1: Solarwärme über eine 25er-Leitung (12 kW) liefert höchstens 12 kW', () => {
+    const solar = neu('solar', 13, 10, { stufe: 5 }); // 100 kW Erzeugung, hängt hinter einer 25er-Leitung am Heizhaus
+    const mit = berechneNetz(dorf(neu('d25', 12, 10), solar), [], 2);
+    expect(mit.verfuegbar_kw).toBeLessThanOrEqual(12);
+    expect(mit.verfuegbar_kw).toBeGreaterThan(0);
+  });
+  it('V1: Direkt am Heizhaus (ohne Leitung) gibt es keine Begrenzung durch Leitungen', () => {
+    const solar = neu('solar', 12, 10, { stufe: 1 });
+    expect(berechneNetz(dorf(solar), [], 2).verfuegbar_kw).toBe(25);
+  });
+  it('V2: Ein Pufferspeicher ohne laufende Quelle erzeugt keine Wärme', () => {
+    const puffer = neu('puffer', 12, 10);
+    expect(berechneNetz(dorf(puffer), [], 2).verfuegbar_kw).toBe(0);
+  });
+  it('V2: Mit laufender Quelle gibt der Speicher zusätzlich Leistung ab', () => {
+    const puffer = neu('puffer', 12, 10);
+    const ohne = berechneNetz(dorf(), [quelle('kessel')], 2).verfuegbar_kw;
+    expect(berechneNetz(dorf(puffer), [quelle('kessel')], 2).verfuegbar_kw).toBeGreaterThan(ohne);
   });
 });

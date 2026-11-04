@@ -279,7 +279,7 @@ describe('A15 Offline-Fortschritt', () => {
 });
 
 import { AUFTRAEGE, pruefeAuftraege } from '../src/core/auftraege';
-import { laden, serialisieren } from '../src/core/speichern';
+import { laden, ladenMitBefund, serialisieren } from '../src/core/speichern';
 
 describe('A14 Aufträge', () => {
   it('erster Auftrag ist offen, Belohnung wird einmal gutgeschrieben', () => {
@@ -308,10 +308,30 @@ describe('A15 Speichern und Laden', () => {
     expect(JSON.parse(serialisieren(geladen))).toEqual(JSON.parse(serialisieren(s.stand)));
   });
   it('kaputte oder fremde Daten ergeben ein neues Spiel statt eines Absturzes', () => {
-    for (const t of [null, '', '{', '[]', '{"version":2}', '{"version":1}', '{"version":1,"objekte":[],"innen":[],"geld_eur":1}']) {
+    for (const t of [null, '', '{', '[]', '{"version":3}', '{"version":2}', '{"version":1}', '{"version":2,"objekte":[],"innen":[],"geld_eur":1}']) {
       const st = laden(t, T0);
       expect(st.objekte.some((o) => o.typ === 'hz')).toBe(true);
       expect(st.quelle_gewaehlt).toBe(false);
     }
+  });
+  it('H1: Alter Spielstand (Version 1 mit p1/p2/p3) wird umgeschrieben und startet', () => {
+    const alt = JSON.parse(serialisieren(neuerSpielstand(T0)));
+    alt.version = 1;
+    const leitung = alt.objekte.find((o: { typ: string }) => o.typ === 'd50' || o.typ === 'd25');
+    leitung.typ = 'p2';
+    const r = ladenMitBefund(JSON.stringify(alt), T0);
+    expect(r.befund).toBe('migriert');
+    expect(r.stand.objekte.some((o) => o.typ === ('p2' as string))).toBe(false);
+    expect(() => new Spiel(r.stand, () => T0)).not.toThrow();
+  });
+  it('H1: Unbekannter Objekttyp macht den Stand unbrauchbar (Befund defekt, neues Spiel, kein Absturz)', () => {
+    const s = JSON.parse(serialisieren(neuerSpielstand(T0)));
+    s.objekte.push({ id: 999, typ: 'gibtesnicht', x: 1, y: 1, stufe: 1, bau: null, kasse_eur: 0 });
+    const r = ladenMitBefund(JSON.stringify(s), T0);
+    expect(r.befund).toBe('defekt');
+    expect(() => new Spiel(r.stand, () => T0)).not.toThrow();
+  });
+  it('H1: Ein gültiger Stand hat den Befund ok', () => {
+    expect(ladenMitBefund(serialisieren(neuerSpielstand(T0)), T0).befund).toBe('ok');
   });
 });

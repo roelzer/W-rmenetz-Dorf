@@ -2,10 +2,10 @@
 
 **Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Zuletzt aktualisiert:** 2026-11-04
 
-> **Jetzt:** F6 Abschluss: Designer-Treue, Reviewer, Fachprüfer, restliche Tests · **Zuletzt fertig:** F5 Nachbardörfer (A17), App-Installation + offline (A16), Schriften selbst gehostet, Leitungen in 8 Durchmessern mit Simons Farben · **Als Nächstes:** Prüfungen, Abschlussbericht · **Geschätzt fertig:** nach F6 · **Fortschritt:** 5 von 6 Features · **Frage an Simon:** siehe docs/OFFENE_FRAGEN.md („in den jeweiligen Orten“)
+> **Jetzt:** Nachbesserung nach Reviewer/Fachprüfer (Offline-Dateiliste, Texte, Tastatur) und neue Optik „moderner, weniger kindlich“ · **Zuletzt fertig:** F5 (Nachbardörfer, App/Offline-Grundlage, Schriften, 8 Leitungsdurchmesser), Speicherstand-Migration · **Als Nächstes:** Designer-Überarbeitung, Nachprüfung, Abschluss · **Fortschritt:** 5 von 6 Features, Prüfungen in Arbeit · **Frage an Simon:** docs/OFFENE_FRAGEN.md
 
 ## Gerade läuft
-Phase Solo: Abschnittsprüfung F3–F5. Laufen: `designer` (Treue, Querformat), `reviewer` (gesamt), `fachpruefer` (Spieltexte/Zahlen, A18).
+Phase Solo: Nachbesserung. Designer-Treue-Prüfung läuft noch; Reviewer (rot) und Fachprüfer (gelb) sind fertig, ihre Befunde werden abgearbeitet (siehe docs/SITZUNGSUEBERGABE.md).
 
 **Arbeitsbranch:** claude/youthful-feynman-jaegcj
 

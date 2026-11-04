@@ -139,22 +139,35 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     }
   }
 
-  // Erzeugung
-  let aussen_kw = 0, strom_kw = 0;
+  // Erzeugung. Fachregel V1: Von außen eingespeiste Wärme ist höchstens so groß wie die kleinste
+  // Leitungskapazität auf dem Weg zur Heizzentrale. V2: Ein Speicher erzeugt keine Wärme (zählt nur, wenn eine Quelle läuft).
+  const wegKapazitaet_kw = (feld: number): number => {
+    let kap = Infinity;
+    for (let k = feld; k >= 0; k = eltern.get(k) as number) kap = Math.min(kap, KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number);
+    return kap;
+  };
+  let aussen_kw = 0, strom_kw = 0, speicher_kw = 0;
   for (const o of objekte) {
     const D = KATALOG[o.typ];
     if (D.kategorie === 'waerme' && istAktiv(o) && anschluss.has(o.id)) {
-      if (D.leistung_kw) aussen_kw += D.leistung_kw[o.stufe - 1];
+      const weg = wegKapazitaet_kw((anschluss.get(o.id) as { feld: number }).feld);
+      if (D.leistung_kw) {
+        const kw = Math.min(D.leistung_kw[o.stufe - 1], weg);
+        if (o.typ === 'puffer') speicher_kw += kw; else aussen_kw += kw;
+      }
       if (D.strom_kw) strom_kw += D.strom_kw[o.stufe - 1];
     }
   }
   let abwaerme_kw = 0;
   for (const o of objekte) {
-    if (o.typ === 'gewerbe' && o.zustand === 'vertrag' && anschluss.has(o.id)) abwaerme_kw += KATALOG.gewerbe.abwaerme_kw as number;
+    if (o.typ === 'gewerbe' && o.zustand === 'vertrag' && anschluss.has(o.id))
+      abwaerme_kw += Math.min(KATALOG.gewerbe.abwaerme_kw as number, wegKapazitaet_kw((anschluss.get(o.id) as { feld: number }).feld));
   }
   const quellen = innen.filter((k) => istAktiv(k));
   const leistung = (k: InnenQuelle): number => (KATALOG[k.typ].leistung_kw as number[])[k.stufe - 1];
   const innen_kw = quellen.reduce((a, k) => a + leistung(k), 0);
+  const ohneSpeicher_kw = aussen_kw + abwaerme_kw + innen_kw;
+  if (ohneSpeicher_kw > 0) aussen_kw += speicher_kw;
   const verfuegbar_kw = aussen_kw + abwaerme_kw + innen_kw;
 
   // Wärme verteilen: nah zuerst, nur wenn die Leitungen reichen

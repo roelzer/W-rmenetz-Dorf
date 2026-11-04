@@ -41,7 +41,7 @@ export function neuerSpielstand(jetzt_ms: number): Spielstand {
   const behalten: Objekt[] = [];
   for (const a of objekte) if (!behalten.some((b) => ueberlappt(a, b))) behalten.push(a);
   return {
-    version: 1, name: 'Mein Wärmedorf', geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
+    version: 2, name: 'Mein Wärmedorf', geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
     objekte: behalten, naechste_id: id, innen: [], preisstufe: 2, antraege: {},
     zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: false, deko_anzahl: 0,
   };

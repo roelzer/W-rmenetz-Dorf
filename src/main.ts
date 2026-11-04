@@ -5,8 +5,9 @@ import '@fontsource/nunito-sans/latin-600.css';
 import '@fontsource/nunito-sans/latin-700.css';
 import '@fontsource/nunito-sans/latin-800.css';
 import './ui/stil.css';
-import { Spiel } from './core/spiel';
-import { laden, serialisieren, SPEICHER_SCHLUESSEL } from './core/speichern';
+
+import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL } from './core/speichern';
+import { neuerSpielstand, Spiel } from './core/spiel';
 import { Maler } from './render/maler';
 import { zeichneSzene } from './render/szene';
 import { Steuerung } from './steuerung';
@@ -16,13 +17,31 @@ tokensAnwenden();
 
 const uhr = (): number => Date.now();
 const lesen = (): string | null => { try { return localStorage.getItem(SPEICHER_SCHLUESSEL); } catch { return null; } };
-const spiel = new Spiel(laden(lesen(), uhr()), uhr);
-spiel.bis(uhr());
+/** Einen unbrauchbaren Spielstand sichern, bevor er vom neuen Spiel überschrieben wird. */
+function sichern(text: string | null): void {
+  if (!text) return;
+  try { localStorage.setItem(`${SPEICHER_SCHLUESSEL}-defekt`, text); } catch (fehler) { console.warn('Sicherung des alten Spielstands fehlgeschlagen', fehler); }
+}
+let startHinweis = '';
+const gelesen = lesen();
+const geladen = ladenMitBefund(gelesen, uhr());
+let spiel: Spiel;
+if (geladen.befund === 'defekt') { sichern(gelesen); startHinweis = 'Dein alter Spielstand ließ sich nicht lesen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).'; }
+try {
+  spiel = new Spiel(geladen.stand, uhr);
+  spiel.bis(uhr());
+} catch (fehler) {
+  console.warn('Spielstand führte zu einem Fehler, neues Dorf', fehler);
+  sichern(gelesen);
+  startHinweis = 'Dein alter Spielstand ließ sich nicht öffnen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).';
+  spiel = new Spiel(neuerSpielstand(uhr()), uhr);
+}
 
 const leinwand = document.getElementById('karte') as HTMLCanvasElement;
 const maler = new Maler(leinwand.getContext('2d')!);
 const steuerung = new Steuerung(spiel, leinwand, maler, uhr);
 const kamera = steuerung.kamera;
+if (startHinweis) steuerung.toast(startHinweis);
 
 function groesseAnpassen(): void {
   const r = leinwand.parentElement!.getBoundingClientRect();
@@ -44,18 +63,15 @@ function bild(jetzt: number): void {
 }
 requestAnimationFrame(bild);
 
-/** false, sobald Speichern scheitert (Speicher voll/gesperrt). Die Oberfläche zeigt dann einen Hinweis; „gespeichert“ erscheint nie fälschlich. */
-let speichernGelungen = true;
+/** Scheitert das Speichern (Speicher voll/gesperrt), erscheint einmal pro Sitzung ein Hinweis; „gespeichert“ wird nie angezeigt. */
 let warnungGezeigt = false;
 function speichern(): void {
-  try { localStorage.setItem(SPEICHER_SCHLUESSEL, serialisieren(spiel.stand)); speichernGelungen = true; }
+  try { localStorage.setItem(SPEICHER_SCHLUESSEL, serialisieren(spiel.stand)); }
   catch (fehler) {
-    speichernGelungen = false;
     console.warn('Speichern fehlgeschlagen', fehler);
     if (!warnungGezeigt) { warnungGezeigt = true; steuerung.toast('Speichern ist auf diesem Gerät gerade nicht möglich – dein Fortschritt geht beim Schließen verloren.'); }
   }
 }
-void speichernGelungen;
 setInterval(speichern, 5000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) speichern(); });
 window.addEventListener('pagehide', speichern);

@@ -44,7 +44,7 @@ export interface Foerderantrag {
 }
 
 export interface Spielstand {
-  version: 1;
+  version: 2;
   name: string;
   geld_eur: number;
   taler: number;
