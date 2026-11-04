@@ -23,3 +23,6 @@ Simon schrieb nach dem Querformat-Wunsch: „und wie gesagt in den jeweiligen or
 
 ## Beantwortet durch Simon (2026-11-04)
 Frage „in den jeweiligen Orten“: Es ist Lesart (b): Man sucht einen Ort, er wird geladen und dort gespielt (A21). Offen für Simon/Planung: Datenquelle (Empfehlung OpenStreetMap, braucht Netz beim Laden; Lizenz ODbL mit Quellenangabe), Umfang der ersten Version (ein paar vorbereitete Orte vs. freie Suche). Zudem T-Stück-Regel (A23) fachlich zu bestätigen.
+
+## Fragen aus dem Ideen-Lauf (docs/wow-ideen.md)
+S1 Spielst nur du oder später auch Laien? S2 Spielzeit: 1 Spieljahr ≈ 2–3 Wochen echt (Empfehlung) oder echter Kalender? S3 Echte Netze in Hilpoltstein/Dornhausen/Obermässing, auf die sich das Spiel beziehen darf? S4 Dauerhaft ohne Echtgeld (Empfehlung: ja)? S5 Echte Förderprogramm-Namen oder fiktive? Zusätzlich: typische Rücklauftemperatur in einem normalen Dorfnetz (für A28).
