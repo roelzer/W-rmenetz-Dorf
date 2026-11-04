@@ -29,3 +29,4 @@ S1 Spielst nur du oder später auch Laien? S2 Spielzeit: 1 Spieljahr ≈ 2–3 W
 
 - **Bauzeit eines Bauabschnitts (A41):** Aktuell 15 Minuten echt (vor der Vorführung verkürzt; „ein Spieljahr“ wären ca. 17 Stunden). Soll der Wert so bleiben oder länger sein? Mit `KONSTANTEN.abschnitt_bau_s` leicht änderbar.
 - **Heizzentrale-Ziele (A39):** Stufe 2: 3 Anschlüsse; 3: 5 Anschlüsse + 80 kW; 4: 8 + 140 kW + 25 K Spreizung; 5: 11 + 200 kW + 30 K. Spielwerte, bitte prüfen.
+- **Fachprüfung offen (Reviewer-Hinweis):** PV-Leistung (Dach und Außenanlage) wird im Spiel als Dauerleistung gerechnet; real liefert PV im Jahresmittel nur etwa 10–12 % der Spitzenleistung. Soll das im Spiel vereinfacht bleiben oder mit Ertragsfaktor gerechnet werden? Dazu Spreizung (Grundwert 20 K) und Upgrade-Werte dem Fachprüfer vorlegen.
