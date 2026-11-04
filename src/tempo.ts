@@ -1,7 +1,7 @@
 /**
  * Vorführ-Tempo: Die Spieluhr läuft auf Wunsch schneller als die echte Uhr (×1, ×10, ×60).
  * Der Spielkern kennt nur die Uhr, die ihm übergeben wird – er bleibt unverändert und testbar.
- * Gespeichert wird der Abstand zur echten Uhr; Zeit bei geschlossenem Spiel läuft normal weiter.
+ * Gespeichert wird der Abstand zur echten Uhr; Zeit bei geschlossenem oder verborgenem Spiel läuft normal weiter.
  */
 const SCHLUESSEL = 'waermedorf-tempo-v1';
 export const TEMPO_STUFEN: ReadonlyArray<{ faktor: number; name: string }> = [
@@ -11,6 +11,8 @@ export const TEMPO_STUFEN: ReadonlyArray<{ faktor: number; name: string }> = [
 let faktor = 1;
 let virtuell = Date.now();
 let letztReal = virtuell;
+/** Ist das Fenster nicht sichtbar, läuft die Zeit nur normal (kein Vorführ-Tempo im Hintergrund). */
+let verborgen = false;
 
 try {
   const g = JSON.parse(localStorage.getItem(SCHLUESSEL) ?? '{}') as { faktor?: number; offset_ms?: number };
@@ -19,10 +21,12 @@ try {
 } catch (fehler) { console.warn('Tempo nicht lesbar, Normal gilt', fehler); }
 letztReal = Date.now();
 
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { uhr(); verborgen = document.hidden; });
+
 /** Aktuelle Spielzeit in ms. */
 export function uhr(): number {
   const r = Date.now();
-  virtuell += Math.max(0, r - letztReal) * faktor; letztReal = r;
+  virtuell += Math.max(0, r - letztReal) * (verborgen ? 1 : faktor); letztReal = r;
   return virtuell;
 }
 export function tempo(): number { return faktor; }

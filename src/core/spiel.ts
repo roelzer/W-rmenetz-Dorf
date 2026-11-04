@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, RUECKLAUF_BASIS_C, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -12,6 +12,8 @@ const N = KONSTANTEN.feldanzahl;
 /** A38: So lange wird eine Abwesenheit höchstens nachgerechnet (7 Tage). */
 const MAX_OFFLINE_S = 7 * 24 * 3600;
 const SCHRITT_S = 30;
+/** Ab dieser Lücke (Sekunden) gilt das Spiel als „war zu“. */
+const OFFLINE_SCHWELLE_S = 300;
 
 /** Ereignisse für Oberfläche und Darstellung (Hinweise, Effekte). Der Kern kennt keine Grafik. */
 export type Ereignis =
@@ -64,6 +66,7 @@ export class Spiel {
   stand: Spielstand;
   netz!: Netz;
   readonly ereignisse: Ereignis[] = [];
+  private abwesend = false;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
     this.stand = stand;
     this.neuBerechnen();
@@ -105,26 +108,27 @@ export class Spiel {
   }
   baugebietErschliessen(): Ergebnis {
     if (!this.baugebietBedingungen().ok) return this.nein('Die Bedingungen für das Baugebiet sind noch nicht erfüllt');
-    const b = this.bezahlen({ eur: KONSTANTEN.baugebiet_eur });
-    if (!b.ok) return b;
-    // Seite wählen, die am weitesten vom Ortsrand entfernt von bestehenden Häusern liegt: Gegenrichtung zum Schwerpunkt der Häuser
+    // Gegenrichtung zum Schwerpunkt der bestehenden Häuser; erst Plätze suchen, bezahlt wird nur bei mindestens einem Grundstück
     const haeuser = this.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus');
     const sx = haeuser.reduce((a, o) => a + o.x, 0) / Math.max(1, haeuser.length), sy = haeuser.reduce((a, o) => a + o.y, 0) / Math.max(1, haeuser.length);
     const hz = this.hz, dx = Math.sign(hz.x - sx) || 1, dy = Math.sign(hz.y - sy) || 1;
     const ziele: Array<[number, number]> = [];
     for (let r = 4; r <= 11; r++) for (let a = -5; a <= 5; a++) ziele.push([hz.x + dx * r, hz.y + a], [hz.x + a, hz.y + dy * r]);
     const typen: TypId[] = ['efh', 'efh', 'rh', 'efh', 'mfh', 'efh', 'rh', 'efh'];
-    let gesetzt = 0;
+    const plaetze: Array<{ typ: TypId; x: number; y: number }> = [];
     for (const [x, y] of ziele) {
-      if (gesetzt >= typen.length) break;
-      const t = typen[gesetzt], k = KATALOG[t].groesse ?? 1;
-      const nahe = this.stand.objekte.some((o) => KATALOG[o.typ].kategorie === 'haus' && Math.abs(o.x - x) < k + 1 && Math.abs(o.y - y) < k + 1);
+      if (plaetze.length >= typen.length) break;
+      const t = typen[plaetze.length], k = KATALOG[t].groesse ?? 1;
+      const nahe = [...haeuser, ...plaetze.map((p) => ({ ...p, typ: p.typ }))].some((o) => KATALOG[o.typ].kategorie === 'haus' && Math.abs(o.x - x) < k + 1 && Math.abs(o.y - y) < k + 1);
       if (nahe || !this.kannPlatzieren(t, x, y)) continue;
-      this.stand.objekte.push({ id: this.stand.naechste_id++, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, zufriedenheit_pct: 80, bestand: true, ohne_station: true, _pop: this.uhr() });
-      gesetzt++;
+      plaetze.push({ typ: t, x, y });
     }
+    if (!plaetze.length) return this.nein('Auf dieser Seite ist kein Platz für ein Baugebiet');
+    const b = this.bezahlen({ eur: KONSTANTEN.baugebiet_eur });
+    if (!b.ok) return b;
+    for (const p of plaetze) this.stand.objekte.push({ id: this.stand.naechste_id++, typ: p.typ, x: p.x, y: p.y, stufe: 1, bau: null, kasse_eur: 0, zufriedenheit_pct: 80, bestand: true, ohne_station: true, _pop: this.uhr() });
     this.stand.baugebiet = true;
-    this.hinweis(`Baugebiet erschlossen: ${gesetzt} neue Grundstücke – verbinde sie mit einem Bauabschnitt`);
+    this.hinweis(`Baugebiet erschlossen: ${plaetze.length} neue Grundstücke – verbinde sie mit einem Bauabschnitt`);
     this.neuBerechnen();
     return ok();
   }
@@ -153,16 +157,16 @@ export class Spiel {
     this.hinweis(`${wer} kümmert sich um: ${UPGRADES[n].name}`);
     return ok();
   }
-  /** Spreizung des Netzes: Vorlauf minus mittlerer Rücklauf der angeschlossenen Kunden, nach Bedarf gewichtet (A39). */
+  /** Spreizung des Netzes (Vorlauf minus Rücklauf): Grundwert plus die Rücklauf-Senkung der Upgrades, nach Bedarf gewichtet. Sie hängt nicht vom Regler ab – ein heißerer Vorlauf hebt auch den Rücklauf (A39). */
   spreizung_k(): number {
     let summe = 0, gew = 0;
     for (const o of this.stand.objekte) {
       if (!this.netz.warm.has(o.id)) continue;
-      const w = KATALOG[o.typ].bedarf_kw ?? 0;
+      const w = bedarfKw(o);
       const senk = UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
-      summe += (this.vorlauf_c - (RUECKLAUF_BASIS_C - senk)) * w; gew += w;
+      summe += (SPREIZUNG_BASIS_K + senk) * w; gew += w;
     }
-    return gew ? summe / gew : this.vorlauf_c - RUECKLAUF_BASIS_C;
+    return gew ? summe / gew : SPREIZUNG_BASIS_K;
   }
   /** Bedingungen für die nächste Heizzentralen-Stufe (A39). */
   hzZiele(): { text: string; ist: number; soll: number; erreicht: boolean }[] {
@@ -411,6 +415,7 @@ export class Spiel {
   entfernen(id: number): Ergebnis {
     const o = this.objekt(id);
     if (!o || o.landschaft || !(istLeitung(o.typ) || KATALOG[o.typ].kategorie === 'deko')) return { ok: false };
+    if (o.geplant && (this.stand.abschnitt?.phase === 'bau' || this.stand.abschnitt?.phase === 'planung')) return this.nein('Der Abschnitt ist schon bestellt oder in Planung – hier lässt sich nichts mehr entfernen');
     if (istLeitung(o.typ) && !o.geplant) this.stand.geld_eur += this.rueckkauf_eur(o.typ, 1); // A30: 50 % zurück
     this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
     this.neuBerechnen();
@@ -586,11 +591,13 @@ export class Spiel {
   }
 
   // ---------- Zeit ----------
-  /** Rechnet den Spielstand bis zum Zeitpunkt jetzt_ms fort (auch lange Offline-Zeit, höchstens 12 h). */
+  /** Rechnet den Spielstand bis zum Zeitpunkt jetzt_ms fort (auch lange Offline-Zeit, höchstens 7 Tage). */
   bis(jetzt_ms: number): void {
     const s = this.stand;
     if (jetzt_ms <= s.zuletzt_ms) { this.fertigstellen(jetzt_ms); return; }
     if (jetzt_ms - s.zuletzt_ms > MAX_OFFLINE_S * 1000) s.zuletzt_ms = jetzt_ms - MAX_OFFLINE_S * 1000;
+    // A38: Bei längerer Abwesenheit kommen die Einnahmen direkt aufs Konto (die Hauskassen würden sonst überlaufen, die Kosten liefen aber weiter).
+    this.abwesend = jetzt_ms - s.zuletzt_ms > OFFLINE_SCHWELLE_S * 1000;
     while (s.zuletzt_ms < jetzt_ms) {
       let ziel = Math.min(jetzt_ms, s.zuletzt_ms + SCHRITT_S * 1000);
       const naechster = this.naechstesEreignis_ms();
@@ -599,6 +606,7 @@ export class Spiel {
       s.zuletzt_ms = ziel;
       this.fertigstellen(ziel);
     }
+    this.abwesend = false;
   }
   private naechstesEreignis_ms(): number | null {
     let m: number | null = null;
@@ -652,8 +660,11 @@ export class Spiel {
   private einnahmen(dt_s: number): void {
     const s = this.stand, P = PREISSTUFEN[s.preisstufe];
     for (const o of s.objekte) {
-      if (this.netz.warm.has(o.id))
-        o.kasse_eur = Math.min(this.kassenCap_eur(o), o.kasse_eur + (((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o) / 60) * dt_s);
+      if (this.netz.warm.has(o.id)) {
+        const plus = (((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o) / 60) * dt_s;
+        if (this.abwesend) s.geld_eur = Math.min(Math.max(s.geld_eur, this.kassengrenze_eur()), s.geld_eur + plus);
+        else o.kasse_eur = Math.min(this.kassenCap_eur(o), o.kasse_eur + plus);
+      }
     }
     s.geld_eur = Math.max(0, s.geld_eur - (this.netz.betriebskosten_eur_min / 60) * dt_s + (this.netz.einspeisung_kw * KONSTANTEN.einspeisung_eur_je_kw_min / 60) * dt_s);
     let geaendert = false;

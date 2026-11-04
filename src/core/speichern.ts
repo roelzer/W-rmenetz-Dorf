@@ -28,6 +28,14 @@ function gueltig(d: Partial<Spielstand>): d is Spielstand {
     if (!o || !(o.typ in KATALOG) || !istZahl(o.x) || !istZahl(o.y) || !istZahl(o.id) || !istZahl(o.stufe)) return false;
   }
   for (const k of d.innen) if (!k || !(k.typ in KATALOG) || KATALOG[k.typ].kategorie !== 'innen' || !istZahl(k.stufe)) return false;
+  // Neue optionale Felder (A33, A41): unbrauchbare Werte machen den Stand unbrauchbar, statt Bauabschnitte für immer zu blockieren
+  if (d.vorlauf_c !== undefined && !istZahl(d.vorlauf_c)) return false;
+  if (d.abschnitt !== undefined) {
+    const a = d.abschnitt as { phase?: unknown; bau?: { ende_ms?: unknown } | null };
+    if (!a || !['planung', 'offen', 'bestellen', 'bau'].includes(a.phase as string)) return false;
+    if ((a.phase === 'planung' || a.phase === 'bau') && !(a.bau && istZahl(a.bau.ende_ms))) return false;
+  }
+  for (const o of d.objekte) if (o.upgrade !== undefined && !istZahl(o.upgrade)) return false;
   return d.objekte.some((o) => o.typ === 'hz');
 }
 

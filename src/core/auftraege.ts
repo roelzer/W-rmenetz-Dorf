@@ -14,7 +14,7 @@ export const AUFTRAEGE: ReadonlyArray<Auftrag> = [
   { id: 'c2', taler: 10, text: 'Versorge alle drei Starthäuser: kaufe dem dritten Haus eine Übergabestation und lass mit Philipp einen Bauabschnitt planen, der die Leitung dorthin legt',
     erfuellt: (s) => s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id)).length >= 3 },
   { id: 'col', taler: 5, text: 'Hol den Wärmeverkauf ab: Münze über einem Haus antippen', erfuellt: (s) => !!s.stand.erledigt.collect },
-  { id: 'h3', taler: 10, text: 'Baue ein viertes Haus und schließ es an', erfuellt: (s) => s.netz.warm.size >= 4 },
+  { id: 'h3', taler: 10, text: 'Schließ ein viertes Haus an: Übergabestation kaufen und per Bauabschnitt eine Leitung legen', erfuellt: (s) => s.netz.warm.size >= 4 },
   { id: 'grant', taler: 5, text: 'Stelle im Abrechnungsbüro einen Förderantrag', erfuellt: (s) => !!s.stand.erledigt.grant },
   { id: 'hz2', taler: 15, text: 'Baue die Heizzentrale auf Stufe 2 aus', erfuellt: (s) => s.hzStufe >= 2 },
   { id: 'fund', taler: 15, text: 'Baue etwas mit bewilligter Förderung', erfuellt: (s) => !!s.stand.erledigt.funded },

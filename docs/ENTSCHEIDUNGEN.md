@@ -17,3 +17,7 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-04 – Bestehende Tests `netz.test.ts` und `spiel.test.ts` nur umbenannt (Leitungs-IDs p1/p2/p3 → d25/d50/d110, gleiche Leistungen 12/50/220 kW), nicht abgeschwächt – Folge der acht Leitungsdurchmesser.
 
 2026-11-04 – Erste Orte: Hilpoltstein, Dornhausen, Obermässing, vorbereitet statt freier Suche – Simon. Gebäudedaten aus OpenStreetMap (ODbL, Quellenangabe) einmal abrufen und als Datei einbinden; Zugriff auf overpass-api.de ist in dieser Cloud-Umgebung gesperrt (Netzwerkregel), muss freigegeben werden.
+
+2026-11-04 – A38 Weiterlauf: Nachrechnung höchstens 7 Tage; bei Abwesenheit über 5 Minuten fließen die Einnahmen direkt aufs Konto (statt in die Hauskassen) – Grund: Reviewer fand, dass die Betriebskosten sonst die Kasse leeren, während die gedeckelten Hauskassen nichts auffangen.
+2026-11-04 – A39 Spreizung = Grundwert 20 K + Rücklauf-Senkung durch Upgrades, unabhängig vom Vorlauf-Regler – Grund: sonst wäre das Ziel durch Hochdrehen des Vorlaufs erreichbar. Spielwert, dem Fachprüfer vorzulegen.
+2026-11-04 – Vorführ-Tempo (×1/×10/×60) liegt außerhalb des Spielkerns (src/tempo.ts) und gilt nicht bei verborgenem Fenster.

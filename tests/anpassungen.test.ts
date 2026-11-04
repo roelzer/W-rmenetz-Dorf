@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { bedarfKw } from '../src/core/netz';
 import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation } from '../src/core/katalog';
 
 const T0 = 1_000_000_000_000;
@@ -181,14 +182,16 @@ describe('A33 Vorlauftemperatur und Hausupgrades', () => {
 });
 
 describe('A38 Weiterlauf, A39 Heizzentrale-Ziele, A40 Helfer', () => {
-  it('A38: Beim Wiederöffnen nach drei Tagen sind Einnahmen aufgelaufen, nach einem Monat gilt die Obergrenze von 7 Tagen', () => {
+  it('A38: Nach drei Tagen Abwesenheit ist das Geld gestiegen, nach 30 Tagen zählen genau 7 Tage', () => {
     const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
-    const a = new Spiel(JSON.parse(JSON.stringify(s.stand)), () => T0 + 3 * 86_400_000); a.bis(T0 + 3 * 86_400_000);
-    const b = new Spiel(JSON.parse(JSON.stringify(s.stand)), () => T0 + 30 * 86_400_000); b.bis(T0 + 30 * 86_400_000);
-    const kasse = (x: Spiel) => x.stand.objekte.reduce((n, o) => n + o.kasse_eur, 0);
-    expect(kasse(a)).toBeGreaterThan(kasse(s));
-    expect(b.stand.zuletzt_ms).toBe(T0 + 30 * 86_400_000);
-    expect(kasse(b)).toBeGreaterThanOrEqual(kasse(a));
+    const TAG = 86_400_000, kopie = () => new Spiel(JSON.parse(JSON.stringify(s.stand)), () => T0);
+    const a = kopie(); a.bis(T0 + 3 * TAG);
+    const b = kopie(); b.bis(T0 + 7 * TAG);
+    const c = kopie(); c.bis(T0 + 30 * TAG);
+    expect(a.stand.geld_eur).toBeGreaterThan(s.stand.geld_eur);
+    expect(b.stand.geld_eur).toBeGreaterThan(a.stand.geld_eur);
+    expect(c.stand.geld_eur).toBeCloseTo(b.stand.geld_eur, 0); // Obergrenze 7 Tage
+    expect(c.stand.zuletzt_ms).toBe(T0 + 30 * TAG);
   });
   it('A39: Die nächste Stufe der Heizzentrale braucht Ziele (Anschlüsse, Absatz, Spreizung)', () => {
     const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
@@ -199,28 +202,31 @@ describe('A38 Weiterlauf, A39 Heizzentrale-Ziele, A40 Helfer', () => {
     expect(s.ausbauen(s.hz.id).ok).toBe(false);
     expect(s.stand.geld_eur).toBe(1_000_000);
   });
-  it('A39: Spreizung steigt mit Upgrades und fällt mit höherem Vorlauf nicht unter null', () => {
+  it('A39: Spreizung steigt mit Upgrades und lässt sich nicht durch den Vorlauf-Regler erreichen', () => {
     let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
     for (let i = 0; i < 100; i++) { t += 10_000; s.bis(t); }
     const vor = s.spreizung_k();
     const h = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
     s.upgradeKaufen(h.id); t += 3_600_000; s.bis(t);
     expect(s.spreizung_k()).toBeGreaterThan(vor);
+    const mit = s.spreizung_k();
+    s.vorlaufSetzen(85); expect(s.spreizung_k()).toBeCloseTo(mit, 9);
+    s.vorlaufSetzen(55); expect(s.spreizung_k()).toBeGreaterThan(0);
   });
-  it('A40: Drei Helfer arbeiten je an einem Auftrag; der vierte Auftrag wartet', () => {
-    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+  it('A40: Drei Helfer arbeiten je an einem Auftrag; der vierte Auftrag wird abgelehnt', () => {
+    const t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;
-    const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
-    // nur zwei Häuser mit Station: das zweite Haus bekommt per Hand eine dritte Station
-    const extra = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
-    extra.ohne_station = false; extra.station = 'st_15';
-    const vier = [...haeuser, extra];
-    expect(vier.length).toBeGreaterThanOrEqual(3);
-    for (const o of vier.slice(0, 3)) expect(s.upgradeKaufen(o.id).ok).toBe(true);
+    const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus').slice(0, 4);
+    for (const o of haeuser) { o.ohne_station = false; o.station = 'st_80'; }
+    expect(haeuser).toHaveLength(4);
+    for (const o of haeuser.slice(0, 3)) expect(s.upgradeKaufen(o.id).ok).toBe(true);
     expect(s.freierHelfer()).toBeUndefined();
-    const vierter = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station && !o.upgrade_auftrag);
-    if (vierter) expect(s.upgradeKaufen(vierter.id).ok).toBe(false);
-    expect(s.upgradeKaufen(vier[0].id).ok).toBe(false); // gleicher Hausauftrag läuft schon
+    const geld = s.stand.geld_eur;
+    expect(s.upgradeKaufen(haeuser[3].id).ok).toBe(false); // alle Helfer beschäftigt
+    expect(s.stand.geld_eur).toBe(geld);
+    expect(s.stand.objekte.filter((o) => o.upgrade_auftrag)).toHaveLength(3);
+    expect(new Set(s.stand.objekte.filter((o) => o.upgrade_auftrag).map((o) => o.upgrade_auftrag!.helfer)).size).toBe(3);
+    expect(s.upgradeKaufen(haeuser[0].id).ok).toBe(false); // gleicher Hausauftrag läuft schon
   });
 });
 
@@ -283,7 +289,9 @@ describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
     const vorher = KATALOG[h.typ].bedarf_kw!;
     lauf(s, z, KONSTANTEN.vollversorgung_nach_s + 1200);
     expect(h.vollversorgung).toBe(true);
-    expect(Math.round(h.aufgestockt ? vorher * 1.5 * 1.4 : vorher * 1.5)).toBeGreaterThanOrEqual(Math.round(vorher * 1.5));
+    expect(bedarfKw(h)).toBeCloseTo(vorher * KONSTANTEN.vollversorgung_faktor * (h.aufgestockt ? KONSTANTEN.aufstockung_faktor : 1), 9);
+    expect(bedarfKw(h)).toBeGreaterThan(vorher);
+    expect(s.netz.bedarf_kw).toBeGreaterThan(20); // zwei Starthäuser à 10 kW vorher
   });
   it('Aufstockung: Ein Wohnhaus stockt nach einiger Zeit auf, der Bedarf steigt', () => {
     const { s, z } = mitUhr(); const h = startHaus(s);
@@ -304,17 +312,39 @@ describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
     const { s } = mitUhr(); s.stand.geld_eur = 1_000_000;
     expect(s.baugebietErschliessen().ok).toBe(false);
     s.stand.objekte.find((o) => o.typ === 'hz')!.stufe = 3;
-    for (const o of s.stand.objekte.filter((x) => KATALOG[x.typ].kategorie === 'haus')) { o.ohne_station = false; o.station = 'st_80'; }
-    s.stand.objekte.push({ id: s.stand.naechste_id++, typ: 'd110', x: 12, y: 12, stufe: 1, bau: null, kasse_eur: 0 }); s.neuBerechnen();
+    // Genügend warme Häuser herstellen: Stationen, dicke Leitung rund ums Heizhaus und ausreichend Wärme
+    s.stand.innen[0].stufe = 3;
+    const haeuser = s.stand.objekte.filter((x) => KATALOG[x.typ].kategorie === 'haus');
+    for (const o of haeuser) { o.ohne_station = false; o.station = 'st_80'; }
+    let n = 0;
+    for (const o of haeuser) { if (n++ >= 6) break; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (s.kannPlatzieren('d110', o.x + dx, o.y + dy)) s.stand.objekte.push({ id: s.stand.naechste_id++, typ: 'd110', x: o.x + dx, y: o.y + dy, stufe: 1, bau: null, kasse_eur: 0 }); }
+    s.neuBerechnen();
     const bed = s.baugebietBedingungen();
-    if (!bed.ok) { // nicht jedes Dorf hat sofort sechs warme Häuser: Bedingung künstlich erfüllen
-      s.netz.warm.clear(); for (const o of s.stand.objekte.filter((x) => KATALOG[x.typ].kategorie === 'haus').slice(0, 6)) s.netz.warm.add(o.id);
-    }
-    const n0 = s.stand.objekte.length;
-    expect(s.baugebietErschliessen().ok).toBe(true);
-    expect(s.stand.objekte.length).toBeGreaterThan(n0);
-    expect(s.stand.baugebiet).toBe(true);
+    if (!bed.ok) expect(bed.fehlt.join(' ')).toMatch(/angeschlossene Häuser/); // Starthäuser reichen im Test nicht: Bedingung ist die echte Prüfung
+    expect(bed.ok).toBe(false);
+    const n0 = s.stand.objekte.length, geld = s.stand.geld_eur;
     expect(s.baugebietErschliessen().ok).toBe(false);
+    expect(s.stand.objekte.length).toBe(n0);
+    expect(s.stand.geld_eur).toBe(geld);
+  });
+  it('A43: Ohne Platz auf der Gegenseite wird nichts bezahlt; mit Platz entstehen feste Häuser', () => {
+    const { s } = mitUhr(); s.stand.geld_eur = 1_000_000;
+    s.baugebietBedingungen = () => ({ ok: true, fehlt: [] }); // Voraussetzungen sind oben getestet
+    const n0 = s.stand.objekte.length;
+    const r = s.baugebietErschliessen();
+    expect(r.ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(1_000_000 - KONSTANTEN.baugebiet_eur);
+    const neu = s.stand.objekte.slice(n0).filter((o) => KATALOG[o.typ].kategorie === 'haus');
+    expect(neu.length).toBeGreaterThan(0);
+    expect(neu.every((o) => o.bestand && o.ohne_station)).toBe(true);
+    expect(s.verschieben(neu[0].id, 0, 0).ok).toBe(false);
+    // Platz zustellen: auf einem frischen Spiel alle freien Felder der Gegenseite mit Steinen belegen
+    const t = mitUhr().s; t.stand.geld_eur = 1_000_000; t.baugebietBedingungen = () => ({ ok: true, fehlt: [] });
+    for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) if (t.kannPlatzieren('stein', x, y)) t.stand.objekte.push({ id: t.stand.naechste_id++, typ: 'stein', x, y, stufe: 1, bau: null, kasse_eur: 0 });
+    const r2 = t.baugebietErschliessen();
+    expect(r2.ok).toBe(false);
+    expect(t.stand.geld_eur).toBe(1_000_000);
+    expect(t.stand.baugebiet).toBeUndefined();
   });
 });
 
@@ -349,5 +379,29 @@ describe('Offene Anforderungen: A20, A27, A28, A35, A37, A42', () => {
   it('A42: Häuser, Bestand und Großabnehmer lassen sich nicht verschieben', () => {
     const s = neuesSpiel();
     for (const o of s.stand.objekte.filter((x) => ['haus', 'gross'].includes(KATALOG[x.typ].kategorie))) expect(s.verschieben(o.id, 0, 0).ok).toBe(false);
+  });
+});
+
+describe('Review-Nachbesserungen A41', () => {
+  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
+  it('Verwerfen ist während Planung und Bau verboten, entfernen bestellter Leitungen ebenfalls', () => {
+    const { s, z } = mitUhr();
+    s.abschnittPlanen();
+    expect(s.abschnittVerwerfen().ok).toBe(false); // Philipp plant noch
+    z.t += 600_000; s.bis(z.t);
+    s.platzieren('d50', 12, 12); s.abschnittAbschliessen(); s.materialBestellen();
+    expect(s.abschnitt?.phase).toBe('bau');
+    expect(s.abschnittVerwerfen().ok).toBe(false);
+    const l = s.stand.objekte.find((o) => o.geplant)!;
+    expect(s.entfernen(l.id).ok).toBe(false);
+    expect(s.stand.objekte.some((o) => o.geplant)).toBe(true);
+  });
+  it('Beschädigte Bauabschnitt-Daten machen den Spielstand unbrauchbar (neues Spiel statt Dauersperre)', async () => {
+    const { serialisieren, ladenMitBefund } = await import('../src/core/speichern');
+    const { s } = mitUhr();
+    const kaputt = JSON.parse(serialisieren(s.stand)); kaputt.abschnitt = { phase: 'bau', bau: null };
+    expect(ladenMitBefund(JSON.stringify(kaputt), T0).befund).toBe('defekt');
+    const gut = JSON.parse(serialisieren(s.stand)); gut.abschnitt = { phase: 'offen', bau: null };
+    expect(ladenMitBefund(JSON.stringify(gut), T0).befund).not.toBe('defekt');
   });
 });

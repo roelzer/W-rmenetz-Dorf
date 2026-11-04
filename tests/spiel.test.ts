@@ -270,8 +270,8 @@ describe('A13 Förderung', () => {
 describe('A15 Offline-Fortschritt', () => {
   it('eine lange Pause rechnet dasselbe wie viele kleine Schritte', () => {
     const a = laufend(), b = laufend();
-    a.zeit.t += 10 * 60_000; a.s.bis(a.zeit.t);
-    for (let i = 0; i < 600; i++) { b.zeit.t += 1000; b.s.bis(b.zeit.t); }
+    a.zeit.t += 4 * 60_000; a.s.bis(a.zeit.t); // kürzer als die Abwesenheits-Schwelle (5 min, A38)
+    for (let i = 0; i < 240; i++) { b.zeit.t += 1000; b.s.bis(b.zeit.t); }
     const summe = (s: Spiel) => s.stand.objekte.reduce((x, o) => x + o.kasse_eur, 0);
     expect(summe(a.s)).toBeCloseTo(summe(b.s), 3);
     expect(a.s.stand.geld_eur).toBeCloseTo(b.s.stand.geld_eur, 3);

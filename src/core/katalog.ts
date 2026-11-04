@@ -362,8 +362,8 @@ export const UPGRADES: ReadonlyArray<{ name: string; kosten_eur: number; senkung
   { name: 'Größere Heizflächen', dauer_s: 240, kosten_eur: 9000, senkung_k: 8, beschreibung: 'Größere Heizkörper oder Fußbodenheizung: Das Haus wird schon mit niedriger Vorlauftemperatur warm.' },
 ];
 
-/** Rücklauftemperatur eines Hauses ohne Upgrades (Spielwert); Upgrades senken sie um ihre Kelvin-Zahl (A33/A39). */
-export const RUECKLAUF_BASIS_C = 55;
+/** Spreizung (Vorlauf minus Rücklauf) eines Hauses ohne Upgrades in K (Spielwert); Upgrades senken den Rücklauf und erhöhen sie um ihre Kelvin-Zahl (A33/A39). */
+export const SPREIZUNG_BASIS_K = 20;
 /** Helfer für die Bauabschnitte (A41): Philipp plant, Laura bestellt das Material. */
 export const ABSCHNITT_HELFER = { planung: 'Philipp', material: 'Laura' } as const;
 /** Die drei Helfer (A40): Sie senken auf Auftrag den Rücklauf eines Hauses. */
