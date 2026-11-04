@@ -172,7 +172,7 @@ export class Steuerung implements Ui {
     this.besuch = v; this.auswahl = null;
     this.hud.sichtbar({ eigene: false });
     const gemocht = !!this.spiel.stand.gemocht[v.name];
-    const gefaellt = knopf(gemocht ? 'Gefällt dir' : 'Gefällt mir', () => { this.spiel.stand.gemocht[v.name] = true; gefaellt.textContent = 'Gefällt dir'; gefaellt.disabled = true; toast(`${v.name} gefällt dir!`); }, 'taler', { klein: true, aus: gemocht });
+    const gefaellt = knopf(gemocht ? 'Gefällt dir' : 'Gefällt mir', () => { this.spiel.moegen(v.name); gefaellt.textContent = 'Gefällt dir'; gefaellt.disabled = true; toast(`${v.name} gefällt dir!`); }, 'taler', { klein: true, aus: gemocht });
     this.banner = h('div', { class: 'banner' },
       h('span', { class: 'wer' }, v.name, h('small', {}, `Dorf von ${v.besitzer} · Heizzentrale ${v.stufe}`)), gefaellt,
       knopf('Nach Hause', () => this.besuchEnde(), 'los', { klein: true }));

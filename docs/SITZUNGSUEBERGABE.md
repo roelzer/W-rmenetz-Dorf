@@ -28,3 +28,6 @@ D. Reviewer `nachpruefung` bei kritisch/hoch; Tests mit A-Nummern für A16 (offe
 
 ## Wichtige Befehle
 `npm test`, `npx tsc --noEmit`, `npm run build`, `npx vite preview --port 4173` (Build ansehen), Playwright: `require('playwright')`, Querformat-Skripte liegen im Scratchpad (`ql.cjs`, `ql2.cjs`).
+
+## Zwischenstand auf Simons Wunsch (2026-11-04)
+Simon wollte einen ersten Zwischenstand ("kurze Einleitung, bisschen bauen"); Durchlauf angehalten. Erledigt: Offline-Start (K1), Balken-Farben, Texte B1–B8, Einnahmefaktoren, "Gefällt mir" im Kern. Offen: Designer-Mängel 2–22 (docs/DESIGN_TREUE_F5.md), moderner Stil (Designer-Entwurf läuft/liegt vor), M2, M4, M5, Reviewer, Abschlussgate.

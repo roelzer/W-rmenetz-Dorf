@@ -37,5 +37,8 @@ describe('A17 – Nachbardörfer besuchen (Beispieldörfer, kein Server)', () =>
     const vorher = JSON.stringify(sp.stand);
     nachbardoerfer();
     expect(JSON.stringify(sp.stand)).toBe(vorher);
+    expect(sp.moegen('Testdorf')).toBe(true);
+    expect(sp.moegen('Testdorf')).toBe(false);
+    expect(sp.stand.gemocht['Testdorf']).toBe(true);
   });
 });

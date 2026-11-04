@@ -224,6 +224,13 @@ export class Spiel {
   beschleunigungskosten_taler(bau: Bau): number {
     return Math.max(1, Math.ceil((bau.ende_ms - this.uhr()) / 1000 / KONSTANTEN.beschleunigen_s_je_taler));
   }
+  /** „Gefällt mir“ für ein Nachbardorf – ändert nur den eigenen Spielstand, einmal je Dorf. */
+  moegen(name: string): boolean {
+    if (this.stand.gemocht[name]) return false;
+    this.stand.gemocht[name] = true;
+    return true;
+  }
+
   beschleunigen(bau: Bau | null | undefined): Ergebnis {
     if (!bau) return { ok: false };
     const c = this.beschleunigungskosten_taler(bau);

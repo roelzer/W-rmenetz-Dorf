@@ -132,7 +132,7 @@ export const KATALOG: Record<TypId, Definition> = {
     bauzeit_s: [6, 20, 50, 120, 240],
     grenze: [1, 1, 2, 2, 3],
     beschreibung:
-      'Hebt Wärme für die Spitzenzeiten auf und gibt sie dann zusätzlich ins Netz ab (im Spiel vereinfacht als zusätzliche Leistung).',
+      'Hebt Wärme für die Spitzenzeiten auf. Er erzeugt selbst keine Wärme: Im Spiel hilft er nur, solange mindestens eine Wärmequelle läuft (vereinfacht).',
   },
   solar: {
     name: 'Solarthermie', groesse: 2, kategorie: 'waerme',
@@ -150,7 +150,7 @@ export const KATALOG: Record<TypId, Definition> = {
     bauzeit_s: [15, 45, 100, 220, 420],
     grenze: [0, 0, 1, 2, 2],
     beschreibung:
-      'Wärme aus dem Erdreich, über das Jahr weitgehend gleichmäßig und ohne Brennstoff (im Spiel vereinfacht).',
+      'Wärme aus dem Erdreich, über das Jahr weitgehend gleichmäßig. In der Praxis hebt meist eine Wärmepumpe sie auf Netztemperatur – im Spiel vereinfacht ohne Strombedarf.',
   },
   d25: {
     name: '25er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 12, durchmesser_mm: 25,
@@ -190,7 +190,7 @@ export const KATALOG: Record<TypId, Definition> = {
   d110: {
     name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 220, durchmesser_mm: 110,
     kosten_eur: [90], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.165, farbe: '#1f6b3a',
-    beschreibung: 'Dickste Leitung: von der Heizzentrale weg und zu Großabnehmern. Durchmesser 110 mm (dunkelgrün), überträgt bis 220 kW.',
+    beschreibung: 'Dickste Leitung (110 mm, dunkelgrün), überträgt im Spiel bis 220 kW. Nur dort sinnvoll, wo viel Wärme fließt – für ein einzelnes Haus ist sie zu teuer.',
   },
   efh: {
     name: 'Einfamilienhaus', groesse: 1, kategorie: 'haus', bedarf_kw: 10,
@@ -204,7 +204,7 @@ export const KATALOG: Record<TypId, Definition> = {
     einnahmen_eur_min: [34, 50, 70, 96, 130],
     kosten_eur: [300, 600, 1300, 2800, 6000], bauzeit_s: [8, 25, 60, 150, 300],
     grenze: [0, 3, 5, 7, 9],
-    beschreibung: 'Drei Wohnungen unter einem Dach.',
+    beschreibung: 'Drei Häuser Wand an Wand – spart Leitung und Fläche.',
   },
   baeck: {
     name: 'Bäckerei', groesse: 1, kategorie: 'haus', bedarf_kw: 20,
@@ -267,11 +267,11 @@ export const BAU_KATEGORIEN: ReadonlyArray<readonly [Kategorie, string]> = [
 /** Wärmepreisstufen: Preis in ct/kWh, Einnahme-Faktor, Ziel-Zufriedenheit in % */
 export interface Preisstufe { name: string; ct_je_kwh: number; einnahmefaktor: number; zufriedenheit_pct: number }
 export const PREISSTUFEN: ReadonlyArray<Preisstufe> = [
-  { name: 'sehr günstig', ct_je_kwh: 10, einnahmefaktor: 0.7, zufriedenheit_pct: 95 },
-  { name: 'günstig', ct_je_kwh: 12, einnahmefaktor: 0.85, zufriedenheit_pct: 85 },
+  { name: 'sehr günstig', ct_je_kwh: 10, einnahmefaktor: 10 / 14, zufriedenheit_pct: 95 },
+  { name: 'günstig', ct_je_kwh: 12, einnahmefaktor: 12 / 14, zufriedenheit_pct: 85 },
   { name: 'fair', ct_je_kwh: 14, einnahmefaktor: 1, zufriedenheit_pct: 70 },
-  { name: 'teuer', ct_je_kwh: 16, einnahmefaktor: 1.2, zufriedenheit_pct: 42 },
-  { name: 'sehr teuer', ct_je_kwh: 18, einnahmefaktor: 1.45, zufriedenheit_pct: 15 },
+  { name: 'teuer', ct_je_kwh: 16, einnahmefaktor: 16 / 14, zufriedenheit_pct: 42 },
+  { name: 'sehr teuer', ct_je_kwh: 18, einnahmefaktor: 18 / 14, zufriedenheit_pct: 15 },
 ];
 
 export const KONSTANTEN = {

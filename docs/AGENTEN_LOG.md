@@ -10,3 +10,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-04 15:38 | ▶ | reviewer | Reviewer Gesamtprüfung |
 | 2026-11-04 15:38 | ▶ | fachpruefer | Fachprüfer Spieltexte und Zahlen |
 | 2026-11-04 15:44 | ■ 🟡 | fachpruefer | 🟡 **Ampel: Gelb.** Die Spielregeln im Kern stimmen fachlich, und die Tests sichern sie ab. Aber einige Texte, die der Spieler sieht, sind falsch oder irrefü ([Bericht](docs/pruefberichte/20261104-154428-fachpruefer-ae7bdfae93c3d5bd1.md)) |
+| 2026-11-04 15:46 | ■ 🔴 | reviewer | 🔴 Ampel ROT – Gesamtprüfung F3–F5 (`f619a2b..8db1ef8`), Modus `gesamt`  ([Bericht](docs/pruefberichte/20261104-154613-reviewer-a5569ff137bc9a508.md)) |
+| 2026-11-04 15:50 | ■ 🟡 | designer | 🟡 Der Spielstil passt zum Entwurf, aber im Querformat stimmen fünf Dinge nicht, die man beim Spielen sofort merkt. Darunter ist ein möglicher Verlust des S ([Bericht](docs/pruefberichte/20261104-155017-designer-a8caf8244e36025c9.md)) |
+| 2026-11-04 15:51 | ▶ | designer | Designer: moderner Stil |

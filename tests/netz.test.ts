@@ -136,6 +136,12 @@ describe('A9 Wärmeerzeugung: Verteilung nur bis zur verfügbaren Leistung', () 
   });
 });
 
+describe('A10 Preisstufen (V3)', () => {
+  it('Einnahmefaktor = Preis ÷ 14 ct/kWh', () => {
+    for (const p of PREISSTUFEN) expect(p.einnahmefaktor).toBeCloseTo(p.ct_je_kwh / 14, 9);
+  });
+});
+
 describe('A10 Wirtschaft: Einnahmen nur für gelieferte Wärme, Kosten nur für erzeugte', () => {
   const eines = () => {
     const h = neu('efh', 13, 10);

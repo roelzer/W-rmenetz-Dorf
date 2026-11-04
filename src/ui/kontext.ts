@@ -136,7 +136,7 @@ export class Kontext {
       if (b.ok) kasten_.append(h('p', {}, 'Alles erfüllt – du kannst unterschreiben.'));
       else for (const f of b.fehlt) kasten_.append(zeile(chip('fehlt', 'rot'), f));
       c.append(kasten_);
-      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine dicke Leitung (110er).'), h('div', { class: 'knopfreihe' }, knopf('110er-Leitung legen', () => this.ui.stempeln('d110'), 'los')));
+      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), h('div', { class: 'knopfreihe' }, knopf('110er-Leitung legen', () => this.ui.stempeln('d110'), 'los')));
       c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { aus: !b.ok })));
       return;
     }
@@ -150,8 +150,9 @@ export class Kontext {
     const sp = this.ui.spiel, D = KATALOG[o.typ], n = sp.netz;
     c.append(h('div', { class: 'chips' }, chip(n.anschluss.has(o.id) ? 'angeschlossen' : 'nicht angeschlossen', n.anschluss.has(o.id) ? 'gruen' : 'rot')));
     if (D.leistung_kw) c.append(zeile('Wärmeleistung', `${D.leistung_kw[o.stufe - 1]} kW`));
-    if (D.strom_kw) c.append(zeile('Strom', `${D.strom_kw[o.stufe - 1]} kW`));
-    if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Ohne Leitung zur Heizzentrale fließt keine Wärme ins Netz.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('d50'), 'los')));
+    if (D.strom_kw) c.append(zeile('Spitzenleistung Strom', `${D.strom_kw[o.stufe - 1]} kW`));
+    const stromQuelle = !!D.strom_kw && !D.leistung_kw;
+    if (!n.anschluss.has(o.id)) c.append(h('p', {}, stromQuelle ? 'Der Sonnenstrom muss über eine Verbindung zur Heizzentrale gelangen, sonst spart er dort nichts.' : 'Ohne Leitung zur Heizzentrale fließt keine Wärme ins Netz.'), h('div', { class: 'knopfreihe' }, knopf(stromQuelle ? 'Verbindung legen' : 'Leitung legen', () => this.ui.stempeln('d50'), 'los')));
     this.ausbauKnopf(c, o);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true })));
   }
@@ -161,7 +162,7 @@ export class Kontext {
     const last = n.last_kw.get(key) ?? 0, kap = D.kapazitaet_kw ?? 0;
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
-    else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Hier soll mehr Wärme durch, als die Leitung schafft. Nimm eine dickere Leitung.')));
+    else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
     const tausch = LEITUNGEN.filter((t) => t !== o.typ && sp.grenze(t) > 0);
     if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch.map((t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, '', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }))));
