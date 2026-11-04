@@ -84,15 +84,17 @@ export class Spiel {
     const basis = MIN_VORLAUF_C[o.typ] ?? 70;
     return basis - UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
   }
-  /** A36: PV-Anlage auf dem Dach eines Gebäudes kaufen; Überschuss geht ins Stromnetz. */
-  dachPvKaufen(id: number): Ergebnis {
-    const o = this.objekt(id), kw = o ? DACH_PV.kw[o.typ] : 0;
-    if (!o || !kw || o.dach_pv || o.gekuendigt) return { ok: false };
+  /** A36: PV-Anlage auf dem Dach der Heizzentrale; ihre Größe wächst mit der Stufe. Überschuss geht ins Stromnetz. */
+  dachPvLeistung_kw(): number { return DACH_PV.kw_je_stufe[this.hzStufe - 1] ?? 0; }
+  dachPvKaufen(): Ergebnis {
+    const hz = this.hz;
+    if (hz.dach_pv) return { ok: false };
+    const kw = this.dachPvLeistung_kw();
     const b = this.bezahlen({ eur: kw * DACH_PV.eur_je_kw });
     if (!b.ok) return b;
-    o.dach_pv = true; o._pop = this.uhr();
-    this.ereignisse.push({ art: 'funken', objekt_id: o.id });
-    this.hinweis(`PV-Anlage auf dem Dach: ${kw} kWp`);
+    hz.dach_pv = true; hz._pop = this.uhr();
+    this.ereignisse.push({ art: 'funken', objekt_id: 'heizzentrale' });
+    this.hinweis(`PV-Anlage auf dem Heizhaus-Dach: ${kw} kWp`);
     this.neuBerechnen();
     return ok();
   }
@@ -286,7 +288,7 @@ export class Spiel {
       bau: D.sofort ? null : this.neuerBau('neu', (D.bauzeit_s as number[])[0]),
       kasse_eur: 0, _pop: this.uhr(),
     };
-    if (D.kategorie === 'haus') o.zufriedenheit_pct = 80;
+    if (D.kategorie === 'haus') { o.zufriedenheit_pct = 80; o.ohne_station = true; } // Häuser brauchen eine Übergabestation, um Wärme abzunehmen
     if (D.kategorie === 'deko') this.stand.deko_anzahl++;
     if (istQuelle(t) && this.foerderungNutzen(t)) o.foerderung_eur = c.eur;
     this.stand.objekte.push(o);

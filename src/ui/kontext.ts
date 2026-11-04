@@ -119,7 +119,6 @@ export class Kontext {
     c.append(zeile('Wärmebedarf', `braucht ${zahl(bedarfKw(o))} kW`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'), zeile('Einnahmen', `${zahl(einnahme * nutzungsfaktor(o))} €/min`));
     if (o.vollversorgung) chips.append(chip('Kamin aus', 'gruen'));
     if (o.aufgestockt) chips.append(chip('aufgestockt', 'blau'));
-    this.dachPv(c, o);
     const z = o.zufriedenheit_pct ?? 80;
     c.append(zeile('Zufriedenheit', `${zahl(z)} %`), balken(z / 100));
     if (o.gekuendigt) {
@@ -135,16 +134,6 @@ export class Kontext {
     this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
     c.append(h('p', { class: 'gedaempft' }, 'Gebäude stehen fest. Wer näher am Netz liegt, hat es leichter – wer weit weg ist, braucht eine lange Leitung.'));
-  }
-
-  /** A36: PV auf dem Dach. */
-  private dachPv(c: HTMLElement, o: Objekt): void {
-    const kw = DACH_PV.kw[o.typ], sp = this.ui.spiel;
-    if (!kw) return;
-    const k = kasten('Solarstrom');
-    if (o.dach_pv) k.append(h('p', {}, `PV-Anlage auf dem Dach: ${kw} kWp. Sie senkt die Stromkosten der Heizzentrale, Überschuss wird ins Stromnetz eingespeist.`));
-    else k.append(h('p', { class: 'gedaempft' }, 'Eine PV-Anlage auf dem Dach liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${kw} kWp`, () => { sp.dachPvKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(kw * DACH_PV.eur_je_kw), aus: sp.stand.geld_eur < kw * DACH_PV.eur_je_kw })));
-    c.append(k);
   }
 
   /** A33: Hausupgrades senken die nötige Vorlauftemperatur (Rücklauf). */
@@ -221,6 +210,7 @@ export class Kontext {
   }
 
   private heizzentrale(c: HTMLElement, o: Objekt): void {
+    const hzObj = o;
     const sp = this.ui.spiel, s = sp.stand, plaetze = KATALOG.hz.plaetze![sp.hzStufe - 1];
     const k = kasten(`Im Heizhaus · ${s.innen.length}/${plaetze} Plätze`);
     s.innen.forEach((q, i) => {
@@ -240,6 +230,10 @@ export class Kontext {
       h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
       knopf('+', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, '', { klein: true, aus: sp.vorlauf_c >= VORLAUF.max_c })),
       h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
+    const pvk = kasten('Solarstrom');
+    const pvKw = sp.dachPvLeistung_kw();
+    if (hzObj.dach_pv) pvk.append(h('p', {}, `PV-Anlage auf dem Heizhaus-Dach: ${pvKw} kWp. Sie senkt die Stromkosten von Wärmepumpe und Power-to-Heat-Kessel, Überschuss wird ins Stromnetz eingespeist.`));
+    else pvk.append(h('p', { class: 'gedaempft' }, 'PV auf dem Dach der Heizzentrale liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet. Die Anlage wächst mit der Heizzentrale.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${pvKw} kWp`, () => { sp.dachPvKaufen(); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(pvKw * DACH_PV.eur_je_kw), aus: s.geld_eur < pvKw * DACH_PV.eur_je_kw })));
     const bg = kasten('Baugebiet');
     const bb = sp.baugebietBedingungen();
     if (sp.stand.baugebiet) bg.append(h('p', { class: 'gedaempft' }, 'Das Baugebiet ist erschlossen. Verbinde die neuen Häuser mit einem Bauabschnitt.'));
@@ -257,7 +251,7 @@ export class Kontext {
       const a = sp.helferAuftrag(name);
       hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
     }
-    c.append(k, vl, zk, hk, bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
+    c.append(k, vl, pvk, zk, hk, bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
     void groesse;
   }

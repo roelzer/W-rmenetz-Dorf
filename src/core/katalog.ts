@@ -376,8 +376,8 @@ export const HZ_ZIELE: ReadonlyArray<{ stufe: number; anschluesse: number; absat
   { stufe: 5, anschluesse: 11, absatz_kw: 200, spreizung_k: 30 },
 ];
 
-/** PV auf dem Dach (A36): Leistung je Gebäudetyp in kWp und Preis je kWp in € (Spielwerte). */
-export const DACH_PV = { kw: { efh: 8, rh: 6, baeckerei: 12, mfh: 20, bad: 30, klinik: 40 } as Record<string, number>, eur_je_kw: 1100 };
+/** PV auf dem Dach der Heizzentrale (A36, Simon: PV gehört an die Heizzentrale, nicht an einzelne Häuser): Leistung in kWp je Heizzentralen-Stufe und Preis je kWp in € (Spielwerte). */
+export const DACH_PV = { kw_je_stufe: [10, 15, 25, 40, 60] as ReadonlyArray<number>, eur_je_kw: 1100 };
 
 export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110'];
 export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);

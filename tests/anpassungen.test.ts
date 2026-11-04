@@ -298,15 +298,25 @@ describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
     lauf(s, z, KONSTANTEN.aufstockung_nach_s + 1500);
     expect(h.aufgestockt).toBe(true);
   });
-  it('A36: Dach-PV kostet Geld, liefert Strom und Überschuss wird eingespeist', () => {
-    const { s } = mitUhr(); const h = startHaus(s);
+  it('A36: PV gehört aufs Heizhaus-Dach: kostet Geld, liefert Strom, Überschuss wird eingespeist; Häuser haben keine PV', () => {
+    const { s } = mitUhr();
     expect(s.netz.einspeisung_kw).toBe(0);
-    const g = s.stand.geld_eur;
-    expect(s.dachPvKaufen(h.id).ok).toBe(true);
-    expect(g - s.stand.geld_eur).toBe(8 * 1100);
-    expect(s.netz.strom_kw).toBeGreaterThanOrEqual(8);
+    const g = s.stand.geld_eur, kw = s.dachPvLeistung_kw();
+    expect(kw).toBeGreaterThan(0);
+    expect(s.dachPvKaufen().ok).toBe(true);
+    expect(g - s.stand.geld_eur).toBe(kw * 1100);
+    expect(s.netz.strom_kw).toBe(kw);
     expect(s.netz.einspeisung_kw).toBeGreaterThan(0); // Kessel ist nicht elektrisch → alles geht ins Netz
-    expect(s.dachPvKaufen(h.id).ok).toBe(false);
+    expect(s.dachPvKaufen().ok).toBe(false);
+    expect(s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus').some((o) => o.dach_pv)).toBe(false);
+  });
+  it('Häuser brauchen eine Übergabestation, um Wärme abzunehmen – auch neu gebaute', () => {
+    const { s } = mitUhr(); s.stand.geld_eur = 1_000_000;
+    const [x, y] = [3, 20];
+    expect(s.platzieren('efh', x, y).ok).toBe(true);
+    const neu = s.stand.objekte.at(-1)!;
+    expect(neu.ohne_station).toBe(true);
+    expect(s.netz.warm.has(neu.id)).toBe(false);
   });
   it('A43: Baugebiet braucht Heizzentrale Stufe 3 und genug Anschlüsse, dann entstehen feste neue Häuser', () => {
     const { s } = mitUhr(); s.stand.geld_eur = 1_000_000;

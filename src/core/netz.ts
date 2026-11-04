@@ -160,7 +160,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       if (D.strom_kw) strom_kw += D.strom_kw[o.stufe - 1];
     }
   }
-  for (const o of objekte) if (o.dach_pv) strom_kw += DACH_PV.kw[o.typ] ?? 0; // A36: Dach-PV
+  if (hz.dach_pv) strom_kw += DACH_PV.kw_je_stufe[hz.stufe - 1] ?? 0; // A36: PV auf dem Heizhaus-Dach
   let abwaerme_kw = 0;
   for (const o of objekte) {
     if (o.typ === 'gewerbe' && o.zustand === 'vertrag' && anschluss.has(o.id))
