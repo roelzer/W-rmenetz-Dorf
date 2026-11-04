@@ -2,7 +2,7 @@
 
 **Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Zuletzt aktualisiert:** 2026-11-04
 
-> **Jetzt:** F5 Nachbardörfer, App-Installation/offline, selbst gehostete Schriften · **Zuletzt fertig:** F4 Oberfläche (Anzeigen, Bau-Katalog, Kontextkarten, Quellenwahl, Einstellungen, Platzieren/Verschieben/Leitungen ziehen), jetzt **nur Querformat** (844×390) · **Als Nächstes:** F6 Designer-/Prüfer-Durchgang, Tests je Anforderung, Abschluss · **Geschätzt fertig:** nach F6 · **Fortschritt:** 4 von 6 Features · **Frage an Simon:** siehe docs/OFFENE_FRAGEN.md („in den jeweiligen Orten“)
+> **Jetzt:** F6 Abschluss: Designer-Treue, Reviewer, Fachprüfer, restliche Tests · **Zuletzt fertig:** F5 Nachbardörfer (A17), App-Installation + offline (A16), Schriften selbst gehostet, Leitungen in 8 Durchmessern mit Simons Farben · **Als Nächstes:** Prüfungen, Abschlussbericht · **Geschätzt fertig:** nach F6 · **Fortschritt:** 5 von 6 Features · **Frage an Simon:** siehe docs/OFFENE_FRAGEN.md („in den jeweiligen Orten“)
 
 ## Gerade läuft
 Phase Solo: Bauen. Keine Agenten laufen.

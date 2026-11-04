@@ -63,7 +63,7 @@ describe('A4 Bauen und Platzieren', () => {
   it('Obergrenze je Heizzentralen-Stufe gilt', () => {
     const { s } = laufend();
     expect(s.platzieren('rh', ...frei(s)).ok).toBe(false); // Reihenhaus erst ab Stufe 2
-    expect(s.platzieren('p3', ...frei(s)).ok).toBe(false); // Hauptleitung erst ab Stufe 2
+    expect(s.platzieren('d110', ...frei(s)).ok).toBe(false); // Hauptleitung erst ab Stufe 2
   });
   it('Deko lässt sich entfernen, Großabnehmer nicht verschieben', () => {
     const { s } = laufend();
@@ -109,7 +109,7 @@ describe('A5 Bauzeit, Monteure, Beschleunigen', () => {
   it('Sofort-Objekte (Leitungen) brauchen keinen Monteur', () => {
     const { s } = laufend();
     s.platzieren('efh', ...frei(s)); s.platzieren('efh', ...frei(s));
-    expect(s.platzieren('p1', ...frei(s)).ok).toBe(true);
+    expect(s.platzieren('d25', ...frei(s)).ok).toBe(true);
   });
   it('Beschleunigen kostet Dorftaler und beendet die Baustelle sofort', () => {
     const { s } = laufend();
@@ -173,7 +173,7 @@ describe('A10/A11 Einnahmen, Abholen, Kasse, Zufriedenheit', () => {
     const { s, zeit } = laufend();
     // ohne Last: keine Kosten
     const g0 = s.stand.geld_eur;
-    s.stand.objekte = s.stand.objekte.filter((o) => !['efh', 'p1', 'p2'].includes(o.typ)); s.neuBerechnen();
+    s.stand.objekte = s.stand.objekte.filter((o) => !['efh', 'd25', 'd50'].includes(o.typ)); s.neuBerechnen();
     zeit.t += 60_000; s.bis(zeit.t);
     expect(s.stand.geld_eur).toBe(g0);
   });

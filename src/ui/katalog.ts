@@ -1,4 +1,4 @@
-import { BAU_KATEGORIEN, KATALOG, type Kategorie, type TypId } from '../core/katalog';
+import { BAU_KATEGORIEN, istLeitung, KATALOG, type Kategorie, type TypId } from '../core/katalog';
 import { chip, knopf } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
@@ -47,8 +47,8 @@ export class Katalog {
   private karte(t: TypId): HTMLElement {
     const { spiel: sp } = this.ui, s = sp.stand, D = KATALOG[t];
     const innen = D.kategorie === 'innen';
-    const anzahl = sp.anzahl(t), grenze = innen ? 99 : (t === 'p1' || t === 'p2' || t === 'p3') ? sp.grenze(t) : sp.grenze(t);
-    const gesamtLeitungen = (t === 'p1' || t === 'p2' || t === 'p3') ? sp.leitungsanzahl() : anzahl;
+    const anzahl = sp.anzahl(t), grenze = innen ? 99 : sp.grenze(t);
+    const gesamtLeitungen = istLeitung(t) ? sp.leitungsanzahl() : anzahl;
     const gesperrt = !innen && grenze === 0;
     const voll = !innen && !gesperrt && gesamtLeitungen >= grenze;
     const c = sp.kosten(t, 1);
@@ -79,7 +79,7 @@ export class Katalog {
       return;
     }
     if (!D.sofort && sp.beschaeftigt() >= sp.monteure()) { this.ui.toast('Alle Monteure sind beschäftigt – warte oder baue eine Monteurhütte'); return; }
-    if (t === 'p1' || t === 'p2' || t === 'p3') { this.ui.stempeln(t); return; }
+    if (istLeitung(t)) { this.ui.stempeln(t); return; }
     this.ui.platzieren(t);
   }
 }

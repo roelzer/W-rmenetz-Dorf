@@ -1,3 +1,9 @@
+import '@fontsource/baloo-2/latin-600.css';
+import '@fontsource/baloo-2/latin-700.css';
+import '@fontsource/baloo-2/latin-800.css';
+import '@fontsource/nunito-sans/latin-600.css';
+import '@fontsource/nunito-sans/latin-700.css';
+import '@fontsource/nunito-sans/latin-800.css';
 import './ui/stil.css';
 import { Spiel } from './core/spiel';
 import { laden, serialisieren, SPEICHER_SCHLUESSEL } from './core/speichern';
@@ -56,3 +62,8 @@ window.addEventListener('pagehide', speichern);
 
 // Das Spiel läuft nur im Querformat; wo der Browser es erlaubt, wird die Drehung festgehalten.
 try { void (screen.orientation as unknown as { lock?: (o: string) => Promise<void> }).lock?.('landscape').catch((f: unknown) => console.warn('Drehsperre abgelehnt', f)); } catch (fehler) { console.warn('Drehsperre nicht verfügbar', fehler); }
+
+// Offline spielbar (A16): Service Worker nur im fertigen Build, nicht im Entwicklungsserver.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch((f) => console.warn('Offline-Modus nicht verfügbar', f)); });
+}

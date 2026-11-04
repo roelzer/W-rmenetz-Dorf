@@ -11,7 +11,7 @@ export type Kategorie =
 export type TypId =
   | 'hz' | 'kessel' | 'wpg' | 'ptk'
   | 'pv' | 'puffer' | 'solar' | 'sonde'
-  | 'p1' | 'p2' | 'p3'
+  | 'd25' | 'd32' | 'd40' | 'd50' | 'd63' | 'd75' | 'd90' | 'd110'
   | 'efh' | 'rh' | 'baeck' | 'mfh'
   | 'bad' | 'gewerbe' | 'klinik'
   | 'buero' | 'huette'
@@ -43,6 +43,8 @@ export interface Definition {
   elektrisch?: boolean;
   /** Übertragungsleistung einer Leitung in kW */
   kapazitaet_kw?: number;
+  /** Leitungsdurchmesser in mm (25er … 110er) */
+  durchmesser_mm?: number;
   /** Zeichenbreite und -farbe der Leitung */
   breite?: number;
   farbe?: string;
@@ -150,20 +152,45 @@ export const KATALOG: Record<TypId, Definition> = {
     beschreibung:
       'Wärme aus dem Erdreich, über das Jahr weitgehend gleichmäßig und ohne Brennstoff (im Spiel vereinfacht).',
   },
-  p1: {
-    name: 'Hausanschluss', groesse: 1, kategorie: 'netz', kapazitaet_kw: 12,
-    kosten_eur: [10], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.07, farbe: '#f39a45',
-    beschreibung: 'Dünne Leitung für ein einzelnes Haus (bis 12 kW).',
+  d25: {
+    name: '25er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 12, durchmesser_mm: 25,
+    kosten_eur: [10], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.06, farbe: '#d8392f',
+    beschreibung: 'Für ein einzelnes Haus. Durchmesser 25 mm (rot), überträgt bis 12 kW.',
   },
-  p2: {
-    name: 'Verteilleitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 50,
-    kosten_eur: [25], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.11, farbe: '#e2582b',
-    beschreibung: 'Für eine Straße mit mehreren Häusern (bis 50 kW).',
+  d32: {
+    name: '32er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 20, durchmesser_mm: 32,
+    kosten_eur: [14], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.07, farbe: '#4caf3e',
+    beschreibung: 'Für ein bis zwei Häuser. Durchmesser 32 mm (grün), überträgt bis 20 kW.',
   },
-  p3: {
-    name: 'Hauptleitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 220,
-    kosten_eur: [60], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.16, farbe: '#b8352a',
-    beschreibung: 'Dicke Leitung von der Heizzentrale weg und zu Großabnehmern (bis 220 kW).',
+  d40: {
+    name: '40er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 30, durchmesser_mm: 40,
+    kosten_eur: [20], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.08, farbe: '#6ec6ff',
+    beschreibung: 'Für eine kurze Stichleitung. Durchmesser 40 mm (hellblau), überträgt bis 30 kW.',
+  },
+  d50: {
+    name: '50er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 50, durchmesser_mm: 50,
+    kosten_eur: [28], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.09, farbe: '#1f4fa8',
+    beschreibung: 'Für eine Straße mit mehreren Häusern. Durchmesser 50 mm (dunkelblau), überträgt bis 50 kW.',
+  },
+  d63: {
+    name: '63er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 80, durchmesser_mm: 63,
+    kosten_eur: [38], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.11, farbe: '#e86aa0',
+    beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt bis 80 kW.',
+  },
+  d75: {
+    name: '75er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 110, durchmesser_mm: 75,
+    kosten_eur: [50], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.125, farbe: '#f6c22c',
+    beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt bis 110 kW.',
+  },
+  d90: {
+    name: '90er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 160, durchmesser_mm: 90,
+    kosten_eur: [68], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.145, farbe: '#8a5a2b',
+    beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt bis 160 kW.',
+  },
+  d110: {
+    name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 220, durchmesser_mm: 110,
+    kosten_eur: [90], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.165, farbe: '#1f6b3a',
+    beschreibung: 'Dickste Leitung: von der Heizzentrale weg und zu Großabnehmern. Durchmesser 110 mm (dunkelgrün), überträgt bis 220 kW.',
   },
   efh: {
     name: 'Einfamilienhaus', groesse: 1, kategorie: 'haus', bedarf_kw: 10,
@@ -273,10 +300,11 @@ export const KONSTANTEN = {
   hoechststufe: 5,
 } as const;
 
-export const istLeitung = (t: TypId): boolean => t === 'p1' || t === 'p2' || t === 'p3';
+export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110'];
+export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);
 export const istQuelle = (t: TypId): boolean =>
   KATALOG[t].kategorie === 'innen' || KATALOG[t].kategorie === 'waerme';
-/** Rang der Leitung: 1 dünn … 3 dick */
-export const LEITUNGSRANG: Record<string, number> = { p1: 1, p2: 2, p3: 3 };
+/** Rang der Leitung: 1 dünn (25er) … 8 dick (110er) */
+export const LEITUNGSRANG: Record<string, number> = { d25: 1, d32: 2, d40: 3, d50: 4, d63: 5, d75: 6, d90: 7, d110: 8 };
 /** Hat das Objekt eine Stufenleiter (Ausbau)? */
 export const hatStufen = (t: TypId): boolean => t === 'hz' || !!KATALOG[t].bauzeit_s;

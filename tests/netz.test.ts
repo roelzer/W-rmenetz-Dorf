@@ -14,12 +14,12 @@ describe('A6 Verbindung: nur wer durchgehend an der Heizzentrale hängt, wird ve
   });
   it('Haus an durchgehender Leitung wird warm', () => {
     const h = neu('efh', 14, 10);
-    const n = berechneNetz(dorf(neu('p2', 12, 10), neu('p2', 13, 10), h), [quelle('kessel')], 2);
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10), h), [quelle('kessel')], 2);
     expect(ID(n, h)).toBe(true);
   });
   it('Lücke in der Leitung trennt das Haus vom Netz', () => {
     const h = neu('efh', 15, 10);
-    const n = berechneNetz(dorf(neu('p2', 12, 10), neu('p2', 14, 10), h), [quelle('kessel')], 2);
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 14, 10), h), [quelle('kessel')], 2);
     expect(ID(n, h)).toBe(false);
   });
   it('Haus direkt am Heizhaus braucht keine Leitung', () => {
@@ -28,7 +28,7 @@ describe('A6 Verbindung: nur wer durchgehend an der Heizzentrale hängt, wird ve
     expect(ID(n, h)).toBe(true);
   });
   it('Leitung, die nicht am Heizhaus beginnt, ist nicht verbunden', () => {
-    const p = neu('p2', 16, 16);
+    const p = neu('d50', 16, 16);
     const n = berechneNetz(dorf(p), [quelle('kessel')], 2);
     expect(n.tiefe.has(16 * 24 + 16)).toBe(false);
   });
@@ -37,7 +37,7 @@ describe('A6 Verbindung: nur wer durchgehend an der Heizzentrale hängt, wird ve
 describe('A7 Leitungskapazität: Last über Nennleistung macht Kunden dahinter kalt', () => {
   it('zwei Einfamilienhäuser (je 10 kW) überlasten einen Hausanschluss (12 kW)', () => {
     const a = neu('efh', 13, 10), b = neu('efh', 12, 9);
-    const n = berechneNetz(dorf(neu('p1', 12, 10), a, b), [quelle('kessel', 5)], 2);
+    const n = berechneNetz(dorf(neu('d25', 12, 10), a, b), [quelle('kessel', 5)], 2);
     expect(ID(n, a)).toBe(false);
     expect(ID(n, b)).toBe(false);
     expect(n.kalt.get(a.id)).toBe('leitung');
@@ -45,7 +45,7 @@ describe('A7 Leitungskapazität: Last über Nennleistung macht Kunden dahinter k
   });
   it('dieselbe Last über eine Verteilleitung (50 kW) funktioniert', () => {
     const a = neu('efh', 13, 10), b = neu('efh', 12, 9);
-    const n = berechneNetz(dorf(neu('p2', 12, 10), a, b), [quelle('kessel', 5)], 2);
+    const n = berechneNetz(dorf(neu('d50', 12, 10), a, b), [quelle('kessel', 5)], 2);
     expect(ID(n, a) && ID(n, b)).toBe(true);
   });
   it('ein Engpass weiter vorn macht alles dahinter kalt', () => {
@@ -53,14 +53,14 @@ describe('A7 Leitungskapazität: Last über Nennleistung macht Kunden dahinter k
     const dazu = neu('efh', 12, 9), dazu2 = neu('efh', 13, 9), dazu3 = neu('efh', 14, 9);
     // dünner Hausanschluss direkt am Heizhaus trägt Last von 4 Häusern = 40 kW > 12
     const n = berechneNetz(
-      dorf(neu('p1', 12, 10), neu('p1', 13, 10), neu('p1', 14, 10), neu('p1', 15, 10), fern, dazu, dazu2, dazu3),
+      dorf(neu('d25', 12, 10), neu('d25', 13, 10), neu('d25', 14, 10), neu('d25', 15, 10), fern, dazu, dazu2, dazu3),
       [quelle('kessel', 5)], 2,
     );
     expect(ID(n, fern)).toBe(false);
   });
   it('Last wird nach oben summiert', () => {
     const a = neu('efh', 14, 10);
-    const n = berechneNetz(dorf(neu('p2', 12, 10), neu('p2', 13, 10), a), [quelle('kessel')], 2);
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10), a), [quelle('kessel')], 2);
     expect(n.last_kw.get(10 * 24 + 12)).toBe(10);
     expect(n.last_kw.get(10 * 24 + 13)).toBe(10);
   });
@@ -68,32 +68,32 @@ describe('A7 Leitungskapazität: Last über Nennleistung macht Kunden dahinter k
 
 describe('A8 Dimensionierung in Fließrichtung', () => {
   it('dünn vor dick wird als Planungsfehler markiert (beide Abschnitte)', () => {
-    const n = berechneNetz(dorf(neu('p1', 12, 10), neu('p2', 13, 10)), [quelle('kessel')], 2);
+    const n = berechneNetz(dorf(neu('d25', 12, 10), neu('d50', 13, 10)), [quelle('kessel')], 2);
     expect(n.engpass.has(10 * 24 + 12)).toBe(true);
     expect(n.engpass.has(10 * 24 + 13)).toBe(true);
   });
   it('dick vor dünn ist korrekt', () => {
-    const n = berechneNetz(dorf(neu('p3', 12, 10), neu('p2', 13, 10), neu('p1', 14, 10)), [quelle('kessel')], 2);
+    const n = berechneNetz(dorf(neu('d110', 12, 10), neu('d50', 13, 10), neu('d25', 14, 10)), [quelle('kessel')], 2);
     expect(n.engpass.size).toBe(0);
   });
   it('gleichbleibende Größe ist korrekt', () => {
-    const n = berechneNetz(dorf(neu('p2', 12, 10), neu('p2', 13, 10)), [quelle('kessel')], 2);
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10)), [quelle('kessel')], 2);
     expect(n.engpass.size).toBe(0);
   });
   it('die dünne Stelle begrenzt trotzdem alles dahinter (Kapazität)', () => {
     const h1 = neu('efh', 14, 10), h2 = neu('efh', 13, 9);
     // p1 (12 kW) vorn, p2 dahinter, zwei Häuser (20 kW) hinten → vorn überlastet
-    const n = berechneNetz(dorf(neu('p1', 12, 10), neu('p2', 13, 10), h1, h2), [quelle('kessel', 5)], 2);
+    const n = berechneNetz(dorf(neu('d25', 12, 10), neu('d50', 13, 10), h1, h2), [quelle('kessel', 5)], 2);
     expect(ID(n, h1) || ID(n, h2)).toBe(false);
   });
 });
 
 describe('A9 Wärmeerzeugung: Verteilung nur bis zur verfügbaren Leistung', () => {
   const siebenHaeuser = () => {
-    const l = [neu('p3', 12, 10)];
+    const l = [neu('d110', 12, 10)];
     const haeuser = [] as ReturnType<typeof neu>[];
     for (let i = 0; i < 7; i++) {
-      l.push(neu('p3', 13 + i, 10));
+      l.push(neu('d110', 13 + i, 10));
       haeuser.push(neu('efh', 13 + i, 9));
     }
     return { objekte: dorf(...l, ...haeuser), haeuser };
@@ -139,7 +139,7 @@ describe('A9 Wärmeerzeugung: Verteilung nur bis zur verfügbaren Leistung', () 
 describe('A10 Wirtschaft: Einnahmen nur für gelieferte Wärme, Kosten nur für erzeugte', () => {
   const eines = () => {
     const h = neu('efh', 13, 10);
-    return { h, objekte: dorf(neu('p2', 12, 10), h) };
+    return { h, objekte: dorf(neu('d50', 12, 10), h) };
   };
   it('warmer Kunde zahlt, Preisstufe skaliert die Einnahmen', () => {
     const { objekte } = eines();
@@ -191,32 +191,32 @@ describe('A10 Wirtschaft: Einnahmen nur für gelieferte Wärme, Kosten nur für 
 describe('A12 Großabnehmer', () => {
   it('Hallenbad ohne Vertrag ist kein Kunde und braucht keine Wärme', () => {
     const bad = neu('bad', 13, 10, { zustand: 'gesperrt' });
-    const n = berechneNetz(dorf(neu('p3', 12, 10), bad), [quelle('kessel', 5)], 2);
+    const n = berechneNetz(dorf(neu('d110', 12, 10), bad), [quelle('kessel', 5)], 2);
     expect(n.bedarf_kw).toBe(0);
   });
   it('Hallenbad mit Vertrag wird über die Hauptleitung versorgt und zahlt', () => {
     const bad = neu('bad', 13, 10, { zustand: 'vertrag' });
-    const n = berechneNetz(dorf(neu('p3', 12, 10), bad), [quelle('kessel', 5)], 2);
+    const n = berechneNetz(dorf(neu('d110', 12, 10), bad), [quelle('kessel', 5)], 2);
     expect(ID(n, bad)).toBe(true);
     expect(n.einnahmen_eur_min).toBe(160);
   });
   it('Hallenbad (45 kW) an Verteilleitung (50 kW) geht, an Hausanschluss (12 kW) nicht', () => {
     const bad = neu('bad', 13, 10, { zustand: 'vertrag' });
-    expect(ID(berechneNetz(dorf(neu('p2', 12, 10), bad), [quelle('kessel', 5)], 2), bad)).toBe(true);
+    expect(ID(berechneNetz(dorf(neu('d50', 12, 10), bad), [quelle('kessel', 5)], 2), bad)).toBe(true);
     const bad2 = neu('bad', 13, 10, { zustand: 'vertrag' });
-    expect(ID(berechneNetz(dorf(neu('p1', 12, 10), bad2), [quelle('kessel', 5)], 2), bad2)).toBe(false);
+    expect(ID(berechneNetz(dorf(neu('d25', 12, 10), bad2), [quelle('kessel', 5)], 2), bad2)).toBe(false);
   });
   it('Sägewerk mit Vertrag und Anschluss liefert günstige Abwärme', () => {
     const saege = neu('gewerbe', 13, 10, { zustand: 'vertrag' });
     const h = neu('efh', 12, 9);
-    const n = berechneNetz(dorf(neu('p2', 12, 10), saege, h), [], 2);
+    const n = berechneNetz(dorf(neu('d50', 12, 10), saege, h), [], 2);
     expect(n.verfuegbar_kw).toBe(60);
     expect(ID(n, h)).toBe(true);
     expect(n.betriebskosten_eur_min).toBeCloseTo(10 * 0.1, 6);
   });
   it('Sägewerk ohne Vertrag liefert nichts', () => {
     const saege = neu('gewerbe', 13, 10, { zustand: 'gesperrt' });
-    expect(berechneNetz(dorf(neu('p2', 12, 10), saege), [], 2).verfuegbar_kw).toBe(0);
+    expect(berechneNetz(dorf(neu('d50', 12, 10), saege), [], 2).verfuegbar_kw).toBe(0);
   });
 });
 
@@ -232,7 +232,7 @@ describe('Kunden und Gebäude', () => {
     expect(berechneNetz(dorf(h), [quelle('kessel')], 2).bedarf_kw).toBe(0);
   });
   it('Berechnung ist deterministisch (gleicher Zustand → gleiches Ergebnis)', () => {
-    const o = dorf(neu('p2', 12, 10), neu('efh', 13, 10), neu('efh', 12, 9));
+    const o = dorf(neu('d50', 12, 10), neu('efh', 13, 10), neu('efh', 12, 9));
     const a = berechneNetz(o, [quelle('kessel')], 2), b = berechneNetz(o, [quelle('kessel')], 2);
     expect([...a.warm]).toEqual([...b.warm]);
     expect(a.einnahmen_eur_min).toBe(b.einnahmen_eur_min);

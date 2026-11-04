@@ -1,4 +1,4 @@
-import { istLeitung, KATALOG, KONSTANTEN, PREISSTUFEN, hatStufen, type TypId } from '../core/katalog';
+import { istLeitung, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, hatStufen, type TypId } from '../core/katalog';
 import { groesse, istAktiv } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
@@ -120,8 +120,8 @@ export class Kontext {
         h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'los', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
       return;
     }
-    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('p1'), 'los')));
-    else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine Verteilleitung.'));
+    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('d25'), 'los')));
+    else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
     if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => { this.ui.einsammeln(o.id); }, 'los')));
     this.ausbauKnopf(c, o);
@@ -136,7 +136,7 @@ export class Kontext {
       if (b.ok) kasten_.append(h('p', {}, 'Alles erfüllt – du kannst unterschreiben.'));
       else for (const f of b.fehlt) kasten_.append(zeile(chip('fehlt', 'rot'), f));
       c.append(kasten_);
-      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Hauptleitung.'), h('div', { class: 'knopfreihe' }, knopf('Hauptleitung legen', () => this.ui.stempeln('p3'), 'los')));
+      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine dicke Leitung (110er).'), h('div', { class: 'knopfreihe' }, knopf('110er-Leitung legen', () => this.ui.stempeln('d110'), 'los')));
       c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { aus: !b.ok })));
       return;
     }
@@ -151,7 +151,7 @@ export class Kontext {
     c.append(h('div', { class: 'chips' }, chip(n.anschluss.has(o.id) ? 'angeschlossen' : 'nicht angeschlossen', n.anschluss.has(o.id) ? 'gruen' : 'rot')));
     if (D.leistung_kw) c.append(zeile('Wärmeleistung', `${D.leistung_kw[o.stufe - 1]} kW`));
     if (D.strom_kw) c.append(zeile('Strom', `${D.strom_kw[o.stufe - 1]} kW`));
-    if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Ohne Leitung zur Heizzentrale fließt keine Wärme ins Netz.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('p2'), 'los')));
+    if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Ohne Leitung zur Heizzentrale fließt keine Wärme ins Netz.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('d50'), 'los')));
     this.ausbauKnopf(c, o);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true })));
   }
@@ -163,7 +163,7 @@ export class Kontext {
     if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
     else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Hier soll mehr Wärme durch, als die Leitung schafft. Nimm eine dickere Leitung.')));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
-    const tausch = (['p1', 'p2', 'p3'] as TypId[]).filter((t) => t !== o.typ && sp.grenze(t) > 0);
+    const tausch = LEITUNGEN.filter((t) => t !== o.typ && sp.grenze(t) > 0);
     if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch.map((t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, '', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }))));
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
   }

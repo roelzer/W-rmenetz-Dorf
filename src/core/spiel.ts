@@ -27,7 +27,7 @@ export function neuerSpielstand(jetzt_ms: number): Spielstand {
   const add = (typ: TypId, x: number, y: number, extra: Partial<Objekt> = {}) =>
     objekte.push({ id: id++, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7); add('huette', 12, 7);
-  add('p2', 10, 11); add('p2', 10, 12); add('p1', 10, 13);
+  add('d50', 10, 11); add('d50', 10, 12); add('d25', 10, 13);
   add('efh', 9, 12, { zufriedenheit_pct: 80 }); add('efh', 11, 14, { zufriedenheit_pct: 80 });
   add('bad', 3, 3, { zustand: 'gesperrt' });
   add('gewerbe', 19, 4, { zustand: 'gesperrt' });

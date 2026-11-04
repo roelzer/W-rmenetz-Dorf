@@ -9,7 +9,7 @@ export interface Auftrag {
 }
 
 export const AUFTRAEGE: ReadonlyArray<Auftrag> = [
-  { id: 'c1', taler: 10, text: 'Schließe das zweite Haus an: „Hausanschluss“ bis ans Haus legen',
+  { id: 'c1', taler: 10, text: 'Schließe das zweite Haus an: eine 25er-Leitung bis ans Haus legen',
     erfuellt: (s) => s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id)).length >= 2 },
   { id: 'col', taler: 5, text: 'Hol den Wärmeverkauf ab: Münze über einem Haus antippen', erfuellt: (s) => !!s.stand.erledigt.collect },
   { id: 'h3', taler: 10, text: 'Baue ein drittes Haus und schließ es an', erfuellt: (s) => s.netz.warm.size >= 3 },
@@ -17,7 +17,7 @@ export const AUFTRAEGE: ReadonlyArray<Auftrag> = [
   { id: 'hz2', taler: 15, text: 'Baue die Heizzentrale auf Stufe 2 aus', erfuellt: (s) => s.hzStufe >= 2 },
   { id: 'fund', taler: 15, text: 'Baue etwas mit bewilligter Förderung', erfuellt: (s) => !!s.stand.erledigt.funded },
   { id: 'obs', taler: 5, text: 'Räume ein Hindernis weg (Felsen, Gestrüpp)', erfuellt: (s) => !!s.stand.erledigt.obs },
-  { id: 'main', taler: 25, text: 'Verlege eine Hauptleitung zum Hallenbad und unterschreib den Vertrag',
+  { id: 'main', taler: 25, text: 'Verlege eine dicke Leitung (110er) zum Hallenbad und unterschreib den Vertrag',
     erfuellt: (s) => s.stand.objekte.some((o) => o.typ === 'bad' && o.zustand === 'vertrag') },
   { id: 'saw', taler: 15, text: 'Hol dir die Abwärme vom Sägewerk',
     erfuellt: (s) => s.stand.objekte.some((o) => o.typ === 'gewerbe' && o.zustand === 'vertrag' && s.netz.anschluss.has(o.id)) },

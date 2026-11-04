@@ -10,3 +10,5 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-04 | Währung „Dorftaler“ (Vorlage) statt „Förderbescheide“ (verworfenes Konzept) | folgt der gewählten Vorlage | Umbenennung ist eine Textänderung
 
 - 2026-11-04 – Querformat statt Hochformat: Handy-Layout 844×390 (Anzeigen in einer Reihe oben, Bau-Katalog und Kontextkarte als Seitenfläche rechts, Startzoom 2,2); im Hochformat Hinweis „Bitte drehe dein Handy“; Drehsperre wo der Browser sie erlaubt – Simon wünscht nur Querformat. Die Prüfgröße 390 px im Designentwurf gilt damit als 844×390.
+
+- 2026-11-04 – Leitungen in acht Durchmessern (25er–110er) mit Farben nach Simons Vorgabe ersetzen Hausanschluss/Verteil-/Hauptleitung. Leistungen sind Spielzahlen (12/20/30/50/80/110/160/220 kW, ungefähr mit dem Querschnitt wachsend); 75er–110er ab Heizzentrale Stufe 2. Der Fachprüfer soll Durchmesser und Leistungen prüfen (A18).

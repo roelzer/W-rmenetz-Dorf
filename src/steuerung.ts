@@ -1,12 +1,13 @@
 import { pruefeAuftraege, type Auftrag } from './core/auftraege';
 import { KATALOG, KONSTANTEN, type TypId } from './core/katalog';
 import { groesse } from './core/netz';
+import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
 import { Effekte } from './render/effekte';
 import { Kamera } from './render/kamera';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
-import { knopf } from './ui/bausteine';
+import { chip, knopf } from './ui/bausteine';
 import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { h } from './ui/dom';
 import { einstellungenLesen, einstellungenOeffnen } from './ui/einstellungen';
@@ -42,6 +43,9 @@ export class Steuerung implements Ui {
   private zieht = false;
   private start: { x: number; y: number } | null = null;
   private geistGreifen = false;
+  private besuch: Nachbardorf | null = null;
+  private banner: HTMLElement | null = null;
+  private readonly nachbarn = nachbardoerfer();
   private pinch: { abstand: number; mx: number; my: number } | null = null;
 
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
@@ -49,7 +53,7 @@ export class Steuerung implements Ui {
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });
     this.hud = new Hud(() => this.spiel, {
       bauen: () => this.katalog(),
-      besuchen: () => toast('Nachbardörfer kommen bald'),
+      besuchen: () => this.doerferOeffnen(),
       einstellungen: () => einstellungenOeffnen(this, this.einstellungen, (e) => { this.einstellungen = e; this.bewegungAnwenden(); }),
       auftrag: () => { if (this.auftrag) toast(this.auftrag.text); },
       zoom: (f) => this.kamera.zoomUm(f, this.kamera.breite / 2, this.kamera.hoehe / 2),
@@ -149,6 +153,38 @@ export class Steuerung implements Ui {
     return [0, 0];
   }
 
+  // ---------- Nachbardörfer (S6, S7) ----------
+  private doerferOeffnen(): void {
+    this.abbrechen(); this.katalogUi.schliessen(); this.kontextUi.schliessen();
+    const b = blattOeffnen({ titel: 'Dörfer in der Nähe', art: 'hoch' });
+    const eigene = { name: this.spiel.stand.name, besitzer: 'Du', stufe: this.spiel.hzStufe, wert: this.spiel.dorfwert(), v: null as Nachbardorf | null };
+    const zeilen = [eigene, ...this.nachbarn.map((v) => ({ name: v.name, besitzer: v.besitzer, stufe: v.stufe, wert: v.dorfwert, v }))].sort((a, c) => c.wert - a.wert);
+    const liste = h('div', {});
+    zeilen.forEach((z, i) => {
+      const zeile = h('div', { class: 'zeile', style: z.v ? '' : 'background:var(--farbe-knopf-gewaehlt-0);border-radius:8px;padding:0 8px' },
+        h('span', {}, `${i + 1}. `, h('b', {}, z.name), h('br'), h('small', { class: 'gedaempft' }, `Dorf von ${z.besitzer} · Heizzentrale ${z.stufe} · Dorfwert ${z.wert.toLocaleString('de-DE')}`)),
+        z.v ? knopf('Besuchen', () => { b.zu(); this.besuchStarten(z.v!); }, 'blau', { klein: true }) : chip('dein Dorf', 'gruen'));
+      liste.append(zeile);
+    });
+    b.inhalt.append(liste);
+  }
+  private besuchStarten(v: Nachbardorf): void {
+    this.besuch = v; this.auswahl = null;
+    this.hud.sichtbar({ eigene: false });
+    const gemocht = !!this.spiel.stand.gemocht[v.name];
+    const gefaellt = knopf(gemocht ? 'Gefällt dir' : 'Gefällt mir', () => { this.spiel.stand.gemocht[v.name] = true; gefaellt.textContent = 'Gefällt dir'; gefaellt.disabled = true; toast(`${v.name} gefällt dir!`); }, 'taler', { klein: true, aus: gemocht });
+    this.banner = h('div', { class: 'banner' },
+      h('span', { class: 'wer' }, v.name, h('small', {}, `Dorf von ${v.besitzer} · Heizzentrale ${v.stufe}`)), gefaellt,
+      knopf('Nach Hause', () => this.besuchEnde(), 'los', { klein: true }));
+    document.getElementById('app')!.append(this.banner);
+    const hz = v.objekte.find((o) => o.typ === 'hz')!;
+    this.kamera.zentrieren(hz.x, hz.y, groesse(hz));
+  }
+  private besuchEnde(): void {
+    this.besuch = null; this.banner?.remove(); this.banner = null;
+    this.hud.sichtbar({ eigene: true }); this.zentrieren();
+  }
+
   // ---------- Eingabe ----------
   private eingabe(): void {
     const l = this.leinwand;
@@ -226,6 +262,11 @@ export class Steuerung implements Ui {
     if (this.modus === 'platzieren' || this.modus === 'verschieben') { this.geistSetzen(mx, my); return; }
     if (this.modus === 'stempel') return;
     const [x, y] = this.kamera.feld(mx, my);
+    if (this.besuch) {
+      const f = this.besuch.objekte.find((a) => { const k = groesse(a); return x >= a.x && x < a.x + k && y >= a.y && y < a.y + k; });
+      if (f) toast(`${KATALOG[f.typ].name}${KATALOG[f.typ].bauzeit_s ? ' · Stufe ' + f.stufe : ''}`);
+      return;
+    }
     const o = this.spiel.stand.objekte.find((a) => { const k = groesse(a); return x >= a.x && x < a.x + k && y >= a.y && y < a.y + k; });
     if (!o) { this.kontextUi.schliessen(); return; }
     const D = KATALOG[o.typ];
@@ -236,7 +277,8 @@ export class Steuerung implements Ui {
 
   // ---------- je Bild ----------
   szene(): Szene {
-    const g = this.geist;
+    const g = this.geist, v = this.besuch;
+    if (v) return { objekte: v.objekte, innen: v.innen, netz: v.netz, spiel: null, auswahl_id: null, modus: 'normal', verschiebe_id: null, jetzt_ms: this.uhr(), geist: null, stempel: null };
     return {
       objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),

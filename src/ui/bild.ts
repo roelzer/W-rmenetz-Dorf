@@ -1,4 +1,4 @@
-import { KATALOG, type TypId } from '../core/katalog';
+import { istLeitung, KATALOG, type TypId } from '../core/katalog';
 import type { Objekt } from '../core/typen';
 import { zeichneObjekt } from '../render/gebaeude';
 import { Maler } from '../render/maler';
@@ -18,7 +18,7 @@ export function katalogBild(typ: TypId, breite = 150, hoehe = T.groesse_px.katal
   m.tw = kante >= 2 ? 52 : 64; m.th = m.tw / 2;
   const cx = breite / 2, cy = hoehe * 0.72;
   if (D.kategorie === 'innen') heizhausBild(m, typ, cx, cy);
-  else if (typ === 'p1' || typ === 'p2' || typ === 'p3') leitungsBild(m, typ, cx, cy);
+  else if (istLeitung(typ)) leitungsBild(m, typ, cx, cy);
   else {
     const o: Objekt = { id: 1, typ, x: 0, y: 0, stufe: 1, bau: null, kasse_eur: 0, zustand: 'vertrag' };
     zeichneObjekt(m, o, cx, cy, { warm: true, laeuft: false, innen: [], oel: false }, 0);
