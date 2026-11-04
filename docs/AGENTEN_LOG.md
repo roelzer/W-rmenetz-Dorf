@@ -17,3 +17,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-04 17:33 | ▶ | rechercheur | Recherche Hausupgrades Rücklauftemperatur |
 | 2026-11-04 17:34 | ▶ | rechercheur | Recherche reales Wärmenetz Details |
 | 2026-11-04 17:34 | ▶ | gastgeber | Gastgeber: Langzeitmotivation Spiel |
+| 2026-11-04 17:35 | ■ 🟡 | rechercheur | Ampel GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/hausupgrades.md (sonst nichts geändert).  ([Bericht](docs/pruefberichte/20261104-173538-rechercheur-a75df93615adb2dd5.md)) |
