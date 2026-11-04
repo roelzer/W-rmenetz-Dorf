@@ -1,0 +1,26 @@
+{
+  "profil": "web",
+  "setup": "",
+  "testbefehl": "",
+  "testzahl_muster": "",
+  "zusatzbefehle": [],
+  "sicherheitsbefehl": "",
+  "plugin_stand": "",
+  "meilensteinbefehle": [],
+  "besetzung": "solo",
+  "_hilfe": {
+    "profil": "web (Websites, Web-Apps, Automatisierungen) oder fachsoftware (Berechnungs-/Planungstools)",
+    "setup": "Befehl, mit dem ein frischer Worktree lauffähig wird (Abhängigkeiten installieren)",
+    "testbefehl": "führt ALLE Tests aus, inkl. tests/abnahme und tests/architektur. Exit 0 = grün. Muss .claude/worktrees/ und .dev-team/ AUSSCHLIESSEN (z. B. Testpfad auf tests/ begrenzen), sonst laufen Tests paralleler Entwickler mit",
+    "testzahl_muster": "regulärer Ausdruck, der die Zahl der bestandenen Tests aus der Ausgabe holt. Beispiele: Vitest 'Tests\\s+(\\d+) passed', Jest 'Tests:\\s+(\\d+) passed', pytest '(\\d+) passed', Playwright '(\\d+) passed', Python unittest 'Ran (\\d+) tests?'",
+    "zusatzbefehle": "müssen ebenfalls mit Exit 0 enden (Lint, Build, Typprüfung, Architekturtests, falls nicht im Testbefehl). Profil fachsoftware: zusätzlich Mutationstests empfohlen (Python: 'mutmut run' mit Schwelle, JS/TS: 'npx stryker run' mit thresholds.break). Sie verändern den Code absichtlich und prüfen, ob die Tests das merken – das misst die Testqualität mechanisch. Der Architekt legt sie im Rückgrat fest, das Paket kommt über die Abhängigkeits-Schranke.",
+    "sicherheitsbefehl": "Scanner für bekannte Lücken in Abhängigkeiten; führt der Sicherheitsprüfer aus",
+    "uebersprungen_muster": "optional: regulärer Ausdruck für die Zahl übersprungener Tests, falls dein Testwerkzeug sie anders ausgibt. Üblich (pytest, Vitest, Jest, node:test, unittest) erkennt die Schranke selbst. Mehr als 0 = rot.",
+    "aenderungen": "Anlegen beim Einrichten. Danach ändert der Projektleiter diese Datei nicht selbst: Simon trägt eine Freigabe in .claude/freigaben.md ein (Geltung: .claude/dev-team.json), dann scripts/geschuetzt_schreiben.py.",
+    "plugin_stand": "optional: Tag oder Commit des Dev-Team-Repos, auf den Cloud-Sitzungen dieses Projekts festgenagelt werden (Lieferkette). Leer = aktueller Stand von main mit Warnung. Ändern nur mit Simons Freigabe.",
+    "meilensteinbefehle": "laufen nur am Meilenstein-Ende (Schranke --rolle projektleiter). Profil fachsoftware: Mutationstest ist Pflicht, z. B. \"python3 ${DEV_TEAM_PLUGIN}/scripts/mutationstest.py --dateien src/<kern>.py --schwelle 70\" (Python, ohne Zusatzpakete) bzw. Stryker für JS/TS. ${DEV_TEAM_PLUGIN} setzt die Schranke ein.",
+    "kontext_grenze": "optional: Kontextgröße in Tokens, bei der der Projektleiter die Übergabe schreibt (Kontext-Wächter: Hinweis ab 70 %, Übergabe ab 85 %). Standard: \"autoCompactWindow\" aus .claude/settings.json (400000), höchstens 95 % des Modellfensters. Nur niedriger setzen als autoCompactWindow, sonst fasst Claude Code vor der Übergabe zusammen.",
+    "kontext_grenze_agent": "optional: Kontextgröße in Tokens, bei der ein Agent sauber abschließt (BLOCKIERT „Kontext voll“). Standard 200000, höchstens 80 % des Modellfensters.",
+    "besetzung": "solo (Standard: Eigenbedarf, interne Werkzeuge), kunde (Kundenprojekte: verdeckte Abnahmetests, Prüfung je Meilenstein, Übergabe) oder voll (hohes Risiko: Agenten je Paket, alle Prüfer). Der Projektleiter darf hochstufen und sagt es."
+  }
+}

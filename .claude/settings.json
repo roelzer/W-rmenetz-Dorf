@@ -1,0 +1,130 @@
+{
+  "extraKnownMarketplaces": {
+    "roelz-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "roelzer/roelz-plugins"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "dev-team@roelz-plugins": true,
+    "tool-scout@roelz-plugins": true,
+    "dev-team-tafel@roelz-plugins": true
+  },
+  "disableAllHooks": false,
+  "worktree": {
+    "baseRef": "head"
+  },
+  "autoCompactWindow": 400000,
+  "env": {
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1",
+    "CLAUDE_CODE_FORK_SUBAGENT": "0"
+  },
+  "permissions": {
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" start",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" kontext",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" agent",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" log-start",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task|SendMessage|Write|Edit|MultiEdit|NotebookEdit|Read|Grep|Glob|Bash|PowerShell|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" waechter",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent|Task|TaskOutput|SendMessage|Write|Edit|MultiEdit|NotebookEdit|Read|Grep|Glob|Bash|PowerShell|Monitor|WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" kontext",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" fertig",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" log-ende",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/dev-team-start.sh\" durchlauf",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

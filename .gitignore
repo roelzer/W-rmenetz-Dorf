@@ -1,0 +1,46 @@
+# Geheimnisse – niemals ins Repo
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+zugangsdaten*
+
+# Kundendaten & Rohmaterial – bleiben lokal
+kundendaten/
+aufnahmen/
+*.mp3
+*.m4a
+*.wav
+
+# Office-Temp-Dateien
+~$*
+*.tmp
+
+# Build & Abhängigkeiten
+node_modules/
+dist/
+build/
+bin/
+obj/
+__pycache__/
+.venv/
+venv/
+
+# Editor & System
+.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# Dev-Team: Arbeitsdateien und verdeckte Abnahmetests – nie ins Repo
+.dev-team/
+.claude/worktrees/
+
+# Persönliche Claude-Einstellungen
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Dev-Team: Kopien der Agenten und Skills (Cloud-Sitzungen)
+.claude/agents/dev-team-*.md
+.claude/skills/dev-team-*/
