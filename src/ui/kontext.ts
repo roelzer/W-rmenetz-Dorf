@@ -131,7 +131,7 @@ export class Kontext {
     if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => { this.ui.einsammeln(o.id); }, 'los')));
     this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
-    c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true })));
+    c.append(h('p', { class: 'gedaempft' }, 'Gebäude stehen fest. Wer näher am Netz liegt, hat es leichter – wer weit weg ist, braucht eine lange Leitung.'));
   }
 
   /** A33: Hausupgrades senken die nötige Vorlauftemperatur (Rücklauf). */

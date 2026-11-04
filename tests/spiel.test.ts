@@ -80,6 +80,7 @@ describe('A4 Bauen und Platzieren', () => {
     const baum = s.stand.objekte.at(-1)!;
     expect(s.entfernen(baum.id).ok).toBe(true);
     expect(s.verschieben(finde(s, 'bad').id, 5, 5).ok).toBe(false);
+    expect(s.verschieben(finde(s, 'efh').id, 5, 5).ok).toBe(false); // Häuser stehen fest
   });
   it('Hindernis wegräumen kostet Geld und bringt Dorftaler', () => {
     const { s } = laufend();

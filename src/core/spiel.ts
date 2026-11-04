@@ -418,7 +418,7 @@ export class Spiel {
   verschieben(id: number, x: number, y: number): Ergebnis {
     const o = this.objekt(id);
     if (!o) return { ok: false };
-    if (KATALOG[o.typ].kategorie === 'gross' || KATALOG[o.typ].kategorie === 'hindernis') return this.nein('Das lässt sich nicht verschieben');
+    if (['gross', 'hindernis', 'haus'].includes(KATALOG[o.typ].kategorie) || o.bestand) return this.nein('Gebäude stehen fest und lassen sich nicht verschieben');
     if (!this.kannPlatzieren(o.typ, x, y, id, groesse(o))) return this.nein('Hier ist kein Platz');
     o.x = x; o.y = y; o._pop = this.uhr();
     this.neuBerechnen();
