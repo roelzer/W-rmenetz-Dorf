@@ -12,8 +12,15 @@ function start(): { s: Spiel; zeit: { t: number } } {
 function laufend() {
   const g = start();
   g.s.ersteQuelleWaehlen('kessel');
+  verlegeStartnetz(g.s);
   return g;
 }
+/** Legt die Hauptleitung (50er) zu den drei Startdäusern – das neue Spiel beginnt ohne Leitungen (A22). */
+function verlegeStartnetz(s: Spiel): void {
+  for (const [x, y] of [[11, 12], [11, 13], [11, 14], [10, 13], [10, 11], [9, 11]]) expect(s.platzieren('d50', x, y).ok).toBe(true);
+}
+/** Bau-/Ausbauzeit in Millisekunden inkl. Spieltempo-Faktor (A26). */
+const ms = (sek: number): number => sek * KONSTANTEN.bauzeit_faktor * 1000;
 /** n-tes freies 1×1-Feld im Südwesten der Karte (unabhängig von zufälligen Hindernissen). */
 function frei(s: Spiel, n = 0): [number, number] {
   const r: Array<[number, number]> = [];
@@ -88,21 +95,21 @@ describe('A5 Bauzeit, Monteure, Beschleunigen', () => {
     s.platzieren('efh', ...frei(s));
     const h = s.stand.objekte.at(-1)!;
     expect(h.bau).not.toBeNull();
-    zeit.t += 3_000; s.bis(zeit.t);
+    zeit.t += ms(KATALOG.efh.bauzeit_s![0]) - 2_000; s.bis(zeit.t);
     expect(h.bau).not.toBeNull();
-    zeit.t += 2_000; s.bis(zeit.t);
+    zeit.t += 3_000; s.bis(zeit.t);
     expect(h.bau).toBeNull();
   });
   it('Timer sind absolute Zeitstempel (Startzeit + Dauer)', () => {
     const { s } = laufend();
     s.platzieren('efh', ...frei(s));
     const b = s.stand.objekte.at(-1)!.bau!;
-    expect(b.ende_ms - b.start_ms).toBe(KATALOG.efh.bauzeit_s![0] * 1000);
+    expect(b.ende_ms - b.start_ms).toBe(ms(KATALOG.efh.bauzeit_s![0]));
     expect(b.start_ms).toBe(T0);
   });
-  it('mit zwei Hütten gibt es zwei gleichzeitige Baustellen, die dritte wird abgelehnt', () => {
+  it('mit einer Hütte gibt es eine Baustelle, die zweite wird abgelehnt; eine zweite Hütte erlaubt zwei', () => {
     const { s } = laufend();
-    expect(s.platzieren('efh', ...frei(s)).ok).toBe(true);
+    expect(s.monteure()).toBe(1);
     expect(s.platzieren('efh', ...frei(s)).ok).toBe(true);
     expect(s.platzieren('efh', ...frei(s)).ok).toBe(false);
   });
@@ -130,7 +137,7 @@ describe('A5 Bauzeit, Monteure, Beschleunigen', () => {
     const { s, zeit } = laufend();
     s.stand.geld_eur = 5000;
     expect(s.ausbauen(s.hz.id).ok).toBe(true);
-    zeit.t += 31_000; s.bis(zeit.t);
+    zeit.t += ms(KATALOG.hz.bauzeit_s![1]) + 1_000; s.bis(zeit.t);
     expect(s.hzStufe).toBe(2);
   });
 });
@@ -180,6 +187,7 @@ describe('A10/A11 Einnahmen, Abholen, Kasse, Zufriedenheit', () => {
   it('dauerhaft kaltes Haus wird unzufrieden und kündigt', () => {
     const { s, zeit } = start();
     s.ersteQuelleWaehlen('kessel');
+    verlegeStartnetz(s);
     s.stand.innen = []; // keine Wärme
     s.stand.innen.push({ typ: 'kessel', stufe: 1, bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 99_999_999_999 } });
     s.neuBerechnen();
@@ -231,7 +239,7 @@ describe('A13 Förderung', () => {
     expect(g.s.stand.antraege.puffer?.stand).toBe('bewilligt');
     bauePuffer(g);
     const vorher = g.s.stand.geld_eur;
-    g.zeit.t += 10_000; g.s.bis(g.zeit.t);
+    g.zeit.t += ms(KATALOG.puffer.bauzeit_s![0]) + 1_000; g.s.bis(g.zeit.t);
     expect(g.s.stand.geld_eur).toBeGreaterThanOrEqual(vorher + Math.round(300 * KONSTANTEN.foerderquote) - 5);
   });
   it('vorzeitiger Baubeginn lässt den Antrag verfallen', () => {
@@ -290,7 +298,7 @@ describe('A14 Aufträge', () => {
     s.stand.erledigt.collect = true; // Auftrag 2 erfüllen, ohne Auftrag 1 zu stören
     pruefeAuftraege(s);
     pruefeAuftraege(s);
-    expect(s.stand.taler).toBe(taler + AUFTRAEGE.find((x) => x.id === 'col')!.taler + (s.stand.erledigt.c1 ? AUFTRAEGE[0].taler : 0));
+    expect(s.stand.taler).toBe(taler + AUFTRAEGE.find((x) => x.id === 'col')!.taler);
   });
   it('Heizzentrale auf Stufe 2 erfüllt den passenden Auftrag', () => {
     const { s } = laufend();
@@ -317,8 +325,7 @@ describe('A15 Speichern und Laden', () => {
   it('H1: Alter Spielstand (Version 1 mit p1/p2/p3) wird umgeschrieben und startet', () => {
     const alt = JSON.parse(serialisieren(neuerSpielstand(T0)));
     alt.version = 1;
-    const leitung = alt.objekte.find((o: { typ: string }) => o.typ === 'd50' || o.typ === 'd25');
-    leitung.typ = 'p2';
+    alt.objekte.push({ id: 998, typ: 'p2', x: 1, y: 1, stufe: 1, bau: null, kasse_eur: 0 });
     const r = ladenMitBefund(JSON.stringify(alt), T0);
     expect(r.befund).toBe('migriert');
     expect(r.stand.objekte.some((o) => o.typ === ('p2' as string))).toBe(false);

@@ -26,9 +26,9 @@ export function neuerSpielstand(jetzt_ms: number): Spielstand {
   let id = 1;
   const add = (typ: TypId, x: number, y: number, extra: Partial<Objekt> = {}) =>
     objekte.push({ id: id++, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
-  add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7); add('huette', 12, 7);
-  add('d50', 10, 11); add('d50', 10, 12); add('d25', 10, 13);
-  add('efh', 9, 12, { zufriedenheit_pct: 80 }); add('efh', 11, 14, { zufriedenheit_pct: 80 });
+  // Kleiner Start (A22): Heizhaus, Büro, ein Monteurhäuschen und drei Einfamilienhäuser – noch keine Leitungen.
+  add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
+  add('efh', 9, 13, { zufriedenheit_pct: 80 }); add('efh', 12, 14, { zufriedenheit_pct: 80 }); add('efh', 8, 11, { zufriedenheit_pct: 80 });
   add('bad', 3, 3, { zustand: 'gesperrt' });
   add('gewerbe', 19, 4, { zustand: 'gesperrt' });
   add('klinik', 18, 18, { zustand: 'gesperrt' });
@@ -98,6 +98,16 @@ export class Spiel {
     return true;
   }
 
+  /** Würde eine Leitung auf (x, y) eine Kreuzung (vier Leitungsnachbarn) erzeugen? Echte Netze kennen nur T-Stücke. */
+  machtKreuzung(x: number, y: number): boolean {
+    const leit = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
+    leit.add(y * N + x);
+    const zahl = (fx: number, fy: number): number =>
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => leit.has((fy + dy) * N + fx + dx)).length;
+    if (zahl(x, y) >= 4) return true;
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => leit.has((y + dy) * N + x + dx) && zahl(x + dx, y + dy) >= 4);
+  }
+
   kosten(t: TypId, stufe = 1): { taler?: number; eur?: number } {
     const D = KATALOG[t];
     if (D.kosten_taler) return { taler: D.kosten_taler[Math.min(this.anzahl('huette'), D.kosten_taler.length - 1)] };
@@ -131,7 +141,7 @@ export class Spiel {
   }
   private neuerBau(art: Bau['art'], dauer_s: number): Bau {
     const j = this.uhr();
-    return { art, start_ms: j, ende_ms: j + dauer_s * 1000 };
+    return { art, start_ms: j, ende_ms: j + dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
   }
   aenderung(): void { this.neuBerechnen(); }
 
@@ -143,6 +153,7 @@ export class Spiel {
       if (this.leitungsanzahl() >= this.grenze(t))
         return this.nein(this.grenze(t) ? 'Mehr Leitungen ab der nächsten Heizzentralen-Stufe' : `${D.name} ab Heizzentrale Stufe 2`);
     } else if (this.anzahl(t) >= this.grenze(t)) return this.nein(`Mehr ${D.name} ab der nächsten Heizzentralen-Stufe`);
+    if (istLeitung(t) && this.machtKreuzung(x, y)) return this.nein('Keine Kreuzungen: Leitungen verzweigen nur als T-Stück');
     if (!D.sofort && !this.braucheMonteur()) return { ok: false };
     const c = this.kosten(t, 1);
     const b = this.bezahlen(c);

@@ -108,6 +108,8 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       if (t !== undefined && t < bd) { bd = t; best = k; }
     }
     if (best !== null) anschluss.set(o.id, { feld: best, tiefe: bd });
+    // A24: Ein Pufferspeicher außen ist ohne eigene Leitung mit der Heizzentrale verbunden.
+    else if (o.typ === 'puffer') anschluss.set(o.id, { feld: -1, tiefe: 0 });
   }
 
   // Last in den Leitungen (Baum von der Heizzentrale aus)

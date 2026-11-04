@@ -295,6 +295,8 @@ export const KONSTANTEN = {
   zurueckgewinnen_eur: 300,
   /** Sekunden pro Dorftaler beim Beschleunigen */
   beschleunigen_s_je_taler: 10,
+  /** Spieltempo (A26): alle Bau- und Ausbauzeiten werden mit diesem Faktor verlängert */
+  bauzeit_faktor: 2.5,
   startgeld_eur: 1200,
   starttaler: 100,
   hoechststufe: 5,
