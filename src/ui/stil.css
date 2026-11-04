@@ -174,3 +174,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   #ebene>.blatt{align-self:flex-end}
   .banner{top:auto;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom))}
 }
+
+/* Wärmepreis-Regler und Verkaufsknöpfe (A29/A31) */
+.preiswert{flex:1;text-align:center;font-weight:800;font-size:1.05rem}
+.rechts{display:flex;gap:var(--abstand-px-1);align-items:center;flex-wrap:wrap;justify-content:flex-end}

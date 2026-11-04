@@ -154,7 +154,8 @@ export class Kontext {
     const stromQuelle = !!D.strom_kw && !D.leistung_kw;
     if (!n.anschluss.has(o.id)) c.append(h('p', {}, stromQuelle ? 'Der Sonnenstrom muss über eine Verbindung zur Heizzentrale gelangen, sonst spart er dort nichts.' : 'Ohne Leitung zur Heizzentrale fließt keine Wärme ins Netz.'), h('div', { class: 'knopfreihe' }, knopf(stromQuelle ? 'Verbindung legen' : 'Leitung legen', () => this.ui.stempeln('d50'), 'los')));
     this.ausbauKnopf(c, o);
-    c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true })));
+    c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true }),
+      knopf('Verkaufen', () => { sp.verkaufen(o.id); this.ui.geaendert(); this.ui.kontext(null); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(o.typ, o.stufe))}`, aus: !!o.bau })));
   }
 
   private leitung(c: HTMLElement, o: Objekt): void {
@@ -178,7 +179,8 @@ export class Kontext {
       const rechts = q.bau ? h('span', {}, 'wird gebaut …') :
         q.stufe >= sp.hzStufe || q.stufe >= KONSTANTEN.hoechststufe ? h('span', { class: 'gedaempft' }, q.stufe >= KONSTANTEN.hoechststufe ? 'Höchste Stufe' : 'Heizzentrale ausbauen') :
           knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'heiss', { klein: true, unter: eur(D.kosten_eur![q.stufe]), aus: s.geld_eur < D.kosten_eur![q.stufe] });
-      k.append(zeile(h('span', {}, `${D.name} · Stufe ${q.stufe}`, h('br'), h('small', { class: 'gedaempft' }, `${leistung} kW`)), rechts));
+      const verkauf = s.innen.length > 1 && !q.bau ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(q.typ, q.stufe))}` }) : null;
+      k.append(zeile(h('span', {}, `${D.name} · Stufe ${q.stufe}`, h('br'), h('small', { class: 'gedaempft' }, `${leistung} kW`)), h('span', { class: 'rechts' }, rechts, verkauf)));
     });
     if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Quelle einbauen', () => this.ui.katalog('innen'), 'los')));
     else k.append(h('p', { class: 'gedaempft' }, 'Kein Platz mehr im Heizhaus – baue erst die Heizzentrale aus.'));
@@ -190,9 +192,13 @@ export class Kontext {
   private buero(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, s = sp.stand;
     c.append(zeile('Kassenspeicher', eur(sp.kassengrenze_eur())));
-    const preis = kasten(`Wärmepreis · ${PREISSTUFEN[s.preisstufe].ct_je_kwh} ct/kWh`);
-    preis.append(h('div', { class: 'preisstufen' }, ...PREISSTUFEN.map((p, i) => knopf(`${p.ct_je_kwh}`, () => { sp.preisSetzen(i); this.ui.geaendert(); }, i === s.preisstufe ? 'gewaehlt' : '', { klein: true, unter: 'ct' }))));
-    preis.append(h('p', { class: 'gedaempft' }, `${PREISSTUFEN[s.preisstufe].name}: Je höher der Preis, desto mehr Einnahmen – aber die Kunden werden unzufriedener.`));
+    const P = PREISSTUFEN[s.preisstufe];
+    const preis = kasten(`Wärmepreis · ${P.ct_je_kwh} ct/kWh`);
+    preis.append(h('div', { class: 'knopfreihe' },
+      knopf('−', () => { sp.preisSetzen(s.preisstufe - 1); this.ui.geaendert(); }, '', { klein: true, aus: s.preisstufe <= 0 }),
+      h('span', { class: 'preiswert' }, `${P.ct_je_kwh} ct je kWh`),
+      knopf('+', () => { sp.preisSetzen(s.preisstufe + 1); this.ui.geaendert(); }, '', { klein: true, aus: s.preisstufe >= PREISSTUFEN.length - 1 })));
+    preis.append(h('p', { class: 'gedaempft' }, `Du bekommst die Vergütung für jede Kilowattstunde, die ein Abnehmer verbraucht (zwischen ${PREISSTUFEN[0].ct_je_kwh} und ${PREISSTUFEN.at(-1)!.ct_je_kwh} ct). Je höher der Preis, desto mehr Einnahmen – aber desto unzufriedener werden die Kunden (${P.name}).`));
     c.append(preis);
     const f = kasten('Förderanträge');
     f.append(h('p', { class: 'gedaempft' }, `Bewilligte Förderung: ${Math.round(KONSTANTEN.foerderquote * 100)} % der Baukosten fließen zurück – nur, wenn du erst nach dem Bescheid baust.`));
