@@ -9,3 +9,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-04 15:38 | ▶ | designer | Designer Treue-Prüfung |
 | 2026-11-04 15:38 | ▶ | reviewer | Reviewer Gesamtprüfung |
 | 2026-11-04 15:38 | ▶ | fachpruefer | Fachprüfer Spieltexte und Zahlen |
+| 2026-11-04 15:44 | ■ 🟡 | fachpruefer | 🟡 **Ampel: Gelb.** Die Spielregeln im Kern stimmen fachlich, und die Tests sichern sie ab. Aber einige Texte, die der Spieler sieht, sind falsch oder irrefü ([Bericht](docs/pruefberichte/20261104-154428-fachpruefer-ae7bdfae93c3d5bd1.md)) |
