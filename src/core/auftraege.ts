@@ -11,7 +11,7 @@ export interface Auftrag {
 export const AUFTRAEGE: ReadonlyArray<Auftrag> = [
   { id: 'c1', taler: 10, text: 'Versorge dein erstes Haus: lege eine Leitung von der Heizzentrale bis ans Haus',
     erfuellt: (s) => s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id)).length >= 1 },
-  { id: 'c2', taler: 10, text: 'Versorge alle drei Starthäuser: nutze eine dickere Hauptleitung und dünnere Hausanschlüsse',
+  { id: 'c2', taler: 10, text: 'Versorge alle drei Starthäuser: kaufe dem dritten Haus eine Übergabestation und lass mit Philipp einen Bauabschnitt planen, der die Leitung dorthin legt',
     erfuellt: (s) => s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id)).length >= 3 },
   { id: 'col', taler: 5, text: 'Hol den Wärmeverkauf ab: Münze über einem Haus antippen', erfuellt: (s) => !!s.stand.erledigt.collect },
   { id: 'h3', taler: 10, text: 'Baue ein viertes Haus und schließ es an', erfuellt: (s) => s.netz.warm.size >= 4 },

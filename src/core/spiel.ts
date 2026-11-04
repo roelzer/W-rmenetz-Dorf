@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, HZ_ZIELE, RUECKLAUF_BASIS_C, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, HZ_ZIELE, RUECKLAUF_BASIS_C, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -127,7 +127,7 @@ export class Spiel {
     return liste.map((x) => ({ ...x, erreicht: x.ist >= x.soll }));
   }
 
-  neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c); }
+  neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte.filter((o) => !o.geplant), this.stand.innen, this.stand.preisstufe, this.vorlauf_c); }
   get hz(): Objekt { return heizzentrale(this.stand.objekte); }
   get hzStufe(): number { return this.hz.stufe; }
   anzahl(t: TypId): number {
@@ -219,6 +219,12 @@ export class Spiel {
         return this.nein(this.grenze(t) ? 'Mehr Leitungen ab der nächsten Heizzentralen-Stufe' : `${D.name} ab Heizzentrale Stufe 2`);
     } else if (this.anzahl(t) >= this.grenze(t)) return this.nein(`Mehr ${D.name} ab der nächsten Heizzentralen-Stufe`);
     if (istLeitung(t) && this.machtKreuzung(x, y)) return this.nein('Keine Kreuzungen: Leitungen verzweigen nur als T-Stück');
+    if (istLeitung(t)) {
+      // A41: Leitungen entstehen nur in einem Bauabschnitt, bezahlt wird erst bei der Materialbestellung.
+      if (this.stand.abschnitt?.phase !== 'offen') return this.nein(this.stand.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : `Leitungen entstehen in Bauabschnitten – erst mit ${ABSCHNITT_HELFER.planung} einen Abschnitt planen`);
+      this.stand.objekte.push({ id: this.stand.naechste_id++, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
+      return ok();
+    }
     if (!D.sofort && !this.braucheMonteur()) return { ok: false };
     const c = this.kosten(t, 1);
     const b = this.bezahlen(c);
@@ -357,7 +363,7 @@ export class Spiel {
   entfernen(id: number): Ergebnis {
     const o = this.objekt(id);
     if (!o || o.landschaft || !(istLeitung(o.typ) || KATALOG[o.typ].kategorie === 'deko')) return { ok: false };
-    if (istLeitung(o.typ)) this.stand.geld_eur += this.rueckkauf_eur(o.typ, 1); // A30: 50 % zurück
+    if (istLeitung(o.typ) && !o.geplant) this.stand.geld_eur += this.rueckkauf_eur(o.typ, 1); // A30: 50 % zurück
     this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
     this.neuBerechnen();
     return ok();
@@ -419,9 +425,61 @@ export class Spiel {
     return ok();
   }
 
+  // ---------- Bauabschnitte (A41) ----------
+  get abschnitt() { return this.stand.abschnitt; }
+  /** Summe der Leitungskosten des Abschnitts in €. */
+  abschnittKosten_eur(): number {
+    return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0);
+  }
+  abschnittLeitungen(): number { return this.stand.objekte.filter((o) => o.geplant).length; }
+  /** Neuen Bauabschnitt planen lassen (Philipp). */
+  abschnittPlanen(): Ergebnis {
+    if (this.stand.abschnitt) return this.nein('Es läuft schon ein Bauabschnitt');
+    if (!this.stand.quelle_gewaehlt) return this.nein('Erst eine Wärmequelle wählen');
+    const b = this.bezahlen({ eur: KONSTANTEN.abschnitt_planung_eur });
+    if (!b.ok) return b;
+    this.stand.abschnitt = { phase: 'planung', bau: this.neuerBau('neu', KONSTANTEN.abschnitt_planung_s) };
+    this.hinweis(`${ABSCHNITT_HELFER.planung} plant den neuen Bauabschnitt`);
+    return ok();
+  }
+  /** Einzeichnen beenden; als Nächstes wird Material bestellt. */
+  abschnittAbschliessen(): Ergebnis {
+    const a = this.stand.abschnitt;
+    if (a?.phase !== 'offen') return { ok: false };
+    if (!this.abschnittLeitungen()) return this.nein('Zeichne erst Leitungen in den Abschnitt');
+    a.phase = 'bestellen';
+    return ok();
+  }
+  /** Zurück zum Einzeichnen. */
+  abschnittWiederOeffnen(): Ergebnis {
+    const a = this.stand.abschnitt;
+    if (a?.phase !== 'bestellen') return { ok: false };
+    a.phase = 'offen';
+    return ok();
+  }
+  /** Abschnitt verwerfen: alle eingezeichneten Leitungen verschwinden, die Planungsgebühr ist weg. */
+  abschnittVerwerfen(): Ergebnis {
+    const a = this.stand.abschnitt;
+    if (!a || a.phase === 'planung' || a.phase === 'bau') return { ok: false };
+    this.stand.objekte = this.stand.objekte.filter((o) => !o.geplant);
+    delete this.stand.abschnitt;
+    this.neuBerechnen();
+    return ok();
+  }
+  /** Material bestellen (Laura): bezahlt die Leitungen, danach beginnt die Wartezeit bis zum Bau. */
+  materialBestellen(): Ergebnis {
+    const a = this.stand.abschnitt;
+    if (a?.phase !== 'bestellen') return { ok: false };
+    const b = this.bezahlen({ eur: this.abschnittKosten_eur() });
+    if (!b.ok) return b;
+    a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
+    this.hinweis(`${ABSCHNITT_HELFER.material} hat das Material bestellt – der Bau beginnt`);
+    return ok();
+  }
+
   leitungTauschen(id: number, neu: TypId): Ergebnis {
     const o = this.objekt(id);
-    if (!o || !istLeitung(o.typ) || !istLeitung(neu) || o.typ === neu || !this.grenze(neu)) return { ok: false };
+    if (!o || o.geplant || !istLeitung(o.typ) || !istLeitung(neu) || o.typ === neu || !this.grenze(neu)) return { ok: false };
     // A30: Die alte Leitung wird zu 50 % des Preises zurückgekauft, die neue kostet den vollen Preis.
     const rueck = Math.round((KATALOG[o.typ].kosten_eur as number[])[0] * KONSTANTEN.rueckkauf_anteil);
     const b = this.bezahlen({ eur: (KATALOG[neu].kosten_eur as number[])[0] - rueck });
@@ -499,6 +557,7 @@ export class Spiel {
     const merke = (t: number) => { if (m === null || t < m) m = t; };
     for (const o of this.stand.objekte) { if (o.bau) merke(o.bau.ende_ms); if (o.upgrade_auftrag) merke(o.upgrade_auftrag.ende_ms); }
     for (const k of this.stand.innen) if (k.bau) merke(k.bau.ende_ms);
+    if (this.stand.abschnitt?.bau) merke(this.stand.abschnitt.bau.ende_ms);
     for (const g of Object.values(this.stand.antraege)) if (g && g.stand === 'wartet') merke(g.bewilligt_ms);
     return m;
   }
@@ -520,6 +579,15 @@ export class Spiel {
     };
     for (const o of s.objekte) if (o.bau && o.bau.ende_ms <= t) fertig(o, KATALOG[o.typ].name, true);
     for (const k of s.innen) if (k.bau && k.bau.ende_ms <= t) fertig(k, KATALOG[k.typ].name, false);
+    const ab = s.abschnitt;
+    if (ab?.bau && ab.bau.ende_ms <= t) {
+      if (ab.phase === 'planung') { ab.phase = 'offen'; ab.bau = null; this.hinweis(`${ABSCHNITT_HELFER.planung} ist fertig: Zeichne jetzt die Leitungen ein`); }
+      else {
+        for (const o of s.objekte) if (o.geplant) { delete o.geplant; o._pop = t; }
+        delete s.abschnitt; this.hinweis('Bauabschnitt fertig – die Leitungen liegen'); this.ereignisse.push({ art: 'funken', objekt_id: 'heizzentrale' });
+      }
+      geaendert = true;
+    }
     for (const o of s.objekte) if (o.upgrade_auftrag && o.upgrade_auftrag.ende_ms <= t) {
       const u = UPGRADES[o.upgrade ?? 0];
       this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (Rücklauf −${u.senkung_k} K)`);

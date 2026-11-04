@@ -17,7 +17,9 @@ function laufend() {
 }
 /** Legt die Leitung zum dritten Starthaus; die ersten zwei sind von Anfang an angeschlossen (A29). */
 function verlegeStartnetz(s: Spiel): void {
-  for (const [x, y] of [[12, 12]]) expect(s.platzieren('d50', x, y).ok).toBe(true);
+  // A41: Leitungen entstehen in Bauabschnitten; das Startnetz liegt hier der Einfachheit halber schon.
+  for (const [x, y] of [[12, 12]]) s.stand.objekte.push({ id: s.stand.naechste_id++, typ: 'd50', x, y, stufe: 1, bau: null, kasse_eur: 0 });
+  s.neuBerechnen();
 }
 /** Bau-/Ausbauzeit in Millisekunden inkl. Spieltempo-Faktor (A26). */
 const ms = (sek: number): number => sek * KONSTANTEN.bauzeit_faktor * 1000;
@@ -116,6 +118,7 @@ describe('A5 Bauzeit, Monteure, Beschleunigen', () => {
   it('Sofort-Objekte (Leitungen) brauchen keinen Monteur', () => {
     const { s } = laufend();
     s.platzieren('efh', ...frei(s)); s.platzieren('efh', ...frei(s));
+    s.stand.abschnitt = { phase: 'offen', bau: null };
     expect(s.platzieren('d25', ...frei(s)).ok).toBe(true);
   });
   it('Beschleunigen kostet Dorftaler und beendet die Baustelle sofort', () => {

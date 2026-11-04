@@ -41,7 +41,7 @@ function freiesPlus(s: Spiel): [number, number] {
 describe('A23 Leitungen wie in echt', () => {
   it('A23: ein T-Stück ist erlaubt, die Kreuzung (vierter Arm) wird abgelehnt', () => {
     const s = neuesSpiel();
-    s.stand.geld_eur = 10_000;
+    s.stand.geld_eur = 10_000; s.stand.abschnitt = { phase: 'offen', bau: null };
     const [mx, my] = freiesPlus(s);
     for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 0]]) expect(s.platzieren('d50', mx + dx, my + dy).ok).toBe(true); // T-Stück
     expect(s.machtKreuzung(mx, my + 1)).toBe(true);
@@ -53,6 +53,7 @@ describe('A23 Leitungen wie in echt', () => {
     const s = neuesSpiel();
     s.stand.geld_eur = 10_000;
     s.ersteQuelleWaehlen('kessel');
+    s.stand.abschnitt = { phase: 'offen', bau: null };
     for (const [x, y] of [[11, 12], [11, 13]]) s.platzieren('d50', x, y);
     for (const [x, y] of [[10, 13]]) s.platzieren('d25', x, y);
     expect(s.netz.engpass.size).toBe(0);
@@ -112,7 +113,7 @@ describe('A32 Übergabestationen', () => {
   const mitNetz = () => {
     const s = neuesSpiel();
     s.ersteQuelleWaehlen('kessel');
-    for (const [x, y] of [[12, 12]]) s.platzieren('d50', x, y);
+    s.stand.objekte.push({ id: s.stand.naechste_id++, typ: 'd50', x: 12, y: 12, stufe: 1, bau: null, kasse_eur: 0 }); s.neuBerechnen();
     return s;
   };
   it('A32: Haus ohne Station wird trotz Leitung nicht warm; mit passender Station schon', () => {
@@ -220,5 +221,54 @@ describe('A38 Weiterlauf, A39 Heizzentrale-Ziele, A40 Helfer', () => {
     const vierter = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station && !o.upgrade_auftrag);
     if (vierter) expect(s.upgradeKaufen(vierter.id).ok).toBe(false);
     expect(s.upgradeKaufen(vier[0].id).ok).toBe(false); // gleicher Hausauftrag läuft schon
+  });
+});
+
+describe('A41 Bauabschnitte', () => {
+  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
+  it('Ohne Bauabschnitt lassen sich keine Leitungen legen', () => {
+    const { s } = mitUhr();
+    const r = s.platzieren('d50', 12, 12);
+    expect(r.ok).toBe(false);
+    expect(r.hinweis).toMatch(/Bauabschnitt/);
+  });
+  it('Ablauf: Philipp plant, Leitungen einzeichnen kostet nichts, Laura bestellt und bezahlt, nach der Wartezeit liegen die Leitungen', () => {
+    const { s, z } = mitUhr();
+    const geld0 = s.stand.geld_eur;
+    expect(s.abschnittPlanen().ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(geld0 - KONSTANTEN.abschnitt_planung_eur);
+    expect(s.platzieren('d50', 12, 12).ok).toBe(false); // Philipp plant noch
+    z.t += 600_000; s.bis(z.t);
+    expect(s.abschnitt?.phase).toBe('offen');
+    const g1 = s.stand.geld_eur;
+    expect(s.platzieren('d50', 12, 12).ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(g1); // noch nichts bezahlt
+    expect(s.netz.warm.size).toBe(2); // geplante Leitung zählt noch nicht
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    expect(s.materialBestellen().ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(g1 - KATALOG.d50.kosten_eur![0]);
+    z.t += 60_000; s.bis(z.t);
+    expect(s.abschnitt?.phase).toBe('bau');
+    z.t += 3_600_000; s.bis(z.t);
+    expect(s.abschnitt).toBeUndefined();
+    expect(s.stand.objekte.some((o) => o.geplant)).toBe(false);
+    expect(s.stand.objekte.some((o) => o.typ === 'd50' && o.x === 12 && o.y === 12)).toBe(true);
+  });
+  it('Nur ein Abschnitt gleichzeitig; Verwerfen entfernt die eingezeichneten Leitungen', () => {
+    const { s, z } = mitUhr();
+    s.abschnittPlanen(); expect(s.abschnittPlanen().ok).toBe(false);
+    z.t += 600_000; s.bis(z.t);
+    s.platzieren('d50', 12, 12);
+    expect(s.abschnittVerwerfen().ok).toBe(true);
+    expect(s.stand.objekte.some((o) => o.geplant)).toBe(false);
+    expect(s.abschnitt).toBeUndefined();
+  });
+  it('Material bestellen braucht genug Geld', () => {
+    const { s, z } = mitUhr();
+    s.abschnittPlanen(); z.t += 600_000; s.bis(z.t);
+    s.platzieren('d50', 12, 12); s.platzieren('d50', 12, 11);
+    s.abschnittAbschliessen(); s.stand.geld_eur = 10;
+    expect(s.materialBestellen().ok).toBe(false);
+    expect(s.abschnitt?.phase).toBe('bestellen');
   });
 });

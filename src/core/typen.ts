@@ -36,6 +36,8 @@ export interface Objekt {
   station?: string;
   /** Gebäude des Ortes (A21): zählen nicht gegen die Baugrenzen der Heizzentralen-Stufe */
   bestand?: boolean;
+  /** A41: Leitung gehört zum laufenden Bauabschnitt und ist erst nach dem Bau Teil des Netzes */
+  geplant?: boolean;
   /** nur Darstellung: Zeitpunkt für Aufpop-Animation */
   _pop?: number;
 }
@@ -53,6 +55,13 @@ export interface Foerderantrag {
   bewilligt_ms: number;
 }
 
+/** A41: Ein Bauabschnitt durchläuft Planung (Philipp) → Einzeichnen → Bestellung (Laura) → Bau. */
+export interface Abschnitt {
+  phase: 'planung' | 'offen' | 'bestellen' | 'bau';
+  /** läuft nur in 'planung' und 'bau' */
+  bau: Bau | null;
+}
+
 export interface Spielstand {
   version: 3;
   name: string;
@@ -66,6 +75,8 @@ export interface Spielstand {
   preisstufe: number;
   /** A33: Vorlauftemperatur der Heizzentrale in °C (fehlt bei alten Ständen = Startwert) */
   vorlauf_c?: number;
+  /** A41: aktueller Bauabschnitt (höchstens einer) */
+  abschnitt?: Abschnitt;
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;

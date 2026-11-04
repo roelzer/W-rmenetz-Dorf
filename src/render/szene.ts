@@ -187,10 +187,12 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       const c = KATALOG[n.typ].kategorie;
       if (istLeitung(n.typ) || n.typ === 'hz' || c === 'haus' || c === 'waerme' || c === 'gross') { const [a, b] = k.mitte(nx, ny); seg.push([(cx + a) / 2, (cy + b) / 2]); }
     }
+    const plan = !!o.geplant;
+    if (plan) { X.save(); X.globalAlpha = 0.6; }
     const D = KATALOG[o.typ], w = Math.max(2, tw * (D.breite ?? 0.1)), ueber = an && netz.kapazitaet_ok.get(key) === false;
     m.raute(cx, cy, 0.55); X.fillStyle = 'rgba(140,100,55,.35)'; X.fill();
     X.lineCap = 'round';
-    const rohr = ueber ? (Math.floor(m.zeit_s * 4) % 2 ? '#ff4a3a' : '#b8221a') : an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
+    const rohr = plan ? (D.farbe ?? '#e2582b') : ueber ? (Math.floor(m.zeit_s * 4) % 2 ? '#ff4a3a' : '#b8221a') : an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
     for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, rohr]] as const) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy); X.lineTo(mx, my); }
@@ -204,6 +206,10 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       m.bahn([[cx, cy - tw * 0.32], [cx + tw * 0.13, cy - tw * 0.07], [cx - tw * 0.13, cy - tw * 0.07]]);
       X.fillStyle = '#d8392f'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2; X.fill(); X.stroke();
       m.symbol('ausruf', cx, cy - tw * 0.14, tw * 0.07);
+    }
+    if (plan) {
+      X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = '#2a6fb0'; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
+      X.restore();
     }
   }
   // Wärmepunkte fließen vom Heizhaus zum Kunden

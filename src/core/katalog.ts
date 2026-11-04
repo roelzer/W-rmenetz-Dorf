@@ -308,6 +308,11 @@ export const KONSTANTEN = {
   kosten_faktor: 40,
   /** Rückkauf beim Verkaufen / Leitungstausch: Anteil des Einkaufspreises (A30/A31) */
   rueckkauf_anteil: 0.5,
+  /** A41: Planung durch Philipp (Sekunden vor Spieltempo) und Planungsgebühr in € */
+  abschnitt_planung_s: 30,
+  abschnitt_planung_eur: 2000,
+  /** A41: Bauzeit eines Bauabschnitts nach der Materialbestellung (Sekunden vor Spieltempo; entspricht „ein Jahr Wartezeit“, für die Vorführung verkürzt) */
+  abschnitt_bau_s: 360,
   starttaler: 100,
   hoechststufe: 5,
 } as const;
@@ -346,6 +351,8 @@ export const UPGRADES: ReadonlyArray<{ name: string; kosten_eur: number; senkung
 
 /** Rücklauftemperatur eines Hauses ohne Upgrades (Spielwert); Upgrades senken sie um ihre Kelvin-Zahl (A33/A39). */
 export const RUECKLAUF_BASIS_C = 55;
+/** Helfer für die Bauabschnitte (A41): Philipp plant, Laura bestellt das Material. */
+export const ABSCHNITT_HELFER = { planung: 'Philipp', material: 'Laura' } as const;
 /** Die drei Helfer (A40): Sie senken auf Auftrag den Rücklauf eines Hauses. */
 export const HELFER: ReadonlyArray<string> = ['Sebastian', 'Christian', 'Manfred'];
 /** Bedingungen für den Ausbau der Heizzentrale (A39, „Rathaus“-Prinzip): Anschlüsse, Wärmeabsatz, Spreizung (Vorlauf minus mittlerer Rücklauf). Spielwerte. */

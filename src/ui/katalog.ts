@@ -1,8 +1,9 @@
-import { BAU_KATEGORIEN, istLeitung, KATALOG, type Kategorie, type TypId } from '../core/katalog';
+import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
 import { chip, knopf } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
 import { eur, h, zahl } from './dom';
+import { zeitText } from '../render/gebaeude';
 import type { Ui } from './schnittstelle';
 
 function werte(t: TypId): string {
@@ -40,8 +41,40 @@ export class Katalog {
     const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz');
     for (const t of typen) raster.append(this.karte(t));
     if (!typen.length) raster.append(h('p', {}, 'In dieser Kategorie gibt es noch nichts zu bauen.'));
-    this.blatt.inhalt.replaceChildren(reiter, h('div', { style: 'height:8px' }), raster);
+    this.blatt.inhalt.replaceChildren(reiter, h('div', { style: 'height:8px' }), ...(this.kategorie === 'netz' ? [this.abschnittKasten(), h('div', { style: 'height:8px' })] : []), raster);
     void s;
+  }
+
+  /** A41: Bauabschnitt – Philipp plant, Laura bestellt das Material, dann wird gebaut. */
+  private abschnittKasten(): HTMLElement {
+    const sp = this.ui.spiel, a = sp.abschnitt, k = h('div', { class: 'kasten' });
+    const neu = (): void => { this.ui.geaendert(); this.aufbauen(); };
+    const rest = (): string => zeitText(Math.ceil(Math.max(0, (a?.bau?.ende_ms ?? 0) - this.ui.jetzt_ms()) / 1000));
+    k.append(h('strong', {}, 'Bauabschnitt'));
+    if (!a) {
+      k.append(h('p', { class: 'gedaempft' }, `Leitungen werden abschnittsweise gebaut: ${ABSCHNITT_HELFER.planung} plant, du zeichnest die Leitungen ein, ${ABSCHNITT_HELFER.material} bestellt das Material, danach dauert der Bau.`),
+        h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'los', { unter: eur(KONSTANTEN.abschnitt_planung_eur), aus: sp.stand.geld_eur < KONSTANTEN.abschnitt_planung_eur })));
+    } else if (a.phase === 'planung') {
+      k.append(h('p', {}, `${ABSCHNITT_HELFER.planung} plant den Abschnitt … noch ${rest()}`));
+    } else if (a.phase === 'offen') {
+      const n = sp.abschnittLeitungen();
+      k.append(h('p', { class: 'gedaempft' }, `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Material ${eur(sp.abschnittKosten_eur())}.`),
+        h('div', { class: 'knopfreihe' },
+          knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, aus: !n }),
+          knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
+    } else if (a.phase === 'bestellen') {
+      const kost = sp.abschnittKosten_eur();
+      k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungen sind geplant. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
+        h('div', { class: 'knopfreihe' },
+          knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'los', { unter: eur(kost), aus: sp.stand.geld_eur < kost }),
+          knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true }),
+          knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
+    } else {
+      const c = a.bau ? sp.beschleunigungskosten_taler(a.bau) : 0;
+      k.append(h('p', {}, `Der Bauabschnitt wird gebaut … noch ${rest()}`),
+        h('div', { class: 'knopfreihe' }, knopf('Beschleunigen', () => { sp.beschleunigen(a.bau); neu(); }, 'heiss', { klein: true, unter: `${c} Taler`, aus: sp.stand.taler < c })));
+    }
+    return k;
   }
 
   private karte(t: TypId): HTMLElement {
@@ -70,7 +103,7 @@ export class Katalog {
     const { spiel: sp } = this.ui, D = KATALOG[t], s = sp.stand;
     if (gesperrt) { this.ui.toast(`${D.name} gibt es erst mit einer größeren Heizzentrale`); return; }
     const c = sp.kosten(t, 1);
-    if (c.eur != null && s.geld_eur < c.eur) { this.ui.toast(`Es fehlen ${zahl(c.eur - s.geld_eur)} €. Sammle Münzen ein oder warte auf Einnahmen.`); return; }
+    if (c.eur != null && !istLeitung(t) && s.geld_eur < c.eur) { this.ui.toast(`Es fehlen ${zahl(c.eur - s.geld_eur)} €. Sammle Münzen ein oder warte auf Einnahmen.`); return; }
     if (c.taler != null && s.taler < c.taler) { this.ui.toast(`Es fehlen ${c.taler - s.taler} Dorftaler.`); return; }
     if (D.kategorie === 'innen') {
       const r = sp.innenEinbauen(t);
@@ -79,7 +112,10 @@ export class Katalog {
       return;
     }
     if (!D.sofort && sp.beschaeftigt() >= sp.monteure()) { this.ui.toast('Alle Monteure sind beschäftigt – warte oder baue eine Monteurhütte'); return; }
-    if (istLeitung(t)) { this.ui.stempeln(t); return; }
+    if (istLeitung(t)) {
+      if (sp.abschnitt?.phase !== 'offen') { this.ui.toast(sp.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : 'Plane erst einen Bauabschnitt'); return; }
+      this.ui.stempeln(t); return;
+    }
     this.ui.platzieren(t);
   }
 }
