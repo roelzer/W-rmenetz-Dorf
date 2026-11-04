@@ -116,6 +116,16 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       const b = blase(s.spiel, s.netz, o, st.warm, angeschlossen);
       if (b) oben.push(() => zeichneBlase(m, cx, topY, b));
     }
+    // A25: Verbrauch jedes Kunden als kleines Schild am Fuß des Gebäudes
+    const DK = KATALOG[o.typ];
+    if (!o.bau && DK.bedarf_kw && !o.gekuendigt && (DK.kategorie === 'haus' || (DK.kategorie === 'gross' && o.zustand === 'vertrag')) && tw >= 36) {
+      const txt = `${DK.bedarf_kw} kW`, fy = cy + tw * 0.16 * kante;
+      oben.push(() => {
+        const g = Math.max(10, tw * 0.17), w = txt.length * g * 0.56 + g * 0.9;
+        X.fillStyle = 'rgba(42,33,24,.72)'; m.rundRechteck(cx - w / 2, fy - g * 0.9, w, g * 1.3, g * 0.4); X.fill();
+        m.text(txt, cx, fy, g, '#fff');
+      });
+    }
   }
   const hzObj = heizzentrale(s.objekte);
   const innenBau = s.innen.find((q) => q.bau);
