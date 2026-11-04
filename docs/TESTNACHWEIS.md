@@ -1,0 +1,8 @@
+# Testnachweis
+
+Automatisch von der Test-Schranke geschrieben.
+
+| Zeit | Stand | Rolle | Ergebnis | bestanden | Fehler | Freigabe |
+|---|---|---|---|---|---|---|
+| 2026-11-04 15:16 | 2df3314 | solo | 🔴 | 46 | 2 | – |
+| 2026-11-04 15:16 | 2df3314 | projektleiter | 🔴 | 46 | 4 | – |

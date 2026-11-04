@@ -1,10 +1,13 @@
 {
   "profil": "web",
-  "setup": "",
-  "testbefehl": "",
-  "testzahl_muster": "",
-  "zusatzbefehle": [],
-  "sicherheitsbefehl": "",
+  "setup": "npm ci",
+  "testbefehl": "npm test",
+  "testzahl_muster": "Tests\\s+(\\d+) passed",
+  "zusatzbefehle": [
+    "npm run typecheck",
+    "npm run build"
+  ],
+  "sicherheitsbefehl": "npm audit --audit-level=high",
   "plugin_stand": "",
   "meilensteinbefehle": [],
   "besetzung": "solo",
