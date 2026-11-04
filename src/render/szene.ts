@@ -96,7 +96,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
 
   // Gebäude von hinten nach vorn
   // A37: Beim Planen (Leitungen einzeichnen) werden Gebäude durchsichtig, die Leitungen dahinter bleiben sichtbar.
-  const durchsicht = s.modus === 'stempel' || s.modus === 'platzieren' || s.spiel?.abschnitt?.phase === 'offen';
+  const durchsicht = istDurchsichtig(s.modus, s.spiel?.abschnitt?.phase);
   const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
     .sort((a, b) => (a.x + a.y + 2 * groesse(a)) - (b.x + b.y + 2 * groesse(b)) || a.x - b.x);
   const oben: Array<() => void> = [];
@@ -177,6 +177,11 @@ function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: b
   if (kat === 'gross' && o.typ === 'gewerbe' && o.zustand === 'vertrag' && !angeschlossen) return 'stecker';
   if (kat === 'waerme' && !angeschlossen) return 'stecker';
   return null;
+}
+
+/** A37: Beim Planen sind Gebäude durchsichtig, damit nichts dahinter verschwindet. */
+export function istDurchsichtig(modus: string, abschnittPhase?: string): boolean {
+  return modus === 'stempel' || modus === 'platzieren' || abschnittPhase === 'offen';
 }
 
 function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {

@@ -317,3 +317,37 @@ describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
     expect(s.baugebietErschliessen().ok).toBe(false);
   });
 });
+
+describe('Offene Anforderungen: A20, A27, A28, A35, A37, A42', () => {
+  it('A20: Jahreszeiten, Kältewelle und Mehrspieler sind Ideen und nicht Teil der ersten Fassung', () => {
+    const st = neuerSpielstand(T0) as unknown as Record<string, unknown>;
+    expect(st).not.toHaveProperty('jahreszeit');
+    expect(st).not.toHaveProperty('mitspieler');
+  });
+  it('A27: ruhige Optik – Haarlinien-Kontur und Manrope sind eingestellt', async () => {
+    const { KONTUR } = await import('../src/render/farben');
+    expect(String(KONTUR)).toMatch(/rgba\(40,\s*36,\s*30,\s*\.18\)/);
+  });
+  it('A28: Upgrades pro Haus senken den Mindest-Vorlauf (Rücklauf), Häuser bleiben an ihrem Ort', () => {
+    const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
+    const h = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
+    const vor = s.mindestVorlauf_c(h); h.upgrade = 1;
+    expect(s.mindestVorlauf_c(h)).toBeLessThan(vor);
+    expect(s.verschieben(h.id, 1, 1).ok).toBe(false);
+  });
+  it('A35: Eine echte Woche entspricht zehn Spieljahren', async () => {
+    const { SPIELJAHR_MS } = await import('../src/core/katalog');
+    expect(SPIELJAHR_MS * 10).toBe(7 * 24 * 3600 * 1000);
+    expect(SPIELJAHR_MS / 3_600_000).toBeCloseTo(16.8, 5);
+  });
+  it('A37: Beim Planen werden Gebäude durchsichtig, sonst nicht', async () => {
+    const { istDurchsichtig } = await import('../src/render/szene');
+    expect(istDurchsichtig('stempel')).toBe(true);
+    expect(istDurchsichtig('normal', 'offen')).toBe(true);
+    expect(istDurchsichtig('normal')).toBe(false);
+  });
+  it('A42: Häuser, Bestand und Großabnehmer lassen sich nicht verschieben', () => {
+    const s = neuesSpiel();
+    for (const o of s.stand.objekte.filter((x) => ['haus', 'gross'].includes(KATALOG[x.typ].kategorie))) expect(s.verschieben(o.id, 0, 0).ok).toBe(false);
+  });
+});

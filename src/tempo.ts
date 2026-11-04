@@ -16,7 +16,7 @@ try {
   const g = JSON.parse(localStorage.getItem(SCHLUESSEL) ?? '{}') as { faktor?: number; offset_ms?: number };
   if (typeof g.offset_ms === 'number' && Number.isFinite(g.offset_ms)) virtuell = Date.now() + Math.max(0, g.offset_ms);
   if (g.faktor && TEMPO_STUFEN.some((t) => t.faktor === g.faktor)) faktor = g.faktor;
-} catch { /* ohne gespeichertes Tempo gilt Normal */ }
+} catch (fehler) { console.warn('Tempo nicht lesbar, Normal gilt', fehler); }
 letztReal = Date.now();
 
 /** Aktuelle Spielzeit in ms. */
@@ -28,7 +28,7 @@ export function uhr(): number {
 export function tempo(): number { return faktor; }
 export function tempoSpeichern(): void {
   uhr();
-  try { localStorage.setItem(SCHLUESSEL, JSON.stringify({ faktor, offset_ms: virtuell - Date.now() })); } catch { /* Tempo geht dann beim Schließen verloren */ }
+  try { localStorage.setItem(SCHLUESSEL, JSON.stringify({ faktor, offset_ms: virtuell - Date.now() })); } catch (fehler) { console.warn('Tempo ließ sich nicht speichern', fehler); }
 }
 export function tempoSetzen(f: number): void {
   if (!TEMPO_STUFEN.some((t) => t.faktor === f)) return;

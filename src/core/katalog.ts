@@ -280,6 +280,9 @@ export const PREISSTUFEN: ReadonlyArray<Preisstufe> = [
 /** Index der Startpreisstufe (12 ct/kWh). */
 export const START_PREISSTUFE = 5;
 
+/** A35: Eine echte Woche entspricht zehn Spieljahren. */
+export const SPIELJAHR_MS = (7 * 24 * 3600 * 1000) / 10;
+
 export const KONSTANTEN = {
   /** Karte N×N Felder */
   feldanzahl: 24,
