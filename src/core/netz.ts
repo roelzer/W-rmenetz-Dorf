@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
+  KATALOG, KONSTANTEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
   type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
@@ -119,7 +119,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const kunden = objekte.filter((o) => istKunde(o) && anschluss.has(o.id));
   for (const o of kunden) {
     const a = anschluss.get(o.id) as { feld: number };
-    if (a.feld >= 0) eigen.set(a.feld, (eigen.get(a.feld) as number) + (KATALOG[o.typ].bedarf_kw as number));
+    if (a.feld >= 0) eigen.set(a.feld, (eigen.get(a.feld) as number) + bedarfKw(o));
   }
   for (const k of reihenfolge) last_kw.set(k, eigen.get(k) as number);
   for (let i = reihenfolge.length - 1; i >= 0; i--) {
@@ -160,6 +160,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       if (D.strom_kw) strom_kw += D.strom_kw[o.stufe - 1];
     }
   }
+  for (const o of objekte) if (o.dach_pv) strom_kw += DACH_PV.kw[o.typ] ?? 0; // A36: Dach-PV
   let abwaerme_kw = 0;
   for (const o of objekte) {
     if (o.typ === 'gewerbe' && o.zustand === 'vertrag' && anschluss.has(o.id))
@@ -180,7 +181,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     (a, b) => (anschluss.get(a.id) as { tiefe: number }).tiefe - (anschluss.get(b.id) as { tiefe: number }).tiefe || a.id - b.id,
   );
   for (const o of geordnet) {
-    const n = KATALOG[o.typ].bedarf_kw as number;
+    const n = bedarfKw(o);
     const a = anschluss.get(o.id) as { feld: number };
     bedarf_kw += n;
     if (a.feld >= 0 && !kapazitaet_ok.get(a.feld)) { kalt.set(o.id, 'leitung'); continue; }
@@ -191,6 +192,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
 
   // Betriebskosten (Merit-Order: kostenlose Außenanlagen, dann Abwärme, dann günstigste Innenquelle)
   const elektrisch_kw = quellen.filter((k) => KATALOG[k.typ].elektrisch).reduce((a, k) => a + leistung(k), 0);
+  const einspeisung_kw = Math.max(0, strom_kw - elektrisch_kw);
   const pv_faktor = Math.max(0.25, 1 - strom_kw / Math.max(1, elektrisch_kw));
   const preis = (k: InnenQuelle): number =>
     (KATALOG[k.typ].betriebskosten_eur_je_kw_min as number) * (KATALOG[k.typ].elektrisch ? pv_faktor : 1);
@@ -211,13 +213,22 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const P = PREISSTUFEN[preisstufe ?? 2];
   let einnahmen_eur_min = 0;
   for (const o of objekte) {
-    if (warm.has(o.id)) einnahmen_eur_min += ((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor;
+    if (warm.has(o.id)) einnahmen_eur_min += ((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o);
   }
   return {
     tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, anschluss, warm, kalt,
     verfuegbar_kw, genutzt_kw, bedarf_kw, betriebskosten_eur_min, einnahmen_eur_min,
-    pv_faktor, strom_kw, laeuft_mit_kw, belegung, nachId,
+    pv_faktor, strom_kw, einspeisung_kw, laeuft_mit_kw, belegung, nachId,
   };
+}
+
+/** Faktor auf Bedarf und Einnahmen: Vollversorgung (Kamin aus, A34) und Aufstockung erhöhen beides. */
+export function nutzungsfaktor(o: Objekt): number {
+  return (o.vollversorgung ? KONSTANTEN.vollversorgung_faktor : 1) * (o.aufgestockt ? KONSTANTEN.aufstockung_faktor : 1);
+}
+/** Tatsächlicher Wärmebedarf in kW. */
+export function bedarfKw(o: Objekt): number {
+  return (KATALOG[o.typ].bedarf_kw ?? 0) * nutzungsfaktor(o);
 }
 
 /** Dorfwert für die Rangliste. */

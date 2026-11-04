@@ -2,6 +2,7 @@ import { SPEICHER_SCHLUESSEL } from '../core/speichern';
 import { knopf } from './bausteine';
 import { blattOeffnen } from './blatt';
 import { h } from './dom';
+import { tempo, tempoSetzen, TEMPO_STUFEN } from '../tempo';
 import type { Ui } from './schnittstelle';
 
 const SCHLUESSEL = 'waermedorf-einstellungen-v1';
@@ -38,6 +39,9 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     h('label', { for: 'dorfname', class: 'gedaempft' }, 'Dorfname'), name,
     h('label', { class: 'schalter', for: 'bewegung' }, bewegung, 'Weniger Bewegung'),
     h('p', { class: 'gedaempft' }, 'Rauch, Wasser und Münzflug stehen still. Wichtige Hinweise bleiben sichtbar.'),
+    h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),
+      h('p', { class: 'gedaempft' }, 'Für Vorführungen: Die Spielzeit läuft schneller. Normal ist das vorgesehene Tempo.'),
+      h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'los' : '', { klein: true })))),
     h('div', { class: 'knopfreihe' }, loeschen),
     h('div', { class: 'kasten' }, h('h3', {}, 'Hinweis'), h('p', {}, 'Alle Wärmenetze und Werte sind fiktiv. Das Spiel vereinfacht stark und ersetzt keine echte Planung.'),
       h('p', { class: 'gedaempft' }, 'Dein Spielstand liegt nur auf diesem Gerät. Es gibt kein Konto und es werden keine Daten gesendet.')));

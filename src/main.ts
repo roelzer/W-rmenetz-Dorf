@@ -9,10 +9,10 @@ import { Maler } from './render/maler';
 import { zeichneSzene } from './render/szene';
 import { Steuerung } from './steuerung';
 import { tokensAnwenden } from './ui/tokens';
+import { tempoSpeichern, uhr } from './tempo';
 
 tokensAnwenden();
 
-const uhr = (): number => Date.now();
 const lesen = (): string | null => { try { return localStorage.getItem(SPEICHER_SCHLUESSEL); } catch { return null; } };
 /** Einen unbrauchbaren Spielstand sichern, bevor er vom neuen Spiel überschrieben wird. */
 function sichern(text: string | null): void {
@@ -63,6 +63,7 @@ requestAnimationFrame(bild);
 /** Scheitert das Speichern (Speicher voll/gesperrt), erscheint einmal pro Sitzung ein Hinweis; „gespeichert“ wird nie angezeigt. */
 let warnungGezeigt = false;
 function speichern(): void {
+  tempoSpeichern();
   try { localStorage.setItem(SPEICHER_SCHLUESSEL, serialisieren(spiel.stand)); }
   catch (fehler) {
     console.warn('Speichern fehlgeschlagen', fehler);

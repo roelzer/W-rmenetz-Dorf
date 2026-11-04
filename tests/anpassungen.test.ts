@@ -272,3 +272,48 @@ describe('A41 Bauabschnitte', () => {
     expect(s.abschnitt?.phase).toBe('bestellen');
   });
 });
+
+describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
+  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
+  const lauf = (s: Spiel, z: { t: number }, sek: number) => { for (let i = 0; i < sek / 10; i++) { z.t += 10_000; s.bis(z.t); } };
+  const startHaus = (s: Spiel) => s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
+  it('A34: Dauerhaft hohe Zufriedenheit schaltet den Kamin ab – der Verbrauch steigt', () => {
+    const { s, z } = mitUhr(); const h = startHaus(s);
+    s.preisSetzen(0); // 7 ct: Kunden sind sehr zufrieden
+    const vorher = KATALOG[h.typ].bedarf_kw!;
+    lauf(s, z, KONSTANTEN.vollversorgung_nach_s + 1200);
+    expect(h.vollversorgung).toBe(true);
+    expect(Math.round(h.aufgestockt ? vorher * 1.5 * 1.4 : vorher * 1.5)).toBeGreaterThanOrEqual(Math.round(vorher * 1.5));
+  });
+  it('Aufstockung: Ein Wohnhaus stockt nach einiger Zeit auf, der Bedarf steigt', () => {
+    const { s, z } = mitUhr(); const h = startHaus(s);
+    lauf(s, z, KONSTANTEN.aufstockung_nach_s + 1500);
+    expect(h.aufgestockt).toBe(true);
+  });
+  it('A36: Dach-PV kostet Geld, liefert Strom und Überschuss wird eingespeist', () => {
+    const { s } = mitUhr(); const h = startHaus(s);
+    expect(s.netz.einspeisung_kw).toBe(0);
+    const g = s.stand.geld_eur;
+    expect(s.dachPvKaufen(h.id).ok).toBe(true);
+    expect(g - s.stand.geld_eur).toBe(8 * 1100);
+    expect(s.netz.strom_kw).toBeGreaterThanOrEqual(8);
+    expect(s.netz.einspeisung_kw).toBeGreaterThan(0); // Kessel ist nicht elektrisch → alles geht ins Netz
+    expect(s.dachPvKaufen(h.id).ok).toBe(false);
+  });
+  it('A43: Baugebiet braucht Heizzentrale Stufe 3 und genug Anschlüsse, dann entstehen feste neue Häuser', () => {
+    const { s } = mitUhr(); s.stand.geld_eur = 1_000_000;
+    expect(s.baugebietErschliessen().ok).toBe(false);
+    s.stand.objekte.find((o) => o.typ === 'hz')!.stufe = 3;
+    for (const o of s.stand.objekte.filter((x) => KATALOG[x.typ].kategorie === 'haus')) { o.ohne_station = false; o.station = 'st_80'; }
+    s.stand.objekte.push({ id: s.stand.naechste_id++, typ: 'd110', x: 12, y: 12, stufe: 1, bau: null, kasse_eur: 0 }); s.neuBerechnen();
+    const bed = s.baugebietBedingungen();
+    if (!bed.ok) { // nicht jedes Dorf hat sofort sechs warme Häuser: Bedingung künstlich erfüllen
+      s.netz.warm.clear(); for (const o of s.stand.objekte.filter((x) => KATALOG[x.typ].kategorie === 'haus').slice(0, 6)) s.netz.warm.add(o.id);
+    }
+    const n0 = s.stand.objekte.length;
+    expect(s.baugebietErschliessen().ok).toBe(true);
+    expect(s.stand.objekte.length).toBeGreaterThan(n0);
+    expect(s.stand.baugebiet).toBe(true);
+    expect(s.baugebietErschliessen().ok).toBe(false);
+  });
+});

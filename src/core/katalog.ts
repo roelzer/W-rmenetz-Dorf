@@ -313,6 +313,16 @@ export const KONSTANTEN = {
   abschnitt_planung_eur: 2000,
   /** A41: Bauzeit eines Bauabschnitts nach der Materialbestellung (Sekunden vor Spieltempo; entspricht „ein Jahr Wartezeit“, für die Vorführung verkürzt) */
   abschnitt_bau_s: 360,
+  /** A34: Nach so vielen Sekunden dauerhaft hoher Zufriedenheit schaltet ein Haus seinen Kamin ab (Vollversorgung) */
+  vollversorgung_nach_s: 900,
+  vollversorgung_faktor: 1.5,
+  /** A35/Aufstockung: Nach dieser Zeit als warmer Kunde stockt ein Wohnhaus auf, der Bedarf steigt */
+  aufstockung_nach_s: 1800,
+  aufstockung_faktor: 1.4,
+  /** A36: Vergütung für eingespeisten PV-Strom in € je kW und Minute (Spielwert) */
+  einspeisung_eur_je_kw_min: 0.2,
+  /** A43: Baugebiet: Mindestanschlüsse, Mindest-Stufe und Erschließungskosten */
+  baugebiet_anschluesse: 6, baugebiet_hz_stufe: 3, baugebiet_eur: 40000,
   starttaler: 100,
   hoechststufe: 5,
 } as const;
@@ -362,6 +372,9 @@ export const HZ_ZIELE: ReadonlyArray<{ stufe: number; anschluesse: number; absat
   { stufe: 4, anschluesse: 8, absatz_kw: 140, spreizung_k: 25 },
   { stufe: 5, anschluesse: 11, absatz_kw: 200, spreizung_k: 30 },
 ];
+
+/** PV auf dem Dach (A36): Leistung je Gebäudetyp in kWp und Preis je kWp in € (Spielwerte). */
+export const DACH_PV = { kw: { efh: 8, rh: 6, baeckerei: 12, mfh: 20, bad: 30, klinik: 40 } as Record<string, number>, eur_je_kw: 1100 };
 
 export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110'];
 export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);

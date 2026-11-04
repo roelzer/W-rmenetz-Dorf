@@ -38,6 +38,15 @@ export interface Objekt {
   bestand?: boolean;
   /** A41: Leitung gehört zum laufenden Bauabschnitt und ist erst nach dem Bau Teil des Netzes */
   geplant?: boolean;
+  /** Sekunden als warmer Kunde / Sekunden dauerhaft sehr zufrieden (A34, Aufstockung) */
+  warm_s?: number;
+  voll_s?: number;
+  /** A34: Kamin ist aus, das Haus bezieht seine ganze Wärme aus dem Netz */
+  vollversorgung?: boolean;
+  /** Das Haus hat ein Stockwerk aufgesetzt: höherer Bedarf */
+  aufgestockt?: boolean;
+  /** A36: PV-Anlage auf dem Dach */
+  dach_pv?: boolean;
   /** nur Darstellung: Zeitpunkt für Aufpop-Animation */
   _pop?: number;
 }
@@ -77,6 +86,8 @@ export interface Spielstand {
   vorlauf_c?: number;
   /** A41: aktueller Bauabschnitt (höchstens einer) */
   abschnitt?: Abschnitt;
+  /** A43: Baugebiet bereits erschlossen */
+  baugebiet?: boolean;
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;
@@ -108,6 +119,8 @@ export interface Netz {
   einnahmen_eur_min: number;
   pv_faktor: number;
   strom_kw: number;
+  /** A36: Strom, der über den Eigenbedarf hinaus ins Stromnetz geht */
+  einspeisung_kw: number;
   /** Laststärke je Innenquelle */
   laeuft_mit_kw: Map<InnenQuelle, number>;
   belegung: Int32Array;

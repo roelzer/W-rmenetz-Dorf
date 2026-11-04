@@ -1,5 +1,5 @@
-import { istLeitung, UPGRADES, VORLAUF, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
-import { groesse, istAktiv } from '../core/netz';
+import { istLeitung, DACH_PV, UPGRADES, VORLAUF, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
+import { bedarfKw, groesse, istAktiv, nutzungsfaktor } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -116,7 +116,10 @@ export class Kontext {
     c.append(chips);
     const einnahme = (D.einnahmen_eur_min as number[])[o.stufe - 1] * PREISSTUFEN[sp.stand.preisstufe].einnahmefaktor;
     const st = stationHolen(o.station);
-    c.append(zeile('Wärmebedarf', `braucht ${D.bedarf_kw} kW`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'), zeile('Einnahmen', `${zahl(einnahme)} €/min`));
+    c.append(zeile('Wärmebedarf', `braucht ${zahl(bedarfKw(o))} kW`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'), zeile('Einnahmen', `${zahl(einnahme * nutzungsfaktor(o))} €/min`));
+    if (o.vollversorgung) chips.append(chip('Kamin aus', 'gruen'));
+    if (o.aufgestockt) chips.append(chip('aufgestockt', 'blau'));
+    this.dachPv(c, o);
     const z = o.zufriedenheit_pct ?? 80;
     c.append(zeile('Zufriedenheit', `${zahl(z)} %`), balken(z / 100));
     if (o.gekuendigt) {
@@ -132,6 +135,16 @@ export class Kontext {
     this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
     c.append(h('p', { class: 'gedaempft' }, 'Gebäude stehen fest. Wer näher am Netz liegt, hat es leichter – wer weit weg ist, braucht eine lange Leitung.'));
+  }
+
+  /** A36: PV auf dem Dach. */
+  private dachPv(c: HTMLElement, o: Objekt): void {
+    const kw = DACH_PV.kw[o.typ], sp = this.ui.spiel;
+    if (!kw) return;
+    const k = kasten('Solarstrom');
+    if (o.dach_pv) k.append(h('p', {}, `PV-Anlage auf dem Dach: ${kw} kWp. Sie senkt die Stromkosten der Heizzentrale, Überschuss wird ins Stromnetz eingespeist.`));
+    else k.append(h('p', { class: 'gedaempft' }, 'Eine PV-Anlage auf dem Dach liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${kw} kWp`, () => { sp.dachPvKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(kw * DACH_PV.eur_je_kw), aus: sp.stand.geld_eur < kw * DACH_PV.eur_je_kw })));
+    c.append(k);
   }
 
   /** A33: Hausupgrades senken die nötige Vorlauftemperatur (Rücklauf). */
@@ -151,7 +164,7 @@ export class Kontext {
 
   /** A32: Auswahl der Übergabestation – nur Typen, die den Bedarf schaffen; die kleinste passende ist empfohlen. */
   private stationswahl(c: HTMLElement, o: Objekt): void {
-    const sp = this.ui.spiel, bedarf = KATALOG[o.typ].bedarf_kw ?? 0, k = kasten('Übergabestation wählen');
+    const sp = this.ui.spiel, bedarf = bedarfKw(o), k = kasten('Übergabestation wählen');
     const empfohlen = passendeStation(bedarf).id, alt = stationHolen(o.station);
     k.append(h('p', { class: 'gedaempft' }, `Das Gebäude braucht ${bedarf} kW. Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.`));
     const reihe = h('div', { class: 'knopfreihe' });
@@ -226,6 +239,12 @@ export class Kontext {
       h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
       knopf('+', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, '', { klein: true, aus: sp.vorlauf_c >= VORLAUF.max_c })),
       h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
+    const bg = kasten('Baugebiet');
+    const bb = sp.baugebietBedingungen();
+    if (sp.stand.baugebiet) bg.append(h('p', { class: 'gedaempft' }, 'Das Baugebiet ist erschlossen. Verbinde die neuen Häuser mit einem Bauabschnitt.'));
+    else bg.append(h('p', { class: 'gedaempft' }, 'Ein zweiter Strang in die Gegenrichtung mit neuen Grundstücken. Der Wärmeerzeuger muss dafür mitwachsen.'),
+      ...(bb.ok ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
+      h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), aus: !bb.ok || s.geld_eur < KONSTANTEN.baugebiet_eur })));
     const ziele = sp.hzZiele();
     const zk = kasten('Ziele für die nächste Stufe');
     if (ziele.length) {
@@ -237,7 +256,7 @@ export class Kontext {
       const a = sp.helferAuftrag(name);
       hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
     }
-    c.append(k, vl, zk, hk, zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
+    c.append(k, vl, zk, hk, bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
     void groesse;
   }

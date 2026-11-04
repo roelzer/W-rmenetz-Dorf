@@ -1,8 +1,8 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, HZ_ZIELE, RUECKLAUF_BASIS_C, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, RUECKLAUF_BASIS_C, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
+  belegungskarte, berechneNetz, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
 } from './netz';
 import type { Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen, STANDARD_ORT } from './orte';
@@ -81,6 +81,54 @@ export class Spiel {
     const basis = MIN_VORLAUF_C[o.typ] ?? 70;
     return basis - UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
   }
+  /** A36: PV-Anlage auf dem Dach eines Gebäudes kaufen; Überschuss geht ins Stromnetz. */
+  dachPvKaufen(id: number): Ergebnis {
+    const o = this.objekt(id), kw = o ? DACH_PV.kw[o.typ] : 0;
+    if (!o || !kw || o.dach_pv || o.gekuendigt) return { ok: false };
+    const b = this.bezahlen({ eur: kw * DACH_PV.eur_je_kw });
+    if (!b.ok) return b;
+    o.dach_pv = true; o._pop = this.uhr();
+    this.ereignisse.push({ art: 'funken', objekt_id: o.id });
+    this.hinweis(`PV-Anlage auf dem Dach: ${kw} kWp`);
+    this.neuBerechnen();
+    return ok();
+  }
+
+  /** A43: Baugebiet in der Gegenrichtung erschließen – ein zweiter Strang aus dem Heizhaus, neue Häuser stehen fest. */
+  baugebietBedingungen(): { ok: boolean; fehlt: string[] } {
+    const fehlt: string[] = [];
+    if (this.stand.baugebiet) fehlt.push('Baugebiet ist schon erschlossen');
+    if (this.hzStufe < KONSTANTEN.baugebiet_hz_stufe) fehlt.push(`Heizzentrale Stufe ${KONSTANTEN.baugebiet_hz_stufe}`);
+    const n = this.stand.objekte.filter((o) => this.netz.warm.has(o.id) && KATALOG[o.typ].kategorie === 'haus').length;
+    if (n < KONSTANTEN.baugebiet_anschluesse) fehlt.push(`${KONSTANTEN.baugebiet_anschluesse} angeschlossene Häuser (jetzt ${n})`);
+    return { ok: fehlt.length === 0, fehlt };
+  }
+  baugebietErschliessen(): Ergebnis {
+    if (!this.baugebietBedingungen().ok) return this.nein('Die Bedingungen für das Baugebiet sind noch nicht erfüllt');
+    const b = this.bezahlen({ eur: KONSTANTEN.baugebiet_eur });
+    if (!b.ok) return b;
+    // Seite wählen, die am weitesten vom Ortsrand entfernt von bestehenden Häusern liegt: Gegenrichtung zum Schwerpunkt der Häuser
+    const haeuser = this.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus');
+    const sx = haeuser.reduce((a, o) => a + o.x, 0) / Math.max(1, haeuser.length), sy = haeuser.reduce((a, o) => a + o.y, 0) / Math.max(1, haeuser.length);
+    const hz = this.hz, dx = Math.sign(hz.x - sx) || 1, dy = Math.sign(hz.y - sy) || 1;
+    const ziele: Array<[number, number]> = [];
+    for (let r = 4; r <= 11; r++) for (let a = -5; a <= 5; a++) ziele.push([hz.x + dx * r, hz.y + a], [hz.x + a, hz.y + dy * r]);
+    const typen: TypId[] = ['efh', 'efh', 'rh', 'efh', 'mfh', 'efh', 'rh', 'efh'];
+    let gesetzt = 0;
+    for (const [x, y] of ziele) {
+      if (gesetzt >= typen.length) break;
+      const t = typen[gesetzt], k = KATALOG[t].groesse ?? 1;
+      const nahe = this.stand.objekte.some((o) => KATALOG[o.typ].kategorie === 'haus' && Math.abs(o.x - x) < k + 1 && Math.abs(o.y - y) < k + 1);
+      if (nahe || !this.kannPlatzieren(t, x, y)) continue;
+      this.stand.objekte.push({ id: this.stand.naechste_id++, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, zufriedenheit_pct: 80, bestand: true, ohne_station: true, _pop: this.uhr() });
+      gesetzt++;
+    }
+    this.stand.baugebiet = true;
+    this.hinweis(`Baugebiet erschlossen: ${gesetzt} neue Grundstücke – verbinde sie mit einem Bauabschnitt`);
+    this.neuBerechnen();
+    return ok();
+  }
+
   /** Helfer, der gerade keinen Auftrag hat (A40). */
   freierHelfer(): string | undefined {
     const belegt = new Set(this.stand.objekte.filter((o) => o.upgrade_auftrag).map((o) => o.upgrade_auftrag!.helfer));
@@ -373,7 +421,7 @@ export class Spiel {
   stationKaufen(id: number, stationId: string): Ergebnis {
     const o = this.objekt(id), st = stationHolen(stationId);
     if (!o || !st || !(o.ohne_station || o.station) || o.bau) return { ok: false };
-    const bedarf = KATALOG[o.typ].bedarf_kw ?? 0;
+    const bedarf = bedarfKw(o);
     if (st.leistung_kw < bedarf) return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${bedarf} kW`);
     const alt = stationHolen(o.station);
     if (alt && alt.leistung_kw >= st.leistung_kw) return this.nein('Es steht schon eine gleich große oder größere Station');
@@ -605,9 +653,9 @@ export class Spiel {
     const s = this.stand, P = PREISSTUFEN[s.preisstufe];
     for (const o of s.objekte) {
       if (this.netz.warm.has(o.id))
-        o.kasse_eur = Math.min(this.kassenCap_eur(o), o.kasse_eur + (((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor / 60) * dt_s);
+        o.kasse_eur = Math.min(this.kassenCap_eur(o), o.kasse_eur + (((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o) / 60) * dt_s);
     }
-    s.geld_eur = Math.max(0, s.geld_eur - (this.netz.betriebskosten_eur_min / 60) * dt_s);
+    s.geld_eur = Math.max(0, s.geld_eur - (this.netz.betriebskosten_eur_min / 60) * dt_s + (this.netz.einspeisung_kw * KONSTANTEN.einspeisung_eur_je_kw_min / 60) * dt_s);
     let geaendert = false;
     for (const o of s.objekte) {
       if (!istKunde(o) || !this.netz.anschluss.has(o.id)) continue;
@@ -616,6 +664,22 @@ export class Spiel {
       const ziel = Math.max(0, Math.min(100, P.zufriedenheit_pct - kuehl + (this.netz.warm.has(o.id) ? 0 : gross ? -KONSTANTEN.kalt_abzug_gross_pct : -KONSTANTEN.kalt_abzug_haus_pct) + (o.stufe - 1) * 3));
       const jetzt = o.zufriedenheit_pct ?? 80, tau = gross ? 60 : 90;
       o.zufriedenheit_pct = ziel + (jetzt - ziel) * Math.exp(-dt_s / tau);
+      if (!gross && this.netz.warm.has(o.id)) {
+        o.warm_s = (o.warm_s ?? 0) + dt_s;
+        // A34: Dauerhaft sehr zufrieden → Kamin aus, ganze Wärme aus dem Netz
+        o.voll_s = o.zufriedenheit_pct >= 95 ? (o.voll_s ?? 0) + dt_s : o.zufriedenheit_pct < 85 ? 0 : (o.voll_s ?? 0);
+        if (!o.vollversorgung && o.voll_s >= KONSTANTEN.vollversorgung_nach_s) {
+          o.vollversorgung = true; geaendert = true;
+          this.hinweis(`${KATALOG[o.typ].name} hat den Kamin abgeschaltet und heizt nur noch mit Fernwärme (+${Math.round((KONSTANTEN.vollversorgung_faktor - 1) * 100)} % Verbrauch)`);
+          this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Kamin aus', farbe: '#7bd88f' });
+        }
+        // Aufstockung: Nach einiger Zeit baut ein Wohnhaus ein Stockwerk auf, der Bedarf steigt
+        if (!o.aufgestockt && ['efh', 'rh', 'baeckerei'].includes(o.typ) && o.warm_s >= KONSTANTEN.aufstockung_nach_s + (o.id % 4) * 300) {
+          o.aufgestockt = true; geaendert = true;
+          this.hinweis(`${KATALOG[o.typ].name} stockt auf: Bedarf ${bedarfKw(o).toFixed(0)} kW – reicht die Übergabestation noch?`);
+          this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Aufstockung', farbe: '#ffd166' });
+        }
+      }
       if (o.zufriedenheit_pct < KONSTANTEN.kuendigung_haus_pct && KATALOG[o.typ].kategorie === 'haus') {
         o.gekuendigt = true; geaendert = true;
         this.hinweis(`${KATALOG[o.typ].name} hat gekündigt!`);

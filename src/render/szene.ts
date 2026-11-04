@@ -1,5 +1,5 @@
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
-import { groesse, heizzentrale } from '../core/netz';
+import { bedarfKw, groesse, heizzentrale } from '../core/netz';
 import type { Spiel } from '../core/spiel';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
@@ -95,6 +95,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   }
 
   // Gebäude von hinten nach vorn
+  // A37: Beim Planen (Leitungen einzeichnen) werden Gebäude durchsichtig, die Leitungen dahinter bleiben sichtbar.
+  const durchsicht = s.modus === 'stempel' || s.modus === 'platzieren' || s.spiel?.abschnitt?.phase === 'offen';
   const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
     .sort((a, b) => (a.x + a.y + 2 * groesse(a)) - (b.x + b.y + 2 * groesse(b)) || a.x - b.x);
   const oben: Array<() => void> = [];
@@ -106,7 +108,10 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       warm: s.netz.warm.has(o.id), laeuft: s.netz.genutzt_kw > 0, innen: s.innen,
       oel: (kat === 'haus' && (!angeschlossen || !!o.gekuendigt)) || (kat === 'gross' && o.zustand !== 'vertrag' && o.typ !== 'gewerbe'),
     };
+    const durch = durchsicht && kat !== 'dorf';
+    if (durch) X.globalAlpha = 0.5;
     zeichneObjekt(m, o, cx, cy, st, s.jetzt_ms);
+    if (durch) X.globalAlpha = 1;
     const topY = cy - tw * (kante >= 2 ? (o.typ === 'klinik' ? 1.15 : 0.95) : 0.72);
     if (o.bau) {
       const hp = tw * 0.55 * kante, bau = o.bau;
@@ -119,7 +124,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     // A25: Verbrauch jedes Kunden als kleines Schild am Fuß des Gebäudes
     const DK = KATALOG[o.typ];
     if (!o.bau && DK.bedarf_kw && !o.gekuendigt && (DK.kategorie === 'haus' || (DK.kategorie === 'gross' && o.zustand === 'vertrag')) && tw >= 36) {
-      const txt = `${DK.bedarf_kw} kW`, fy = cy + tw * 0.16 * kante;
+      const txt = `${Math.round(bedarfKw(o))} kW`, fy = cy + tw * 0.16 * kante;
       oben.push(() => {
         const g = Math.max(10, tw * 0.17), w = txt.length * g * 0.56 + g * 0.9;
         X.fillStyle = 'rgba(42,33,24,.72)'; m.rundRechteck(cx - w / 2, fy - g * 0.9, w, g * 1.3, g * 0.4); X.fill();
@@ -150,6 +155,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     const [cx, cy] = k.mitte(s.stempel.x, s.stempel.y);
     m.raute(cx, cy, 1); X.strokeStyle = s.stempel.ok ? '#fff' : '#d8392f'; X.lineWidth = 2.5; X.stroke();
   }
+  if (durchsicht) zeichneLeitungen(m, k, s);
   oben.forEach((f) => f());
   effekte.zeichnen(m, dt_s, (x, y) => k.mitte(x, y));
 }
@@ -159,6 +165,7 @@ function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: b
   const D = KATALOG[o.typ], kat = D.kategorie;
   if (kat === 'haus' || (kat === 'gross' && o.zustand === 'vertrag' && D.bedarf_kw)) {
     if (o.gekuendigt) return 'weg';
+    if (!angeschlossen && !o.station) return null; // Häuser, die noch mit Öl heizen, bekommen keine Blase (weniger Unruhe)
     if (!angeschlossen || o.ohne_station) return 'stecker';
     if (netz.kalt.get(o.id) === 'leitung' || netz.kalt.get(o.id) === 'station') return 'leitung';
     if (!warm) return 'kalt';
