@@ -19,8 +19,8 @@ self.addEventListener('fetch', (e) => {
   if (r.method !== 'GET' || new URL(r.url).origin !== self.location.origin) return;
   if (r.mode === 'navigate') {
     e.respondWith(fetch(r).then((a) => { if (a && a.ok) caches.open(CACHE).then((c) => c.put('./', a.clone())); return a; })
-      .catch(() => caches.match('./', { ignoreSearch: true }).then((a) => a || caches.match('index.html'))));
+      .catch(() => caches.match('./', { ignoreSearch: true, ignoreVary: true }).then((a) => a || caches.match('index.html'))));
     return;
   }
-  e.respondWith(caches.match(r, { ignoreSearch: true }).then((a) => a || fetch(r).then((n) => { if (n && n.ok) caches.open(CACHE).then((c) => c.put(r, n.clone())); return n; })));
+  e.respondWith(caches.match(r, { ignoreSearch: true, ignoreVary: true }).then((a) => a || fetch(r).then((n) => { if (n && n.ok) caches.open(CACHE).then((c) => c.put(r, n.clone())); return n; })));
 });

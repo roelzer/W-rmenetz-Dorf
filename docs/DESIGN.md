@@ -86,6 +86,17 @@ Abstände nur aus `abstand_px` (4/8/12/16/24/32). Die Prototyp-Werte 6/7/10/14 w
 
 **Desktop (1280×800):** Gleicher Aufbau. Die Pillen bekommen ihre Etiketten über der Pille (mit 12 px Abstand zur Pille darüber, im Prototyp berühren sie sich, M6). Die Kontextkarte schwebt unten mittig (max. 580 px), die Rundbuttons bleiben sichtbar, wenn sie nicht überdeckt werden. Mausrad zoomt, Tastatur siehe Abschnitt 7.
 
+### 4a. Querformat (gilt ab 2026-11-04, Entscheidung Simon: nur Querformat, Prüfgröße 844×390)
+Hochformat zeigt nur „Bitte drehe dein Handy ins Querformat.“. Wo oben „Handy 390 px“ steht, gilt jetzt 844×390.
+- **Anzeigen:** Pillen in **einer Reihe oben rechts**, Einheit im Wert. Links Dorfschild (einzeilige Unterzeile „Stufe N · Dorfwert N“, ≤ 52 px hoch) und Auftrag (≤ 2 Zeilen). Spaltenabstand ≥ 8 px. Unten links Zoom, unten rechts Rundbuttons.
+- **Seitenblatt** (Katalog, Kontext, Dörfer, Einstellungen): rechts, Breite min(46 %, 400 px), **beginnt unter der Anzeigenreihe** (top 64 px) bis zum unteren Rand; Pillen bleiben immer sichtbar. Kopf fest, Reiter fest unter dem Kopf, Inhalt scrollt, **Aktionsleiste fest unten** (Hauptaktion nie unter dem Rand).
+- **Katalog quer:** 2 Spalten, Bild 64 px (`katalog_bild_hoehe_quer`), aktiver Reiter immer im Bild.
+- **Modus-Leiste** (Platzieren, Verschieben, Leitung legen): kompakt unten rechts, Höhe nach Inhalt, keine volle Höhe. Leitung legen: 8 Durchmesser als Farbknöpfe 44×44 + Zeile „25er · bis 12 kW · 10 €“ + [Fertig].
+- **Kamera:** Das gewählte Objekt bzw. der neue Bau-Geist liegt in der Mitte der **freien** Kartenfläche (Bildschirm minus Blatt), am Desktop entsprechend über dem unten liegenden Blatt.
+- **Popups** (Startwahl, Willkommen zurück, Spielstand-Fehler) mittig mit 12 px Rand. Toasts bei offenem Seitenblatt über der freien Kartenfläche.
+- **Desktop-Pillen:** Etikett links in der Pille (statt darüber) ist die gültige Lösung für M6.
+- Abweichungsliste der Prüfung: `docs/DESIGN_TREUE_F5.md`.
+
 ## 5. Abläufe (Start → Ziel, Rückmeldung nach jedem Schritt)
 1. **Neustart → Quellenwahl:** S0 Laden → S1 Startwahl, eine Karte tippen → Popup schließt, Funken, Toast „… läuft!“ → Kamera auf die Heizzentrale, Rauch steigt auf, Auftrag 1 erscheint.
 2. **Bauen:** [Bauen] → S4 Reiter → Karte tippen (zu teuer: Toast mit Fehlbetrag; alle Monteure belegt: Toast „Alle Monteure sind beschäftigt – warte oder baue eine Monteurhütte“) → S5 Geist erscheint am nächsten freien Platz → schieben → [Hier bauen] → Plopp, Gerüst, Timer, Monteur-Pille zählt herunter → fertig: Funken, Toast „Fertig: …“.
