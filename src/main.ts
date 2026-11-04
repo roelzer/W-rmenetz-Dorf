@@ -1,9 +1,6 @@
-import '@fontsource/baloo-2/latin-600.css';
-import '@fontsource/baloo-2/latin-700.css';
-import '@fontsource/baloo-2/latin-800.css';
-import '@fontsource/nunito-sans/latin-600.css';
-import '@fontsource/nunito-sans/latin-700.css';
-import '@fontsource/nunito-sans/latin-800.css';
+import '@fontsource/manrope/latin-500.css';
+import '@fontsource/manrope/latin-600.css';
+import '@fontsource/manrope/latin-700.css';
 import './ui/stil.css';
 
 import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL } from './core/speichern';

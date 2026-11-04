@@ -51,7 +51,7 @@ export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Z
     m.fenster(tp.bL, tp.bB, 0.3, hp, -hp * 0.35, '#ffe08a', false); m.fenster(tp.bL, tp.bB, 0.7, hp, -hp * 0.35, '#ffe08a', false);
     m.dach(tp, tw * 0.35, lv >= 3 ? '#3f72b8' : '#3c8a4a');
     m.kreis(cx + tw * 0.33, cy - hp * 0.35, tw * 0.13, '#f6c22c', true); X.lineWidth = 2; X.stroke();
-    m.text('€', cx + tw * 0.33, cy - hp * 0.35 + tw * 0.06, tw * 0.17, '#2a1d10');
+    m.text('€', cx + tw * 0.33, cy - hp * 0.35 + tw * 0.06, tw * 0.17, 'rgba(40,34,26,.4)');
   } else if (t === 'huette') {
     m.schatten(cx, cy, 0.7); const hp = tw * 0.2, tp = m.quader(cx, cy, 0.62, hp, '#c98f52', false);
     tp.wandR = schatten('#c98f52', -0.3); m.dach(tp, tw * 0.2, '#e2582b');
@@ -131,7 +131,7 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
     for (let j = 0; j < 3; j++) { const an = a + j * 2.09; X.moveTo(x, y - tw * 0.06); X.lineTo(x + Math.cos(an) * tw * 0.08, y - tw * 0.06 + Math.sin(an) * tw * 0.04); }
     X.stroke();
   }
-  for (let i = 0; i < np; i++) { const x = cx - tw * 0.2 + i * tw * 0.16, y = cy - hp + th * 0.15; m.quader(x, y, 0.25, tw * 0.1, '#f2c94c'); m.symbol('blitz', x, y - tw * 0.1, tw * 0.05, '#2a1d10'); }
+  for (let i = 0; i < np; i++) { const x = cx - tw * 0.2 + i * tw * 0.16, y = cy - hp + th * 0.15; m.quader(x, y, 0.25, tw * 0.1, '#f2c94c'); m.symbol('blitz', x, y - tw * 0.1, tw * 0.05, 'rgba(40,34,26,.4)'); }
   X.fillStyle = '#f6c22c'; X.strokeStyle = KONTUR; X.lineWidth = 1;
   for (let i = 0; i < lv; i++) m.stern(tp.L[0] + tw * 0.2 + i * tw * 0.1, tp.L[1] + hp * 0.55 + i * th * 0.1, tw * 0.035);
   if (st.laeuft && nk) for (let i = 0; i < nk; i++) m.wolke(cx - tw * 0.45 + i * tw * 0.17, cy - hp - tw * 0.62, m.zeit_s + i * 0.37, tw * 0.055);
@@ -206,7 +206,7 @@ export type Blase = 'muenze' | 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung
 export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase): void {
   const { X } = m, r = m.tw * 0.17;
   y += Math.sin(m.zeit_s * 3 + cx) * 2.5;
-  X.fillStyle = '#fff'; X.strokeStyle = '#1a1208'; X.lineWidth = 2.5;
+  X.fillStyle = '#fff'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2.5;
   X.beginPath(); X.arc(cx, y, r, 0, ALLES); X.fill(); X.stroke();
   X.beginPath(); X.moveTo(cx - r * 0.4, y + r * 0.82); X.lineTo(cx, y + r * 1.5); X.lineTo(cx + r * 0.4, y + r * 0.82); X.closePath(); X.fill(); X.stroke();
   X.beginPath(); X.arc(cx, y, r - 1.5, 0, ALLES); X.fill();
@@ -226,7 +226,7 @@ export function zeichneBalken(m: Maler, cx: number, y: number, b: Bau, jetzt_ms:
   const { X } = m, tw = m.tw;
   const f = Math.max(0, Math.min(1, (jetzt_ms - b.start_ms) / (b.ende_ms - b.start_ms)));
   const rest_s = Math.max(0, (b.ende_ms - jetzt_ms) / 1000), w = tw * 1.1, h = Math.max(9, tw * 0.14);
-  X.fillStyle = '#1a1208'; m.rundRechteck(cx - w / 2 - 3, y - h - 3, w + 6, h + 6, 7); X.fill();
+  X.fillStyle = 'rgba(32,28,22,.5)'; m.rundRechteck(cx - w / 2 - 3, y - h - 3, w + 6, h + 6, 7); X.fill();
   X.fillStyle = '#4a3a26'; m.rundRechteck(cx - w / 2, y - h, w, h, 5); X.fill();
   const g = X.createLinearGradient(0, y - h, 0, y); g.addColorStop(0, '#9be36a'); g.addColorStop(1, '#3f9a25');
   X.fillStyle = g; m.rundRechteck(cx - w / 2, y - h, Math.max(h, w * f), h, 5); X.fill();

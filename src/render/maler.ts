@@ -24,7 +24,7 @@ export class Maler {
   flaeche(p: Punkt[], fuell: string | CanvasGradient, rand = true): void {
     const X = this.X;
     this.bahn(p); X.fillStyle = fuell; X.fill();
-    if (rand) { X.strokeStyle = KONTUR; X.lineWidth = Math.max(1, this.tw * 0.018); X.lineJoin = 'round'; X.stroke(); }
+    if (rand) { X.strokeStyle = KONTUR; X.lineWidth = Math.max(0.75, this.tw * 0.008); X.lineJoin = 'round'; X.stroke(); }
   }
   verlauf(y1: number, y2: number, c1: string, c2: string): CanvasGradient {
     const g = this.X.createLinearGradient(0, y1, 0, y2);
@@ -36,8 +36,12 @@ export class Maler {
   }
   schatten(cx: number, cy: number, s: number): void {
     const X = this.X;
-    X.fillStyle = 'rgba(20,45,10,.25)'; X.beginPath();
-    X.ellipse(cx + this.tw * 0.08 * s, cy + this.th * 0.12 * s, this.tw * 0.5 * s, this.th * 0.5 * s, 0, 0, ALLES); X.fill();
+    // weicher Schatten: Verlauf von der Mitte nach außen auf null
+    const sx = cx + this.tw * 0.08 * s, sy = cy + this.th * 0.12 * s, rx = this.tw * 0.55 * s;
+    X.save(); X.translate(sx, sy); X.scale(1, this.th / this.tw);
+    const g = X.createRadialGradient(0, 0, rx * 0.1, 0, 0, rx);
+    g.addColorStop(0, 'rgba(30,50,35,.28)'); g.addColorStop(1, 'rgba(30,50,35,0)');
+    X.fillStyle = g; X.beginPath(); X.arc(0, 0, rx, 0, ALLES); X.fill(); X.restore();
   }
   kreis(x: number, y: number, r: number, fuell: string | CanvasGradient, rand = false): void {
     const X = this.X;
@@ -51,8 +55,8 @@ export class Maler {
   }
   text(s: string, x: number, y: number, groesse: number, farbe = '#fff'): void {
     const X = this.X;
-    X.font = `800 ${groesse}px "Baloo 2",sans-serif`; X.textAlign = 'center'; X.lineJoin = 'round';
-    X.lineWidth = Math.max(3, groesse * 0.28); X.strokeStyle = '#1a1208'; X.strokeText(s, x, y);
+    X.font = `700 ${groesse}px "Manrope",system-ui,sans-serif`; X.textAlign = 'center'; X.lineJoin = 'round';
+    X.lineWidth = Math.max(2, groesse * 0.18); X.strokeStyle = 'rgba(30,26,20,.55)'; X.strokeText(s, x, y);
     X.fillStyle = farbe; X.fillText(s, x, y);
   }
   stern(x: number, y: number, r: number): void {
@@ -70,9 +74,9 @@ export class Maler {
     const tw = this.tw, th = this.th;
     const L: Punkt = [cx - (tw / 2) * s, cy], B: Punkt = [cx, cy + (th / 2) * s], R: Punkt = [cx + (tw / 2) * s, cy], T: Punkt = [cx, cy - (th / 2) * s];
     const u = (p: Punkt): Punkt => [p[0], p[1] - hp];
-    this.flaeche([L, B, u(B), u(L)], this.verlauf(cy - hp, cy + (th / 2) * s, schatten(farbe, 0.05), schatten(farbe, -0.12)));
-    this.flaeche([B, R, u(R), u(B)], this.verlauf(cy - hp, cy + (th / 2) * s, schatten(farbe, -0.18), schatten(farbe, -0.34)));
-    if (oben) this.flaeche([u(T), u(R), u(B), u(L)], schatten(farbe, 0.18));
+    this.flaeche([L, B, u(B), u(L)], schatten(farbe, 0));
+    this.flaeche([B, R, u(R), u(B)], schatten(farbe, -0.16));
+    if (oben) this.flaeche([u(T), u(R), u(B), u(L)], schatten(farbe, 0.14));
     return { L: u(L), B: u(B), R: u(R), T: u(T), bL: L, bB: B, bR: R, wandR: undefined as string | undefined };
   }
 
@@ -82,10 +86,10 @@ export class Maler {
     const mitte = (a: Punkt, b: Punkt): Punkt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
     const P1 = mitte(t.T, t.L), P2 = mitte(t.R, t.B);
     P1[1] -= rh; P2[1] -= rh;
-    this.flaeche([t.T, t.R, P2, P1], schatten(farbe, -0.25));
-    this.flaeche([t.B, t.R, P2], t.wandR || schatten('#e8dcc4', -0.25));
-    this.flaeche([t.L, t.B, P2, P1], this.verlauf(P1[1], t.B[1], schatten(farbe, 0.12), schatten(farbe, -0.08)));
-    X.strokeStyle = 'rgba(0,0,0,.18)'; X.lineWidth = Math.max(1, tw * 0.012);
+    this.flaeche([t.T, t.R, P2, P1], schatten(farbe, -0.18));
+    this.flaeche([t.B, t.R, P2], t.wandR || schatten('#e8dcc4', -0.16));
+    this.flaeche([t.L, t.B, P2, P1], schatten(farbe, 0.06));
+    X.strokeStyle = 'rgba(0,0,0,.07)'; X.lineWidth = Math.max(0.75, tw * 0.008);
     for (let i = 1; i < 4; i++) {
       const f = i / 4;
       X.beginPath();
@@ -151,9 +155,9 @@ export class Maler {
     if (art === 'blitz') {
       X.beginPath(); X.moveTo(x + r * 0.2, y - r); X.lineTo(x - r * 0.55, y + r * 0.1); X.lineTo(x - r * 0.05, y + r * 0.1);
       X.lineTo(x - r * 0.25, y + r); X.lineTo(x + r * 0.55, y - r * 0.15); X.lineTo(x + r * 0.05, y - r * 0.15); X.closePath();
-      X.fillStyle = farbe; X.fill(); X.strokeStyle = '#1a1208'; X.lineWidth = Math.max(1, r * 0.18); X.stroke();
+      X.fillStyle = farbe; X.fill(); X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = Math.max(1, r * 0.18); X.stroke();
     } else if (art === 'flocke') {
-      X.strokeStyle = '#1a1208'; X.lineWidth = Math.max(3, r * 0.5);
+      X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = Math.max(3, r * 0.5);
       for (let pass = 0; pass < 2; pass++) {
         if (pass) { X.strokeStyle = farbe; X.lineWidth = Math.max(1.5, r * 0.26); }
         X.beginPath();
@@ -161,14 +165,14 @@ export class Maler {
         X.stroke();
       }
     } else if (art === 'kreuz') {
-      X.strokeStyle = '#1a1208'; X.lineWidth = Math.max(3, r * 0.6);
+      X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = Math.max(3, r * 0.6);
       for (let pass = 0; pass < 2; pass++) {
         if (pass) { X.strokeStyle = farbe; X.lineWidth = Math.max(1.8, r * 0.34); }
         X.beginPath(); X.moveTo(x - r * 0.7, y - r * 0.7); X.lineTo(x + r * 0.7, y + r * 0.7); X.moveTo(x + r * 0.7, y - r * 0.7); X.lineTo(x - r * 0.7, y + r * 0.7); X.stroke();
       }
     } else if (art === 'pfeil') {
       X.beginPath(); X.moveTo(x - r, y - r * 0.6); X.lineTo(x + r, y - r * 0.6); X.lineTo(x, y + r * 0.8); X.closePath();
-      X.fillStyle = farbe; X.fill(); X.strokeStyle = '#1a1208'; X.lineWidth = Math.max(1.5, r * 0.2); X.stroke();
+      X.fillStyle = farbe; X.fill(); X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = Math.max(1.5, r * 0.2); X.stroke();
     } else {
       this.text(art === 'frage' ? '?' : '!', x, y + r * 0.7, r * 2.3, farbe);
     }

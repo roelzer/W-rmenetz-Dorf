@@ -1,5 +1,5 @@
 /** Farbhilfen der Spielgrafik. */
-export const KONTUR = 'rgba(42,29,16,.7)';
+export const KONTUR = 'rgba(40,36,30,.18)';
 
 /** Hellt eine Farbe (a>0) auf oder dunkelt sie ab (a<0). Erwartet '#rrggbb'. */
 export function schatten(hex: string, a: number): string {

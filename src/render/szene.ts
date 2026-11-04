@@ -191,7 +191,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     m.raute(cx, cy, 0.55); X.fillStyle = 'rgba(140,100,55,.35)'; X.fill();
     X.lineCap = 'round';
     const rohr = ueber ? (Math.floor(m.zeit_s * 4) % 2 ? '#ff4a3a' : '#b8221a') : an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
-    for (const [lw, c] of [[w + 4, '#2a1d10'], [w, rohr]] as const) {
+    for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, rohr]] as const) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy); X.lineTo(mx, my); }
       if (!seg.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
@@ -202,7 +202,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     X.stroke();
     if (netz.engpass.has(key)) {
       m.bahn([[cx, cy - tw * 0.32], [cx + tw * 0.13, cy - tw * 0.07], [cx - tw * 0.13, cy - tw * 0.07]]);
-      X.fillStyle = '#d8392f'; X.strokeStyle = '#1a1208'; X.lineWidth = 2; X.fill(); X.stroke();
+      X.fillStyle = '#d8392f'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2; X.fill(); X.stroke();
       m.symbol('ausruf', cx, cy - tw * 0.14, tw * 0.07);
     }
   }

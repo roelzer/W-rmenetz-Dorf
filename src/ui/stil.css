@@ -12,55 +12,55 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pergament :focus-visible,.blatt :focus-visible{outline-color:var(--farbe-ui-fokus-auf-hell)}
 
 /* Schrift mit Umriss (weiße Schrift auf farbigem Grund nur so) */
-.umriss{color:#fff;-webkit-text-stroke:var(--schrift-umriss-text-breite-px) var(--schrift-umriss-text-farbe);paint-order:stroke fill;text-shadow:0 2px 0 var(--schrift-umriss-text-farbe);font-family:var(--schrift-anzeige);font-weight:800}
+.umriss{color:#fff;font-family:var(--schrift-anzeige);font-weight:700}
 
 /* ---------- Knöpfe ---------- */
-.knopf{min-height:var(--groesse-px-tippflaeche-min);min-width:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-3);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-knopf);background:linear-gradient(var(--farbe-knopf-standard-0),var(--farbe-knopf-standard-1));box-shadow:var(--schatten-knopf);font-family:var(--schrift-anzeige);font-weight:800;font-size:var(--schrift-groesse-px-knopf);color:var(--farbe-ui-tinte);transition:transform var(--zeit-ms-knopf-druck),box-shadow var(--zeit-ms-knopf-druck)}
+.knopf{min-height:var(--groesse-px-tippflaeche-min);min-width:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-3);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-knopf);background:var(--farbe-knopf-standard-0);box-shadow:var(--schatten-knopf);font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-knopf);color:var(--farbe-ui-tinte);transition:transform var(--zeit-ms-knopf-druck),box-shadow var(--zeit-ms-knopf-druck)}
 .knopf:active:not(:disabled){transform:translateY(2px);box-shadow:var(--schatten-knopf-gedrueckt)}
 .knopf:disabled{opacity:.55;cursor:not-allowed}
-.knopf.los,.knopf.heiss,.knopf.taler,.knopf.blau,.knopf.schliessen{color:#fff;-webkit-text-stroke:2px var(--farbe-ui-tinte-tief);paint-order:stroke fill;text-shadow:0 2px 0 var(--farbe-ui-tinte-tief)}
-.knopf.los{background:linear-gradient(var(--farbe-knopf-los-0),var(--farbe-knopf-los-1))}
-.knopf.heiss{background:linear-gradient(var(--farbe-knopf-heiss-0),var(--farbe-knopf-heiss-1))}
-.knopf.taler{background:linear-gradient(var(--farbe-knopf-taler-0),var(--farbe-knopf-taler-1))}
-.knopf.blau{background:linear-gradient(var(--farbe-knopf-blau-0),var(--farbe-knopf-blau-1))}
-.knopf.gewaehlt{background:linear-gradient(var(--farbe-knopf-gewaehlt-0),var(--farbe-knopf-gewaehlt-1))}
+.knopf.los,.knopf.heiss,.knopf.taler,.knopf.blau,.knopf.schliessen{color:#fff;}
+.knopf.los{background:var(--farbe-knopf-los-0)}
+.knopf.heiss{background:var(--farbe-knopf-heiss-0)}
+.knopf.taler{background:var(--farbe-knopf-taler-0)}
+.knopf.blau{background:var(--farbe-knopf-blau-0)}
+.knopf.gewaehlt{background:var(--farbe-knopf-gewaehlt-0)}
 .knopf.klein{font-size:var(--schrift-groesse-px-text)}
 .knopf small{display:block;font-size:var(--schrift-groesse-px-klein);font-weight:700;opacity:.95}
 .knopfreihe{display:flex;flex-wrap:wrap;gap:var(--abstand-px-1);margin-top:var(--abstand-px-2)}
 .knopfreihe>.knopf{flex:1 1 130px}
-.schliessen{width:var(--groesse-px-schliessen-x);height:var(--groesse-px-schliessen-x);padding:0;border-radius:var(--radius-px-rund);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);background:linear-gradient(var(--farbe-knopf-schliessen-0),var(--farbe-knopf-schliessen-1));box-shadow:var(--schatten-knopf);display:grid;place-items:center;flex:none}
+.schliessen{width:var(--groesse-px-schliessen-x);height:var(--groesse-px-schliessen-x);padding:0;border-radius:var(--radius-px-rund);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);background:var(--farbe-knopf-schliessen-0);box-shadow:var(--schatten-knopf);display:grid;place-items:center;flex:none}
 .schliessen .sym{width:22px;height:22px}
 
 /* ---------- Rundbuttons / Zoom ---------- */
 .runde{position:absolute;right:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right));bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:var(--abstand-px-2)}
 .rund{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:0}
-.rund .kreis{display:grid;place-items:center;border-radius:var(--radius-px-rund);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);box-shadow:var(--schatten-rund)}
+.rund .kreis{display:grid;place-items:center;border-radius:var(--radius-px-rund);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);box-shadow:var(--schatten-rund)}
 .rund.bauen .kreis{width:var(--groesse-px-rundknopf-bauen);height:var(--groesse-px-rundknopf-bauen);background:radial-gradient(circle at 50% 30%,var(--farbe-knopf-rund-bauen-0),var(--farbe-knopf-rund-bauen-1))}
 .rund.besuch .kreis{width:var(--groesse-px-rundknopf-besuch);height:var(--groesse-px-rundknopf-besuch);background:radial-gradient(circle at 50% 30%,var(--farbe-knopf-rund-besuch-0),var(--farbe-knopf-rund-besuch-1))}
 .rund .kreis .sym{width:55%;height:55%;filter:var(--schatten-symbol)}
 .rund:active .kreis{transform:translateY(3px)}
 .rund .etikett{font-size:var(--schrift-groesse-px-klein);font-family:var(--schrift-anzeige)}
 .zoom{position:absolute;left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:var(--abstand-px-1)}
-.zoomknopf{width:var(--groesse-px-zoomknopf);height:var(--groesse-px-zoomknopf);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-knopf);background:linear-gradient(var(--farbe-ui-pergament),var(--farbe-ui-pergament-2));box-shadow:var(--schatten-knopf);font-family:var(--schrift-anzeige);font-weight:800;font-size:26px;line-height:1;padding:0}
+.zoomknopf{width:var(--groesse-px-zoomknopf);height:var(--groesse-px-zoomknopf);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-knopf);background:var(--farbe-ui-pergament);box-shadow:var(--schatten-knopf);font-family:var(--schrift-anzeige);font-weight:700;font-size:26px;line-height:1;padding:0}
 
 /* ---------- HUD ---------- */
 .hud-links{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));width:calc(100% - 150px - 2 * var(--groesse-px-rand-bildschirm) - var(--abstand-px-1) - 17px);max-width:260px;display:flex;flex-direction:column;gap:var(--abstand-px-1)}
-.dorfschild{border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-karte);background:linear-gradient(var(--farbe-ui-dorfschild-oben),var(--farbe-ui-dorfschild-unten));box-shadow:var(--schatten-schild);padding:var(--abstand-px-1) var(--abstand-px-2);min-height:var(--groesse-px-tippflaeche-min);text-align:left;width:100%}
+.dorfschild{border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:linear-gradient(var(--farbe-ui-dorfschild-oben),var(--farbe-ui-dorfschild-unten));box-shadow:var(--schatten-schild);padding:var(--abstand-px-1) var(--abstand-px-2);min-height:var(--groesse-px-tippflaeche-min);text-align:left;width:100%}
 .dorfschild .name{display:block;font-size:var(--schrift-groesse-px-dorfname);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dorfschild .unter{display:block;font-size:var(--schrift-groesse-px-mini);color:var(--farbe-ui-dorfschild-untertext);font-weight:700;margin-top:1px}
-.auftrag{display:flex;align-items:center;gap:var(--abstand-px-1);text-align:left;width:100%;min-height:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-2);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-karte);background:linear-gradient(var(--farbe-ui-pergament),var(--farbe-ui-pergament-2));box-shadow:var(--schatten-schild)}
-.auftrag .marker{flex:none;width:26px;height:26px;border-radius:50%;background:var(--farbe-rolle-geld);border:2px solid var(--farbe-ui-tinte);display:grid;place-items:center;font-family:var(--schrift-anzeige);font-weight:800}
+.auftrag{display:flex;align-items:center;gap:var(--abstand-px-1);text-align:left;width:100%;min-height:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-2);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:var(--farbe-ui-pergament);box-shadow:var(--schatten-schild)}
+.auftrag .marker{flex:none;width:26px;height:26px;border-radius:50%;background:var(--farbe-rolle-geld);border:2px solid var(--farbe-ui-pergament-rand);display:grid;place-items:center;font-family:var(--schrift-anzeige);font-weight:700}
 .auftrag .text{flex:1;font-size:var(--schrift-groesse-px-klein);line-height:1.2;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.auftrag .lohn{flex:none;font-family:var(--schrift-anzeige);font-weight:800;color:#7a3fd6;font-size:var(--schrift-groesse-px-text)}
+.auftrag .lohn{flex:none;font-family:var(--schrift-anzeige);font-weight:700;color:#7a3fd6;font-size:var(--schrift-groesse-px-text)}
 .pillen{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));right:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right));width:150px;display:flex;flex-direction:column;gap:var(--abstand-px-1)}
 .pille{position:relative;display:flex;align-items:center;justify-content:flex-end;height:var(--groesse-px-hud-pille-hoehe);min-height:var(--groesse-px-tippflaeche-min);margin-left:17px;padding:0 var(--abstand-px-2) 0 22px;border-radius:var(--radius-px-pille);background:var(--farbe-ui-hud-pille);border:2px solid var(--farbe-ui-hud-pille-rand);overflow:visible;color:#fff;border-width:2px;width:calc(100% - 17px);text-align:right}
 .pille .sym{position:absolute;left:-17px;top:50%;margin-top:-17px;width:var(--groesse-px-hud-symbol);height:var(--groesse-px-hud-symbol);border-radius:50%;background:var(--farbe-ui-pergament);border:2px solid var(--farbe-ui-tinte-tief);padding:5px;box-shadow:0 2px 0 var(--farbe-ui-tinte-tief)}
 .pille .fuell{position:absolute;left:22px;right:6px;bottom:3px;height:4px;border-radius:2px;background:#0003;overflow:hidden}
-.pille .fuell i{display:block;height:100%;width:0;border-radius:2px;background:linear-gradient(var(--farbe-hud-fuellung-geld-0),var(--farbe-hud-fuellung-geld-1));transition:width var(--zeit-ms-uebergang)}
-.pille.waerme .fuell i{background:linear-gradient(var(--farbe-hud-fuellung-waerme-0),var(--farbe-hud-fuellung-waerme-1))}
-.pille.mangel .fuell i{background:linear-gradient(var(--farbe-hud-fuellung-waerme-mangel-0),var(--farbe-hud-fuellung-waerme-mangel-1))}
-.pille.ruf .fuell i{background:linear-gradient(var(--farbe-hud-fuellung-ruf-gut-0),var(--farbe-hud-fuellung-ruf-gut-1))}
-.pille.ruf.schlecht .fuell i{background:linear-gradient(var(--farbe-hud-fuellung-ruf-schlecht-0),var(--farbe-hud-fuellung-ruf-schlecht-1))}
+.pille .fuell i{display:block;height:100%;width:0;border-radius:2px;background:var(--farbe-hud-fuellung-geld-0);transition:width var(--zeit-ms-uebergang)}
+.pille.waerme .fuell i{background:var(--farbe-hud-fuellung-waerme-0)}
+.pille.mangel .fuell i{background:var(--farbe-hud-fuellung-waerme-mangel-0)}
+.pille.ruf .fuell i{background:var(--farbe-hud-fuellung-ruf-gut-0)}
+.pille.ruf.schlecht .fuell i{background:var(--farbe-hud-fuellung-ruf-schlecht-0)}
 .pille .wert{font-size:var(--schrift-groesse-px-zahl-hud);margin-bottom:3px;white-space:nowrap}
 .pille .etikett{position:absolute;right:var(--abstand-px-2);top:-1px;font-size:var(--schrift-groesse-px-mini);color:var(--farbe-ui-hud-etikett-text);display:none}
 
@@ -68,12 +68,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 #ebene{display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
 #ebene.mitte{justify-content:center}
 .abdunkeln{position:absolute;inset:0;background:var(--farbe-ui-abdunkeln)}
-.blatt{position:relative;width:100%;max-width:580px;max-height:50%;display:flex;flex-direction:column;background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-popup) var(--radius-px-popup) 0 0;box-shadow:var(--schatten-popup);overflow:hidden;margin-bottom:calc(-1 * max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)));padding-bottom:env(safe-area-inset-bottom)}
+.blatt{position:relative;width:100%;max-width:580px;max-height:50%;display:flex;flex-direction:column;background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-popup) var(--radius-px-popup) 0 0;box-shadow:var(--schatten-popup);overflow:hidden;margin-bottom:calc(-1 * max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)));padding-bottom:env(safe-area-inset-bottom)}
 .blatt.hoch{max-height:80%}
 .blatt.popup{border-radius:var(--radius-px-popup);max-height:90%;margin:0}
-.blatt .kopf{display:flex;align-items:center;gap:var(--abstand-px-2);padding:var(--abstand-px-1) var(--abstand-px-2);background:linear-gradient(var(--farbe-ui-kopf-oben),var(--farbe-ui-kopf-unten));border-bottom:var(--umriss-px-ui) solid var(--farbe-ui-tinte)}
+.blatt .kopf{display:flex;align-items:center;gap:var(--abstand-px-2);padding:var(--abstand-px-1) var(--abstand-px-2);background:linear-gradient(var(--farbe-ui-kopf-oben),var(--farbe-ui-kopf-unten));border-bottom:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand)}
 .blatt .kopf h2{flex:1;margin:0;font-size:var(--schrift-groesse-px-titel);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.blatt .kopf .stufe{font-family:var(--schrift-anzeige);font-weight:800;font-size:var(--schrift-groesse-px-klein);color:var(--farbe-ui-stufe-text);-webkit-text-stroke:2px var(--farbe-ui-tinte-tief);paint-order:stroke fill}
+.blatt .kopf .stufe{font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-klein);color:var(--farbe-ui-stufe-text);}
 .blatt .inhalt{padding:var(--abstand-px-2);overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .blatt p{margin:0 0 var(--abstand-px-1);font-size:var(--schrift-groesse-px-absatz);color:var(--farbe-ui-text-absatz);line-height:1.35}
 .gedaempft{color:var(--farbe-ui-text-gedaempft)}
@@ -86,8 +86,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .kasten h3{margin:0 0 var(--abstand-px-1);font-size:var(--schrift-groesse-px-karte-titel);font-family:var(--schrift-anzeige)}
 .zeile{display:flex;align-items:center;justify-content:space-between;gap:var(--abstand-px-1);min-height:var(--groesse-px-tippflaeche-min);font-size:var(--schrift-groesse-px-text)}
 .zeile+.zeile{border-top:1px solid var(--farbe-ui-pergament-rand)}
-.balken{height:var(--groesse-px-fortschritt-hoehe);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-chip);background:var(--farbe-hud-fuellung-fortschritt-grund);overflow:hidden;margin:var(--abstand-px-1) 0}
-.balken i{display:block;height:100%;background:linear-gradient(var(--farbe-hud-fuellung-fortschritt-0),var(--farbe-hud-fuellung-fortschritt-1))}
+.balken{height:var(--groesse-px-fortschritt-hoehe);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-chip);background:var(--farbe-hud-fuellung-fortschritt-grund);overflow:hidden;margin:var(--abstand-px-1) 0}
+.balken i{display:block;height:100%;background:var(--farbe-hud-fuellung-fortschritt-0)}
 
 /* ---------- Reiter + Katalog ---------- */
 .reiter{display:flex;gap:var(--abstand-px-1);overflow-x:auto;padding:var(--abstand-px-1) var(--abstand-px-2);touch-action:pan-x;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);flex:none}
@@ -97,9 +97,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .bkarte:active{transform:translateY(2px)}
 .bkarte canvas,.bkarte .bild{width:100%;height:var(--groesse-px-katalog-bild-hoehe);object-fit:cover;border-radius:var(--radius-px-chip);background:var(--farbe-karte-wiese-a);display:block}
 .bkarte.gesperrt canvas,.bkarte.gesperrt .bild{opacity:.45}
-.bkarte .titel{font-family:var(--schrift-anzeige);font-weight:800;font-size:var(--schrift-groesse-px-karte-titel);line-height:1.15}
+.bkarte .titel{font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-karte-titel);line-height:1.15}
 .bkarte .werte{font-size:var(--schrift-groesse-px-klein);color:var(--farbe-ui-text-gedaempft);font-weight:700}
-.bkarte .preis{font-family:var(--schrift-anzeige);font-weight:800;font-size:var(--schrift-groesse-px-text)}
+.bkarte .preis{font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-text)}
 .bkarte .preis.zuteuer{color:var(--farbe-rolle-fehler)}
 .bkarte .grund{font-size:var(--schrift-groesse-px-klein);font-weight:700}
 .bkarte .abzeichen{align-self:flex-start}
@@ -108,9 +108,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 #toast{position:absolute;left:0;right:0;top:30%;display:flex;justify-content:center;pointer-events:none;padding:0 var(--groesse-px-rand-bildschirm)}
 #toast .toast{max-width:min(92%,420px);text-align:center;font-size:var(--schrift-groesse-px-toast);line-height:1.2;opacity:0;transition:opacity var(--zeit-ms-toast-blende)}
 #toast .toast.sichtbar{opacity:1}
-#toast .toast.lang{background:var(--farbe-ui-pergament);color:var(--farbe-ui-tinte);-webkit-text-stroke:0;text-shadow:none;border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-karte);padding:var(--abstand-px-1) var(--abstand-px-2);font-size:var(--schrift-groesse-px-knopf)}
-.banner{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92%,420px);display:flex;align-items:center;gap:var(--abstand-px-1);flex-wrap:wrap;padding:var(--abstand-px-1) var(--abstand-px-2);background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-karte);box-shadow:var(--schatten-schild)}
-.banner .wer{flex:1 1 140px;font-family:var(--schrift-anzeige);font-weight:800}
+#toast .toast.lang{background:var(--farbe-ui-pergament);color:var(--farbe-ui-tinte);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);padding:var(--abstand-px-1) var(--abstand-px-2);font-size:var(--schrift-groesse-px-knopf)}
+.banner{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92%,420px);display:flex;align-items:center;gap:var(--abstand-px-1);flex-wrap:wrap;padding:var(--abstand-px-1) var(--abstand-px-2);background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);box-shadow:var(--schatten-schild)}
+.banner .wer{flex:1 1 140px;font-family:var(--schrift-anzeige);font-weight:700}
 .banner .wer small{display:block;font-family:var(--schrift-text);font-weight:700;color:var(--farbe-ui-text-gedaempft)}
 
 /* ---------- Eingabe ---------- */
@@ -123,8 +123,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ---------- Laden ---------- */
 #laden{position:absolute;inset:0;display:grid;place-content:center;gap:var(--abstand-px-3);justify-items:center;background:var(--farbe-karte-hintergrund);z-index:5}
 #laden .dorfschild{width:auto;padding:var(--abstand-px-2) var(--abstand-px-4)}
-#laden .bahn{width:200px;height:14px;border-radius:var(--radius-px-chip);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);background:var(--farbe-hud-fuellung-bautimer-grund);overflow:hidden}
-#laden .bahn i{display:block;height:100%;width:40%;background:linear-gradient(var(--farbe-hud-fuellung-bautimer-0),var(--farbe-hud-fuellung-bautimer-1));animation:laden 1.1s ease-in-out infinite alternate}
+#laden .bahn{width:200px;height:14px;border-radius:var(--radius-px-chip);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);background:var(--farbe-hud-fuellung-bautimer-grund);overflow:hidden}
+#laden .bahn i{display:block;height:100%;width:40%;background:var(--farbe-hud-fuellung-bautimer-0);animation:laden 1.1s ease-in-out infinite alternate}
 @keyframes laden{to{margin-left:60%}}
 .start-karten{display:grid;gap:var(--abstand-px-1)}
 .start-karten .bkarte{flex-direction:row;align-items:center;gap:var(--abstand-px-2)}
@@ -152,7 +152,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ---------- Nur Querformat (Entscheidung Simon, 2026-11-04) ---------- */
 #drehen{display:none;position:absolute;inset:0;z-index:10;background:var(--farbe-karte-hintergrund);place-content:center;text-align:center;padding:var(--abstand-px-4)}
-#drehen p{margin:0;font-family:var(--schrift-anzeige);font-weight:800;font-size:var(--schrift-groesse-px-toast);color:#fff;-webkit-text-stroke:2px var(--farbe-ui-tinte-tief);paint-order:stroke fill}
+#drehen p{margin:0;font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-toast);color:#fff;}
 @media (orientation:portrait) and (max-width:600px){#drehen{display:grid}}
 @media (orientation:landscape) and (max-height:600px){
   /* Anzeigen in einer Reihe oben, Blätter als Seitenfläche rechts */
@@ -166,7 +166,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   #ebene.mitte{align-items:center;justify-content:center}
   .blatt{width:min(46%,400px);max-width:none;height:100%;max-height:100%;margin:0;border-radius:var(--radius-px-popup) 0 0 var(--radius-px-popup);border-right:0}
   .blatt.hoch{max-height:100%}
-  .blatt.popup{width:min(92%,640px);height:auto;max-height:94%;border-radius:var(--radius-px-popup);border-right:var(--umriss-px-ui) solid var(--farbe-ui-tinte)}
+  .blatt.popup{width:min(92%,640px);height:auto;max-height:94%;border-radius:var(--radius-px-popup);border-right:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand)}
   .start-karten{grid-template-columns:repeat(3,1fr)}
   .start-karten .bkarte{flex-direction:column;align-items:stretch}
   .start-karten .bkarte canvas{width:100%}
@@ -176,5 +176,5 @@ button{font:inherit;color:inherit;cursor:pointer}
 }
 
 /* Wärmepreis-Regler und Verkaufsknöpfe (A29/A31) */
-.preiswert{flex:1;text-align:center;font-weight:800;font-size:1.05rem}
+.preiswert{flex:1;text-align:center;font-weight:700;font-size:1.05rem}
 .rechts{display:flex;gap:var(--abstand-px-1);align-items:center;flex-wrap:wrap;justify-content:flex-end}
