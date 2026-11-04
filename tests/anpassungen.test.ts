@@ -156,12 +156,14 @@ describe('A33 Vorlauftemperatur und Hausupgrades', () => {
     s.vorlaufSetzen(85); const hoch = s.netz.betriebskosten_eur_min;
     s.vorlaufSetzen(65); expect(s.netz.betriebskosten_eur_min).toBeLessThan(hoch);
   });
-  it('Upgrade kostet Geld und senkt den Mindest-Vorlauf des Hauses', () => {
-    const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
+  it('Upgrade kostet Geld, ein Helfer arbeitet daran und danach sinkt der Mindest-Vorlauf des Hauses', () => {
+    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
     const h = haus(s), vor = s.mindestVorlauf_c(h), geld = s.stand.geld_eur;
     expect(s.upgradeKaufen(h.id).ok).toBe(true);
-    expect(s.mindestVorlauf_c(h)).toBe(vor - 5);
     expect(geld - s.stand.geld_eur).toBe(1500);
+    expect(s.mindestVorlauf_c(h)).toBe(vor); // noch in Arbeit
+    t += 600_000; s.bis(t);
+    expect(s.mindestVorlauf_c(h)).toBe(vor - 5);
   });
   it('Zu niedriger Vorlauf senkt die Zufriedenheit, ein Upgrade hebt sie wieder', () => {
     let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
@@ -171,8 +173,52 @@ describe('A33 Vorlauftemperatur und Hausupgrades', () => {
     s.vorlaufSetzen(65);
     for (let i = 0; i < 40; i++) { t += 5000; s.bis(t); }
     const kalt = h.zufriedenheit_pct!; expect(h.gekuendigt).toBeFalsy();
-    s.upgradeKaufen(h.id); s.upgradeKaufen(h.id); s.upgradeKaufen(h.id);
+    for (let n = 0; n < 3; n++) { s.upgradeKaufen(h.id); t += 3_600_000; s.bis(t); }
     for (let i = 0; i < 40; i++) { t += 5000; s.bis(t); }
     expect(h.zufriedenheit_pct!).toBeGreaterThan(kalt);
+  });
+});
+
+describe('A38 Weiterlauf, A39 Heizzentrale-Ziele, A40 Helfer', () => {
+  it('A38: Beim Wiederöffnen nach drei Tagen sind Einnahmen aufgelaufen, nach einem Monat gilt die Obergrenze von 7 Tagen', () => {
+    const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
+    const a = new Spiel(JSON.parse(JSON.stringify(s.stand)), () => T0 + 3 * 86_400_000); a.bis(T0 + 3 * 86_400_000);
+    const b = new Spiel(JSON.parse(JSON.stringify(s.stand)), () => T0 + 30 * 86_400_000); b.bis(T0 + 30 * 86_400_000);
+    const kasse = (x: Spiel) => x.stand.objekte.reduce((n, o) => n + o.kasse_eur, 0);
+    expect(kasse(a)).toBeGreaterThan(kasse(s));
+    expect(b.stand.zuletzt_ms).toBe(T0 + 30 * 86_400_000);
+    expect(kasse(b)).toBeGreaterThanOrEqual(kasse(a));
+  });
+  it('A39: Die nächste Stufe der Heizzentrale braucht Ziele (Anschlüsse, Absatz, Spreizung)', () => {
+    const s = neuesSpiel(); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 1_000_000;
+    const z = s.hzZiele();
+    expect(z.length).toBeGreaterThan(0);
+    expect(z.every((x) => x.erreicht)).toBe(false);
+    expect(s.ausbauen(s.hz.id).ok).toBe(false);
+    expect(s.stand.geld_eur).toBe(1_000_000);
+  });
+  it('A39: Spreizung steigt mit Upgrades und fällt mit höherem Vorlauf nicht unter null', () => {
+    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    for (let i = 0; i < 100; i++) { t += 10_000; s.bis(t); }
+    const vor = s.spreizung_k();
+    const h = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
+    s.upgradeKaufen(h.id); t += 3_600_000; s.bis(t);
+    expect(s.spreizung_k()).toBeGreaterThan(vor);
+  });
+  it('A40: Drei Helfer arbeiten je an einem Auftrag; der vierte Auftrag wartet', () => {
+    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 100_000;
+    const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
+    // nur zwei Häuser mit Station: das zweite Haus bekommt per Hand eine dritte Station
+    const extra = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
+    extra.ohne_station = false; extra.station = 'st_15';
+    const vier = [...haeuser, extra];
+    expect(vier.length).toBeGreaterThanOrEqual(3);
+    for (const o of vier.slice(0, 3)) expect(s.upgradeKaufen(o.id).ok).toBe(true);
+    expect(s.freierHelfer()).toBeUndefined();
+    const vierter = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station && !o.upgrade_auftrag);
+    if (vierter) expect(s.upgradeKaufen(vierter.id).ok).toBe(false);
+    expect(s.upgradeKaufen(vier[0].id).ok).toBe(false); // gleicher Hausauftrag läuft schon
   });
 });

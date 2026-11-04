@@ -4,6 +4,8 @@ import type { TypId } from '../core/katalog';
 /** Was die Oberflächenteile von der Steuerung brauchen (und nicht mehr). */
 export interface Ui {
   readonly spiel: Spiel;
+  /** aktuelle Zeit in ms (für Restzeiten) */
+  jetzt_ms(): number;
   /** Spielstand wurde durch eine Aktion verändert */
   geaendert(): void;
   toast(text: string): void;

@@ -49,6 +49,7 @@ export class Steuerung implements Ui {
   private readonly nachbarn = nachbardoerfer();
   private pinch: { abstand: number; mx: number; my: number } | null = null;
 
+  jetzt_ms(): number { return this.uhr(); }
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
     this.katalogUi = new Katalog(this);
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });

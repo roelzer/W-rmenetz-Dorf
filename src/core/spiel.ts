@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, HZ_ZIELE, RUECKLAUF_BASIS_C, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -9,7 +9,8 @@ import { ortHolen, STANDARD_ORT } from './orte';
 import { zufall } from './zufall';
 
 const N = KONSTANTEN.feldanzahl;
-const MAX_OFFLINE_S = 12 * 3600;
+/** A38: So lange wird eine Abwesenheit höchstens nachgerechnet (7 Tage). */
+const MAX_OFFLINE_S = 7 * 24 * 3600;
 const SCHRITT_S = 30;
 
 /** Ereignisse für Oberfläche und Darstellung (Hinweise, Effekte). Der Kern kennt keine Grafik. */
@@ -80,18 +81,50 @@ export class Spiel {
     const basis = MIN_VORLAUF_C[o.typ] ?? 70;
     return basis - UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
   }
-  /** Nächstes Hausupgrade kaufen (Arbeiter werden beauftragt, Bauzeit entfällt im Spiel). */
-  upgradeKaufen(id: number): Ergebnis {
+  /** Helfer, der gerade keinen Auftrag hat (A40). */
+  freierHelfer(): string | undefined {
+    const belegt = new Set(this.stand.objekte.filter((o) => o.upgrade_auftrag).map((o) => o.upgrade_auftrag!.helfer));
+    return HELFER.find((h) => !belegt.has(h));
+  }
+  /** Was der Helfer gerade tut (für die Anzeige). */
+  helferAuftrag(name: string): { objekt: Objekt; ende_ms: number } | undefined {
+    const o = this.stand.objekte.find((x) => x.upgrade_auftrag?.helfer === name);
+    return o ? { objekt: o, ende_ms: o.upgrade_auftrag!.ende_ms } : undefined;
+  }
+  /** Nächstes Hausupgrade beauftragen: Ein freier Helfer senkt den Rücklauf; das kostet Geld und Zeit (A33/A40). */
+  upgradeKaufen(id: number, helfer?: string): Ergebnis {
     const o = this.objekt(id), n = o?.upgrade ?? 0;
     if (!o || !(KATALOG[o.typ].kategorie === 'haus' || KATALOG[o.typ].kategorie === 'gross') || n >= UPGRADES.length) return { ok: false };
     if (o.ohne_station) return this.nein('Erst eine Übergabestation einbauen');
+    if (o.upgrade_auftrag) return this.nein('Hier arbeitet schon ein Helfer');
+    const wer = helfer ?? this.freierHelfer();
+    if (!wer || !HELFER.includes(wer) || this.helferAuftrag(wer)) return this.nein('Alle Helfer sind beschäftigt');
     const b = this.bezahlen({ eur: UPGRADES[n].kosten_eur });
     if (!b.ok) return b;
-    o.upgrade = n + 1; o._pop = this.uhr();
-    this.ereignisse.push({ art: 'funken', objekt_id: o.id });
-    this.hinweis(`${UPGRADES[n].name}: Rücklauf gesenkt, das Haus kommt mit ${UPGRADES[n].senkung_k} K weniger Vorlauf aus`);
-    this.neuBerechnen();
+    o.upgrade_auftrag = { helfer: wer, ende_ms: this.uhr() + UPGRADES[n].dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
+    this.hinweis(`${wer} kümmert sich um: ${UPGRADES[n].name}`);
     return ok();
+  }
+  /** Spreizung des Netzes: Vorlauf minus mittlerer Rücklauf der angeschlossenen Kunden, nach Bedarf gewichtet (A39). */
+  spreizung_k(): number {
+    let summe = 0, gew = 0;
+    for (const o of this.stand.objekte) {
+      if (!this.netz.warm.has(o.id)) continue;
+      const w = KATALOG[o.typ].bedarf_kw ?? 0;
+      const senk = UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
+      summe += (this.vorlauf_c - (RUECKLAUF_BASIS_C - senk)) * w; gew += w;
+    }
+    return gew ? summe / gew : this.vorlauf_c - RUECKLAUF_BASIS_C;
+  }
+  /** Bedingungen für die nächste Heizzentralen-Stufe (A39). */
+  hzZiele(): { text: string; ist: number; soll: number; erreicht: boolean }[] {
+    const z = HZ_ZIELE.find((x) => x.stufe === this.hzStufe + 1);
+    if (!z) return [];
+    const anschluesse = this.stand.objekte.filter((o) => this.netz.warm.has(o.id) && KATALOG[o.typ].kategorie === 'haus').length;
+    const liste = [{ text: 'Angeschlossene Häuser', ist: anschluesse, soll: z.anschluesse }];
+    if (z.absatz_kw) liste.push({ text: 'Wärmeabsatz in kW', ist: Math.round(this.netz.genutzt_kw), soll: z.absatz_kw });
+    if (z.spreizung_k) liste.push({ text: 'Spreizung in K', ist: Math.round(this.spreizung_k()), soll: z.spreizung_k });
+    return liste.map((x) => ({ ...x, erreicht: x.ist >= x.soll }));
   }
 
   neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c); }
@@ -210,6 +243,7 @@ export class Spiel {
     if (!o || !hatStufen(o.typ) || o.bau) return { ok: false };
     const D = KATALOG[o.typ];
     if (o.stufe >= this.maxStufe(o)) return this.nein(o.typ === 'hz' ? 'Höchste Stufe' : 'Erst die Heizzentrale ausbauen');
+    if (o.typ === 'hz' && !this.hzZiele().every((z) => z.erreicht)) return this.nein('Die Ziele für die nächste Stufe sind noch nicht erreicht');
     if (o.typ === 'hz' && o.stufe === 2 && !this.kannPlatzieren('hz', o.x, o.y, o.id, 3))
       return this.nein('Für den Anbau auf 3×3 müssen die Felder rechts und unten frei sein');
     if (!this.braucheMonteur()) return { ok: false };
@@ -463,7 +497,7 @@ export class Spiel {
   private naechstesEreignis_ms(): number | null {
     let m: number | null = null;
     const merke = (t: number) => { if (m === null || t < m) m = t; };
-    for (const o of this.stand.objekte) if (o.bau) merke(o.bau.ende_ms);
+    for (const o of this.stand.objekte) { if (o.bau) merke(o.bau.ende_ms); if (o.upgrade_auftrag) merke(o.upgrade_auftrag.ende_ms); }
     for (const k of this.stand.innen) if (k.bau) merke(k.bau.ende_ms);
     for (const g of Object.values(this.stand.antraege)) if (g && g.stand === 'wartet') merke(g.bewilligt_ms);
     return m;
@@ -486,6 +520,12 @@ export class Spiel {
     };
     for (const o of s.objekte) if (o.bau && o.bau.ende_ms <= t) fertig(o, KATALOG[o.typ].name, true);
     for (const k of s.innen) if (k.bau && k.bau.ende_ms <= t) fertig(k, KATALOG[k.typ].name, false);
+    for (const o of s.objekte) if (o.upgrade_auftrag && o.upgrade_auftrag.ende_ms <= t) {
+      const u = UPGRADES[o.upgrade ?? 0];
+      this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (Rücklauf −${u.senkung_k} K)`);
+      o.upgrade = (o.upgrade ?? 0) + 1; delete o.upgrade_auftrag; o._pop = t; geaendert = true;
+      this.ereignisse.push({ art: 'funken', objekt_id: o.id });
+    }
     for (const [typ, g] of Object.entries(s.antraege) as Array<[TypId, NonNullable<Spielstand['antraege'][TypId]>]>) {
       if (g.stand === 'wartet' && g.bewilligt_ms <= t) {
         g.stand = 'bewilligt'; this.hinweis(`Förderbescheid: ${KATALOG[typ].name} ist bewilligt`); geaendert = true;

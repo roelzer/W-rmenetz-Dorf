@@ -1,4 +1,4 @@
-import { istLeitung, UPGRADES, VORLAUF, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
+import { istLeitung, UPGRADES, VORLAUF, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { groesse, istAktiv } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
@@ -98,7 +98,8 @@ export class Kontext {
       return;
     }
     const k = D.kosten_eur[o.stufe], zeit = D.bauzeit_s[o.stufe];
-    c.append(h('div', { class: 'knopfreihe' }, knopf(`Ausbauen auf Stufe ${o.stufe + 1}`, () => { sp.ausbauen(o.id); this.ui.geaendert(); }, 'heiss', { unter: `${eur(k)} · ${zeitText(zeit)}`, aus: sp.stand.geld_eur < k })));
+    const ziel = o.typ === 'hz' ? sp.hzZiele().some((z) => !z.erreicht) : false;
+    c.append(h('div', { class: 'knopfreihe' }, knopf(`Ausbauen auf Stufe ${o.stufe + 1}`, () => { sp.ausbauen(o.id); this.ui.geaendert(); }, 'heiss', { unter: ziel ? 'Ziele noch offen' : `${eur(k)} · ${zeitText(zeit)}`, aus: sp.stand.geld_eur < k || ziel })));
   }
 
   private haus(c: HTMLElement, o: Objekt): void {
@@ -138,9 +139,12 @@ export class Kontext {
     const sp = this.ui.spiel, n = o.upgrade ?? 0, mind = sp.mindestVorlauf_c(o);
     const k = kasten('Rücklauf und Heizflächen');
     k.append(zeile('Braucht mindestens', `${mind} °C Vorlauf`), h('p', { class: 'gedaempft' }, `Die Heizzentrale fährt gerade ${sp.vorlauf_c} °C.${mind > sp.vorlauf_c ? ' Das ist diesem Haus zu kalt – die Zufriedenheit sinkt.' : ''}`));
-    if (n < UPGRADES.length) {
-      const u = UPGRADES[n];
-      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(`${u.name} · −${u.senkung_k} K`, () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(u.kosten_eur), aus: !!o.ohne_station })));
+    if (o.upgrade_auftrag) {
+      const u = UPGRADES[n], rest = Math.max(0, o.upgrade_auftrag.ende_ms - this.ui.jetzt_ms());
+      k.append(h('p', {}, `${o.upgrade_auftrag.helfer} arbeitet an: ${u.name} · noch ${zeitText(Math.ceil(rest / 1000))}`));
+    } else if (n < UPGRADES.length) {
+      const u = UPGRADES[n], frei = sp.freierHelfer();
+      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · −${u.senkung_k} K` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, aus: !!o.ohne_station || !frei })));
     } else k.append(h('p', { class: 'gedaempft' }, 'Alle Upgrades erledigt.'));
     c.append(k);
   }
@@ -222,7 +226,18 @@ export class Kontext {
       h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
       knopf('+', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, '', { klein: true, aus: sp.vorlauf_c >= VORLAUF.max_c })),
       h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
-    c.append(k, vl, zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
+    const ziele = sp.hzZiele();
+    const zk = kasten('Ziele für die nächste Stufe');
+    if (ziele.length) {
+      for (const z of ziele) zk.append(zeile(z.text, h('span', { class: z.erreicht ? 'gruen' : '' }, `${z.ist} / ${z.soll}${z.erreicht ? ' ✓' : ''}`)));
+      zk.append(h('p', { class: 'gedaempft' }, `Spreizung = Vorlauf minus mittlerer Rücklauf. Aktuell ${Math.round(sp.spreizung_k())} K.`));
+    } else zk.append(h('p', { class: 'gedaempft' }, 'Höchste Stufe erreicht.'));
+    const hk = kasten('Helfer');
+    for (const name of HELFER) {
+      const a = sp.helferAuftrag(name);
+      hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
+    }
+    c.append(k, vl, zk, hk, zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
     void groesse;
   }

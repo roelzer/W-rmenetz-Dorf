@@ -136,6 +136,10 @@ describe('A5 Bauzeit, Monteure, Beschleunigen', () => {
   it('Ausbau der Heizzentrale auf Stufe 2 erhöht die Stufe', () => {
     const { s, zeit } = laufend();
     s.stand.geld_eur = 150_000;
+    expect(s.ausbauen(s.hz.id).ok).toBe(false); // A39: erst drei Anschlüsse
+    const drittes = s.stand.objekte.find((o) => o.typ === 'efh' && o.ohne_station)!;
+    drittes.ohne_station = false; drittes.station = 'st_15'; s.neuBerechnen();
+    zeit.t += 600_000; s.bis(zeit.t); // Leitung fertig
     expect(s.ausbauen(s.hz.id).ok).toBe(true);
     zeit.t += ms(KATALOG.hz.bauzeit_s![1]) + 1_000; s.bis(zeit.t);
     expect(s.hzStufe).toBe(2);

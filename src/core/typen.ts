@@ -28,6 +28,8 @@ export interface Objekt {
   landschaft?: boolean;
   /** A33: Anzahl durchgeführter Hausupgrades (0–3) */
   upgrade?: number;
+  /** A40: laufender Helferauftrag für das nächste Upgrade */
+  upgrade_auftrag?: { helfer: string; ende_ms: number };
   /** A32: Haus/Großabnehmer hat noch keine Übergabestation und ist deshalb kein Wärmekunde */
   ohne_station?: boolean;
   /** gekaufte Übergabestation (Id aus STATIONEN) */

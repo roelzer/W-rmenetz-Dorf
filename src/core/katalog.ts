@@ -338,10 +338,22 @@ export const VORLAUF = { min_c: 55, max_c: 85, start_c: 75, schritt_c: 5, erspar
 /** Mindest-Vorlauftemperatur, die ein Haus für warme Räume braucht, bevor Upgrades die Rücklauf-/Heizflächen verbessern (Spielwerte). */
 export const MIN_VORLAUF_C: Record<string, number> = { efh: 75, rh: 75, baeckerei: 75, mfh: 70, bad: 70, klinik: 70 };
 /** Hausupgrades (A33): senken die nötige Vorlauftemperatur (Rücklauf sinkt). Kosten = Arbeiter und Material, Spielwerte. */
-export const UPGRADES: ReadonlyArray<{ name: string; kosten_eur: number; senkung_k: number; beschreibung: string }> = [
-  { name: 'Hydraulischer Abgleich', kosten_eur: 1500, senkung_k: 5, beschreibung: 'Ein Monteur stellt alle Heizkörper aufeinander ab. Der Rücklauf wird kälter.' },
-  { name: 'Neue Hausstation einstellen', kosten_eur: 3500, senkung_k: 5, beschreibung: 'Regelung und Wärmeübertrager der Station werden optimiert.' },
-  { name: 'Größere Heizflächen', kosten_eur: 9000, senkung_k: 8, beschreibung: 'Größere Heizkörper oder Fußbodenheizung: Das Haus wird schon mit niedriger Vorlauftemperatur warm.' },
+export const UPGRADES: ReadonlyArray<{ name: string; kosten_eur: number; senkung_k: number; dauer_s: number; beschreibung: string }> = [
+  { name: 'Hydraulischer Abgleich', dauer_s: 60, kosten_eur: 1500, senkung_k: 5, beschreibung: 'Ein Monteur stellt alle Heizkörper aufeinander ab. Der Rücklauf wird kälter.' },
+  { name: 'Neue Hausstation einstellen', dauer_s: 120, kosten_eur: 3500, senkung_k: 5, beschreibung: 'Regelung und Wärmeübertrager der Station werden optimiert.' },
+  { name: 'Größere Heizflächen', dauer_s: 240, kosten_eur: 9000, senkung_k: 8, beschreibung: 'Größere Heizkörper oder Fußbodenheizung: Das Haus wird schon mit niedriger Vorlauftemperatur warm.' },
+];
+
+/** Rücklauftemperatur eines Hauses ohne Upgrades (Spielwert); Upgrades senken sie um ihre Kelvin-Zahl (A33/A39). */
+export const RUECKLAUF_BASIS_C = 55;
+/** Die drei Helfer (A40): Sie senken auf Auftrag den Rücklauf eines Hauses. */
+export const HELFER: ReadonlyArray<string> = ['Sebastian', 'Christian', 'Manfred'];
+/** Bedingungen für den Ausbau der Heizzentrale (A39, „Rathaus“-Prinzip): Anschlüsse, Wärmeabsatz, Spreizung (Vorlauf minus mittlerer Rücklauf). Spielwerte. */
+export const HZ_ZIELE: ReadonlyArray<{ stufe: number; anschluesse: number; absatz_kw: number; spreizung_k: number }> = [
+  { stufe: 2, anschluesse: 3, absatz_kw: 0, spreizung_k: 0 },
+  { stufe: 3, anschluesse: 5, absatz_kw: 80, spreizung_k: 0 },
+  { stufe: 4, anschluesse: 8, absatz_kw: 140, spreizung_k: 25 },
+  { stufe: 5, anschluesse: 11, absatz_kw: 200, spreizung_k: 30 },
 ];
 
 export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110'];
