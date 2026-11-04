@@ -2,7 +2,7 @@
 
 **Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Zuletzt aktualisiert:** 2026-11-04
 
-> **Jetzt:** Nachbesserung nach Reviewer/Fachprüfer (Offline-Dateiliste, Texte, Tastatur) und neue Optik „moderner, weniger kindlich“ · **Zuletzt fertig:** F5 (Nachbardörfer, App/Offline-Grundlage, Schriften, 8 Leitungsdurchmesser), Speicherstand-Migration · **Als Nächstes:** Designer-Überarbeitung, Nachprüfung, Abschluss · **Fortschritt:** 5 von 6 Features, Prüfungen in Arbeit · **Frage an Simon:** docs/OFFENE_FRAGEN.md
+> **Jetzt:** Vorführstand für Simons Chef (Demo-Artifact Version 5) · **Zuletzt fertig:** A33 Vorlauftemperatur + Hausupgrades, A38 Weiterlauf 7 Tage, A39 Heizzentrale-Ziele, A40 Helfer (Sebastian, Christian, Manfred), A41 Bauabschnitte (Philipp, Laura) · **Als Nächstes:** Balancing, A34 Kamin/Vollversorgung, A36 PV, A37 Sicht hinter Gebäuden, Aufstockung, Designer-Mängel, Reviewer, Schranke `--rolle projektleiter` · **Fortschritt:** 159 Tests grün · **Frage an Simon:** docs/OFFENE_FRAGEN.md
 
 ## Gerade läuft
 Phase Solo: Nachbesserung. Designer-Treue-Prüfung läuft noch; Reviewer (rot) und Fachprüfer (gelb) sind fertig, ihre Befunde werden abgearbeitet (siehe docs/SITZUNGSUEBERGABE.md).

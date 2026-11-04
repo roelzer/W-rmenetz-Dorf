@@ -26,3 +26,6 @@ Frage „in den jeweiligen Orten“: Es ist Lesart (b): Man sucht einen Ort, er 
 
 ## Fragen aus dem Ideen-Lauf (docs/wow-ideen.md)
 S1 Spielst nur du oder später auch Laien? S2 Spielzeit: 1 Spieljahr ≈ 2–3 Wochen echt (Empfehlung) oder echter Kalender? S3 Echte Netze in Hilpoltstein/Dornhausen/Obermässing, auf die sich das Spiel beziehen darf? S4 Dauerhaft ohne Echtgeld (Empfehlung: ja)? S5 Echte Förderprogramm-Namen oder fiktive? Zusätzlich: typische Rücklauftemperatur in einem normalen Dorfnetz (für A28).
+
+- **Bauzeit eines Bauabschnitts (A41):** Aktuell 15 Minuten echt (vor der Vorführung verkürzt; „ein Spieljahr“ wären ca. 17 Stunden). Soll der Wert so bleiben oder länger sein? Mit `KONSTANTEN.abschnitt_bau_s` leicht änderbar.
+- **Heizzentrale-Ziele (A39):** Stufe 2: 3 Anschlüsse; 3: 5 Anschlüsse + 80 kW; 4: 8 + 140 kW + 25 K Spreizung; 5: 11 + 200 kW + 30 K. Spielwerte, bitte prüfen.
