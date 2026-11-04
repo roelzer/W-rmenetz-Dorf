@@ -46,7 +46,7 @@ export interface Foerderantrag {
 }
 
 export interface Spielstand {
-  version: 2;
+  version: 3;
   name: string;
   /** gewählter Ort (A21); fehlt bei alten Spielständen */
   ort?: string;

@@ -204,7 +204,7 @@ describe('A12 Großabnehmer', () => {
     const bad = neu('bad', 13, 10, { zustand: 'vertrag' });
     const n = berechneNetz(dorf(neu('d110', 12, 10), bad), [quelle('kessel', 5)], 2);
     expect(ID(n, bad)).toBe(true);
-    expect(n.einnahmen_eur_min).toBe(160);
+    expect(n.einnahmen_eur_min).toBeCloseTo(160 * PREISSTUFEN[2].einnahmefaktor, 6);
   });
   it('Hallenbad (45 kW) an Verteilleitung (50 kW) geht, an Hausanschluss (12 kW) nicht', () => {
     const bad = neu('bad', 13, 10, { zustand: 'vertrag' });

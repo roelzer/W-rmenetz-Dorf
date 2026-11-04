@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -28,8 +28,10 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   let id = 1;
   const add = (typ: TypId, x: number, y: number, extra: Partial<Objekt> = {}) =>
     objekte.push({ id: id++, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
-  // Kleiner Start (A22): Heizhaus, Büro, ein Monteurhäuschen – keine Leitungen. Die Häuser des Ortes (A21) heizen noch mit Öl.
+  // Start (A22/A29): Heizhaus, Büro, ein Monteurhäuschen, 100.000 €. Die Häuser des Ortes (A21) heizen noch mit Öl.
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
+  // A29: zwei Starthäuser sind von Anfang an mit 50er-Leitung angeschlossen (Hauptleitung zum Heizhaus); alle weiteren Häuser heizen noch mit Öl.
+  for (const [x, y] of [[11, 12], [11, 13], [11, 14], [10, 13]]) add('d50', x, y);
   for (const h of ort.haeuser) add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true });
   for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt' });
   const r = zufall(9 + ortId.length);
@@ -41,8 +43,8 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   const behalten: Objekt[] = [];
   for (const a of objekte) if (!behalten.some((b) => ueberlappt(a, b))) behalten.push(a);
   return {
-    version: 2, name: ort.name, ort: ort.id, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
-    objekte: behalten, naechste_id: id, innen: [], preisstufe: 2, antraege: {},
+    version: 3, name: ort.name, ort: ort.id, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
+    objekte: behalten, naechste_id: id, innen: [], preisstufe: START_PREISSTUFE, antraege: {},
     zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: false, deko_anzahl: 0,
   };
 }
@@ -291,7 +293,38 @@ export class Spiel {
   entfernen(id: number): Ergebnis {
     const o = this.objekt(id);
     if (!o || o.landschaft || !(istLeitung(o.typ) || KATALOG[o.typ].kategorie === 'deko')) return { ok: false };
+    if (istLeitung(o.typ)) this.stand.geld_eur += this.rueckkauf_eur(o.typ, 1); // A30: 50 % zurück
     this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
+    this.neuBerechnen();
+    return ok();
+  }
+
+  /** Rückkaufpreis (50 %) einer Anlage, die bis zur Stufe `stufe` ausgebaut wurde (A30/A31). */
+  rueckkauf_eur(t: TypId, stufe: number): number {
+    const k = KATALOG[t].kosten_eur ?? [];
+    return Math.round(k.slice(0, stufe).reduce((a, x) => a + x, 0) * KONSTANTEN.rueckkauf_anteil);
+  }
+
+  /** Außenanlage (Puffer, PV, Solarthermie, Erdsonde …) verkaufen: 50 % des Einkaufspreises. */
+  verkaufen(id: number): Ergebnis {
+    const o = this.objekt(id);
+    if (!o || KATALOG[o.typ].kategorie !== 'waerme' || o.bau) return { ok: false };
+    const betrag = this.rueckkauf_eur(o.typ, o.stufe);
+    this.stand.geld_eur += betrag;
+    this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
+    this.hinweis(`${KATALOG[o.typ].name} verkauft: +${betrag.toLocaleString('de-DE')} €`);
+    this.neuBerechnen();
+    return ok();
+  }
+
+  /** Quelle im Heizhaus (z. B. zweiten Kessel) verkaufen: 50 % des Einkaufspreises; die letzte Quelle bleibt. */
+  innenVerkaufen(i: number): Ergebnis {
+    const k = this.stand.innen[i];
+    if (!k || k.bau || this.stand.innen.length <= 1) return this.nein('Die letzte Wärmequelle kann nicht verkauft werden');
+    const betrag = this.rueckkauf_eur(k.typ, k.stufe);
+    this.stand.geld_eur += betrag;
+    this.stand.innen.splice(i, 1);
+    this.hinweis(`${KATALOG[k.typ].name} verkauft: +${betrag.toLocaleString('de-DE')} €`);
     this.neuBerechnen();
     return ok();
   }
@@ -309,7 +342,9 @@ export class Spiel {
   leitungTauschen(id: number, neu: TypId): Ergebnis {
     const o = this.objekt(id);
     if (!o || !istLeitung(o.typ) || !istLeitung(neu) || o.typ === neu || !this.grenze(neu)) return { ok: false };
-    const b = this.bezahlen({ eur: (KATALOG[neu].kosten_eur as number[])[0] });
+    // A30: Die alte Leitung wird zu 50 % des Preises zurückgekauft, die neue kostet den vollen Preis.
+    const rueck = Math.round((KATALOG[o.typ].kosten_eur as number[])[0] * KONSTANTEN.rueckkauf_anteil);
+    const b = this.bezahlen({ eur: (KATALOG[neu].kosten_eur as number[])[0] - rueck });
     if (!b.ok) return b;
     o.typ = neu; o._pop = this.uhr();
     this.neuBerechnen();

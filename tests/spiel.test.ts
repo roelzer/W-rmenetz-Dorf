@@ -15,9 +15,9 @@ function laufend() {
   verlegeStartnetz(g.s);
   return g;
 }
-/** Legt die Hauptleitung (50er) zu den drei Startdäusern – das neue Spiel beginnt ohne Leitungen (A22). */
+/** Legt die Leitung zum dritten Starthaus; die ersten zwei sind von Anfang an angeschlossen (A29). */
 function verlegeStartnetz(s: Spiel): void {
-  for (const [x, y] of [[11, 12], [11, 13], [11, 14], [10, 13], [10, 11], [9, 11]]) expect(s.platzieren('d50', x, y).ok).toBe(true);
+  for (const [x, y] of [[10, 11], [9, 11]]) expect(s.platzieren('d50', x, y).ok).toBe(true);
 }
 /** Bau-/Ausbauzeit in Millisekunden inkl. Spieltempo-Faktor (A26). */
 const ms = (sek: number): number => sek * KONSTANTEN.bauzeit_faktor * 1000;
@@ -135,7 +135,7 @@ describe('A5 Bauzeit, Monteure, Beschleunigen', () => {
   });
   it('Ausbau der Heizzentrale auf Stufe 2 erhöht die Stufe', () => {
     const { s, zeit } = laufend();
-    s.stand.geld_eur = 5000;
+    s.stand.geld_eur = 150_000;
     expect(s.ausbauen(s.hz.id).ok).toBe(true);
     zeit.t += ms(KATALOG.hz.bauzeit_s![1]) + 1_000; s.bis(zeit.t);
     expect(s.hzStufe).toBe(2);
@@ -198,9 +198,9 @@ describe('A10/A11 Einnahmen, Abholen, Kasse, Zufriedenheit', () => {
     const { s } = laufend();
     const h = s.stand.objekte.find((o) => o.typ === 'efh')!;
     h.gekuendigt = true;
-    s.preisSetzen(4);
+    s.preisSetzen(8);
     expect(s.zurueckgewinnen(h.id).ok).toBe(false);
-    s.preisSetzen(2);
+    s.preisSetzen(5);
     const geld = s.stand.geld_eur;
     expect(s.zurueckgewinnen(h.id).ok).toBe(true);
     expect(s.stand.geld_eur).toBe(geld - KONSTANTEN.zurueckgewinnen_eur);
@@ -231,7 +231,7 @@ describe('A12 Großabnehmer-Vertrag', () => {
 });
 
 describe('A13 Förderung', () => {
-  const bauePuffer = (g: ReturnType<typeof laufend>) => { g.s.stand.geld_eur = 9000; return g.s.platzieren('puffer', ...frei(g.s)); };
+  const bauePuffer = (g: ReturnType<typeof laufend>) => { g.s.stand.geld_eur = 120_000; return g.s.platzieren('puffer', ...frei(g.s)); };
   it('bewilligter Antrag zahlt nach Fertigstellung 40 % zurück', () => {
     const g = laufend();
     g.s.foerderungBeantragen('puffer');
@@ -240,7 +240,7 @@ describe('A13 Förderung', () => {
     bauePuffer(g);
     const vorher = g.s.stand.geld_eur;
     g.zeit.t += ms(KATALOG.puffer.bauzeit_s![0]) + 1_000; g.s.bis(g.zeit.t);
-    expect(g.s.stand.geld_eur).toBeGreaterThanOrEqual(vorher + Math.round(300 * KONSTANTEN.foerderquote) - 5);
+    expect(g.s.stand.geld_eur).toBeGreaterThanOrEqual(vorher + Math.round(KATALOG.puffer.kosten_eur![0] * KONSTANTEN.foerderquote) - 5);
   });
   it('vorzeitiger Baubeginn lässt den Antrag verfallen', () => {
     const g = laufend();

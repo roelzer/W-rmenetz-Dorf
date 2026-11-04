@@ -267,18 +267,24 @@ export const BAU_KATEGORIEN: ReadonlyArray<readonly [Kategorie, string]> = [
 /** Wärmepreisstufen: Preis in ct/kWh, Einnahme-Faktor, Ziel-Zufriedenheit in % */
 export interface Preisstufe { name: string; ct_je_kwh: number; einnahmefaktor: number; zufriedenheit_pct: number }
 export const PREISSTUFEN: ReadonlyArray<Preisstufe> = [
-  { name: 'sehr günstig', ct_je_kwh: 10, einnahmefaktor: 10 / 14, zufriedenheit_pct: 95 },
-  { name: 'günstig', ct_je_kwh: 12, einnahmefaktor: 12 / 14, zufriedenheit_pct: 85 },
-  { name: 'fair', ct_je_kwh: 14, einnahmefaktor: 1, zufriedenheit_pct: 70 },
-  { name: 'teuer', ct_je_kwh: 16, einnahmefaktor: 16 / 14, zufriedenheit_pct: 42 },
-  { name: 'sehr teuer', ct_je_kwh: 18, einnahmefaktor: 18 / 14, zufriedenheit_pct: 15 },
+  { name: 'sehr günstig', ct_je_kwh: 7, einnahmefaktor: 7 / 14, zufriedenheit_pct: 97 },
+  { name: 'sehr günstig', ct_je_kwh: 8, einnahmefaktor: 8 / 14, zufriedenheit_pct: 94 },
+  { name: 'günstig', ct_je_kwh: 9, einnahmefaktor: 9 / 14, zufriedenheit_pct: 90 },
+  { name: 'günstig', ct_je_kwh: 10, einnahmefaktor: 10 / 14, zufriedenheit_pct: 85 },
+  { name: 'fair', ct_je_kwh: 11, einnahmefaktor: 11 / 14, zufriedenheit_pct: 80 },
+  { name: 'fair', ct_je_kwh: 12, einnahmefaktor: 12 / 14, zufriedenheit_pct: 72 },
+  { name: 'üblich', ct_je_kwh: 13, einnahmefaktor: 13 / 14, zufriedenheit_pct: 60 },
+  { name: 'teuer', ct_je_kwh: 14, einnahmefaktor: 1, zufriedenheit_pct: 45 },
+  { name: 'sehr teuer', ct_je_kwh: 15, einnahmefaktor: 15 / 14, zufriedenheit_pct: 30 },
 ];
+/** Index der Startpreisstufe (12 ct/kWh). */
+export const START_PREISSTUFE = 5;
 
 export const KONSTANTEN = {
   /** Karte N×N Felder */
   feldanzahl: 24,
   /** Grundkapazität der Kasse in € (ohne Abrechnungsbüro) */
-  grundkasse_eur: 1000,
+  grundkasse_eur: 150000,
   /** Anteil der Baukosten, der bei bewilligter Förderung zurückfließt */
   foerderquote: 0.4,
   /** Bewilligungsdauer eines Förderantrags in Sekunden (Prototyp verkürzt) */
@@ -297,10 +303,21 @@ export const KONSTANTEN = {
   beschleunigen_s_je_taler: 10,
   /** Spieltempo (A26): alle Bau- und Ausbauzeiten werden mit diesem Faktor verlängert */
   bauzeit_faktor: 2.5,
-  startgeld_eur: 1200,
+  startgeld_eur: 100000,
+  /** Preise von Technik (Leitungen, Quellen, Häuser, Heizzentrale) in Spiel-Euro gegenüber den Rohwerten im Katalog (A29: realistischer Rahmen mit 100.000 € Start) */
+  kosten_faktor: 40,
+  /** Rückkauf beim Verkaufen / Leitungstausch: Anteil des Einkaufspreises (A30/A31) */
+  rueckkauf_anteil: 0.5,
   starttaler: 100,
   hoechststufe: 5,
 } as const;
+
+// Realistische Preisklasse: Technik kostet mehr als die Rohwerte oben (A29). Deko und Hindernisse bleiben günstig.
+for (const D of Object.values(KATALOG)) {
+  if (D.kosten_eur && ['netz', 'waerme', 'innen', 'haus', 'dorf'].includes(D.kategorie) || (D.kosten_eur && D.name === 'Heizzentrale'))
+    D.kosten_eur = D.kosten_eur.map((k) => Math.round(k * KONSTANTEN.kosten_faktor));
+  if (D.kassenspeicher_eur) D.kassenspeicher_eur = D.kassenspeicher_eur.map((k) => k * KONSTANTEN.kosten_faktor);
+}
 
 export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110'];
 export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);
