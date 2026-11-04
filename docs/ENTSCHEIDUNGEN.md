@@ -15,3 +15,5 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 
 - 2026-11-04 – Schriften-Pakete `@fontsource/baloo-2` und `@fontsource/nunito-sans` (Version 5.3.0, fest) aufgenommen, damit die Schriften offline mitgeliefert werden (A16, M10). Die automatische Download-Zahl-Prüfung der Schranke ist in dieser Umgebung nicht erreichbar („nicht abrufbar“); von mir von Hand geprüft: offizielles Fontsource-Projekt, Lizenz SIL OFL, npm audit ohne Befunde. Bitte beim Abschluss vom Reviewer gegenlesen.
 - 2026-11-04 – Bestehende Tests `netz.test.ts` und `spiel.test.ts` nur umbenannt (Leitungs-IDs p1/p2/p3 → d25/d50/d110, gleiche Leistungen 12/50/220 kW), nicht abgeschwächt – Folge der acht Leitungsdurchmesser.
+
+2026-11-04 – Erste Orte: Hilpoltstein, Dornhausen, Obermässing, vorbereitet statt freier Suche – Simon. Gebäudedaten aus OpenStreetMap (ODbL, Quellenangabe) einmal abrufen und als Datei einbinden; Zugriff auf overpass-api.de ist in dieser Cloud-Umgebung gesperrt (Netzwerkregel), muss freigegeben werden.
