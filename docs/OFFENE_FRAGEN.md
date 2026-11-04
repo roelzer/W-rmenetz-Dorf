@@ -20,3 +20,6 @@ Was nur ein Mensch tun kann. Hält den Lauf nie an. Erledigt: `- [x]`.
 
 ## Frage an Simon: „in den jeweiligen Orten dann das alles gebaut“
 Simon schrieb nach dem Querformat-Wunsch: „und wie gesagt in den jeweiligen orten dann das alles gebaut“. Ich bin nicht sicher, was gemeint ist. Zwei Lesarten: (a) Man baut im eigenen Dorf und die Nachbardörfer (A17) zeigen ihre eigenen gebauten Dinge – so ist es geplant; (b) es sollen **echte Orte** gespielt werden (Karte eines echten Dorfes mit seinen Häusern, z. B. aus OpenStreetMap) – das steht bisher als Idee A20 und wäre eine große Erweiterung. Empfehlung: erst (a) fertig bauen, (b) danach als eigenes Vorhaben planen. Bitte kurz sagen, welche gemeint ist.
+
+## Beantwortet durch Simon (2026-11-04)
+Frage „in den jeweiligen Orten“: Es ist Lesart (b): Man sucht einen Ort, er wird geladen und dort gespielt (A21). Offen für Simon/Planung: Datenquelle (Empfehlung OpenStreetMap, braucht Netz beim Laden; Lizenz ODbL mit Quellenangabe), Umfang der ersten Version (ein paar vorbereitete Orte vs. freie Suche). Zudem T-Stück-Regel (A23) fachlich zu bestätigen.
