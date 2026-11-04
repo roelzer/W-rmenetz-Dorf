@@ -5,6 +5,7 @@ import {
   belegungskarte, berechneNetz, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
 } from './netz';
 import type { Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
+import { ortHolen, STANDARD_ORT } from './orte';
 import { zufall } from './zufall';
 
 const N = KONSTANTEN.feldanzahl;
@@ -21,18 +22,17 @@ export type Ereignis =
 export interface Ergebnis { ok: boolean; hinweis?: string }
 const ok = (): Ergebnis => ({ ok: true });
 
-export function neuerSpielstand(jetzt_ms: number): Spielstand {
+export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT): Spielstand {
+  const ort = ortHolen(ortId);
   const objekte: Objekt[] = [];
   let id = 1;
   const add = (typ: TypId, x: number, y: number, extra: Partial<Objekt> = {}) =>
     objekte.push({ id: id++, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
-  // Kleiner Start (A22): Heizhaus, Büro, ein Monteurhäuschen und drei Einfamilienhäuser – noch keine Leitungen.
+  // Kleiner Start (A22): Heizhaus, Büro, ein Monteurhäuschen – keine Leitungen. Die Häuser des Ortes (A21) heizen noch mit Öl.
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
-  add('efh', 9, 13, { zufriedenheit_pct: 80 }); add('efh', 12, 14, { zufriedenheit_pct: 80 }); add('efh', 8, 11, { zufriedenheit_pct: 80 });
-  add('bad', 3, 3, { zustand: 'gesperrt' });
-  add('gewerbe', 19, 4, { zustand: 'gesperrt' });
-  add('klinik', 18, 18, { zustand: 'gesperrt' });
-  const r = zufall(9);
+  for (const h of ort.haeuser) add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true });
+  for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt' });
+  const r = zufall(9 + ortId.length);
   for (let i = 0; i < 46; i++) {
     const x = Math.floor(r() * N), y = Math.floor(r() * N);
     if (x > 5 && x < 17 && y > 5 && y < 17) continue;
@@ -41,7 +41,7 @@ export function neuerSpielstand(jetzt_ms: number): Spielstand {
   const behalten: Objekt[] = [];
   for (const a of objekte) if (!behalten.some((b) => ueberlappt(a, b))) behalten.push(a);
   return {
-    version: 2, name: 'Mein Wärmedorf', geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
+    version: 2, name: ort.name, ort: ort.id, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
     objekte: behalten, naechste_id: id, innen: [], preisstufe: 2, antraege: {},
     zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: false, deko_anzahl: 0,
   };
@@ -68,7 +68,7 @@ export class Spiel {
   anzahl(t: TypId): number {
     return KATALOG[t].kategorie === 'innen'
       ? this.stand.innen.filter((k) => k.typ === t).length
-      : this.stand.objekte.filter((o) => o.typ === t && !o.landschaft).length;
+      : this.stand.objekte.filter((o) => o.typ === t && !o.landschaft && !o.bestand).length;
   }
   grenze(t: TypId): number { return KATALOG[t].grenze ? KATALOG[t].grenze![this.hzStufe - 1] : 0; }
   leitungsanzahl(): number { return this.stand.objekte.filter((o) => istLeitung(o.typ)).length; }
@@ -203,6 +203,14 @@ export class Spiel {
     const k: InnenQuelle = { typ: t, stufe: 1, bau: gratis ? null : this.neuerBau('neu', (D.bauzeit_s as number[])[0]) };
     if (!gratis && this.foerderungNutzen(t)) k.foerderung_eur = (D.kosten_eur as number[])[0];
     this.stand.innen.push(k);
+    this.neuBerechnen();
+    return ok();
+  }
+
+  /** Vor dem Spielstart: anderen Ort wählen, das Dorf beginnt neu (A21). */
+  ortWechseln(ortId: string): Ergebnis {
+    if (this.stand.quelle_gewaehlt) return { ok: false };
+    this.stand = neuerSpielstand(this.uhr(), ortId);
     this.neuBerechnen();
     return ok();
   }

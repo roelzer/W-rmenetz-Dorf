@@ -15,6 +15,7 @@ import { Hud } from './ui/hud';
 import { Katalog } from './ui/katalog';
 import { Kontext } from './ui/kontext';
 import type { Ui } from './ui/schnittstelle';
+import { ortswahl } from './ui/ortswahl';
 import { startwahl } from './ui/start';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
@@ -61,7 +62,7 @@ export class Steuerung implements Ui {
     document.getElementById('app')!.append(this.hud.wurzel, h('div', { id: 'ebene' }));
     this.eingabe();
     this.bewegungAnwenden();
-    if (!spiel.stand.quelle_gewaehlt) { this.hud.sichtbar({ alles: false }); startwahl(this, () => { this.hud.sichtbar({ alles: true }); this.zentrieren(); }); }
+    if (!spiel.stand.quelle_gewaehlt) { this.hud.sichtbar({ alles: false }); ortswahl(this, () => { this.zentrieren(); startwahl(this, () => { this.hud.sichtbar({ alles: true }); this.zentrieren(); }); }); }
   }
 
   private bewegungAnwenden(): void {

@@ -26,6 +26,8 @@ export interface Objekt {
   foerderung_eur?: number;
   /** Bäume der Landschaft: zählen nicht zur Deko-Obergrenze */
   landschaft?: boolean;
+  /** Gebäude des Ortes (A21): zählen nicht gegen die Baugrenzen der Heizzentralen-Stufe */
+  bestand?: boolean;
   /** nur Darstellung: Zeitpunkt für Aufpop-Animation */
   _pop?: number;
 }
@@ -46,6 +48,8 @@ export interface Foerderantrag {
 export interface Spielstand {
   version: 2;
   name: string;
+  /** gewählter Ort (A21); fehlt bei alten Spielständen */
+  ort?: string;
   geld_eur: number;
   taler: number;
   objekte: Objekt[];

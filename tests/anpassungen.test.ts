@@ -6,13 +6,14 @@ const T0 = 1_000_000_000_000;
 const neuesSpiel = (): Spiel => new Spiel(neuerSpielstand(T0), () => T0);
 
 describe('A22 Kleiner Start', () => {
-  it('A22: neues Spiel hat Heizhaus und höchstens drei Häuser, keine Leitungen', () => {
+  it('A22: neues Spiel hat Heizhaus, keine Leitungen und drei Starthäuser direkt am Heizhaus', () => {
     const s = neuesSpiel();
     expect(s.stand.objekte.filter((o) => istLeitung(o.typ))).toHaveLength(0);
-    const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus');
-    expect(haeuser.length).toBeGreaterThanOrEqual(2);
-    expect(haeuser.length).toBeLessThanOrEqual(3);
     expect(s.stand.objekte.filter((o) => o.typ === 'hz')).toHaveLength(1);
+    const nah = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && Math.hypot(o.x - 11, o.y - 10) < 5);
+    expect(nah.length).toBeGreaterThanOrEqual(2);
+    expect(nah.length).toBeLessThanOrEqual(3);
+    expect(s.stand.quelle_gewaehlt).toBe(false);
   });
 });
 
