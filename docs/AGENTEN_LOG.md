@@ -20,3 +20,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-04 17:35 | ■ 🟡 | rechercheur | Ampel GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/hausupgrades.md (sonst nichts geändert).  ([Bericht](docs/pruefberichte/20261104-173538-rechercheur-a75df93615adb2dd5.md)) |
 | 2026-11-04 17:36 | ■ 🟡 | gastgeber | Ampel: Gelb. Das Fundament trägt einen guten Abend. Für Wochen trägt es noch nicht.  ([Bericht](docs/pruefberichte/20261104-173646-gastgeber-a0f8e97bdbef324cf.md)) |
 | 2026-11-04 17:37 | ■ 🟡 | rechercheur | 🟡 Recherche liegt vor, ist aber nur mittel belastbar. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/reales_netz.md (sonst nichts im Projekt geändert).  ([Bericht](docs/pruefberichte/20261104-173718-rechercheur-a7425189062a765eb.md)) |
+| 2026-11-04 20:04 | ▶ | rechercheur | Recherche ENERPIPE Rohre und Stationen |
