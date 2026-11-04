@@ -2,10 +2,10 @@
 
 **Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Zuletzt aktualisiert:** 2026-11-04
 
-> **Jetzt:** Lastenheft steht, Projektgerüst und Designer-Entwurf starten · **Zuletzt fertig:** Lastenheft A1–A20 · **Als Nächstes:** F1 Projektgerüst + Spiellogik mit Tests · **Geschätzt fertig:** erste spielbare Fassung nach Feature F6 · **Fortschritt:** 0 von 7 Features
+> **Jetzt:** F3 Darstellung (Karte, Gebäude, Leitungen) wird gebaut · **Zuletzt fertig:** F2 Spielablauf, 92 Tests grün · **Als Nächstes:** F4 Oberfläche · **Geschätzt fertig:** erste spielbare Fassung nach F5 · **Fortschritt:** 2 von 6 Features
 
 ## Gerade läuft
-Phase Solo-1: Gerüst. Agent `designer` (entwurf) ⏳
+Phase Solo: Bauen. Keine Agenten laufen.
 
 **Arbeitsbranch:** claude/youthful-feynman-jaegcj
 
@@ -15,8 +15,8 @@ Phase Solo-1: Gerüst. Agent `designer` (entwurf) ⏳
 ## Features
 | Nr. | Was | Stand |
 |---|---|---|
-| F1 | Gerüst (Vite/TS/Vitest/PWA) + Katalog + Netzberechnung mit Fachregel-Tests (A6–A10, A19) | ⏳ |
-| F2 | Spielzustand, Bauen, Timer, Wirtschaft, Kunden, Förderung, Quests, Speichern/Offline (A3–A5, A11–A15) | ⏳ |
+| F1 | Gerüst (Vite/TS/Vitest) + Katalog + Netzberechnung mit Fachregel-Tests (A6–A10, A19) | ✅ |
+| F2 | Spielzustand, Bauen, Timer, Wirtschaft, Kunden, Förderung, Quests, Speichern/Offline (A3–A5, A11–A15) | ✅ |
 | F3 | Darstellung: isometrische Karte, Gebäude, Leitungen, Effekte (A1, A2) | ⏳ |
 | F4 | Oberfläche: HUD, Bau-Katalog, Kontextkarten, Startauswahl, Aufträge | ⏳ |
 | F5 | PWA/offline, Nachbardörfer besuchen (A16, A17) | ⏳ |
