@@ -86,8 +86,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .kasten h3{margin:0 0 var(--abstand-px-1);font-size:var(--schrift-groesse-px-karte-titel);font-family:var(--schrift-anzeige)}
 .zeile{display:flex;align-items:center;justify-content:space-between;gap:var(--abstand-px-1);min-height:var(--groesse-px-tippflaeche-min);font-size:var(--schrift-groesse-px-text)}
 .zeile+.zeile{border-top:1px solid var(--farbe-ui-pergament-rand)}
-.balken{height:var(--groesse-px-fortschritt-hoehe);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-chip);background:var(--farbe-hud-fortschritt-grund);overflow:hidden;margin:var(--abstand-px-1) 0}
-.balken i{display:block;height:100%;background:linear-gradient(var(--farbe-hud-fortschritt-0),var(--farbe-hud-fortschritt-1))}
+.balken{height:var(--groesse-px-fortschritt-hoehe);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);border-radius:var(--radius-px-chip);background:var(--farbe-hud-fuellung-fortschritt-grund);overflow:hidden;margin:var(--abstand-px-1) 0}
+.balken i{display:block;height:100%;background:linear-gradient(var(--farbe-hud-fuellung-fortschritt-0),var(--farbe-hud-fuellung-fortschritt-1))}
 
 /* ---------- Reiter + Katalog ---------- */
 .reiter{display:flex;gap:var(--abstand-px-1);overflow-x:auto;padding:var(--abstand-px-1) var(--abstand-px-2);touch-action:pan-x;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);flex:none}
@@ -123,8 +123,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ---------- Laden ---------- */
 #laden{position:absolute;inset:0;display:grid;place-content:center;gap:var(--abstand-px-3);justify-items:center;background:var(--farbe-karte-hintergrund);z-index:5}
 #laden .dorfschild{width:auto;padding:var(--abstand-px-2) var(--abstand-px-4)}
-#laden .bahn{width:200px;height:14px;border-radius:var(--radius-px-chip);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);background:var(--farbe-hud-bautimer-grund);overflow:hidden}
-#laden .bahn i{display:block;height:100%;width:40%;background:linear-gradient(var(--farbe-hud-bautimer-0),var(--farbe-hud-bautimer-1));animation:laden 1.1s ease-in-out infinite alternate}
+#laden .bahn{width:200px;height:14px;border-radius:var(--radius-px-chip);border:var(--umriss-px-ui) solid var(--farbe-ui-tinte);background:var(--farbe-hud-fuellung-bautimer-grund);overflow:hidden}
+#laden .bahn i{display:block;height:100%;width:40%;background:linear-gradient(var(--farbe-hud-fuellung-bautimer-0),var(--farbe-hud-fuellung-bautimer-1));animation:laden 1.1s ease-in-out infinite alternate}
 @keyframes laden{to{margin-left:60%}}
 .start-karten{display:grid;gap:var(--abstand-px-1)}
 .start-karten .bkarte{flex-direction:row;align-items:center;gap:var(--abstand-px-2)}

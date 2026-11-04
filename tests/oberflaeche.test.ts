@@ -82,3 +82,23 @@ describe('A18 – Hinweis „fiktiv“ und Einheiten', () => {
     expect(quelle).toContain(' kW`');
   });
 });
+
+describe('A2 – Jede Design-Variable im Stylesheet entsteht aus den Tokens', () => {
+  it('A2: alle var(--…) aus stil.css sind Tokens oder im Stylesheet selbst definiert', () => {
+    const erzeugt = new Set<string>();
+    const gehe = (o: Record<string, unknown>, pfad: string[]): void => {
+      for (const [k, v] of Object.entries(o)) {
+        if (k.startsWith('$')) continue;
+        const teil = [...pfad, k.replace(/_/g, '-')];
+        if (Array.isArray(v)) v.forEach((_, i) => erzeugt.add(`--${teil.join('-')}-${i}`));
+        else if (v && typeof v === 'object') gehe(v as Record<string, unknown>, teil);
+        else erzeugt.add(`--${teil.join('-')}`);
+      }
+    };
+    gehe(tokens as unknown as Record<string, unknown>, []);
+    const css = lies('src/ui/stil.css');
+    const eigene = new Set([...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+    const fehlend = [...new Set([...css.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]))].filter((n) => !erzeugt.has(n) && !eigene.has(n));
+    expect(fehlend).toEqual([]);
+  });
+});
