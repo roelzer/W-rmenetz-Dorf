@@ -31,3 +31,6 @@ D. Reviewer `nachpruefung` bei kritisch/hoch; Tests mit A-Nummern für A16 (offe
 
 ## Zwischenstand auf Simons Wunsch (2026-11-04)
 Simon wollte einen ersten Zwischenstand ("kurze Einleitung, bisschen bauen"); Durchlauf angehalten. Erledigt: Offline-Start (K1), Balken-Farben, Texte B1–B8, Einnahmefaktoren, "Gefällt mir" im Kern. Offen: Designer-Mängel 2–22 (docs/DESIGN_TREUE_F5.md), moderner Stil (Designer-Entwurf läuft/liegt vor), M2, M4, M5, Reviewer, Abschlussgate.
+
+## Neuer Stil liegt als Entwurf vor (noch nicht im Spiel)
+Designer-Entwurf „Ruhige Miniatur“ in docs/DESIGN.md und design/tokens.json (Manrope statt Baloo/Nunito, Haarlinien statt dicker Umrisse, weiche Schatten, flache Flächen, Seitenblatt ab 64 px, feste Aktionsleiste). Umsetzungshinweise: farben.ts, maler.ts, gebaeude.ts, szene.ts, effekte.ts, bild.ts, symbole.ts, stil.css, main.ts (Schriftpaket @fontsource/manrope – braucht Simons Okay), katalog.ts (Feld farbe entfernen). Vorab: tests/leitungen.test.ts auf tokens.farbe.leitung umstellen. Danach Treue-Prüfung 844×390 und 1280×800. Lastenheft A2 („warme Farben, Umrisse“) mit Simon klären.
