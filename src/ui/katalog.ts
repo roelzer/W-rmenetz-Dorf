@@ -21,7 +21,7 @@ function werte(t: TypId): string {
 /** Bau-Katalog (S4): Blatt von unten mit Reitern. Jede Karte ist ein Knopf und erklärt, warum etwas nicht geht. */
 export class Katalog {
   private blatt: Blatt | null = null;
-  private kategorie: Kategorie = 'haus';
+  private kategorie: Kategorie = 'netz';
 
   constructor(private readonly ui: Ui) {}
 

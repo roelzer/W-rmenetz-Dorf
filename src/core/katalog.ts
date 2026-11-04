@@ -261,7 +261,7 @@ export const KATALOG: Record<TypId, Definition> = {
 /** Reihenfolge und Beschriftung der Bau-Kategorien im Katalog-Fenster */
 export const BAU_KATEGORIEN: ReadonlyArray<readonly [Kategorie, string]> = [
   ['innen', 'Heizhaus'], ['waerme', 'Außenanlagen'], ['netz', 'Leitungen'],
-  ['haus', 'Häuser'], ['dorf', 'Dorf'], ['deko', 'Deko'],
+  ['dorf', 'Dorf'], ['deko', 'Deko'],
 ];
 
 /** Wärmepreisstufen: Preis in ct/kWh, Einnahme-Faktor, Ziel-Zufriedenheit in % */
