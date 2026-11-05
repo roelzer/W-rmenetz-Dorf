@@ -102,3 +102,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:03 | ▶ | tester | Tester-Vorarbeit A78 für NR12 P2 |
 | 2026-11-05 14:03 | ▶ | entwickler | NR12 P0 Szenen-Schlüssel bauen |
 | 2026-11-05 14:03 | ▶ | entwickler | NR12 P4 Messwerkzeug bauen |
+| 2026-11-05 14:05 | ■ 🟢 | tester | 🟢 Vorarbeit für P2 („Startbildschirm ganz ruhig“) ist fertig, alle Tests laufen grün.  ([Bericht](docs/pruefberichte/20261105-140524-tester-af602d459c0d73c2f.md)) |
