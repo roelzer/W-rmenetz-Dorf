@@ -567,6 +567,8 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
   it('A88: Großabnehmer – Knopf legt die passende freigeschaltete Leitung (statt fest 110er)', async () => {
     for (const [stufe, typ] of [[1, 'd40'], [2, 'd50']] as Array<[number, TypId]>) {
       const { s } = neu(stufe), bad = s.stand.objekte.find((o) => o.typ === 'bad')!;
+      // K1 (Review NR16-A): Der Knopf ist nur mit offenem Bauabschnitt frei – ohne Abschnitt siehe a92-grossabnehmer-abschnitt.
+      offenerAbschnitt(s);
       const k = await karte(s, bad);
       expect(k.knoepfe.some((x) => x.text.includes('110er'))).toBe(false);
       const legen = mit(k.knoepfe, `${KATALOG[typ].name} legen`);
