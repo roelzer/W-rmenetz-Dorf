@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
 import type { El } from './hilfen/dom-attrappe';
@@ -49,5 +50,47 @@ describe('A92 / DESIGN 12.18 – T-Stück zeigt den Preis mit Münze', () => {
       u.st.stempeln('d25');
       expect(zeile2(tStueck(u))).toEqual({ sym: 'sym schloss-klein', text: 'ab Stufe 4' });
     });
+  });
+});
+
+describe('A92 / DESIGN 12.17 – Meldung trennt Leitungsnamen nicht am Bindestrich', () => {
+  /** Meldung über das echte Toast-Modul der laufenden Oberfläche zeigen und ihre Kinder lesen */
+  const zeige = async (text: string): Promise<{ text: string; stuecke: Array<{ tag: string; klasse: string; text: string }> }> => {
+    let ergebnis: { text: string; stuecke: Array<{ tag: string; klasse: string; text: string }> } | undefined;
+    await echteSteuerung(neu(1), async (u) => {
+      const { toast } = await import('../src/ui/toast');
+      toast(text);
+      const t = u.dom.doc.querySelector('#toast .toast')!;
+      ergebnis = { text: t.textContent, stuecke: t.childNodes.map((k) => ('tag' in k ? { tag: k.tagName, klasse: k.className, text: k.textContent } : { tag: '#text', klasse: '', text: k.textContent })) };
+    });
+    return ergebnis!;
+  };
+
+  it('a92: „25er-Leitung“ steht als unteilbares Stück, der Text bleibt Zeichen für Zeichen gleich', async () => {
+    const m = await zeige('Hausanschluss geplant: 1 Feld, 25er-Leitung');
+    expect(m.text).toBe('Hausanschluss geplant: 1 Feld, 25er-Leitung');
+    expect(m.stuecke).toEqual([
+      { tag: '#text', klasse: '', text: 'Hausanschluss geplant: 1 Feld, ' },
+      { tag: 'SPAN', klasse: 'am-stueck', text: '25er-Leitung' },
+    ]);
+  });
+
+  it('a92: zwei Leitungsnamen (auch dreistellig) – beide am Stück, Satzzeichen bleibt außen', async () => {
+    const m = await zeige('100er-Leitung statt 32er-Leitung.');
+    expect(m.stuecke).toEqual([
+      { tag: 'SPAN', klasse: 'am-stueck', text: '100er-Leitung' },
+      { tag: '#text', klasse: '', text: ' statt ' },
+      { tag: 'SPAN', klasse: 'am-stueck', text: '32er-Leitung' },
+      { tag: '#text', klasse: '', text: '.' },
+    ]);
+  });
+
+  it('a92: ohne Leitungsnamen bleibt die Meldung ein einfacher Text', async () => {
+    expect((await zeige('Bauabschnitt bereit – jetzt Häuser anschließen')).stuecke).toEqual([{ tag: '#text', klasse: '', text: 'Bauabschnitt bereit – jetzt Häuser anschließen' }]);
+  });
+
+  it('a92: das Stück bricht nicht um (white-space: nowrap im Stil)', () => {
+    const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
+    expect(css).toMatch(/#toast \.am-stueck\{white-space:nowrap\}/);
   });
 });

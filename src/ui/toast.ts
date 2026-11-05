@@ -46,6 +46,12 @@ export const toastDauer_ms = (text: string): number => {
   return Math.min(z.toast_max, Math.max(z.toast_min, z.toast_grund + z.toast_je_zeichen * text.length));
 };
 
+/** Leitungsnamen („25er-Leitung“) als unteilbares Stück: Die schmale Meldung neben dem Blatt trennte sonst am Bindestrich
+ *  („25er-“ / „Leitung“). Ein Stück mit `white-space:nowrap` statt eines geschützten Bindestrichs (U+2011), damit der Text
+ *  Zeichen für Zeichen gleich bleibt (Vorlesen, Vergleich unten) und die Schrift kein Ersatzzeichen braucht. */
+const stuecke = (text: string): Array<string | HTMLElement> =>
+  text.split(/(\d+er-Leitung)/).filter(Boolean).map((t) => (/^\d+er-Leitung$/.test(t) ? h('span', { class: 'am-stueck' }, t) : t));
+
 /** Kurze Rückmeldung (DESIGN.md 12.17). Höchstens eine: Eine neue ersetzt die alte; derselbe Text startet nur die Zeit neu. */
 export function toast(text: string): void {
   if (!wurzel) {
@@ -54,7 +60,7 @@ export function toast(text: string): void {
   }
   lageAnwenden();
   const alt = wurzel.firstElementChild as HTMLElement | null;
-  const t = alt && alt.textContent === text ? alt : h('div', { class: 'toast' }, text);
+  const t = alt && alt.textContent === text ? alt : h('div', { class: 'toast' }, ...stuecke(text));
   if (t !== alt) {
     wurzel.replaceChildren(t);
     requestAnimationFrame(() => t.classList.add('sichtbar'));

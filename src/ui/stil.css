@@ -95,6 +95,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   transition:width var(--menue-zeit-ms-toast-wandern) var(--menue-kurve-weich),bottom var(--menue-zeit-ms-toast-wandern) var(--menue-kurve-weich)}
 #toast .toast{max-width:var(--toast-max);text-align:center;font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-toast);line-height:1.2;opacity:0;transform:translateY(var(--menue-mass-px-toast-versatz-ein));transition:opacity var(--menue-zeit-ms-toast-blende),transform var(--menue-zeit-ms-toast-blende)}
 #toast .toast.sichtbar{opacity:1;transform:none}
+#toast .am-stueck{white-space:nowrap}
 #toast .toast.sichtbar.weg{opacity:0}
 .banner{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92%,420px);display:flex;align-items:center;gap:var(--abstand-px-1);flex-wrap:wrap;padding:var(--abstand-px-1) var(--abstand-px-2);background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);box-shadow:var(--schatten-schild)}
 .banner .wer{flex:1 1 140px;font-family:var(--schrift-anzeige);font-weight:700}
