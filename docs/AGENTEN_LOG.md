@@ -77,3 +77,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 12:51 | ■ 🟡 | reviewer | 🟡 **A88 P1 „Kundenanfrage“: freigegeben mit kleinen Punkten**  ([Bericht](docs/pruefberichte/20261105-125139-reviewer-afe2a20132da449e5.md)) |
 | 2026-11-05 12:52 | ▶ | entwickler | A88 P2 Leiter bauen |
 | 2026-11-05 12:59 | ■ 🔴 | entwickler | Status: BLOCKIERT 🔴. Grund: Kontext voll. Das Paket ist nicht fertig.  ([Bericht](docs/pruefberichte/20261105-125951-entwickler-ae8ab8968e37aeaad.md)) |
+| 2026-11-05 13:00 | ▶ | entwickler | A88 P2 fertig bauen |
