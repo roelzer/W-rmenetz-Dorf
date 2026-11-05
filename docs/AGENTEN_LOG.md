@@ -265,3 +265,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 21:12 | ▶ | architekt | Bauplan NR17 Engstelle (neu) |
 | 2026-11-05 21:25 | ■ 🔴 | entwickler | 🔴 **Status: BRAUCHT_KONTEXT.** Drei von vier Punkten sind gebaut, getestet und committet. Der Muss-Punkt 1 (Hausblatt bei 667×375) ist **nicht** gebaut: Die ([Bericht](docs/pruefberichte/20261105-212524-entwickler-ab32fc87d97b67afe.md)) |
 | 2026-11-05 21:25 | ▶ | tester | Vorarbeit Kurzform Hausblatt |
+| 2026-11-05 21:29 | ■ 🟢 | tester | 🟢 Die Tester-Vorarbeit ist fertig und committet. Die umgestellten und neuen Tests sind wie gewollt rot. Mit dem Ein-Zeilen-Fix werden alle grün (getestet in ([Bericht](docs/pruefberichte/20261105-212904-tester-ada421d302e20b69c.md)) |
+| 2026-11-05 21:29 | ▶ | entwickler | B2b Kurzform Einzeiler |
