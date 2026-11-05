@@ -189,3 +189,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:45 | ▶ | kritiker | Kritiker NR15 Fassung 2 |
 | 2026-11-05 17:45 | ▶ | fachpruefer | Fachprüfung Hausanschluss-Satz |
 | 2026-11-05 17:46 | ■ 🟡 | fachpruefer | 🟡 Gelb. Der neue Satz ist nicht falsch. Ein Teil davon kann den Spieler aber in die Irre führen. Der T-Stück-Text ist in Ordnung (🟢).  ([Bericht](docs/pruefberichte/20261105-174640-fachpruefer-a7005a441e8e1626a.md)) |
+| 2026-11-05 17:51 | ■ 🟡 | kritiker | 🟡 **Nachprüfung Bauplan NR15/A91, Fassung 2: Gelb. Mit sechs Nachbesserungen vor dem Bau baubar, nichts blockiert.**  ([Bericht](docs/pruefberichte/20261105-175123-kritiker-ad725001787fa6abd.md)) |
