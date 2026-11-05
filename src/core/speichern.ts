@@ -117,3 +117,11 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
 export function laden(text: string | null, jetzt_ms: number): Spielstand {
   return ladenMitBefund(text, jetzt_ms).stand;
 }
+
+/** Nach „Spielstand löschen“ darf beim Neuladen (pagehide) nichts mehr zurückgeschrieben werden (A56). */
+let geloescht = false;
+export function speicherLoeschen(speicher: Pick<Storage, 'removeItem'>): void {
+  geloescht = true;
+  speicher.removeItem(SPEICHER_SCHLUESSEL);
+}
+export function speichernErlaubt(): boolean { return !geloescht; }

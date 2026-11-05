@@ -670,3 +670,14 @@ describe('A55 Drehen per Geste', () => {
     expect(Math.abs(x1 - x0) + Math.abs(y1 - y0)).toBeLessThan(1);
   });
 });
+
+describe('A56 Spielstand löschen bleibt gelöscht', () => {
+  it('A56: Nach dem Löschen wird beim Neuladen nichts zurückgeschrieben', async () => {
+    const m = await import('../src/core/speichern');
+    const entfernt: string[] = [];
+    expect(m.speichernErlaubt()).toBe(true);
+    m.speicherLoeschen({ removeItem: (k: string) => { entfernt.push(k); } });
+    expect(entfernt).toEqual([m.SPEICHER_SCHLUESSEL]);
+    expect(m.speichernErlaubt()).toBe(false);
+  });
+});

@@ -3,7 +3,7 @@ import '@fontsource/manrope/latin-600.css';
 import '@fontsource/manrope/latin-700.css';
 import './ui/stil.css';
 
-import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL } from './core/speichern';
+import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL, speichernErlaubt } from './core/speichern';
 import { neuerSpielstand, Spiel } from './core/spiel';
 import { Maler } from './render/maler';
 import { zeichneSzene } from './render/szene';
@@ -72,6 +72,7 @@ requestAnimationFrame(bild);
 /** Scheitert das Speichern (Speicher voll/gesperrt), erscheint einmal pro Sitzung ein Hinweis; „gespeichert“ wird nie angezeigt. */
 let warnungGezeigt = false;
 function speichern(): void {
+  if (!speichernErlaubt()) return;
   tempoSpeichern();
   try { localStorage.setItem(SPEICHER_SCHLUESSEL, serialisieren(spiel.stand)); }
   catch (fehler) {

@@ -38,3 +38,4 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-05 – A53: Straße neu (Asphalt/Gehweg/Bordstein/Markierung/Zebra/Laternen/Autos), Gärten mit Zaun und Weg; Zahnrad im Dorfschild, weil Einstellungen vorher nur über das Antippen des Dorfschilds erreichbar waren – Simon fand das Zurücksetzen nicht
 - 2026-11-05 – A54: kW-Schalter als Knopf links unten und Taste K (gespeichert in den Einstellungen); Zebrastreifen auf rund ein Sechstel reduziert – Simon: viel zu viele Zebrastreifen
 - 2026-11-05 – A55: Freies Drehen als Gestenschritte à 90° (Zwei-Finger-Drehung, Mittelmaustaste), nicht stufenlos – stufenlos würde das gesamte Zeichnen der Felder umbauen; Gartenränder entfernt – Simon: sehen schlimm aus
+- 2026-11-05 – A56: Speichern nach Löschen gesperrt (pagehide schrieb Stand zurück) – Simon: Reset im Artefakt ging nicht

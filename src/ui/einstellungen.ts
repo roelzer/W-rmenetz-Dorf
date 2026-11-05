@@ -1,4 +1,4 @@
-import { SPEICHER_SCHLUESSEL } from '../core/speichern';
+import { speicherLoeschen } from '../core/speichern';
 import { knopf } from './bausteine';
 import { blattOeffnen } from './blatt';
 import { h } from './dom';
@@ -34,7 +34,7 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     b.inhalt.replaceChildren(
       h('p', {}, 'Wirklich alles löschen? Dein Dorf, dein Geld und alle Aufträge sind danach weg.'),
       h('div', { class: 'knopfreihe' },
-        knopf('Ja, löschen', () => { try { localStorage.removeItem(SPEICHER_SCHLUESSEL); } catch (fehler) { console.warn('Spielstand ließ sich nicht entfernen', fehler); } location.reload(); }, 'heiss'),
+        knopf('Ja, löschen', () => { try { speicherLoeschen(localStorage); } catch (fehler) { console.warn('Spielstand ließ sich nicht entfernen', fehler); } location.reload(); }, 'heiss'),
         knopf('Abbrechen', () => b.zu())));
   }, '', { klein: true });
   b.inhalt.append(
