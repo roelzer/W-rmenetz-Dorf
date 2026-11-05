@@ -62,6 +62,8 @@ export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: Ty
 function signatur(c: HTMLElement): string {
   const k = c.cloneNode(true) as HTMLElement;
   k.querySelectorAll('[data-live]').forEach((e) => { e.textContent = ''; e.removeAttribute('style'); });
+  // Wackeln nach dem Antippen (12.19) ist kein neuer Inhalt – sonst baute der nächste Takt das Blatt mitten im Wackeln neu
+  k.querySelectorAll('.wackelt').forEach((e) => e.classList.remove('wackelt'));
   return k.innerHTML;
 }
 
@@ -258,7 +260,9 @@ export class Kontext {
       // Fachprüfung A73: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
       const gewinn = Math.round(spreizungHaus_k({ ...o, upgrade: n + 1 }, sp.vorlauf_c) - spreizungHaus_k(o, sp.vorlauf_c));
       if (gewinn < u.senkung_k) k.append(h('p', { class: 'gedaempft' }, gewinn > 0 ? `Bei ${sp.vorlauf_c} °C Vorlauf bringt das nur +${gewinn} K Spreizung: Der Rücklauf fällt nicht unter ${MIN_RUECKLAUF_C} °C. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.` : `Der Rücklauf liegt bei ${sp.vorlauf_c} °C Vorlauf schon bei ${MIN_RUECKLAUF_C} °C – mehr Spreizung geht nicht. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.`));
-      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, sperre: ersteSperre(helferSperre(() => this.naechsterHelferFrei_ms(), () => this.ui.jetzt_ms()), o.ohne_station ? OHNE_STATION : null) })));
+      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, id: 'helfer', neuAufbau: () => this.ui.geaendert(),
+        // 12.21 Punkt 2/3: Rangfolge beschäftigt › ohne Station › Geld (H7), beim Tippen neu gelesen
+        sperre: () => ersteSperre(helferSperre(() => this.naechsterHelferFrei_ms(), () => this.ui.jetzt_ms()), o.ohne_station ? OHNE_STATION : null, geldSperre(sp, u.kosten_eur)) })));
     } else k.append(h('p', { class: 'gedaempft' }, 'Alle Upgrades erledigt.'));
     c.append(k);
   }

@@ -20,20 +20,41 @@ export type Hinweis = string | (() => string | null);
  *  (Preis samt Münze bzw. Taler, Regel 5). `schloss` nur, wenn erst Fortschritt die Sperre löst (Regel 2). */
 export interface Sperre { grund: string | null; schloss: boolean; hinweis: Hinweis }
 
-/** Hinweise gesperrter Knöpfe; `sperren` kann ihn nachträglich setzen (z. B. „Gefällt dir“ nach dem Tippen). */
+/** Hinweise gesperrter Knöpfe; `sperren` kann ihn nachträglich setzen (D1: „Gefällt mir“ ist nach dem Tippen gesperrt). */
 const hinweise = new WeakMap<HTMLButtonElement, Hinweis>();
+
+/** Sperre, die beim Antippen neu gelesen wird (DESIGN.md 12.21 Punkt 3): alle Gründe des Knopfs in der Rangfolge von 12.20 Regel 4. */
+export type SperreJetzt = () => Sperre | null;
+
+/** Kennung (`id`) des Knopfs, der nach dem Neuaufbau des Blatts weiterwackeln soll – nur während `neuAufbau` gesetzt. */
+let wackelnNachAufbau: string | null = null;
+
+const zeile2 = (s: Sperre | null): string => (s ? `${s.grund ?? ''}|${s.schloss}` : '');
+const hinweisText = (hw: Hinweis | undefined): string | null | undefined => (typeof hw === 'function' ? hw() : hw);
 
 /** DESIGN.md 12.19: Ein gesperrter Knopf trägt `aria-disabled="true"` statt `disabled`, damit Tippen, Enter und Leertaste
  *  ankommen und Tastatur-Nutzer ihn per Tab erreichen. Ein Klick führt dann nie die Aktion aus: Der Knopf wackelt kurz
  *  (stil.css, nicht bei „Weniger Bewegung“ – sonst käme nie ein animationend und die Klasse bliebe hängen) und zeigt den
- *  Hinweis, falls es einen gibt. Der Zustand wird beim Klick gelesen, damit auch `sperren` nachträglich wirkt. */
-function sperrbar(k: HTMLButtonElement, bei: () => void, aus: boolean, hinweis: Hinweis | undefined): HTMLButtonElement {
+ *  Hinweis, falls es einen gibt. Der Zustand wird beim Klick gelesen, damit auch `sperren` nachträglich wirkt.
+ *  Mit `jetzt` (12.21 Punkt 3) werden beim Tippen alle Gründe neu gelesen: Gilt keiner mehr, läuft die Aktion; gilt ein
+ *  anderer als der angezeigte, baut `neuAufbau` das Blatt neu, damit Zeile 2 denselben Grund nennt wie die Meldung. */
+function sperrbar(k: HTMLButtonElement, bei: () => void, aus: boolean, hinweis: Hinweis | undefined, jetzt?: { sperre: SperreJetzt; gebaut: Sperre | null; neuAufbau?: () => void; id?: string }): HTMLButtonElement {
   if (hinweis !== undefined) hinweise.set(k, hinweis);
   if (aus) sperren(k);
   k.addEventListener('click', () => {
+    if (jetzt) {
+      const s = jetzt.sperre();
+      const text = s ? hinweisText(s.hinweis) : null;
+      if (!s || text === null) { bei(); return; }
+      if (jetzt.neuAufbau && zeile2(s) !== zeile2(jetzt.gebaut)) {
+        wackelnNachAufbau = jetzt.id ?? null;
+        try { jetzt.neuAufbau(); } finally { wackelnNachAufbau = null; }
+      } else if (!ruhig()) k.classList.add('wackelt');
+      if (text) toast(text);
+      return;
+    }
     if (!k.hasAttribute('aria-disabled')) { bei(); return; }
-    const hw = hinweise.get(k);
-    const text = typeof hw === 'function' ? hw() : hw;
+    const text = hinweisText(hinweise.get(k));
     if (text === null) { bei(); return; }
     if (!ruhig()) k.classList.add('wackelt');
     if (text) toast(text);
@@ -42,7 +63,7 @@ function sperrbar(k: HTMLButtonElement, bei: () => void, aus: boolean, hinweis: 
   return k;
 }
 
-/** Sperrt einen schon gebauten Knopf (DESIGN.md 12.19), z. B. „Gefällt dir“ nach dem Tippen; `hinweis` kommt beim Antippen. */
+/** Sperrt einen schon gebauten Knopf (DESIGN.md 12.19), z. B. „Gefällt mir“ direkt nach dem Mögen; `hinweis` kommt beim Antippen. */
 export function sperren(k: HTMLButtonElement, hinweis?: Hinweis): void {
   k.setAttribute('aria-disabled', 'true');
   if (hinweis !== undefined) hinweise.set(k, hinweis);
@@ -52,10 +73,14 @@ export function sperren(k: HTMLButtonElement, hinweis?: Hinweis): void {
  *  `hinweis`: Meldung beim Antippen des gesperrten Knopfs (Grund + was man tun kann, DESIGN.md 12.19).
  *  `sperre`: gesperrt mit Grund, Schloss und Hinweis aus einer Hand (DESIGN.md 12.20); ersetzt `aus`, `schloss` und `hinweis`. */
 type Variante = '' | 'los' | 'geld' | 'taler' | 'gefahr' | 'blau' | 'gewaehlt';
-export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string; schloss?: boolean; hinweis?: Hinweis; sperre?: Sperre | null } = {}): HTMLButtonElement {
-  const s = zusatz.sperre ?? null;
+export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string; schloss?: boolean; hinweis?: Hinweis; sperre?: Sperre | null | SperreJetzt; neuAufbau?: () => void } = {}): HTMLButtonElement {
+  const jetzt = typeof zusatz.sperre === 'function' ? zusatz.sperre : null;
+  const s: Sperre | null = jetzt ? jetzt() : (zusatz.sperre as Sperre | null | undefined) ?? null;
   const aus = !!zusatz.aus || s !== null, schloss = s ? s.schloss : zusatz.schloss, unter = s?.grund ?? zusatz.unter;
-  const k = sperrbar(h('button', { type: 'button', class: `knopf ${variante} ${zusatz.klein ? 'klein' : ''}`.trim(), 'data-id': zusatz.id }, text), bei, aus, s ? s.hinweis : zusatz.hinweis);
+  const k = sperrbar(h('button', { type: 'button', class: `knopf ${variante} ${zusatz.klein ? 'klein' : ''}`.trim(), 'data-id': zusatz.id }, text), bei, aus, s ? s.hinweis : zusatz.hinweis,
+    jetzt ? { sperre: jetzt, gebaut: s, neuAufbau: zusatz.neuAufbau, id: zusatz.id } : undefined);
+  // Neuaufbau nach dem Antippen (12.21 Punkt 3): Der neue, sichtbare Knopf wackelt weiter, nicht der verschwundene alte.
+  if (aus && zusatz.id !== undefined && zusatz.id === wackelnNachAufbau && !ruhig()) k.classList.add('wackelt');
   // Preiszeile mit Münze bzw. Taler davor: Der Preis ist so auch ohne Farbe als Preis erkennbar. Gesperrt steht dort ein Grund,
   // kein Preis – außer es fehlt nur Geld (12.20 Regel 5): Dann bleibt der Preis samt Münze stehen, der Spieler sieht, was er braucht.
   // `schloss`: gesperrter Knopf mit Schloss vor dem Grund (DESIGN.md 12.19)
