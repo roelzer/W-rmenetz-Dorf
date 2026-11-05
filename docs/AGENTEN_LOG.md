@@ -152,3 +152,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 15:09 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Paket NR12/A90 P5, Stand 0c32379 gegen Basis 6e3c57f, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-abe9f701add709bcf  ([Bericht](docs/pruefberichte/20261105-150948-reviewer-a29ab7d0d2d75454a.md)) |
 | 2026-11-05 15:10 | ▶ | tester | NR12 Messlauf nach P5 |
 | 2026-11-05 15:19 | ■ 🟡 | tester | 🟡 **Abnahme-Messlauf A90 (Stand 4fee92a): 14 von 18 Prüfungen erfüllt. Zwei Ziele sind nicht erfüllt, davon ist eines (Z8 4×) sehr wahrscheinlich ein ech ([Bericht](docs/pruefberichte/20261105-151942-tester-a592e464d49b39e7d.md)) |
+| 2026-11-05 15:20 | ▶ | entwickler | NR12 P5b Ruhe nach Geste |
