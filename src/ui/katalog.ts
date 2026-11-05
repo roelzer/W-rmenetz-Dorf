@@ -1,8 +1,9 @@
 import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
 import { chip, knopf, symbol } from './bausteine';
+import { NICHTS_GEZEICHNET, ersteSperre, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
-import { eur, h, zahl } from './dom';
+import { eur, h } from './dom';
 import { zeitText } from '../render/gebaeude';
 import type { Ui } from './schnittstelle';
 
@@ -68,7 +69,7 @@ export class Katalog {
     k.append(h('h3', {}, 'Bauabschnitt')); // Mini-Kopfband wie jeder Kasten (DESIGN.md 12.7)
     if (!a) {
       k.append(h('p', { class: 'gedaempft' }, `Leitungen werden abschnittsweise gebaut: ${ABSCHNITT_HELFER.planung} plant, du zeichnest die Leitungen ein, ${ABSCHNITT_HELFER.material} bestellt das Material, danach dauert der Bau.`),
-        h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'geld', { unter: eur(KONSTANTEN.abschnitt_planung_eur), aus: sp.stand.geld_eur < KONSTANTEN.abschnitt_planung_eur })));
+        h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'geld', { unter: eur(KONSTANTEN.abschnitt_planung_eur), sperre: geldSperre(sp, KONSTANTEN.abschnitt_planung_eur) })));
     } else if (a.phase === 'planung') {
       k.append(h('p', {}, `${ABSCHNITT_HELFER.planung} plant den Abschnitt … noch `, rest()));
     } else if (a.phase === 'offen') {
@@ -76,31 +77,30 @@ export class Katalog {
       // A88/F1: Gestattung, Spülbohrung, Anbohrung und Vorsehung erst erwähnen, wenn sie freigeschaltet sind – vorher kosten sie nichts.
       const anschluesse = sp.abschnittAnschluesse();
       const saetze = [
-        `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}. Leitungen liegen am besten in der öffentlichen Straße. Grenzt eine Leitung an ein Haus, ist das sein Hausanschluss${anschluesse.length ? ` – in diesem Abschnitt: ${anschluesse.length} (${anschluesse.map((a) => KATALOG[a.typ].name).slice(0, 4).join(', ')}${anschluesse.length > 4 ? ' …' : ''})` : ''}.`,
+        `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}. Leitungen liegen am besten in der öffentlichen Straße. Grenzt eine Leitung an ein Haus, kann es darüber Wärme bekommen – den kurzen Abzweig setzt das Spiel selbst. Endet ein eigenes Leitungsstück am Haus, ist es sein Hausanschluss${anschluesse.length ? ` – in diesem Abschnitt: ${anschluesse.length} (${anschluesse.map((a) => KATALOG[a.typ].name).slice(0, 4).join(', ')}${anschluesse.length > 4 ? ' …' : ''})` : ''}; er muss dick genug für das Haus sein.`,
         sp.freigeschaltet('gestattung') ? `Abseits davon brauchst du die Gestattung des Eigentümers (${eur(KONSTANTEN.gestattung_eur_je_feld)} je Feld${sp.gestattungsFelder().length ? `, aktuell ${sp.gestattungsFelder().length} Felder = ${eur(sp.gestattung_eur())}` : ''}).` : '',
         sp.freigeschaltet('spuelbohrung') ? `Über den Fluss kommst du im Spiel nur per Spülbohrung (${eur(KONSTANTEN.bohrung_eur_je_feld)} je Feld${sp.bohrungsFelder().length ? `, aktuell ${eur(sp.bohrung_eur())}` : ''}).` : '',
         sp.freigeschaltet('vorsehung') ? `Dockst du an eine laufende Leitung an, muss sie angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}${sp.anbohrungsFelder().length ? `, aktuell ${sp.anbohrungsFelder().length}× = ${eur(sp.anbohrung_eur())}` : ''}) – außer an einem Leitungsende oder an einem T-Stück mit Vorsehung (${eur(KONSTANTEN.vorsehung_eur)}), das du jetzt beim Bau mit einplanst.` : '',
       ];
       k.append(h('p', { class: 'gedaempft' }, saetze.filter(Boolean).join(' ')),
         h('div', { class: 'knopfreihe' },
-          knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, aus: !n }),
+          knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, sperre: n ? null : NICHTS_GEZEICHNET }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
     } else if (a.phase === 'bestellen') {
       const kost = sp.abschnittKosten_eur();
       k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
         h('div', { class: 'knopfreihe' },
-          knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), aus: sp.stand.geld_eur < kost }),
+          knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
     } else {
       const c = a.bau ? sp.beschleunigungskosten_taler(a.bau) : 0;
       const ex = sp.expresskosten_eur();
-      const sperreExpress = sp.sperrgrund('express');
       k.append(h('p', {}, 'Der Bauabschnitt wird gebaut … noch ', rest(), a.express ? ' (Expresslieferung)' : ''),
         h('div', { class: 'knopfreihe' },
-          // A88: gesperrt = deaktiviert mit Grund statt Preis
-          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: sperreExpress ?? eur(ex), aus: sperreExpress !== null || sp.stand.geld_eur < ex }),
-          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, aus: sp.stand.taler < c })));
+          // A88: gesperrt = deaktiviert mit Grund statt Preis; fehlt nur Geld, bleibt der Preis (DESIGN.md 12.20 Regel 4/5)
+          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
+          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null })));
     }
     return k;
   }
@@ -130,10 +130,13 @@ export class Katalog {
   private waehlen(t: TypId): void {
     const { spiel: sp } = this.ui, D = KATALOG[t], s = sp.stand;
     const grund = sp.sperrgrund(t);
-    if (grund) { this.ui.toast(`${D.name} ${grund}`); return; }
+    // DESIGN.md 12.20 (Katalogkarten): derselbe Wortlaut wie an den gesperrten Knöpfen (Regel 5/6)
+    if (grund) { this.ui.toast(`${D.name} ${grund}. Baue die Heizzentrale aus.`); return; }
     const c = sp.kosten(t, 1);
-    if (c.eur != null && !istLeitung(t) && s.geld_eur < c.eur) { this.ui.toast(`Es fehlen ${zahl(c.eur - s.geld_eur)} €. Am Monatsende zahlen deine Kunden ihre Wärmerechnung.`); return; }
-    if (c.taler != null && s.taler < c.taler) { this.ui.toast(`Es fehlen ${c.taler - s.taler} Dorftaler.`); return; }
+    const fehltGeld = c.eur != null && !istLeitung(t) ? geldHinweis(c.eur - s.geld_eur) : null;
+    if (fehltGeld) { this.ui.toast(fehltGeld); return; }
+    const fehltTaler = c.taler != null ? talerHinweis(c.taler - s.taler) : null;
+    if (fehltTaler) { this.ui.toast(fehltTaler); return; }
     if (D.kategorie === 'innen') {
       const r = sp.innenEinbauen(t);
       this.ui.geaendert();

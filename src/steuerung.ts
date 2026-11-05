@@ -17,7 +17,8 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
-import { Kontext, kurzGrund, leitungsKnoepfe, OHNE_ABSCHNITT, OHNE_ABSCHNITT_HINWEIS, tStueckHinweis } from './ui/kontext';
+import { Kontext, kurzGrund, leitungsKnoepfe, tStueckHinweis } from './ui/kontext';
+import { HAUSANSCHLUSS_KURZ, OHNE_ABSCHNITT, OHNE_ABSCHNITT_HINWEIS, schonGemocht } from './ui/sperrtexte';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
@@ -147,7 +148,7 @@ export class Steuerung implements Ui {
   stempeln(typ: TypId, radieren = false, vorsehen = false): void {
     this.katalogUi.schliessen(); this.kontextUi.schliessen();
     this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
-    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); }, this.spiel.abschnitt?.phase === 'offen' ? null : { grund: OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS });
+    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. ' + HAUSANSCHLUSS_KURZ + ' Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); }, this.spiel.abschnitt?.phase === 'offen' ? null : { grund: OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS });
     // Durchmesser direkt wählen (Designer-Mangel 10)
     // A88: nur freigeschaltete Durchmesser plus ein deaktivierter Knopf für die dickeren – der Kern entscheidet; kurzer Grund, weil die Leiste eng ist
     const wahl = h('div', { class: 'durchmesser' }, ...leitungsKnoepfe(this.spiel, null, (t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true }), true));
@@ -214,7 +215,9 @@ export class Steuerung implements Ui {
     this.besuch = v; this.auswahl = null;
     this.hud.sichtbar({ eigene: false });
     const gemocht = !!this.spiel.stand.gemocht[v.name];
-    const gefaellt = knopf(gemocht ? 'Gefällt dir' : 'Gefällt mir', () => { this.spiel.moegen(v.name); gefaellt.textContent = 'Gefällt dir'; sperren(gefaellt); toast(`${v.name} gefällt dir!`); }, 'taler', { klein: true, aus: gemocht });
+    // DESIGN.md 12.20 D1: Schon gemocht = Hinweis beim Antippen. Direkt nach dem Mögen steht die Bestätigung noch da;
+    // ein zweites Tippen soll keine zweite Meldung stapeln (Test K-b), deshalb dort ohne Hinweis gesperrt.
+    const gefaellt = knopf(gemocht ? 'Gefällt dir' : 'Gefällt mir', () => { this.spiel.moegen(v.name); gefaellt.textContent = 'Gefällt dir'; sperren(gefaellt); toast(`${v.name} gefällt dir!`); }, 'taler', { klein: true, aus: gemocht, hinweis: gemocht ? schonGemocht(v.name) : undefined });
     this.banner = h('div', { class: 'banner' },
       h('span', { class: 'wer' }, v.name, h('small', {}, `Dorf von ${v.besitzer} · Heizzentrale ${v.stufe}`)), gefaellt,
       knopf('Nach Hause', () => this.besuchEnde(), 'los', { klein: true }));

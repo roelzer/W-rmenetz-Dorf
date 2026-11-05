@@ -3,7 +3,8 @@ import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k 
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
-import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile } from './bausteine';
+import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile, type Sperre } from './bausteine';
+import { ANSCHLUSS_GEPLANT, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -28,15 +29,17 @@ export function anfrageKasten(sp: Spiel, o: Objekt, nachAktion: () => void): HTM
   return k;
 }
 
-/** A92: Grund an Knöpfen, die ohne offenen Bauabschnitt nichts tun können (Hausblatt, Zeichenleiste). */
-export const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
-
-/** A92 (NR16): Hinweis beim Antippen des gesperrten T-Stück-Knopfs – Spieler hielten das T-Stück für nötig zum Anschließen. */
+/** A92 (NR16): Hinweis beim Antippen des gesperrten T-Stück-Knopfs – Spieler hielten das T-Stück für nötig zum Anschließen.
+ *  Fachgeprüft, höchstens 90 Zeichen; den späteren Nutzen (Anbohren sparen) verschweigt er vor der Freischaltung bewusst
+ *  (ENTSCHEIDUNGEN 2026-11-05, wie A88/F1). */
 export const tStueckHinweis = (): string =>
-  `Für Hausanschlüsse nicht nötig – den Abzweig setzt das Spiel selbst. Ein T-Stück mit Vorsehung legt einen Abzweig für später bereit und spart dann das Anbohren. Frei ab Heizzentrale Stufe ${abStufe('vorsehung')}.`;
+  `Für Hausanschlüsse nicht nötig, den Abzweig setzt das Spiel. Frei ab Heizzentrale Stufe ${abStufe('vorsehung')}.`;
 
-/** DESIGN.md 12.18/12.19: Hinweis beim Antippen von Knöpfen, die ohne offenen Bauabschnitt gesperrt sind. */
-export const OHNE_ABSCHNITT_HINWEIS = `Erst mit ${ABSCHNITT_HELFER.planung} einen Bauabschnitt planen: Bauen → Leitungen.`;
+/** 12.20 S1 (Seitenblatt) und S2 (Heizhaus-Quelle, `imHeizhaus`): Gebäude hat schon die Stufe der Heizzentrale. */
+const hzStufeSperre = (naechste: number, imHeizhaus: boolean): Sperre => ({
+  grund: 'erst Heizzentrale ausbauen', schloss: true,
+  hinweis: `Stufe ${naechste} gibt es, sobald die Heizzentrale Stufe ${naechste} hat. ${imHeizhaus ? 'Der Ausbau steht unten im Blatt.' : 'Baue sie zuerst aus.'}`,
+});
 
 /** Kurzer Sperrgrund für enge Leisten und Chips (DESIGN.md 12.15); die Stufe kommt aus dem Kern. Geschütztes Leerzeichen
  *  vor der Zahl, damit sie in schmalen Knöpfen nicht allein in die nächste Zeile rutscht. */
@@ -52,7 +55,7 @@ export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: Ty
   const naechste = LEITUNGEN.slice(ab).find((t) => !sp.freigeschaltet(t));
   const grund = naechste ? (kurz ? kurzGrund(naechste) : sp.sperrgrund(naechste)) : null;
   // DESIGN.md 12.19: Hinweis beim Antippen nennt die volle Stufe, auch wenn der Knopf nur den kurzen Grund trägt
-  if (naechste && grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, schloss: true, unter: grund, hinweis: `Dickere Leitungen gibt es ab Heizzentrale Stufe ${abStufe(naechste)}. Baue die Heizzentrale aus.` }));
+  if (naechste && grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, schloss: true, unter: grund, hinweis: stufenHinweis(naechste, 'Dickere Leitungen') }));
   return knoepfe;
 }
 
@@ -145,12 +148,12 @@ export class Kontext {
     if (o.stufe >= sp.maxStufe(o)) {
       // gesperrt: deaktivierter Knopf mit Grund statt grauem Text an Knopfstelle (DESIGN.md 12.13 Punkt 5)
       c.append(o.stufe >= KONSTANTEN.hoechststufe ? h('p', { class: 'gedaempft' }, 'Höchste Stufe erreicht.')
-        : h('div', { class: 'knopfreihe' }, knopf(`Stufe ${o.stufe + 1}`, () => undefined, '', { aus: true, unter: 'Erst Heizzentrale ausbauen' })));
+        : h('div', { class: 'knopfreihe' }, knopf(`Stufe ${o.stufe + 1}`, () => undefined, '', { sperre: hzStufeSperre(o.stufe + 1, false) })));
       return;
     }
     const k = D.kosten_eur[o.stufe], zeit = D.bauzeit_s[o.stufe];
     const ziel = o.typ === 'hz' ? sp.hzZiele().some((z) => !z.erreicht) : false;
-    c.append(h('div', { class: 'knopfreihe' }, knopf(`Ausbauen auf Stufe ${o.stufe + 1}`, () => { sp.ausbauen(o.id); this.ui.geaendert(); }, 'geld', { unter: ziel ? 'Ziele noch offen' : `${eur(k)} · ${zeitText(zeit)}`, aus: sp.stand.geld_eur < k || ziel })));
+    c.append(h('div', { class: 'knopfreihe' }, knopf(`Ausbauen auf Stufe ${o.stufe + 1}`, () => { sp.ausbauen(o.id); this.ui.geaendert(); }, 'geld', { unter: `${eur(k)} · ${zeitText(zeit)}`, sperre: ersteSperre(ziel ? ZIELE_OFFEN : null, geldSperre(sp, k)) })));
   }
 
   private haus(c: HTMLElement, o: Objekt): void {
@@ -195,16 +198,16 @@ export class Kontext {
   /** A92 (NR16): Knöpfe zum Anschließen eines Hauses ohne Anschluss. Ohne offenen Bauabschnitt sind beide gesperrt und nennen den Grund;
    *  gibt es noch gar keinen Abschnitt, lässt er sich hier gleich planen (dieselbe Aktion und derselbe Preis wie im Baumenü). */
   private anschlussWeg(o: Objekt): HTMLElement[] {
-    const sp = this.ui.spiel, offen = sp.abschnitt?.phase === 'offen';
+    const sp = this.ui.spiel, sperre = abschnittSperre(sp, () => this.ui.jetzt_ms());
     const reihen: HTMLElement[] = [];
     if (!sp.abschnitt) {
       const preis = KONSTANTEN.abschnitt_planung_eur;
-      reihen.push(h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Bauabschnitt planen lassen`, () => { sp.abschnittPlanen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(preis), aus: sp.stand.geld_eur < preis })));
+      reihen.push(h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Bauabschnitt planen lassen`, () => { sp.abschnittPlanen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(preis), sperre: geldSperre(sp, preis) })));
     }
     const ziehen = sp.hausanschlussGeplant(o.id)
-      ? knopf('Hausanschluss geplant', () => undefined, '', { klein: true, aus: true, unter: 'kommt mit dem Bauabschnitt' })
-      : knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, schloss: true, unter: offen ? 'zur nächsten Leitung' : OHNE_ABSCHNITT, aus: !offen, hinweis: OHNE_ABSCHNITT_HINWEIS });
-    const selbst = knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, schloss: true, aus: !offen, unter: offen ? undefined : OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS });
+      ? knopf('Hausanschluss geplant', () => undefined, '', { klein: true, sperre: ANSCHLUSS_GEPLANT })
+      : knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: 'zur nächsten Leitung', sperre });
+    const selbst = knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, sperre });
     reihen.push(h('div', { class: 'knopfreihe' }, ziehen, selbst));
     return reihen;
   }
@@ -217,7 +220,7 @@ export class Kontext {
     const mit_kw = bedarfKw(o) * VOLLLASTSTUNDEN.ohne_puffer_h / VOLLLASTSTUNDEN.mit_puffer_h;
     const sperre = sp.sperrgrund('hauspuffer'); // A88: gesperrt = Kastentitel und deaktivierter Knopf mit Grund, kein Erklärtext
     if (!sperre) k.append(h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)} h = ${kw(bedarfKw(o))} kW. Mit Puffer reichen ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} h: ${kw(mit_kw)} kW – kleinere Station und dünnere Leitung genügen.`));
-    k.append(h('div', { class: 'knopfreihe' }, knopf('Puffer einbauen', () => { sp.hauspufferEinbauen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: sperre ?? eur(KONSTANTEN.hauspuffer_eur), aus: sperre !== null || sp.stand.geld_eur < KONSTANTEN.hauspuffer_eur })));
+    k.append(h('div', { class: 'knopfreihe' }, knopf('Puffer einbauen', () => { sp.hauspufferEinbauen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.hauspuffer_eur), sperre: ersteSperre(stufenSperre(sp, 'hauspuffer'), geldSperre(sp, KONSTANTEN.hauspuffer_eur)) })));
     c.append(k);
   }
 
@@ -239,7 +242,7 @@ export class Kontext {
     // A88: Ein laufender Auftrag läuft zu Ende und wird gezeigt; sonst gesperrt = deaktivierter Knopf mit Grund, kein Erklärtext
     const sperre = sp.sperrgrund('ruecklauf_helfer');
     if (sperre && !o.upgrade_auftrag && n < UPGRADES.length) {
-      k.append(h('div', { class: 'knopfreihe' }, knopf('Helfer beauftragen', () => undefined, '', { klein: true, aus: true, unter: sperre })));
+      k.append(h('div', { class: 'knopfreihe' }, knopf('Helfer beauftragen', () => undefined, '', { klein: true, sperre: stufenSperre(sp, 'ruecklauf_helfer') })));
       c.append(k);
       return;
     }
@@ -249,12 +252,20 @@ export class Kontext {
       k.append(h('p', {}, `${o.upgrade_auftrag.helfer} arbeitet an: ${u.name} · noch ${zeitText(Math.ceil(rest / 1000))}`));
     } else if (n < UPGRADES.length) {
       const u = UPGRADES[n], frei = sp.freierHelfer();
+      // DESIGN.md 12.20 H3 vor H4: Sind alle Helfer beschäftigt, nennt der Knopf das zuerst (so legt es tests/a92-sperrtexte H3 fest)
       // Fachprüfung A73: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
       const gewinn = Math.round(spreizungHaus_k({ ...o, upgrade: n + 1 }, sp.vorlauf_c) - spreizungHaus_k(o, sp.vorlauf_c));
       if (gewinn < u.senkung_k) k.append(h('p', { class: 'gedaempft' }, gewinn > 0 ? `Bei ${sp.vorlauf_c} °C Vorlauf bringt das nur +${gewinn} K Spreizung: Der Rücklauf fällt nicht unter ${MIN_RUECKLAUF_C} °C. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.` : `Der Rücklauf liegt bei ${sp.vorlauf_c} °C Vorlauf schon bei ${MIN_RUECKLAUF_C} °C – mehr Spreizung geht nicht. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.`));
-      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, aus: !!o.ohne_station || !frei })));
+      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, sperre: ersteSperre(helferSperre(() => this.naechsterHelferFrei_ms(), () => this.ui.jetzt_ms()), o.ohne_station ? OHNE_STATION : null) })));
     } else k.append(h('p', { class: 'gedaempft' }, 'Alle Upgrades erledigt.'));
     c.append(k);
+  }
+
+  /** Frühestes Auftragsende der Helfer (12.20 H3) oder `null`, wenn einer frei ist. */
+  private naechsterHelferFrei_ms(): number | null {
+    const sp = this.ui.spiel;
+    if (sp.freierHelfer()) return null;
+    return Math.min(...HELFER.map((name) => sp.helferAuftrag(name)?.ende_ms ?? Infinity));
   }
 
   /** A32: Auswahl der Übergabestation – nur Typen, die den Bedarf schaffen; die kleinste passende ist empfohlen. */
@@ -292,9 +303,8 @@ export class Kontext {
       // A88: kleinste freigeschaltete Leitung, die den Bedarf (beim Sägewerk die Abwärme) trägt – der Kern entscheidet
       const leitung = sp.passendeLeitung(Math.max(bedarfKw(o), D.abwaerme_kw ?? 0));
       // A92: Leitungen entstehen nur im offenen Bauabschnitt – ohne ihn gesperrt wie „Leitung selbst legen“ am Haus
-      const offen = sp.abschnitt?.phase === 'offen';
-      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los', { aus: !offen, schloss: true, unter: offen ? undefined : OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS })) : '');
-      c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { aus: !b.ok })));
+      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los', { sperre: abschnittSperre(sp, () => this.ui.jetzt_ms()) })) : '');
+      c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { sperre: vertragSperre(b.fehlt, () => sp.vertragBedingungen(o).fehlt) })));
       return;
     }
     c.append(h('div', { class: 'chips' }, chip('Vertrag läuft', 'gruen'), chip(n.anschluss.has(o.id) ? (n.warm.has(o.id) || o.typ === 'gewerbe' ? 'angeschlossen' : 'kalt') : 'nicht angeschlossen', n.anschluss.has(o.id) ? '' : 'rot')));
@@ -366,30 +376,34 @@ export class Kontext {
       const rechts = q.bau ? h('span', {}, 'wird gebaut …') :
         q.stufe >= KONSTANTEN.hoechststufe ? h('span', { class: 'gedaempft' }, 'Höchste Stufe') :
           // Grauer Text an Knopfstelle sah aus wie ein Knopf ohne Rahmen (DESIGN.md 12.12): deshalb ein deaktivierter Knopf mit Grund
-          q.stufe >= sp.hzStufe ? knopf(`Stufe ${q.stufe + 1}`, () => undefined, '', { klein: true, aus: true, unter: 'Erst Heizzentrale ausbauen', hinweis: `Stufe ${q.stufe + 1} gibt es erst, wenn die Heizzentrale ausgebaut ist.` }) :
-            knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(D.kosten_eur![q.stufe]), aus: s.geld_eur < D.kosten_eur![q.stufe] });
+          q.stufe >= sp.hzStufe ? knopf(`Stufe ${q.stufe + 1}`, () => undefined, '', { klein: true, sperre: hzStufeSperre(q.stufe + 1, true) }) :
+            knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(D.kosten_eur![q.stufe]), sperre: geldSperre(sp, D.kosten_eur![q.stufe]) });
       const verkauf = s.innen.length > 1 && !q.bau ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(q.typ, q.stufe))}` }) : null;
       k.append(zeile(h('span', {}, `${D.name} · Stufe ${q.stufe}`, h('br'), h('small', { class: 'gedaempft' }, `${leistung} kW`)), h('span', { class: 'rechts' }, rechts, verkauf)));
     });
     if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Quelle einbauen', () => this.ui.katalog('innen'), 'los')));
     else k.append(h('p', { class: 'gedaempft' }, 'Kein Platz mehr im Heizhaus – baue erst die Heizzentrale aus.'));
     const sperreVorlauf = sp.sperrgrund('vorlauf'); // A88: gesperrt = Stepper deaktiviert, Grund darunter
+    // DESIGN.md 12.20 R1/R2: Die Stufe geht vor dem Rand des Reglers (Regel 4)
+    const vlStufe = sperreVorlauf ? stufenHinweis('vorlauf', `Den ${merkmalName('vorlauf')}`) : null;
+    const vlMinus = vlStufe ?? (sp.vorlauf_c <= VORLAUF.min_c ? RAND.vorlaufMin : undefined);
+    const vlPlus = vlStufe ?? (sp.vorlauf_c >= VORLAUF.max_c ? RAND.vorlaufMax : undefined);
     const vl = kasten(`Vorlauftemperatur · ${sp.vorlauf_c} °C`);
     vl.append(h('div', { class: 'knopfreihe' },
-      stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, sperreVorlauf !== null || sp.vorlauf_c <= VORLAUF.min_c),
+      stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, vlMinus !== undefined, vlMinus),
       h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
-      stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, sperreVorlauf !== null || sp.vorlauf_c >= VORLAUF.max_c)),
+      stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, vlPlus !== undefined, vlPlus)),
       sperreVorlauf ? sperrHinweis(`${merkmalName('vorlauf')} ${sperreVorlauf}`) : h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
     const pvk = kasten('Solarstrom');
-    const pvKw = sp.dachPvLeistung_kw(), sperrePv = sp.sperrgrund('dach_pv');
+    const pvKw = sp.dachPvLeistung_kw();
     if (hzObj.dach_pv) pvk.append(h('p', {}, `PV-Anlage auf dem Heizhaus-Dach: ${pvKw} kWp. Sie senkt die Stromkosten von Wärmepumpe und Power-to-Heat-Kessel, Überschuss wird ins Stromnetz eingespeist.`));
-    else pvk.append(h('p', { class: 'gedaempft' }, 'PV auf dem Dach der Heizzentrale liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet. Die Anlage wächst mit der Heizzentrale.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${pvKw} kWp`, () => { sp.dachPvKaufen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: sperrePv ?? eur(pvKw * DACH_PV.eur_je_kw), aus: sperrePv !== null || s.geld_eur < pvKw * DACH_PV.eur_je_kw })));
+    else pvk.append(h('p', { class: 'gedaempft' }, 'PV auf dem Dach der Heizzentrale liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet. Die Anlage wächst mit der Heizzentrale.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${pvKw} kWp`, () => { sp.dachPvKaufen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(pvKw * DACH_PV.eur_je_kw), sperre: ersteSperre(stufenSperre(sp, 'dach_pv'), geldSperre(sp, pvKw * DACH_PV.eur_je_kw)) })));
     const bg = kasten('Baugebiet');
     const bb = sp.baugebietBedingungen(), sperreBg = sp.sperrgrund('baugebiet');
     if (sp.stand.baugebiet) bg.append(h('p', { class: 'gedaempft' }, 'Das Baugebiet ist erschlossen. Verbinde die neuen Häuser mit einem Bauabschnitt.'));
     else bg.append(h('p', { class: 'gedaempft' }, 'Ein zweiter Strang in die Gegenrichtung mit neuen Grundstücken. Der Wärmeerzeuger muss dafür mitwachsen.'),
       ...(bb.ok || sperreBg ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
-      h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: sperreBg ?? eur(KONSTANTEN.baugebiet_eur), aus: !bb.ok || s.geld_eur < KONSTANTEN.baugebiet_eur })));
+      h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), sperre: ersteSperre(stufenSperre(sp, 'baugebiet'), baugebietSperre(sp.versorgteHaeuser()), geldSperre(sp, KONSTANTEN.baugebiet_eur)) })));
     const ziele = sp.hzZiele();
     const zk = kasten('Ziele für die nächste Stufe');
     if (ziele.length) {
@@ -415,16 +429,16 @@ export class Kontext {
     const P = PREISSTUFEN[s.preisstufe];
     const preis = kasten(`Wärmepreis · ${P.ct_je_kwh} ct/kWh`);
     preis.append(h('div', { class: 'knopfreihe' },
-      stepper('minus', 'Wärmepreis senken', () => { sp.preisSetzen(s.preisstufe - 1); this.ui.geaendert(); }, s.preisstufe <= 0),
+      stepper('minus', 'Wärmepreis senken', () => { sp.preisSetzen(s.preisstufe - 1); this.ui.geaendert(); }, s.preisstufe <= 0, RAND.preisMin),
       h('span', { class: 'preiswert' }, `${P.ct_je_kwh} ct`),
-      stepper('plus', 'Wärmepreis erhöhen', () => { sp.preisSetzen(s.preisstufe + 1); this.ui.geaendert(); }, s.preisstufe >= PREISSTUFEN.length - 1)));
+      stepper('plus', 'Wärmepreis erhöhen', () => { sp.preisSetzen(s.preisstufe + 1); this.ui.geaendert(); }, s.preisstufe >= PREISSTUFEN.length - 1, RAND.preisMax)));
     preis.append(h('p', { class: 'gedaempft' }, `Du bekommst die Vergütung für jede Kilowattstunde, die ein Abnehmer verbraucht (zwischen ${PREISSTUFEN[0].ct_je_kwh} und ${PREISSTUFEN.at(-1)!.ct_je_kwh} ct). Je höher der Preis, desto mehr Einnahmen – aber desto unzufriedener werden die Kunden (${P.name}).`));
     // A81: Grundgebühr je Anschluss und Monat
     const g = sp.grundgebuehr_eur;
     preis.append(zeile('Grundgebühr', `${eur(g)} im Monat je Anschluss`), h('div', { class: 'knopfreihe' },
-      stepper('minus', 'Grundgebühr senken', () => { sp.grundgebuehrSetzen(g - 1); this.ui.geaendert(); }, g <= GRUNDGEBUEHR.min_eur),
+      stepper('minus', 'Grundgebühr senken', () => { sp.grundgebuehrSetzen(g - 1); this.ui.geaendert(); }, g <= GRUNDGEBUEHR.min_eur, RAND.gebuehrMin),
       h('span', { class: 'preiswert' }, `${zahl(g)} €`),
-      stepper('plus', 'Grundgebühr erhöhen', () => { sp.grundgebuehrSetzen(g + 1); this.ui.geaendert(); }, g >= GRUNDGEBUEHR.max_eur)));
+      stepper('plus', 'Grundgebühr erhöhen', () => { sp.grundgebuehrSetzen(g + 1); this.ui.geaendert(); }, g >= GRUNDGEBUEHR.max_eur, RAND.gebuehrMax)));
     const m = sp.monat(), a = s.letzte_abrechnung;
     preis.append(h('p', { class: 'gedaempft' }, `Abgerechnet wird am Monatsende automatisch: verbrauchte kWh × Wärmepreis + Grundgebühr. Nächste Abrechnung (${sp.monatsname(m.nr)}) in ${zeitText(Math.ceil(m.rest_ms / 1000))}.`));
     if (a) preis.append(zeile(`Letzte Abrechnung (${sp.monatsname(a.monat)})`, `${zahl(a.waerme_kwh)} kWh · ${eur(a.summe_eur)}`));
