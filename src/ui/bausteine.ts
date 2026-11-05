@@ -71,9 +71,10 @@ export function sperren(k: HTMLButtonElement, hinweis?: Hinweis): void {
 
 /** Knopfarten nach DESIGN.md 12.5: kostenlos = los, kostet € = geld, kostet Taler = taler, nicht umkehrbar = gefahr, Auswahl an = gewaehlt.
  *  `hinweis`: Meldung beim Antippen des gesperrten Knopfs (Grund + was man tun kann, DESIGN.md 12.19).
- *  `sperre`: gesperrt mit Grund, Schloss und Hinweis aus einer Hand (DESIGN.md 12.20); ersetzt `aus`, `schloss` und `hinweis`. */
+ *  `sperre`: gesperrt mit Grund, Schloss und Hinweis aus einer Hand (DESIGN.md 12.20); ersetzt `aus`, `schloss` und `hinweis`.
+ *  `muenze`: Zeile 2 ist ein Preis in €, obwohl die Knopfart keine Geld-Art ist (Umschalter wie das T-Stück, 12.18). */
 type Variante = '' | 'los' | 'geld' | 'taler' | 'gefahr' | 'blau' | 'gewaehlt';
-export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string; schloss?: boolean; hinweis?: Hinweis; sperre?: Sperre | null | SperreJetzt; neuAufbau?: () => void } = {}): HTMLButtonElement {
+export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string; schloss?: boolean; hinweis?: Hinweis; sperre?: Sperre | null | SperreJetzt; neuAufbau?: () => void; muenze?: boolean } = {}): HTMLButtonElement {
   const jetzt = typeof zusatz.sperre === 'function' ? zusatz.sperre : null;
   const s: Sperre | null = jetzt ? jetzt() : (zusatz.sperre as Sperre | null | undefined) ?? null;
   const aus = !!zusatz.aus || s !== null, schloss = s ? s.schloss : zusatz.schloss, unter = s?.grund ?? zusatz.unter;
@@ -84,8 +85,8 @@ export function knopf(text: string | Node, bei: () => void, variante: Variante =
   // Preiszeile mit Münze bzw. Taler davor: Der Preis ist so auch ohne Farbe als Preis erkennbar. Gesperrt steht dort ein Grund,
   // kein Preis – außer es fehlt nur Geld (12.20 Regel 5): Dann bleibt der Preis samt Münze stehen, der Spieler sieht, was er braucht.
   // `schloss`: gesperrter Knopf mit Schloss vor dem Grund (DESIGN.md 12.19)
-  const preis = (variante === 'geld' || variante === 'taler') && (!aus || (s !== null && s.grund === null));
-  if (unter) k.append(h('small', {}, preis ? symbol(variante as 'geld' | 'taler', 'sym preis-sym') : aus && schloss ? symbol('schloss', 'sym schloss-klein') : null, unter));
+  const preis = (variante === 'geld' || variante === 'taler' || !!zusatz.muenze) && (!aus || (s !== null && s.grund === null));
+  if (unter) k.append(h('small', {}, preis ? symbol(variante === 'taler' ? 'taler' : 'geld', 'sym preis-sym') : aus && schloss ? symbol('schloss', 'sym schloss-klein') : null, unter));
   return k;
 }
 

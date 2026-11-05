@@ -213,7 +213,7 @@ export class Steuerung implements Ui {
     zurueck.setAttribute('aria-label', 'Letzte Leitung zurück');
     const sperreTStueck = sp.sperrgrund('vorsehung');
     // enge Leiste: kurzer Grund „ab Stufe X“ (DESIGN.md 12.15); der Hinweis beim Antippen erklärt ausführlich
-    const tStueck = umschalter(knopf('T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, id: 'tstueck', unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, hinweis: tStueckHinweis() }), this.vorsehen);
+    const tStueck = umschalter(knopf('T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, id: 'tstueck', unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, muenze: true, hinweis: tStueckHinweis() }), this.vorsehen);
     tStueck.classList.add('t-stueck');
     const werkzeug = h('div', { class: 'zeichen-werkzeug', hidden: this.hilfeOffen },
       h('div', { class: 'farbknoepfe' }, ...farben, dicker),
