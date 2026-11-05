@@ -44,3 +44,5 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-05 – A59: Start-Hauptleitung 40er in der Straße (x=10, y=10–14), Hausanschluss 25er zum Haus (12|14); Haus (9|13) grenzt direkt an die Straße und hängt ohne Zwischenstück an der Hauptleitung; alte Spielstände behalten ihre alten Startleitungen – Simon
 - 2026-11-05 – A60: Rauch an allen Hauskaminen entfernt, auch bei noch nicht angeschlossenen (Öl-)Häusern – Simon: kein Rauch, spart Rechenleistung
 - 2026-11-05 – A61: Spielname „Heatnet“ (ohne „Clash“ wegen Markenrisiko Supercell); Speicherschlüssel bleiben unverändert, damit Spielstände erhalten bleiben – Simon
+- 2026-11-05 – A62: Express = 30 % Aufpreis aufs Material (min. 500 €), Restlieferzeit × 0,35, einmal je Abschnitt; „Beschleunigen“ mit Talern heißt jetzt „Sofort fertig“ – Simon: Expresslieferung
+- 2026-11-05 – A63: Logo vom Projektleiter entworfen (Designer-Prüfung offen): Flamme im Kreis, drei Häuser, Doppelleitung rot/blau; Schriftzug „Heat“ rot, „net“ blau; Vorspann 1,7 s – Simon: Logo

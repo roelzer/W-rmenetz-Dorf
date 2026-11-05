@@ -761,3 +761,32 @@ describe('A61 Spielname Heatnet', () => {
     expect(m.name).toBe('Heatnet'); expect(m.short_name).toBe('Heatnet');
   });
 });
+
+describe('A62 Expresslieferung', () => {
+  it('A62: Laura kann einmal Express bestellen – das kostet Aufpreis und verkürzt die Restlieferzeit', () => {
+    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 200_000; s.stand.abschnitt = { phase: 'offen', bau: null };
+    expect(s.platzieren('d40', 10, 18).ok).toBe(true);
+    s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
+    const a = s.stand.abschnitt!;
+    const restVor = a.bau!.ende_ms - t, geld = s.stand.geld_eur, preis = s.expresskosten_eur();
+    expect(preis).toBeGreaterThanOrEqual(KONSTANTEN.express_min_eur);
+    expect(s.expressLiefern().ok).toBe(true);
+    expect(geld - s.stand.geld_eur).toBe(preis);
+    expect(a.bau!.ende_ms - t).toBeLessThan(restVor * 0.5);
+    expect(s.expressLiefern().ok).toBe(false); // nur einmal
+  });
+  it('A62: Ohne laufende Lieferung gibt es keinen Express', () => {
+    const s = new Spiel(neuerSpielstand(T0), () => T0);
+    expect(s.expressLiefern().ok).toBe(false);
+  });
+});
+
+describe('A63 Logo', () => {
+  it('A63: Das Logo zeigt Flamme und Leitungen (Vorlauf rot, Rücklauf blau) und ist auch App-Symbol', async () => {
+    const { readFileSync } = await import('node:fs');
+    const logo = readFileSync(new URL('../src/ui/logo.svg', import.meta.url), 'utf8');
+    expect(logo).toContain('#e8463a'); expect(logo).toContain('#3a8de0');
+    expect(readFileSync(new URL('../public/icon.svg', import.meta.url), 'utf8')).toBe(logo);
+  });
+});

@@ -72,8 +72,11 @@ export class Katalog {
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
     } else {
       const c = a.bau ? sp.beschleunigungskosten_taler(a.bau) : 0;
-      k.append(h('p', {}, `Der Bauabschnitt wird gebaut … noch ${rest()}`),
-        h('div', { class: 'knopfreihe' }, knopf('Beschleunigen', () => { sp.beschleunigen(a.bau); neu(); }, 'heiss', { klein: true, unter: `${c} Taler`, aus: sp.stand.taler < c })));
+      const ex = sp.expresskosten_eur();
+      k.append(h('p', {}, `Der Bauabschnitt wird gebaut … noch ${rest()}${a.express ? ' (Expresslieferung)' : ''}`),
+        h('div', { class: 'knopfreihe' },
+          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'los', { klein: true, unter: eur(ex), aus: sp.stand.geld_eur < ex }),
+          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'heiss', { klein: true, unter: `${c} Taler`, aus: sp.stand.taler < c })));
     }
     return k;
   }

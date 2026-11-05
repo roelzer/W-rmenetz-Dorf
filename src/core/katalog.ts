@@ -353,6 +353,10 @@ export const KONSTANTEN = {
   abschnitt_planung_eur: 2000,
   /** A41: Bauzeit eines Bauabschnitts nach der Materialbestellung (Sekunden vor Spieltempo; entspricht „ein Jahr Wartezeit“, für die Vorführung verkürzt) */
   abschnitt_bau_s: 360,
+  /** A62: Expresslieferung – Aufpreis als Anteil am Material (mindestens express_min_eur), Restlieferzeit schrumpft auf express_faktor */
+  express_anteil: 0.3,
+  express_min_eur: 500,
+  express_faktor: 0.35,
   /** A34: Nach so vielen Sekunden dauerhaft hoher Zufriedenheit schaltet ein Haus seinen Kamin ab (Vollversorgung) */
   vollversorgung_nach_s: 900,
   vollversorgung_faktor: 1.5,

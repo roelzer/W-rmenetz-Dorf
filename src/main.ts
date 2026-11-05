@@ -9,9 +9,12 @@ import { Maler } from './render/maler';
 import { zeichneSzene } from './render/szene';
 import { Steuerung } from './steuerung';
 import { tokensAnwenden } from './ui/tokens';
+import { vorspannZeigen } from './ui/vorspann';
+import { einstellungenLesen } from './ui/einstellungen';
 import { tempoSpeichern, uhr } from './tempo';
 
 tokensAnwenden();
+vorspannZeigen(einstellungenLesen().weniger_bewegung);
 
 const lesen = (): string | null => { try { return localStorage.getItem(SPEICHER_SCHLUESSEL); } catch { return null; } };
 /** Einen unbrauchbaren Spielstand sichern, bevor er vom neuen Spiel überschrieben wird. */

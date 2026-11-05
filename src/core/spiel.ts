@@ -655,12 +655,40 @@ export class Spiel {
   materialBestellen(): Ergebnis {
     const a = this.stand.abschnitt;
     if (a?.phase !== 'bestellen') return { ok: false };
-    const b = this.bezahlen({ eur: this.abschnittKosten_eur() });
+    const kost = this.abschnittKosten_eur();
+    const b = this.bezahlen({ eur: kost });
     if (!b.ok) return b;
+    a.material_eur = kost;
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
     a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
     const w = this.lieferwochen();
     this.sagt(ABSCHNITT_HELFER.material, `Hey ${this.spielerName}, dein Material ist bestellt. Lieferzeit: ${w} ${w === 1 ? 'Woche' : 'Wochen'}.`);
+    return ok();
+  }
+
+  /** A62: Aufpreis für die Expresslieferung des laufenden Bauabschnitts. */
+  expresskosten_eur(): number {
+    const m = this.stand.abschnitt?.material_eur ?? 0;
+    return Math.max(KONSTANTEN.express_min_eur, Math.round(m * KONSTANTEN.express_anteil));
+  }
+  /** Restliche Lieferzeit des Bauabschnitts in Spielwochen (mindestens 1). */
+  restwochen(): number {
+    const a = this.stand.abschnitt;
+    if (!a?.bau) return 0;
+    return Math.max(1, Math.round(Math.max(0, a.bau.ende_ms - this.uhr()) / (SPIELJAHR_MS / 52)));
+  }
+  /** A62: Expresslieferung (Laura): einmal je Abschnitt, gegen Aufpreis schrumpft die Restlieferzeit deutlich. */
+  expressLiefern(): Ergebnis {
+    const a = this.stand.abschnitt;
+    if (a?.phase !== 'bau' || !a.bau) return { ok: false };
+    if (a.express) return this.nein('Express ist schon bestellt');
+    const b = this.bezahlen({ eur: this.expresskosten_eur() });
+    if (!b.ok) return b;
+    const jetzt = this.uhr(), rest = Math.max(0, a.bau.ende_ms - jetzt);
+    a.bau.ende_ms = jetzt + Math.round(rest * KONSTANTEN.express_faktor);
+    a.express = true;
+    const w = this.restwochen();
+    this.sagt(ABSCHNITT_HELFER.material, `Alles klar ${this.spielerName}, ich hab auf Express umgestellt. Dein Material kommt jetzt in ${w} ${w === 1 ? 'Woche' : 'Wochen'}.`);
     return ok();
   }
 

@@ -2,6 +2,7 @@ import { speicherLoeschen } from '../core/speichern';
 import { knopf } from './bausteine';
 import { blattOeffnen } from './blatt';
 import { h } from './dom';
+import { logoElement, schriftzug } from './vorspann';
 import { tempo, tempoSetzen, TEMPO_STUFEN } from '../tempo';
 import type { Ui } from './schnittstelle';
 
@@ -38,6 +39,7 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
         knopf('Abbrechen', () => b.zu())));
   }, '', { klein: true });
   b.inhalt.append(
+    h('div', { class: 'einst-logo' }, logoElement(44), schriftzug()),
     h('label', { for: 'dorfname', class: 'gedaempft' }, 'Dorfname'), name,
     h('label', { for: 'spielername', class: 'gedaempft' }, 'Dein Name (so sprechen dich Philipp, Laura und die Techniker an)'), spieler,
     h('label', { class: 'schalter', for: 'bewegung' }, bewegung, 'Weniger Bewegung'),

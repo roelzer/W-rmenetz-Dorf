@@ -71,6 +71,9 @@ export interface Abschnitt {
   phase: 'planung' | 'offen' | 'bestellen' | 'bau';
   /** läuft nur in 'planung' und 'bau' */
   bau: Bau | null;
+  /** A62: bezahlter Materialpreis (Grundlage für den Express-Aufpreis) und ob schon Express bestellt ist */
+  material_eur?: number;
+  express?: boolean;
 }
 
 export interface Spielstand {

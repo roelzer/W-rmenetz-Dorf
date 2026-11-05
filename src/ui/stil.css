@@ -196,3 +196,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 .dorfschild .zahnrad{position:absolute;right:8px;top:6px;font-size:16px;line-height:1;color:var(--farbe-ui-dorfschild-untertext);opacity:.8}
 .kwknopf{font-size:15px;font-weight:800}
 .kwknopf.aus{opacity:.55;text-decoration:line-through}
+/* A63: Logo, Schriftzug und Vorspann */
+.schriftzug{font-family:var(--schrift-anzeige);font-weight:800;letter-spacing:.01em;line-height:1}
+span.schriftzug>span.heat{color:#e8463a}span.schriftzug>span.net{color:#3a8de0}
+#vorspann{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle at 50% 45%,#58a83f,#2f6a26);transition:opacity .45s}
+#vorspann .logo-bild{border-radius:28%;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#vorspann .schriftzug{font-size:52px;-webkit-text-stroke:2px #fff6e6;paint-order:stroke fill;text-shadow:0 3px 0 rgba(0,0,0,.25)}
+#vorspann .unterzeile{color:#fff6e6;font-weight:700;font-size:16px;opacity:.9}
+#vorspann.aus{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){#vorspann{transition:none}}
+.einst-logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}.einst-logo .logo-bild{border-radius:24%}.einst-logo .schriftzug{font-size:28px}
