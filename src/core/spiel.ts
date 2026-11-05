@@ -37,8 +37,9 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
   // A29/A59: zwei Starthäuser sind von Anfang an angeschlossen. Die Hauptleitung (40er) liegt in der Straße neben dem Heizhaus,
   // die Hausanschlüsse (25er) führen von dort zu den Häusern; alle weiteren Häuser heizen noch mit Öl.
-  for (let y = 10; y <= 14; y++) add('d40', 10, y);
-  add('d25', 11, 14); // (9|13) liegt direkt an der Straße und hängt ohne eigenes Zwischenstück an der Hauptleitung
+  // A67: Die Hauptleitung endet am letzten Abzweig (9|13 schließt bei 10|13 seitlich an); erst dort wird es dünner.
+  for (let y = 10; y <= 13; y++) add('d40', 10, y);
+  add('d25', 10, 14); add('d25', 11, 14);
   // Die beiden Starthäuser haben eine Übergabestation; alle anderen müssen eine kaufen (A32, Simon 2026-11-05).
   const starthaeuser = new Set([13 * N + 9, 14 * N + 12]);
   ort.haeuser.forEach((h) => {

@@ -271,3 +271,31 @@ describe('A7 Fachregeln V1/V2 (Einspeisung und Speicher, vorgeschlagen)', () => 
     expect(berechneNetz(dorf(puffer), [quelle('kessel')], 2).verfuegbar_kw).toBeGreaterThan(ohne);
   });
 });
+
+describe('A67 Reduzierung nur am Abzweig (T-Stück)', () => {
+  it('A67: Wird die Leitung auf gerader Strecke ohne Abzweig dünner, ist das ein Planungsfehler', () => {
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10), neu('d25', 14, 10), neu('efh', 15, 10)), [quelle('kessel')], 2);
+    expect(n.reduzierung.has(10 * 24 + 13)).toBe(true);
+    expect(n.reduzierung.has(10 * 24 + 14)).toBe(true);
+    expect(n.engpass.size).toBe(0);
+  });
+  it('A67: Auch an einer Biegung ohne Abzweig darf die Leitung nicht dünner werden', () => {
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10), neu('d25', 13, 9), neu('efh', 13, 8)), [quelle('kessel')], 2);
+    expect(n.reduzierung.has(9 * 24 + 13)).toBe(true);
+  });
+  it('A67: An einem T-Stück (zwei Leitungen dahinter) darf beides dünner werden', () => {
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10), neu('d25', 14, 10), neu('d25', 13, 11),
+      neu('efh', 15, 10), neu('efh', 13, 12)), [quelle('kessel')], 2);
+    expect(n.reduzierung.size).toBe(0);
+  });
+  it('A67: Schließt an einem Feld ein Haus seitlich an, ist das ein Abzweig – danach darf es dünner werden', () => {
+    const haus = neu('efh', 13, 9);
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10), neu('d25', 14, 10), neu('efh', 15, 10), haus), [quelle('kessel')], 2);
+    expect(n.anschluss.get(haus.id)?.feld).toBe(10 * 24 + 13);
+    expect(n.reduzierung.size).toBe(0);
+  });
+  it('A67: Gleich dick oder dicker in Fließrichtung ist keine Reduzierung', () => {
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10), neu('d50', 14, 10)), [quelle('kessel')], 2);
+    expect(n.reduzierung.size).toBe(0);
+  });
+});

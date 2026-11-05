@@ -817,3 +817,13 @@ describe('A66 keine Autos', () => {
     expect(q).not.toMatch(/farben = \['#c0392b'/);
   });
 });
+
+describe('A67 Startnetz', () => {
+  it('A67: Das Startnetz wird nur am Abzweig dünner (kein Planungsfehler zu Spielbeginn)', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    expect(s.netz.reduzierung.size).toBe(0);
+    expect(s.netz.engpass.size).toBe(0);
+    const start = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
+    expect(start.every((o) => s.netz.warm.has(o.id))).toBe(true);
+  });
+});

@@ -122,6 +122,8 @@ export interface Netz {
   spreizung_faktor: number;
   /** Leitungsfelder, die ein Planungsfehler sind (dünn → dick in Fließrichtung) */
   engpass: Set<number>;
+  /** A67: Leitungsfelder, an denen die Leitung ohne Abzweig dünner wird (Planungsfehler) */
+  reduzierung: Set<number>;
   /** Anschlusspunkt je Gebäude-ID (-1 = direkt am Heizhaus) */
   anschluss: Map<number, { feld: number; tiefe: number }>;
   warm: Set<number>;

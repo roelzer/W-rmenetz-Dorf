@@ -64,6 +64,7 @@ const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0,
  *  - Versorgt wird nur, wer über eine durchgehende Leitung mit der Heizzentrale verbunden ist.
  *  - Ein Leitungsabschnitt überträgt höchstens seine Nennleistung (Summe der Last dahinter).
  *  - Wird die Leitung Richtung Kunde dünner und danach wieder dicker, ist das ein Planungsfehler.
+ *  - Dünner wird sie nur an einem Abzweig (A67), sonst ist das ebenfalls ein Planungsfehler.
  *  - Es wird nie mehr Wärme verteilt als erzeugt (genutzt ≤ verfügbar).
  *  - Einnahmen nur für warme Kunden, Betriebskosten nur für tatsächlich erzeugte Wärme.
  */
@@ -160,6 +161,19 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       engpass.add(k); engpass.add(p);
     }
   }
+  // A67 (Simon): Kleiner wird eine Leitung nur an einem Abzweig (T-Stück), nie mitten auf der Strecke.
+  // Abzweig = das Feld davor hat mehrere Leitungen dahinter oder ein Gebäude schließt dort seitlich an.
+  const kinderzahl = new Map<number, number>();
+  for (const k of reihenfolge) { const p = eltern.get(k) as number; if (p >= 0) kinderzahl.set(p, (kinderzahl.get(p) ?? 0) + 1); }
+  const angebunden = new Set<number>();
+  for (const a of anschluss.values()) if (a.feld >= 0) angebunden.add(a.feld);
+  const reduzierung = new Set<number>();
+  for (const k of reihenfolge) {
+    const p = eltern.get(k) as number;
+    if (p < 0 || LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) continue;
+    if ((kinderzahl.get(p) ?? 0) >= 2 || angebunden.has(p)) continue;
+    reduzierung.add(k); reduzierung.add(p);
+  }
 
   // Erzeugung. Fachregel V1: Von außen eingespeiste Wärme ist höchstens so groß wie die kleinste
   // Leitungskapazität auf dem Weg zur Heizzentrale. V2: Ein Speicher erzeugt keine Wärme (zählt nur, wenn eine Quelle läuft).
@@ -238,7 +252,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     if (warm.has(o.id)) einnahmen_eur_min += ((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o);
   }
   return {
-    tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, anschluss, warm, kalt,
+    tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, reduzierung, anschluss, warm, kalt,
     verfuegbar_kw, genutzt_kw, bedarf_kw, betriebskosten_eur_min, einnahmen_eur_min,
     spreizung_faktor, pv_faktor, strom_kw, einspeisung_kw, laeuft_mit_kw, belegung, nachId,
   };

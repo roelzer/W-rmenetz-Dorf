@@ -380,7 +380,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     X.strokeStyle = 'rgba(255,255,255,.45)'; X.lineWidth = Math.max(1, w * 0.3); X.beginPath();
     for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
     X.stroke();
-    if (netz.engpass.has(key)) {
+    if (netz.engpass.has(key) || netz.reduzierung.has(key)) {
       m.bahn([[cx, cy - tw * 0.32], [cx + tw * 0.13, cy - tw * 0.07], [cx - tw * 0.13, cy - tw * 0.07]]);
       X.fillStyle = '#d8392f'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2; X.fill(); X.stroke();
       m.symbol('ausruf', cx, cy - tw * 0.14, tw * 0.07);

@@ -216,10 +216,11 @@ export class Kontext {
       return ex >= k.x - 1 && ex <= k.x + g && ey >= k.y - 1 && ey <= k.y + g && !(ex >= k.x && ex < k.x + g && ey >= k.y && ey < k.y + g);
     });
     const anHaus = !verzweigt && haeuser.length === 1;
-    c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser, deshalb dick. Erst ab dem Abzweig zum Haus darf es dünner werden.'));
+    c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser, deshalb dick. Dünner werden darf sie nur an einem Abzweig (T-Stück).'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     if (Math.abs(n.spreizung_faktor - 1) > 0.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
     if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
+    else if (n.reduzierung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier wird die Leitung mitten auf der Strecke dünner. Wie in echt wechselt der Durchmesser nur an einem Abzweig (T-Stück). Tausche den dünneren Abschnitt auf die Größe davor oder lass die Leitung erst am Abzweig dünner werden.')));
     else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
     else if (o.geplant) c.append(h('p', {}, 'Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung (abseits der Straße samt Gestattung). Zählt noch nicht fürs Netz.'));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
