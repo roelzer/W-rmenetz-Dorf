@@ -57,7 +57,7 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   return {
     version: 3, name: ort.name, ort: ort.id, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
     objekte: behalten, naechste_id: id, innen: [], preisstufe: START_PREISSTUFE, antraege: {},
-    zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: false, deko_anzahl: 0,
+    karte: 2, zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: false, deko_anzahl: 0,
   };
 }
 

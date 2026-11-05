@@ -1,4 +1,6 @@
-import { KATALOG, type TypId } from './katalog';
+import { KATALOG, KONSTANTEN, type TypId } from './katalog';
+import { belegungskarte, groesse } from './netz';
+import { ortHolen } from './orte';
 import { neuerSpielstand } from './spiel';
 import type { Spielstand } from './typen';
 
@@ -40,6 +42,50 @@ function gueltig(d: Partial<Spielstand>): d is Spielstand {
 }
 
 /**
+ * A46: Ältere Spielstände kennen Straßen und Fluss nicht. Gebäude auf Straße/Fluss ziehen auf das nächste freie Feld um,
+ * Landschaft (Bäume, Steine, Büsche) und Leitungen im Fluss verschwinden, Pläne für Leitungen im Fluss werden verworfen.
+ */
+export function karteAnpassen(stand: Spielstand): boolean {
+  if (stand.karte === 2) return false;
+  const ort = ortHolen(stand.ort), N = KONSTANTEN.feldanzahl;
+  const strasse = new Set(ort.strassen.map(([x, y]) => y * N + x)), fluss = new Set(ort.fluss.map(([x, y]) => y * N + x));
+  const istLeit = (t: string): boolean => KATALOG[t as keyof typeof KATALOG].kategorie === 'netz';
+  const kante = (o: Spielstand['objekte'][number]): number => groesse(o);
+  const blockiert = (o: Spielstand['objekte'][number], x: number, y: number): boolean => {
+    const k = kante(o);
+    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) { const f = (y + dy) * N + x + dx; if (fluss.has(f) || strasse.has(f)) return true; }
+    return false;
+  };
+  let geaendert = false;
+  stand.objekte = stand.objekte.filter((o) => {
+    if (!(o.typ in KATALOG)) return true;
+    if (istLeit(o.typ)) { if (fluss.has(o.y * N + o.x)) { geaendert = true; return false; } return true; }
+    if (!blockiert(o, o.x, o.y)) return true;
+    const kat = KATALOG[o.typ].kategorie;
+    if (o.landschaft || ['stein', 'busch', 'baum'].includes(o.typ) || kat === 'deko' && fluss.has(o.y * N + o.x)) { geaendert = true; return false; }
+    return true;
+  });
+  const frei = (o: Spielstand['objekte'][number], x: number, y: number): boolean => {
+    const k = kante(o);
+    if (x < 0 || y < 0 || x + k > N || y + k > N || blockiert(o, x, y)) return false;
+    const bel = belegungskarte(stand.objekte, o);
+    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) if (bel[(y + dy) * N + x + dx]) return false;
+    return true;
+  };
+  for (const o of stand.objekte) {
+    if (!(o.typ in KATALOG) || istLeit(o.typ) || !blockiert(o, o.x, o.y)) continue;
+    let ziel: [number, number] | null = null;
+    for (let r = 1; r < N && !ziel; r++) for (let dy = -r; dy <= r && !ziel; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      if (frei(o, o.x + dx, o.y + dy)) { ziel = [o.x + dx, o.y + dy]; break; }
+    }
+    if (ziel) { o.x = ziel[0]; o.y = ziel[1]; geaendert = true; }
+  }
+  stand.karte = 2;
+  return geaendert;
+}
+
+/**
  * JSON → Spielstand mit Befund. Version 1 wird umgeschrieben, kaputte oder fremde Daten ergeben ein neues Spiel
  * (Befund 'defekt', damit die Oberfläche den Spieler informiert und den alten Text sichern kann).
  */
@@ -58,7 +104,10 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
       d.preisstufe = Math.max(0, Math.min(8, Math.round(ALTE_PREISE_CT[d.preisstufe] ?? 12) - 7));
       d.version = SPEICHER_VERSION; migriert = true;
     }
-    if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) return { stand: d as Spielstand, befund: migriert ? 'migriert' : 'ok' };
+    if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
+      if (karteAnpassen(d as Spielstand)) migriert = true;
+      return { stand: d as Spielstand, befund: migriert ? 'migriert' : 'ok' };
+    }
   } catch (fehler) {
     console.warn('Spielstand nicht lesbar', fehler);
   }

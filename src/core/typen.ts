@@ -90,6 +90,8 @@ export interface Spielstand {
   baugebiet?: boolean;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
   gestattungen?: number[];
+  /** Version des Kartenlayouts (Straßen, Fluss); ältere Spielstände werden beim Laden angepasst (A46) */
+  karte?: number;
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;

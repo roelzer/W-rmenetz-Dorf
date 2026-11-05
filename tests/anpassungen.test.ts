@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { bedarfKw } from '../src/core/netz';
+import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation } from '../src/core/katalog';
 
 const T0 = 1_000_000_000_000;
@@ -494,5 +495,24 @@ describe('A47 Hausanschluss automatisch ziehen', () => {
     const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
     const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus')!;
     expect(s.hausanschlussPlanen(haus.id).ok).toBe(false);
+  });
+});
+
+describe('A46 alter Spielstand wird an Straßen und Fluss angepasst', () => {
+  it('A46: Haus auf Straße und Baum im Fluss werden beim Laden bereinigt, nichts steht danach auf Straße oder Fluss', () => {
+    const s0 = neuerSpielstand(0);
+    delete s0.karte;
+    const haus = s0.objekte.find((o) => o.typ === 'efh' && o.bestand)!;
+    haus.x = 10; haus.y = 18; // Straße
+    s0.objekte.push({ id: 9999, typ: 'baum', x: 19, y: 5, stufe: 1, bau: null, kasse_eur: 0, landschaft: true });
+    const r = ladenMitBefund(serialisieren(s0), 0);
+    expect(r.befund).toBe('migriert');
+    const sp = new Spiel(r.stand, () => 0);
+    expect(r.stand.objekte.some((o) => o.id === 9999)).toBe(false);
+    for (const o of r.stand.objekte) {
+      if (KATALOG[o.typ].kategorie === 'netz') continue;
+      const k = KATALOG[o.typ].groesse ?? 1;
+      for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) { expect(sp.istStrasse(o.x + dx, o.y + dy)).toBe(false); expect(sp.istFluss(o.x + dx, o.y + dy)).toBe(false); }
+    }
   });
 });
