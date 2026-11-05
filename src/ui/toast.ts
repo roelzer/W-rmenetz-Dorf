@@ -4,21 +4,29 @@ import { h } from './dom';
 let wurzel: HTMLElement | null = null;
 let timer = 0;
 
-/** Kurze Rückmeldung mittig auf 30 % Höhe. Lange Texte bekommen Pergament-Grund (M11). */
+/** DESIGN.md 12.17: sichtbar = Grundzeit + Zeit je Zeichen (Lesetempo rund 15 Zeichen je Sekunde), begrenzt nach unten und oben. */
+export const toastDauer_ms = (text: string): number => {
+  const z = T.menue.zeit_ms;
+  return Math.min(z.toast_max, Math.max(z.toast_min, z.toast_grund + z.toast_je_zeichen * text.length));
+};
+
+/** Kurze Rückmeldung (DESIGN.md 12.17). Höchstens eine: Eine neue ersetzt die alte; derselbe Text startet nur die Zeit neu. */
 export function toast(text: string): void {
   if (!wurzel) {
     wurzel = h('div', { id: 'toast', 'aria-live': 'polite', role: 'status' });
     document.getElementById('app')!.append(wurzel);
   }
-  const lang = text.length > 48;
-  const t = h('div', { class: `toast ${lang ? 'lang' : 'umriss'}` }, text);
-  wurzel.replaceChildren(t);
-  requestAnimationFrame(() => t.classList.add('sichtbar'));
+  const alt = wurzel.firstElementChild as HTMLElement | null;
+  const t = alt && alt.textContent === text ? alt : h('div', { class: 'toast' }, text);
+  if (t !== alt) {
+    wurzel.replaceChildren(t);
+    requestAnimationFrame(() => t.classList.add('sichtbar'));
+  } else t.classList.add('sichtbar');
   clearTimeout(timer);
   timer = window.setTimeout(() => {
     t.classList.remove('sichtbar');
-    timer = window.setTimeout(() => t.remove(), T.zeit_ms.toast_blende);
-  }, T.zeit_ms.toast_sichtbar + (lang ? 1200 : 0));
+    timer = window.setTimeout(() => t.remove(), T.menue.zeit_ms.toast_blende);
+  }, toastDauer_ms(text));
 }
 
 /** A83: Bleibender Hinweis mit Knopf (z. B. „Neue Version da – Neu laden“). */

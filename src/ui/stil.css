@@ -78,8 +78,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 .balken i{display:block;height:100%;background:var(--farbe-hud-fuellung-fortschritt-0)}
 
 /* ---------- Reiter + Katalog ---------- */
-.reiter{display:flex;overflow-x:auto;touch-action:pan-x;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);flex:none}
-.reiter .knopf{flex:none}
 .raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--groesse-px-katalog-karte-min-breite),46%),1fr));gap:var(--abstand-px-1)}
 .bkarte{display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;min-height:var(--groesse-px-tippflaeche-min);min-width:0}
 .bkarte canvas,.bkarte .bild{width:100%;height:var(--groesse-px-katalog-bild-hoehe);object-fit:cover;background:var(--farbe-karte-wiese-a);display:block}
@@ -184,8 +182,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 .balken i{border-radius:999px;box-shadow:inset 0 3px 0 rgba(255,255,255,.4)}
 
 /* ---------- Reiter ---------- */
-.reiter{gap:8px;padding:10px 12px 8px;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
-.reiter .knopf{padding:2px 12px 6px}
+/* DESIGN.md 12.16: eine Reihe über die volle Blattbreite, scrollt nie; Wortstufe per Container-Abfrage auf der Leiste */
+.reiter{display:flex;gap:var(--menue-mass-px-reiter-luecke);box-sizing:border-box;height:calc(var(--menue-mass-px-reiter-hoehe) + 12px);margin:-12px -12px 0;padding:6px var(--menue-mass-px-reiter-leiste-innen) 4px;overflow:hidden;container-type:inline-size;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
+.reiter .knopf{flex:1 1 auto;min-width:var(--menue-mass-px-reiter-min-breite);height:var(--menue-mass-px-reiter-hoehe);min-height:0;padding:0 var(--menue-mass-px-reiter-innen-seite);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.reiter .reiter-sym{flex:none;width:var(--menue-mass-px-reiter-symbol);height:var(--menue-mass-px-reiter-symbol)}
+.reiter .wort{font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-reiter);line-height:1.2;white-space:nowrap;color:var(--k);-webkit-text-stroke:0;text-shadow:none}
+.reiter .knopf.gewaehlt .wort{color:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-klein) var(--k);paint-order:stroke fill}
+.reiter .wort.kurz{display:none}
+@container (max-width:355.9px){.reiter .wort.lang{display:none}.reiter .wort.kurz{display:inline}}
+@container (max-width:280.9px){.reiter .wort.kurz{display:none}}
 .reiter .knopf.gewaehlt{--f:var(--menue-farbe-kopfband);--u:var(--menue-knopf-info-1);--t:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-klein) var(--k);paint-order:stroke fill;text-shadow:0 2px 0 var(--k)}
 
 /* ---------- Bau-Katalog-Karte (tippbar wie ein Knopf) ---------- */

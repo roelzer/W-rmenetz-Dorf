@@ -6,6 +6,13 @@ import { katalogBild } from './bild';
 import { eur, h } from './dom';
 import { zeitText } from '../render/gebaeude';
 import type { Ui } from './schnittstelle';
+import type { SymbolName } from './symbole';
+
+/** DESIGN.md 12.16: Symbol und kurzes Wort je Reiter (kurze Wörter für schmale Leisten, z. B. 667 px breite Geräte). */
+const REITER: Partial<Record<Kategorie, { symbol: SymbolName; kurz: string }>> = {
+  innen: { symbol: 'waerme', kurz: 'Heizhaus' }, waerme: { symbol: 'sonne', kurz: 'Außen' }, netz: { symbol: 'rohr', kurz: 'Netz' },
+  dorf: { symbol: 'haus', kurz: 'Dorf' }, deko: { symbol: 'baum', kurz: 'Deko' },
+};
 
 function werte(t: TypId): string {
   const D = KATALOG[t];
@@ -51,8 +58,11 @@ export class Katalog {
     if (!this.blatt) return;
     const { spiel: sp } = this.ui, s = sp.stand;
     this.gebautePhase = sp.abschnitt?.phase; this.restzeit = null;
+    // DESIGN.md 12.16: alle fünf Reiter in einer Reihe, Symbol über dem Wort; beide Wortlängen stehen im HTML, die
+    // Container-Abfrage in stil.css zeigt je nach Leistenbreite das lange, das kurze oder keins. Vorleser hört immer den vollen Namen.
     const reiter = h('div', { class: 'reiter', role: 'tablist' }, ...BAU_KATEGORIEN.map(([k, name]) =>
-      h('button', { type: 'button', role: 'tab', 'aria-selected': k === this.kategorie, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, onclick: () => { this.kategorie = k; this.aufbauen(); } }, name)));
+      h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === this.kategorie), 'aria-label': name, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, onclick: () => { this.kategorie = k; this.aufbauen(); } },
+        symbol(REITER[k]?.symbol ?? 'bauen', 'sym reiter-sym'), h('span', { class: 'wort lang' }, name), h('span', { class: 'wort kurz' }, REITER[k]?.kurz ?? name))));
     const raster = h('div', { class: 'raster' });
     const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz');
     for (const t of typen) raster.append(this.karte(t));
