@@ -11,6 +11,11 @@ export const MAX_PIXEL = 1_500_000;
 /** Sparmodus: etwas geringere Schärfe für ältere Handys. */
 export const SPAR_FAKTOR = 1.25;
 
+/** Breite/Höhe der Leinwand setzen leert sie – iOS meldet `resize` oft ohne echte Änderung. */
+export function aufloesungGeaendert(alt: Aufloesung, neu: Aufloesung): boolean {
+  return alt.breite_px !== neu.breite_px || alt.hoehe_px !== neu.hoehe_px || alt.faktor !== neu.faktor;
+}
+
 export function zeichenAufloesung(css_breite: number, css_hoehe: number, dpr: number, spar: boolean): Aufloesung {
   let f = Math.min(dpr || 1, spar ? SPAR_FAKTOR : MAX_FAKTOR);
   const flaeche = css_breite * css_hoehe;

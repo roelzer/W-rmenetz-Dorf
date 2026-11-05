@@ -6,10 +6,11 @@ import './ui/stil.css';
 import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL, speichernErlaubt } from './core/speichern';
 import { neuerSpielstand, Spiel } from './core/spiel';
 import { Maler } from './render/maler';
-import { zeichneSzene } from './render/szene';
+import { bodenEbeneEinrichten, bodenEbeneVerwerfen, zeichneSzene } from './render/szene';
 import { animationBedarf, szenenSchluessel } from './render/szene-schluessel';
-import { MIN_KAMERA_PROBEN, neuerTakt, sollZeichnen, sparHinweisNoetig, type BildProbe } from './render/takt';
-import { zeichenAufloesung, type Aufloesung } from './render/aufloesung';
+import { neuerTakt, sollZeichnen, type BildProbe } from './render/takt';
+import { animationAus, bildAbschluss, sparHinweisSchritt } from './render/schleife';
+import { aufloesungGeaendert, zeichenAufloesung, type Aufloesung } from './render/aufloesung';
 import { Steuerung } from './steuerung';
 import { tokensAnwenden } from './ui/tokens';
 import { vorspannZeigen } from './ui/vorspann';
@@ -67,8 +68,7 @@ let aufloesung: Aufloesung = { faktor: 0, breite_px: 0, hoehe_px: 0 };
 function groesseAnpassen(): void {
   const r = leinwand.parentElement!.getBoundingClientRect();
   const a = zeichenAufloesung(r.width, r.height, window.devicePixelRatio, einstellungen.sparmodus);
-  // Breite/Höhe setzen leert die Leinwand – iOS meldet resize oft ohne echte Änderung.
-  if (a.breite_px !== aufloesung.breite_px || a.hoehe_px !== aufloesung.hoehe_px || a.faktor !== aufloesung.faktor) {
+  if (aufloesungGeaendert(aufloesung, a)) {
     aufloesung = a;
     leinwand.width = a.breite_px; leinwand.height = a.hoehe_px;
     erzwingen = true;
@@ -83,11 +83,19 @@ beiEinstellungsAenderung((e) => {
   if (sparWechsel) groesseAnpassen();
   erzwingen = true; // „Weniger Bewegung“ friert die Zeit ein – das Bild soll das sofort zeigen
 });
-const neuZeichnen = (): void => { erzwingen = true; };
-document.addEventListener('visibilitychange', () => { if (!document.hidden) neuZeichnen(); });
+/** Rückkehr in die App oder Leinwand-Verlust: der zwischengespeicherte Boden kann leer sein – freigeben und sofort neu zeichnen. */
+const neuAufbauen = (): void => { bodenEbeneVerwerfen(); erzwingen = true; };
+// Zweitleinwand für den ruhenden Boden; sie kann ihren Inhalt wie die Karte verlieren (Speicherdruck auf dem Handy).
+bodenEbeneEinrichten((b, h) => {
+  const c = document.createElement('canvas');
+  c.width = b; c.height = h;
+  c.addEventListener('contextrestored', neuAufbauen);
+  return c;
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) neuAufbauen(); });
 // Nur bei Rückkehr aus dem Seiten-Zwischenspeicher; beim ersten Laden soll unter dem Vorspann kein zweites Bild entstehen.
-window.addEventListener('pageshow', (e) => { if (e.persisted) neuZeichnen(); });
-leinwand.addEventListener('contextrestored', neuZeichnen);
+window.addEventListener('pageshow', (e) => { if (e.persisted) neuAufbauen(); });
+leinwand.addEventListener('contextrestored', neuAufbauen);
 
 const vorspannDeckt = (): boolean => { const v = document.getElementById('vorspann'); return !!v && !v.classList.contains('aus'); };
 
@@ -117,15 +125,11 @@ function sparHinweisSchonGezeigt(): boolean {
   try { return localStorage.getItem(SPARHINWEIS_SCHLUESSEL) !== null; }
   catch (fehler) { console.warn('Merker für den Sparhinweis nicht lesbar, Hinweis entfällt', fehler); return true; }
 }
-let sparProben: BildProbe[] | null = sparHinweisSchonGezeigt() ? null : [];
-function sparHinweisPruefen(probe: BildProbe): void {
-  // Nur Bilder mit Kamerabewegung zählen (sparHinweisNoetig wertet nur diese); so wächst die Liste in Ruhe nicht.
-  if (!sparProben || einstellungen.sparmodus || !probe.kamera_bewegt) return;
-  sparProben.push(probe);
-  if (sparProben.length < MIN_KAMERA_PROBEN) return;
-  const noetig = sparHinweisNoetig(sparProben);
-  sparProben = null; // nur einmal je Sitzung messen
-  if (!noetig) return;
+let sparProben: readonly BildProbe[] | null = sparHinweisSchonGezeigt() ? null : [];
+function sparHinweisPruefen(probe: BildProbe, verdeckt: boolean): void {
+  const r = sparHinweisSchritt(sparProben, probe, { verdeckt, sparmodus: einstellungen.sparmodus });
+  sparProben = r.proben;
+  if (!r.zeigen) return;
   steuerung.toast('Das Spiel ruckelt auf diesem Gerät. Tipp: Sparmodus in den Dorf-Einstellungen einschalten.');
   try { localStorage.setItem(SPARHINWEIS_SCHLUESSEL, '1'); } catch (fehler) { console.warn('Merker für den Sparhinweis nicht speicherbar', fehler); }
 }
@@ -138,7 +142,7 @@ function bild(jetzt: number): void {
   steuerung.tick(uhr());
   kamera.schritt(raf_abstand_ms / 1000);
   // Überschreibt steuerung.bewegungAnwenden je Bild absichtlich: der Sparmodus schaltet die Umgebungsanimation ebenfalls ab.
-  maler.reduziert = einstellungen.weniger_bewegung || einstellungen.sparmodus;
+  maler.reduziert = animationAus(einstellungen);
   steuerung.effekte.sparsam = einstellungen.sparmodus;
   const szene = steuerung.szene(), kameraSchluessel = kamera.schluessel(), effekte_aktiv = steuerung.effekte.aktiv(), verdeckt = vorspannDeckt();
   const r = sollZeichnen(takt, {
@@ -146,16 +150,16 @@ function bild(jetzt: number): void {
     effekte_aktiv, animation: maler.reduziert ? 'aus' : 'an', sparmodus: einstellungen.sparmodus, verdeckt, erzwingen,
   });
   takt = r.zustand;
+  const abschluss = bildAbschluss({ zeichnen: r.zeichnen, jetzt_ms: jetzt, letzt_gezeichnet_ms: letztGezeichnet, erzwingen });
   let zeichen_ms = 0;
   if (r.zeichnen) {
     maler.zeit_s = maler.reduziert ? 0 : (jetzt - t0) / 1000;
     const start = performance.now();
-    zeichneSzene(maler, kamera, szene, steuerung.effekte, (jetzt - letztGezeichnet) / 1000);
+    zeichneSzene(maler, kamera, szene, steuerung.effekte, abschluss.dt_s);
     zeichen_ms = performance.now() - start;
-    letztGezeichnet = jetzt;
-    erzwingen = false;
   }
-  if (!verdeckt) sparHinweisPruefen({ raf_abstand_ms, zeichen_ms, kamera_bewegt: kameraSchluessel !== letzteKamera });
+  letztGezeichnet = abschluss.letzt_gezeichnet_ms; erzwingen = abschluss.erzwingen;
+  sparHinweisPruefen({ raf_abstand_ms, zeichen_ms, kamera_bewegt: kameraSchluessel !== letzteKamera }, verdeckt);
   letzteKamera = kameraSchluessel;
   messen(jetzt, raf_abstand_ms, r.zeichnen);
   requestAnimationFrame(bild);
