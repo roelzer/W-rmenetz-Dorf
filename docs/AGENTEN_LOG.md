@@ -179,3 +179,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:22 | ▶ | reviewer | Review NR16-A Anschlussweg |
 | 2026-11-05 17:22 | ▶ | tester | Tester-Vorarbeit NR16-B/Kann 2 |
 | 2026-11-05 17:25 | ■ 🟡 | reviewer | 🟡 **NR16-A (A92) „Anschluss-Weg verständlich“: freigegeben mit kleinen Punkten**  ([Bericht](docs/pruefberichte/20261105-172526-reviewer-a4249c6d0bcaaa659.md)) |
+| 2026-11-05 17:26 | ▶ | architekt | NR15-Bauplan überarbeiten |
+| 2026-11-05 17:26 | ■ 🟢 | tester | 🟢 **Vorarbeit erledigt.** Vier Tests sind jetzt absichtlich rot, und zwar genau aus den gewünschten Gründen. Ich habe keine Zeile Programmcode geändert, n ([Bericht](docs/pruefberichte/20261105-172644-tester-a4145f69451376c4e.md)) |
+| 2026-11-05 17:27 | ▶ | entwickler | NR16-B bauen |
