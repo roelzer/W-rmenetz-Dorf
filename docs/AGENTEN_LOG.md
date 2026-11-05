@@ -94,3 +94,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 13:51 | ■ 🟡 | kritiker | 🟡 Gelb: Der Plan ist im Kern richtig und kann gebaut werden, wenn vorher sieben Muss-Punkte im Bauplan geändert werden.  ([Bericht](docs/pruefberichte/20261105-135143-kritiker-a32a3e06ad022d458.md)) |
 | 2026-11-05 13:53 | ■ 🔴 | architekt | 🔴 BLOCKIERT, Grund: mein Kontext ist voll. Ich habe die Überarbeitung von `docs/bauplaene/NR12-fluessig.md` nicht begonnen. Der Bauplan und `tests/architekt ([Bericht](docs/pruefberichte/20261105-135352-architekt-a7334af60b08cfac4.md)) |
 | 2026-11-05 13:54 | ▶ | architekt | NR12-Bauplan überarbeiten (frisch) |
+| 2026-11-05 13:56 | ■ 🟢 | tester | 🟢 Grün: Die Tests für A89 stehen. Am Stand 01c80ec sind sie rot, und zwar genau wegen der gemeldeten kalten Häuser. Mit dem Patch des Entwicklers ist die  ([Bericht](docs/pruefberichte/20261105-135654-tester-a44993ef35dad96a5.md)) |
+| 2026-11-05 13:57 | ▶ | entwickler | A89 Patch einbauen |
