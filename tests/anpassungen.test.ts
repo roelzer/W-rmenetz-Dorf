@@ -1445,3 +1445,12 @@ describe('A86 Fiktiver Dorfname statt Hilpoltstein (Simon, Review-Chat NR5)', ()
     expect(ladenMitBefund(serialisieren(eigen), 0).stand.name).toBe('Simonsdorf');
   });
 });
+
+describe('A87 Keine Firmenhinweise in angezeigten Texten (Simon, Review-Chat NR6)', () => {
+  it('A87: Kein angezeigter Katalog- oder Stationstext nennt einen Hersteller', () => {
+    const FIRMEN = /enerpipe|rehau|brugg|isoplus|danfoss|viessmann|vaillant|uponor|logstor|buderus|bosch|kermi|samson|siemens/i;
+    const texte = [...Object.values(KATALOG).flatMap((d) => [d.name, (d as { beschreibung?: string }).beschreibung ?? '']), ...STATIONEN.flatMap((s) => [s.name, s.beschreibung ?? ''])];
+    expect(texte.length).toBeGreaterThan(20);
+    for (const t of texte) expect(t).not.toMatch(FIRMEN);
+  });
+});

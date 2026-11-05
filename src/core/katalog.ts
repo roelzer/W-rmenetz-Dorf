@@ -410,7 +410,7 @@ export const STATIONEN: ReadonlyArray<Station> = [
   { id: 'st_40', name: 'Wandstation Typ 40', leistung_kw: 40, kosten_eur: 4800, beschreibung: 'Für kleine Mehrfamilienhäuser.' },
   { id: 'st_60', name: 'Wandstation Typ 60', leistung_kw: 60, kosten_eur: 7000, beschreibung: 'Für größere Gebäude und Gewerbe.' },
   { id: 'st_80', name: 'Wandstation Typ 80', leistung_kw: 80, kosten_eur: 9000, beschreibung: 'Größte Wandstation, für große Mehrfamilienhäuser.' },
-  { id: 'st_cad', name: 'CAD-Großabnehmerstation', leistung_kw: 150, kosten_eur: 20000, beschreibung: 'Für Hallenbad, Klinik und Industrie (ab ca. 100 kW, nach ENERPIPE-Systematik).' },
+  { id: 'st_cad', name: 'CAD-Großabnehmerstation', leistung_kw: 150, kosten_eur: 20000, beschreibung: 'Für Hallenbad, Klinik und Industrie (ab ca. 100 kW).' }, // A87: kein Firmenname im angezeigten Text
 ];
 export const stationHolen = (id: string | undefined): Station | undefined => STATIONEN.find((s) => s.id === id);
 /** Kleinste Station, die den Bedarf übergibt. */
