@@ -158,12 +158,14 @@ export class Spiel {
     return ok();
   }
 
+  /** Warm versorgte Wohnhäuser – zählt für die Ziele der Heizzentrale und fürs Baugebiet. */
+  versorgteHaeuser(): number { return this.stand.objekte.filter((o) => this.netz.warm.has(o.id) && KATALOG[o.typ].kategorie === 'haus').length; }
   /** A43: Baugebiet in der Gegenrichtung erschließen – ein zweiter Strang aus dem Heizhaus, neue Häuser stehen fest. */
   baugebietBedingungen(): { ok: boolean; fehlt: string[] } {
     const fehlt: string[] = [];
     if (this.stand.baugebiet) fehlt.push('Baugebiet ist schon erschlossen');
     if (!freigeschaltet(this.stand, 'baugebiet')) fehlt.push(`Heizzentrale Stufe ${abStufe('baugebiet')}`);
-    const n = this.stand.objekte.filter((o) => this.netz.warm.has(o.id) && KATALOG[o.typ].kategorie === 'haus').length;
+    const n = this.versorgteHaeuser();
     if (n < KONSTANTEN.baugebiet_anschluesse) fehlt.push(`${KONSTANTEN.baugebiet_anschluesse} angeschlossene Häuser (jetzt ${n})`);
     return { ok: fehlt.length === 0, fehlt };
   }
@@ -226,7 +228,7 @@ export class Spiel {
   hzZiele(): { text: string; ist: number; soll: number; erreicht: boolean }[] {
     const z = HZ_ZIELE.find((x) => x.stufe === this.hzStufe + 1);
     if (!z) return [];
-    const anschluesse = this.stand.objekte.filter((o) => this.netz.warm.has(o.id) && KATALOG[o.typ].kategorie === 'haus').length;
+    const anschluesse = this.versorgteHaeuser();
     const liste = [{ text: 'Angeschlossene Häuser', ist: anschluesse, soll: z.anschluesse }];
     if (z.absatz_kw) liste.push({ text: 'Wärmeabsatz in kW', ist: Math.round(this.netz.genutzt_kw), soll: z.absatz_kw });
     if (z.spreizung_k) liste.push({ text: 'Spreizung in K', ist: Math.round(this.spreizung_k()), soll: z.spreizung_k });

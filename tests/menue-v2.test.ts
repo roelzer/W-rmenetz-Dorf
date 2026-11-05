@@ -32,7 +32,8 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
     expect(q).toMatch(/type Variante = [^;]*'gefahr'[^;]*;/);
     expect(q).toMatch(/type Variante = [^;]*'taler'[^;]*;/);
     expect(q).toContain("variante === 'geld' || variante === 'taler'");
-    expect(q).toMatch(/export function stepper\(art: 'plus' \| 'minus', label: string, bei: \(\) => void, aus = false\): HTMLButtonElement/);
+    // DESIGN.md 12.20 (Übergabe Bau): stepper() nimmt wie knopf() zusätzlich einen Hinweis für den gesperrten Zustand mit
+    expect(q).toMatch(/export function stepper\(art: 'plus' \| 'minus', label: string, bei: \(\) => void, aus = false[,)]/);
     expect(q).toContain("class: 'knopf stepper'");
   });
 
@@ -42,7 +43,9 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
     expect((q.match(/stepper\('minus'/g) ?? []).length).toBe(3);
     expect((q.match(/stepper\('plus'/g) ?? []).length).toBe(3);
     expect(q).not.toContain("h('span', { class: 'gedaempft' }, q.stufe >= KONSTANTEN.hoechststufe ? 'Höchste Stufe' : 'Heizzentrale ausbauen')");
-    expect(q).toContain("unter: 'Erst Heizzentrale ausbauen'");
+    // DESIGN.md 12.20 S2: Zeile 2 klein geschrieben wie die übrigen Gründe; Verhalten (Schloss, Hinweis) prüft tests/a92-sperrtexte.test.ts
+    expect(q).not.toContain('Erst Heizzentrale ausbauen');
+    expect(q).toContain('erst Heizzentrale ausbauen');
   });
 
   it('A84: Was Euro kostet, ist ein Geld-Knopf (Regel 12.5)', () => {
@@ -198,7 +201,19 @@ describe('A84 Designer-Treueprüfung (Nr. 1–7)', () => {
     expect(SYMBOLE.plus).not.toContain('#fff6e2'); expect(SYMBOLE.minus).not.toContain('#fff6e2');
     const k = lies('src/ui/kontext.ts');
     expect(k).not.toContain("'Für die nächste Stufe erst die Heizzentrale ausbauen.'");
-    expect(k).toContain("knopf(`Stufe ${o.stufe + 1}`, () => undefined, '', { aus: true, unter: 'Erst Heizzentrale ausbauen' })");
+    // DESIGN.md 12.20 S1: Knopf „Stufe {n+1}“ gesperrt, Zeile 2 „erst Heizzentrale ausbauen“ mit Schloss, Hinweis beim Antippen
+    const { Spiel, neuerSpielstand } = await import('../src/core/spiel');
+    const { kontextKarte } = await import('./hilfen/kontext-attrappe');
+    const s = new Spiel(neuerSpielstand(1_000_000_000_000), () => 1_000_000_000_000);
+    s.ersteQuelleWaehlen('kessel');
+    s.stand.objekte.push({ id: 9101, typ: 'puffer', x: 30, y: 30, stufe: 1, bau: null, kasse_eur: 0 });
+    s.neuBerechnen();
+    const { a, c } = await kontextKarte(s, s.stand.objekte.find((o) => o.id === 9101)!, 1_000_000_000_000);
+    const kn = a.alle(c).filter((e) => e.tag === 'button' && a.text(e).startsWith('Stufe 2'));
+    expect(kn).toHaveLength(1);
+    expect(a.text(kn[0])).toBe('Stufe 2erst Heizzentrale ausbauen');
+    expect(kn[0].attrs['aria-disabled']).toBe('true');
+    expect(a.alle(kn[0]).some((e) => e.attrs.quelle === SYMBOLE.schloss), 'Schloss in Zeile 2').toBe(true);
   });
 });
 
