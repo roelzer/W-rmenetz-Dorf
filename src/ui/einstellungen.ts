@@ -1,4 +1,4 @@
-import { serialisieren, sicherungEinspielen, sicherungsDateiname, speicherLoeschen } from '../core/speichern';
+import { serialisieren, SICHERUNG_MAX_ZEICHEN, sicherungEinspielen, sicherungsDateiname, speicherLoeschen } from '../core/speichern';
 import { knopf } from './bausteine';
 import { blattOeffnen } from './blatt';
 import { h } from './dom';
@@ -60,6 +60,7 @@ function sicherungKasten(ui: Ui): HTMLElement {
   datei.addEventListener('change', () => {
     const f = datei.files?.[0];
     if (!f) return;
+    if (f.size > SICHERUNG_MAX_ZEICHEN) { ui.toast('Die Datei ist zu groß für einen Spielstand.'); return; } // vor dem Einlesen prüfen
     f.text().then((text) => {
       const r = sicherungEinspielen(localStorage, text, Date.now());
       if (!r.ok) { ui.toast(r.grund); return; }

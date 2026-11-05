@@ -142,11 +142,17 @@ export function sicherungsDateiname(stand: Spielstand, datum: Date): string {
 
 /** A83: Eine Sicherungsdatei einspielen. Nur ein lesbarer Spielstand wird übernommen; danach ist das Zurückschreiben
  *  des alten Stands gesperrt (wie beim Löschen), damit beim Neuladen nichts überschrieben wird. */
+/** A83: größte Sicherungsdatei in Zeichen bzw. Byte (ein Spielstand hat wenige 10 kB) */
+export const SICHERUNG_MAX_ZEICHEN = 5_000_000;
+
 export function sicherungEinspielen(speicher: Pick<Storage, 'setItem'>, text: string, jetzt_ms: number): { ok: true; stand: Spielstand } | { ok: false; grund: string } {
-  if (text.length > 5_000_000) return { ok: false, grund: 'Die Datei ist zu groß für einen Spielstand.' };
+  if (text.length > SICHERUNG_MAX_ZEICHEN) return { ok: false, grund: 'Die Datei ist zu groß für einen Spielstand.' };
   const { stand, befund } = ladenMitBefund(text, jetzt_ms);
   if (befund === 'defekt' || befund === 'neu') return { ok: false, grund: 'Die Datei ist kein lesbarer Heatnet-Spielstand.' };
-  speicher.setItem(SPEICHER_SCHLUESSEL, serialisieren(stand));
+  try { speicher.setItem(SPEICHER_SCHLUESSEL, serialisieren(stand)); } catch (fehler) {
+    console.warn('Sicherung ließ sich nicht schreiben', fehler);
+    return { ok: false, grund: 'Der Speicher auf dem Gerät ist voll – die Sicherung wurde nicht übernommen.' };
+  }
   geloescht = true;
   return { ok: true, stand };
 }

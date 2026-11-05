@@ -15,7 +15,7 @@
 
 ## Ablauf danach
 - Projektleiter baut auf dem Arbeitsbranch → Cloudflare legt einen Vorschau-Link an → dort testen.
-- Nach Prüfung (Schranke, Reviewer) kommt der Stand auf `main` → Cloudflare baut automatisch → Spieler sehen beim nächsten Öffnen „Neue Version ist da – Neu laden“.
+- Nach Prüfung (Schranke, Reviewer) kommt der Stand auf `main` → Cloudflare baut automatisch → wer das Spiel neu öffnet, hat meist sofort die neue Version; wer es gerade offen hat, sieht „Neue Version von Heatnet ist da – Neu laden“. Der Spielstand bleibt in beiden Fällen.
 
 ## Spielstand
 - Liegt im Browser des Spielers (Schlüssel `waermedorf-spielstand-v1`, nie umbenennen); Updates ändern ihn nicht, alte Stände werden beim Laden umgestellt.

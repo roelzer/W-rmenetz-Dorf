@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { Kamera } from '../src/render/kamera';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { bedarfKw } from '../src/core/netz';
 import { ortHolen } from '../src/core/orte';
@@ -1368,12 +1368,17 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
     expect(sicherungsDateiname(st, new Date('2026-11-05T10:00:00Z'))).toBe('heatnet-gross-oelbach-x-2026-11-05.json');
   });
   it('A83: Sicherung einspielen übernimmt nur lesbare Spielstände und sperrt danach das Zurückschreiben', async () => {
+    vi.resetModules(); // frisches Modul: der Lösch-Merker darf nicht aus einem anderen Test stammen (Review W1)
     const m = await import('../src/core/speichern');
+    expect(m.speichernErlaubt()).toBe(true);
     const ablage = new Map<string, string>();
     const speicher = { setItem: (k: string, v: string) => { ablage.set(k, v); } };
     expect(m.sicherungEinspielen(speicher, 'kein json', 0).ok).toBe(false);
     expect(m.sicherungEinspielen(speicher, '{"version":99}', 0).ok).toBe(false);
+    expect(m.sicherungEinspielen(speicher, '', 0).ok).toBe(false); // leere Datei ersetzt das Dorf nicht durch ein neues
+    expect(m.sicherungEinspielen(speicher, ' '.repeat(m.SICHERUNG_MAX_ZEICHEN + 1), 0).ok).toBe(false);
     expect(ablage.size).toBe(0);
+    expect(m.speichernErlaubt()).toBe(true);
     const st = neuerSpielstand(0); st.name = 'Testdorf'; st.geld_eur = 4321;
     const r = m.sicherungEinspielen(speicher, m.serialisieren(st), 0);
     expect(r.ok).toBe(true);
@@ -1381,15 +1386,30 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
     expect(m.SPEICHER_SCHLUESSEL).toBe('waermedorf-spielstand-v1'); // Schlüssel nie umbenennen
     expect(m.speichernErlaubt()).toBe(false); // der alte Stand darf beim Neuladen nicht zurückgeschrieben werden
   });
+  it('A83 (Review K2): voller Speicher meldet das ehrlich und sperrt nichts', async () => {
+    vi.resetModules();
+    const m = await import('../src/core/speichern');
+    const voll = { setItem: () => { throw new Error('QuotaExceededError'); } };
+    const r = m.sicherungEinspielen(voll, m.serialisieren(neuerSpielstand(0)), 0);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.grund).toMatch(/voll/);
+    expect(m.speichernErlaubt()).toBe(true);
+    const ui = readFileSync(new URL('../src/ui/einstellungen.ts', import.meta.url), 'utf8');
+    expect(ui.indexOf('f.size > SICHERUNG_MAX_ZEICHEN')).toBeGreaterThan(-1);
+    expect(ui.indexOf('f.size > SICHERUNG_MAX_ZEICHEN')).toBeLessThan(ui.indexOf('f.text()')); // Größe vor dem Einlesen (K3)
+  });
   it('A83: Update-Hinweis, dauerhafter Speicher, Versionsnummer, Node-Version für Cloudflare', () => {
     const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
     expect(main).toContain('controllerchange');
     expect(main).toContain("hinweisMitKnopf('Neue Version von Heatnet ist da.', 'Neu laden'");
     expect(main).toContain('navigator.storage?.persist');
+    expect(main).toContain('if (!hatteVersion) return;'); // beim allerersten Besuch kein Hinweis
+    expect(main).toMatch(/speichern\(\); location\.reload\(\)/); // vor dem Neuladen speichern
     expect(readFileSync(new URL('../src/ui/einstellungen.ts', import.meta.url), 'utf8')).toContain('__SPIELVERSION__');
     expect(readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8')).toContain('__SPIELVERSION__');
     expect(readFileSync(new URL('../.node-version', import.meta.url), 'utf8').trim()).toBe('22');
     const kopf = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
-    for (const d of ['/sw.js', '/index.html']) expect(kopf).toContain(d); // Seite und Service Worker nie aus dem Zwischenspeicher
+    for (const d of ['/sw.js', '/index.html']) expect(kopf).toContain(d);
+    expect(kopf).toMatch(/^\/\n\s+Cache-Control: no-cache/m); // Cloudflare liefert die Seite unter „/“ aus // Seite und Service Worker nie aus dem Zwischenspeicher
   });
 });
