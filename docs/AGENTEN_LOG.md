@@ -135,3 +135,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:39 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-05 14:39 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Das Messwerkzeug ist gebaut und committet, die Test-Schranke ist grün. Es misst heute erwartbar rot bei den festen Zielen ([Bericht](docs/pruefberichte/20261105-143939-entwickler-a2874e7256aadb7ef.md)) |
 | 2026-11-05 14:40 | ■ 🟡 | entwickler | 🟡 Status: FERTIG_MIT_BEDENKEN (Nachbesserung Runde 1 von 3 erledigt).  ([Bericht](docs/pruefberichte/20261105-144040-entwickler-a700bf2f083fcd358.md)) |
+| 2026-11-05 14:42 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit einem kleinen Punkt (nachpruefung P3a, Runde 1, Commit bd04dec, Basis 44463cc).** Alle vier Befunde sind behoben, und keine der Proben ka ([Bericht](docs/pruefberichte/20261105-144215-reviewer-a59dfbf3f765e17a1.md)) |
