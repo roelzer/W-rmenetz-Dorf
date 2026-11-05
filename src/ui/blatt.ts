@@ -1,5 +1,6 @@
 import { h } from './dom';
 import { symbol } from './bausteine';
+import { meldungNebenBlatt } from './toast';
 
 export interface BlattOptionen {
   titel: string;
@@ -63,6 +64,7 @@ export function blattOeffnen(opt: BlattOptionen): Blatt {
       wurzel.remove(); abdunkeln?.remove(); ebene.classList.remove('mitte');
       document.body.classList.remove('blatt-offen');
       if (vorherFokus instanceof HTMLElement) vorherFokus.focus({ preventScroll: true });
+      meldungNebenBlatt(null);
       opt.beiZu?.();
     },
   };
@@ -72,5 +74,6 @@ export function blattOeffnen(opt: BlattOptionen): Blatt {
   ebene.append(wurzel);
   document.body.classList.add('blatt-offen');
   wurzel.focus({ preventScroll: true });
+  meldungNebenBlatt(wurzel, art === 'popup');
   return b;
 }
