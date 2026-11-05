@@ -3,3 +3,4 @@
 - 2026-11-05 [Prozess] Tester-Vorarbeit für eine Fix-Runde setzt auf der letzten Vorarbeit des Paketzweigs auf (nicht auf dem Hauptstand) und wird sofort beim Annehmen unter .dev-team/vorarbeit eingetragen – sonst zieht der Merge fremde Commits ins Paket und die Entwickler-Schranke kann nicht grün werden (NR16-B1, a6794f7).
 - 2026-11-05 [Werkzeuge] Vitest zeigt console.log aus bestandenen Tests nicht an – Messskripte mit --silent=false aufrufen (NR15-P1).
 - 2026-11-05 [Tests] Indizes von Spieltabellen im Test aus der Tabelle ableiten (LISTE.length - 1), nicht als feste Zahl – Setter, die ungültige Werte still ignorieren, verbergen sonst falsche Indizes (B2a R3).
+- [Tests] Für Regeln mit eingebauter Absicherung (Probe mit Rücknahme) zeigen Fehlerproben am Vorfilter oft nichts – Gegenproben über Wegwerf-Varianten im Generator suchen (alter gegen neuer Stand). (NR15-P2, 2026-11-05)

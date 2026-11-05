@@ -234,3 +234,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:30 | ▶ | tester | Tester-Vorarbeit NR16-B2b |
 | 2026-11-05 19:41 | ■ 🟡 | tester | 🟡 BLOCKIERT, Grund: Kontext voll. Ein Teil ist fertig und committet, der Rest fehlt. Ein frischer Tester-Agent muss weitermachen.  ([Bericht](docs/pruefberichte/20261105-194119-tester-a0365dcbe9cd2aaab.md)) |
 | 2026-11-05 19:41 | ▶ | tester | Tester-Vorarbeit B2b Teil 2 |
+| 2026-11-05 19:44 | ■ 🟡 | entwickler | ## NR15-P2 (A91 Netzbaum): FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261105-194416-entwickler-a451ccb84d3723843.md)) |
+| 2026-11-05 19:44 | ▶ | reviewer | Review NR15-P2 |
