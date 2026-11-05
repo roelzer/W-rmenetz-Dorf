@@ -33,6 +33,8 @@ export class Steuerung implements Ui {
   private verschiebeId: number | null = null;
   private stempelTyp: TypId | null = null;
   private stempelLetzte: [number, number] | null = null;
+  private stempelAchse: 'h' | 'v' | null = null;
+  private radieren = false;
   private modusBlatt: Blatt | null = null;
   private katalogUi: Katalog;
   private kontextUi: Kontext;
@@ -116,13 +118,16 @@ export class Steuerung implements Ui {
     this.geist = { typ: o.typ, x: o.x, y: o.y, kante }; this.verschiebeId = id; this.modus = 'verschieben';
     this.modusBlattOeffnen(`${KATALOG[o.typ].name} verschieben`, 'Tippe auf die Wiese oder zieh das Gebäude an seinen neuen Platz.', 'Hier hin', () => this.bestaetigen());
   }
-  stempeln(typ: TypId): void {
+  stempeln(typ: TypId, radieren = false): void {
     this.katalogUi.schliessen(); this.kontextUi.schliessen();
-    this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null;
-    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Tippe Felder an oder zieh die Leitung mit dem Finger. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); });
+    this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren;
+    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); });
     // Durchmesser direkt wählen (Designer-Mangel 10)
     const wahl = h('div', { class: 'durchmesser' }, ...LEITUNGEN.filter((t) => this.spiel.grenze(t) > 0).map((t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'los' : '', { klein: true })));
-    this.modusBlatt?.inhalt.append(wahl);
+    const werkzeug = h('div', { class: 'knopfreihe' },
+      knopf(radieren ? 'Radierer an – tippe Leitungen weg' : 'Radierer', () => this.stempeln(typ, !radieren), radieren ? 'heiss' : '', { klein: true }),
+      knopf('Letzte zurück', () => { this.spiel.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); }, '', { klein: true }));
+    this.modusBlatt?.inhalt.append(wahl, werkzeug);
   }
 
   private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void): void {
@@ -132,7 +137,7 @@ export class Steuerung implements Ui {
     if (this.modus !== 'stempel') reihe.append(knopf('Abbrechen', () => this.abbrechen()));
     this.modusBlatt.inhalt.append(h('p', {}, text), reihe);
   }
-  private modusZuruecksetzen(): void { this.modus = 'normal'; this.geist = null; this.verschiebeId = null; this.stempelTyp = null; this.stempelLetzte = null; }
+  private modusZuruecksetzen(): void { this.modus = 'normal'; this.geist = null; this.verschiebeId = null; this.stempelTyp = null; this.stempelLetzte = null; this.stempelAchse = null; this.radieren = false; }
   private abbrechen(): void { if (this.modusBlatt) { const b = this.modusBlatt; this.modusBlatt = null; b.zu(); } this.modusZuruecksetzen(); }
 
   private geistOk(): boolean {
@@ -199,7 +204,7 @@ export class Steuerung implements Ui {
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
-        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelnBei(e.clientX, e.clientY); }
+        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelnBei(e.clientX, e.clientY); }
       } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); }
     });
     l.addEventListener('pointermove', (e) => {
@@ -264,18 +269,19 @@ export class Steuerung implements Ui {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
     if (x < 0 || y < 0 || x >= N || y >= N) return;
-    // A47: Beim Ziehen läuft die Leitung automatisch gerade durch (dominante Achse), auch wenn der Finger Felder überspringt.
+    if (this.radieren) { if (this.spiel.geplanteLeitungEntfernen(x, y).ok) this.geaendert(); return; }
+    // A47: Die Leitung läuft gerade durch. Ein Knick entsteht nur, wenn der Finger deutlich (2 Felder) zur Seite zieht.
     const l = this.stempelLetzte;
     let felder: Array<[number, number]> = [[x, y]];
-    if (l && Math.abs(x - l[0]) + Math.abs(y - l[1]) > 1) {
+    if (l && (x !== l[0] || y !== l[1])) {
+      const dx = x - l[0], dy = y - l[1];
+      if (!this.stempelAchse) this.stempelAchse = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+      const entlang = this.stempelAchse === 'h' ? dx : dy, quer = this.stempelAchse === 'h' ? dy : dx;
+      if (Math.abs(quer) >= 2 && Math.abs(quer) > Math.abs(entlang)) this.stempelAchse = this.stempelAchse === 'h' ? 'v' : 'h';
+      const horizontal = this.stempelAchse === 'h';
+      const laenge = horizontal ? dx : dy, schritt = Math.sign(laenge);
       felder = [];
-      const horizontal = Math.abs(x - l[0]) >= Math.abs(y - l[1]);
-      const ex = horizontal ? x : l[0], ey = horizontal ? l[1] : y;
-      const sx = Math.sign(ex - l[0]), sy = Math.sign(ey - l[1]);
-      for (let cx = l[0] + sx, cy = l[1] + sy; ; cx += sx, cy += sy) {
-        felder.push([cx, cy]);
-        if (cx === ex && cy === ey) break;
-      }
+      for (let i = 1; i <= Math.abs(laenge); i++) felder.push(horizontal ? [l[0] + i * schritt, l[1]] : [l[0], l[1] + i * schritt]);
     }
     let geaendert = false;
     for (const [fx, fy] of felder) {

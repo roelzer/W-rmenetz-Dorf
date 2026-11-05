@@ -167,6 +167,12 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       oel: (kat === 'haus' && (!angeschlossen || !!o.gekuendigt)) || (kat === 'gross' && o.zustand !== 'vertrag' && o.typ !== 'gewerbe'),
     };
     const durch = durchsicht && kat !== 'dorf';
+    if (o.interessent && !angeschlossen && !o.bau) {
+      // A50: Interessent leuchtet gelb
+      const puls = 0.5 + 0.5 * Math.sin(m.zeit_s * 3 + o.id);
+      m.raute(cx, cy, kante + 0.5 + puls * 0.15); X.fillStyle = `rgba(255,214,64,${0.28 + puls * 0.22})`; X.fill();
+      X.strokeStyle = 'rgba(255,196,0,.85)'; X.lineWidth = Math.max(1.5, tw * 0.03); X.stroke();
+    }
     if (durch) X.globalAlpha = 0.5;
     zeichneObjekt(m, o, cx, cy, st, s.jetzt_ms);
     if (durch) X.globalAlpha = 1;

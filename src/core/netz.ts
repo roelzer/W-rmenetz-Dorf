@@ -1,8 +1,19 @@
 import {
-  KATALOG, KONSTANTEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
+  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
   type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
+
+/** A49: Mittlere Spreizung (Vorlauf minus Rücklauf) der angeschlossenen Häuser in K, nach Bedarf gewichtet. Niedrigere Rücklauftemperatur = größere Spreizung. */
+export function mittlereSpreizung_k(objekte: Objekt[]): number {
+  let summe = 0, gew = 0;
+  for (const o of objekte) {
+    if (!istKunde(o)) continue;
+    const w = bedarfKw(o);
+    summe += (SPREIZUNG_BASIS_K + UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0)) * w; gew += w;
+  }
+  return gew ? summe / gew : SPREIZUNG_BASIS_K;
+}
 
 const N = KONSTANTEN.feldanzahl;
 
@@ -126,10 +137,12 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     const k = reihenfolge[i], p = eltern.get(k) as number;
     if (p >= 0) last_kw.set(p, (last_kw.get(p) as number) + (last_kw.get(k) as number));
   }
+  // A49: Eine Leitung transportiert bei größerer Spreizung mehr Wärme (Q = m·c·ΔT): Kapazität × Spreizung / Basisspreizung
+  const spreizung_faktor = mittlereSpreizung_k(objekte) / SPREIZUNG_BASIS_K;
   const kapazitaet_ok = new Map<number, boolean>();
   for (const k of reihenfolge) {
     const p = eltern.get(k) as number;
-    const kap = KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number;
+    const kap = (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor;
     kapazitaet_ok.set(k, (p < 0 || (kapazitaet_ok.get(p) as boolean)) && (last_kw.get(k) as number) <= kap);
   }
   // Fachregel: Dimension in Fließrichtung nur gleich oder kleiner
@@ -145,7 +158,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // Leitungskapazität auf dem Weg zur Heizzentrale. V2: Ein Speicher erzeugt keine Wärme (zählt nur, wenn eine Quelle läuft).
   const wegKapazitaet_kw = (feld: number): number => {
     let kap = Infinity;
-    for (let k = feld; k >= 0; k = eltern.get(k) as number) kap = Math.min(kap, KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number);
+    for (let k = feld; k >= 0; k = eltern.get(k) as number) kap = Math.min(kap, (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor);
     return kap;
   };
   let aussen_kw = 0, strom_kw = 0, speicher_kw = 0;
@@ -218,7 +231,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   return {
     tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, anschluss, warm, kalt,
     verfuegbar_kw, genutzt_kw, bedarf_kw, betriebskosten_eur_min, einnahmen_eur_min,
-    pv_faktor, strom_kw, einspeisung_kw, laeuft_mit_kw, belegung, nachId,
+    spreizung_faktor, pv_faktor, strom_kw, einspeisung_kw, laeuft_mit_kw, belegung, nachId,
   };
 }
 

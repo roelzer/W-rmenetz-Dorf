@@ -417,6 +417,40 @@ export class Spiel {
     return ok();
   }
 
+  /** A47: Eine geplante (noch nicht bestellte) Leitung auf dem Feld wieder wegnehmen – kostenlos, nur im offenen Bauabschnitt. */
+  geplanteLeitungEntfernen(x: number, y: number): Ergebnis {
+    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false };
+    const o = this.stand.objekte.find((a) => a.geplant && a.x === x && a.y === y);
+    if (!o) return { ok: false };
+    this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
+    return ok();
+  }
+  /** A47: Zuletzt eingezeichnete Leitung des offenen Bauabschnitts zurücknehmen. */
+  letzteLeitungZurueck(): Ergebnis {
+    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false };
+    const geplant = this.stand.objekte.filter((a) => a.geplant);
+    const letzte = geplant[geplant.length - 1];
+    if (!letzte) return { ok: false };
+    this.stand.objekte = this.stand.objekte.filter((a) => a !== letzte);
+    return ok();
+  }
+  /** A47: Häuser und Großabnehmer, die an eine geplante Leitung des Bauabschnitts grenzen und noch an keiner gebauten Leitung hängen: Das sind die Hausanschlüsse dieses Abschnitts. */
+  abschnittAnschluesse(): Objekt[] {
+    const N_ = N, bau = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ) && !o.geplant).map((o) => o.y * N_ + o.x));
+    const plan = new Set(this.stand.objekte.filter((o) => o.geplant).map((o) => o.y * N_ + o.x));
+    return this.stand.objekte.filter((h) => {
+      if (!['haus', 'gross'].includes(KATALOG[h.typ].kategorie)) return false;
+      const g = groesse(h);
+      let anPlan = false, anBau = false;
+      for (let dy = -1; dy <= g; dy++) for (let dx = -1; dx <= g; dx++) {
+        if ((dx === -1 || dx === g) === (dy === -1 || dy === g)) continue; // nur die vier Seiten, keine Ecken/Innenfelder
+        const f = (h.y + dy) * N_ + h.x + dx;
+        if (plan.has(f)) anPlan = true;
+        if (bau.has(f)) anBau = true;
+      }
+      return anPlan && !anBau;
+    });
+  }
   /** A32: Übergabestation für ein Haus/einen Großabnehmer kaufen (auch größere, z. B. als Reserve für einen Anbau). */
   stationKaufen(id: number, stationId: string): Ergebnis {
     const o = this.objekt(id), st = stationHolen(stationId);
@@ -425,8 +459,9 @@ export class Spiel {
     if (st.leistung_kw < bedarf) return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${bedarf} kW`);
     const alt = stationHolen(o.station);
     if (alt && alt.leistung_kw >= st.leistung_kw) return this.nein('Es steht schon eine gleich große oder größere Station');
-    const b = this.bezahlen({ eur: st.kosten_eur - (alt ? Math.round(alt.kosten_eur * KONSTANTEN.rueckkauf_anteil) : 0) });
+    const b = this.bezahlen({ eur: this.stationspreis_eur(o, st) });
     if (!b.ok) return b;
+    delete o.interessent;
     o.station = st.id; delete o.ohne_station; o._pop = this.uhr();
     this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     this.neuBerechnen();
@@ -525,29 +560,42 @@ export class Spiel {
     const frei = (f: number): boolean => !belegung[f] && !leit.has(f);
     // Schon angeschlossen? (Haus grenzt an eine Leitung)
     for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) if (nachbarn((haus.y + dy) * N + haus.x + dx).some((n) => leit.has(n))) return this.nein('Das Haus liegt schon an einer Leitung');
-    // Dijkstra über freie Felder, Startfelder = freie Felder rund ums Haus, Ziel = Feld neben einer Leitung (oder das Feld selbst neben dem Haus ist Leitung)
+    // Dijkstra über freie Felder (Zustand = Feld + Richtung). Jede Biegung kostet einen Aufschlag, damit der Anschluss gerade läuft.
+    const BIEGUNG_EUR = 900;
+    const richtungen: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const zustand = (f: number, r: number): number => f * 4 + r;
     const dist = new Map<number, number>(), von = new Map<number, number>();
     const offen: Array<[number, number]> = [];
-    for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) for (const n of nachbarn((haus.y + dy) * N + haus.x + dx)) {
-      if (imHaus(n) || !frei(n)) continue;
-      const c = this.feldKosten_eur(typ, n % N, Math.floor(n / N));
-      if (c < (dist.get(n) ?? Infinity)) { dist.set(n, c); von.set(n, -1); offen.push([c, n]); }
+    for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) {
+      const feld = (haus.y + dy) * N + haus.x + dx;
+      richtungen.forEach(([rx, ry], r) => {
+        const nx = feld % N + rx, ny = Math.floor(feld / N) + ry;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
+        const n = ny * N + nx;
+        if (imHaus(n) || !frei(n)) return;
+        const c = this.feldKosten_eur(typ, nx, ny), z = zustand(n, r);
+        if (c < (dist.get(z) ?? Infinity)) { dist.set(z, c); von.set(z, -1); offen.push([c, z]); }
+      });
     }
     let ziel = -1;
     while (offen.length) {
       offen.sort((a, b) => a[0] - b[0]);
-      const [c, f] = offen.shift() as [number, number];
-      if (c > (dist.get(f) as number)) continue;
-      if (nachbarn(f).some((n) => leit.has(n))) { ziel = f; break; }
-      for (const n of nachbarn(f)) {
-        if (imHaus(n) || !frei(n)) continue;
-        const nc = c + this.feldKosten_eur(typ, n % N, Math.floor(n / N));
-        if (nc < (dist.get(n) ?? Infinity)) { dist.set(n, nc); von.set(n, f); offen.push([nc, n]); }
-      }
+      const [c, z] = offen.shift() as [number, number];
+      if (c > (dist.get(z) as number)) continue;
+      const f = Math.floor(z / 4), r = z % 4;
+      if (nachbarn(f).some((n) => leit.has(n))) { ziel = z; break; }
+      richtungen.forEach(([rx, ry], r2) => {
+        const nx = f % N + rx, ny = Math.floor(f / N) + ry;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
+        const n = ny * N + nx;
+        if (imHaus(n) || !frei(n)) return;
+        const nc = c + this.feldKosten_eur(typ, nx, ny) + (r2 === r ? 0 : BIEGUNG_EUR), nz = zustand(n, r2);
+        if (nc < (dist.get(nz) ?? Infinity)) { dist.set(nz, nc); von.set(nz, z); offen.push([nc, nz]); }
+      });
     }
     if (ziel < 0) return this.nein('Kein Weg zu einer Leitung gefunden');
     const weg: number[] = [];
-    for (let f = ziel; f >= 0; f = von.get(f) as number) weg.push(f);
+    for (let z = ziel; z >= 0; z = von.get(z) as number) weg.push(Math.floor(z / 4));
     if (this.leitungsanzahl() + weg.length > this.grenze(typ)) return this.nein('Zu viele Leitungen für diese Heizzentralen-Stufe');
     for (const f of weg) this.stand.objekte.push({ id: this.stand.naechste_id++, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
     this.hinweis(`Hausanschluss geplant: ${weg.length} Felder, ${KATALOG[typ].name}`);
@@ -770,6 +818,29 @@ export class Spiel {
         this.hinweis(`${KATALOG[o.typ].name} hat den Vertrag gekündigt!`);
       }
     }
+    // A50: Sind die Anschlussnehmer lange zufrieden, sprechen sich das die Nachbarn herum: einzelne Häuser möchten ebenfalls anschließen.
+    const warmeHaeuser = s.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && istKunde(o) && this.netz.warm.has(o.id));
+    if (warmeHaeuser.length && warmeHaeuser.every((o) => (o.zufriedenheit_pct ?? 80) >= KONSTANTEN.interesse_ab_pct)) {
+      s.zufrieden_s = (s.zufrieden_s ?? 0) + dt_s;
+      while ((s.zufrieden_s ?? 0) >= KONSTANTEN.interesse_alle_s) {
+        s.zufrieden_s = (s.zufrieden_s ?? 0) - KONSTANTEN.interesse_alle_s;
+        if (s.objekte.filter((o) => o.interessent).length >= KONSTANTEN.interessenten_max) break;
+        const kandidaten = s.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station && !o.interessent && !o.gekuendigt && !this.netz.anschluss.has(o.id));
+        if (!kandidaten.length) break;
+        const abstand = (o: Objekt): number => Math.min(...warmeHaeuser.map((w) => Math.abs(w.x - o.x) + Math.abs(w.y - o.y)));
+        kandidaten.sort((a, b) => abstand(a) - abstand(b) || a.id - b.id);
+        const wahl = kandidaten[Math.floor(Math.min(kandidaten.length - 1, (s.naechste_id + s.objekte.length) % 3))];
+        wahl.interessent = true; wahl._pop = this.uhr();
+        this.hinweis('Ein Nachbar möchte auch Fernwärme – das Haus leuchtet gelb');
+        this.ereignisse.push({ art: 'schwebtext', x: wahl.x, y: wahl.y, text: 'möchte anschließen', farbe: '#ffd166' });
+      }
+    }
     if (geaendert) this.neuBerechnen();
+  }
+  /** A50: Preis der Übergabestation für dieses Haus (Interessenten bekommen einen Nachlass; die alte Station wird zu 50 % zurückgekauft). */
+  stationspreis_eur(o: Objekt, st: { kosten_eur: number }): number {
+    const alt = stationHolen(o.station);
+    const brutto = st.kosten_eur * (o.interessent ? 1 - KONSTANTEN.interessent_nachlass : 1);
+    return Math.round(brutto - (alt ? alt.kosten_eur * KONSTANTEN.rueckkauf_anteil : 0));
   }
 }

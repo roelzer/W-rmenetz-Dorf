@@ -45,6 +45,8 @@ export interface Objekt {
   vollversorgung?: boolean;
   /** Das Haus hat ein Stockwerk aufgesetzt: höherer Bedarf */
   aufgestockt?: boolean;
+  /** A50: Nachbarhaus, das gern ans Netz möchte (leuchtet gelb) */
+  interessent?: boolean;
   /** A36: PV-Anlage auf dem Dach */
   dach_pv?: boolean;
   /** nur Darstellung: Zeitpunkt für Aufpop-Animation */
@@ -92,6 +94,8 @@ export interface Spielstand {
   gestattungen?: number[];
   /** Version des Kartenlayouts (Straßen, Fluss); ältere Spielstände werden beim Laden angepasst (A46) */
   karte?: number;
+  /** A50: Sekunden, in denen die Anschlussnehmer zufrieden waren (Mundpropaganda) */
+  zufrieden_s?: number;
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;
@@ -109,6 +113,8 @@ export interface Netz {
   /** Last in kW, die durch das Leitungsfeld fließen muss */
   last_kw: Map<number, number>;
   kapazitaet_ok: Map<number, boolean>;
+  /** A49: Leitungen schaffen bei größerer Spreizung mehr (Faktor 1 = Basisspreizung) */
+  spreizung_faktor: number;
   /** Leitungsfelder, die ein Planungsfehler sind (dünn → dick in Fließrichtung) */
   engpass: Set<number>;
   /** Anschlusspunkt je Gebäude-ID (-1 = direkt am Heizhaus) */

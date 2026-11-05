@@ -328,6 +328,13 @@ export const KONSTANTEN = {
   baugebiet_anschluesse: 6, baugebiet_hz_stufe: 3, baugebiet_eur: 40000,
   /** A45: Gestattung (Leitungsrecht) je Feld abseits der öffentlichen Straße; Spielwert, keine Norm */
   gestattung_eur_je_feld: 1500,
+  /** A50: Nach so vielen Sekunden zufriedener Kunden möchte ein weiteres Haus anschließen (Spielwert) */
+  interesse_alle_s: 600,
+  interessenten_max: 4,
+  /** A50: Ab dieser Zufriedenheit aller Kunden spricht es sich herum (heißt: Preis höchstens 11 ct/kWh) */
+  interesse_ab_pct: 75,
+  /** A50: Nachlass auf die Übergabestation für ein Haus, das selbst angeklopft hat */
+  interessent_nachlass: 0.2,
   /** A46: Spülbohrung unter dem Fluss je Feld; teuer, Spielwert */
   bohrung_eur_je_feld: 8000,
   starttaler: 100,

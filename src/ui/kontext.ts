@@ -117,6 +117,7 @@ export class Kontext {
     const einnahme = (D.einnahmen_eur_min as number[])[o.stufe - 1] * PREISSTUFEN[sp.stand.preisstufe].einnahmefaktor;
     const st = stationHolen(o.station);
     c.append(zeile('Wärmebedarf', `braucht ${zahl(bedarfKw(o))} kW`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'), zeile('Einnahmen', `${zahl(einnahme * nutzungsfaktor(o))} €/min`));
+    if (o.interessent) chips.append(chip('möchte anschließen', 'blau'));
     if (o.vollversorgung) chips.append(chip('Kamin aus', 'gruen'));
     if (o.aufgestockt) chips.append(chip('aufgestockt', 'blau'));
     const z = o.zufriedenheit_pct ?? 80;
@@ -127,9 +128,9 @@ export class Kontext {
       return;
     }
     if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), h('div', { class: 'knopfreihe' }, knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: sp.abschnitt?.phase === 'offen' ? 'zur nächsten Leitung' : 'braucht offenen Bauabschnitt', aus: sp.abschnitt?.phase !== 'offen' }), knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true })));
-    if (o.ohne_station || n.kalt.get(o.id) === 'station') this.stationswahl(c, o);
-    else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
+    if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
+    if (o.ohne_station || o.station) this.stationswahl(c, o);
     if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => { this.ui.einsammeln(o.id); }, 'los')));
     this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
@@ -153,12 +154,16 @@ export class Kontext {
 
   /** A32: Auswahl der Übergabestation – nur Typen, die den Bedarf schaffen; die kleinste passende ist empfohlen. */
   private stationswahl(c: HTMLElement, o: Objekt): void {
-    const sp = this.ui.spiel, bedarf = bedarfKw(o), k = kasten('Übergabestation wählen');
+    const sp = this.ui.spiel, bedarf = bedarfKw(o);
     const empfohlen = passendeStation(bedarf).id, alt = stationHolen(o.station);
-    k.append(h('p', { class: 'gedaempft' }, `Das Gebäude braucht ${bedarf} kW. Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.`));
+    const k = kasten(alt ? 'Übergabestation tauschen' : 'Übergabestation wählen');
+    k.append(h('p', { class: 'gedaempft' }, alt
+      ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${bedarf} kW. Schaltet der Kunde seinen Ofen ab oder baut an, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
+      : `Das Gebäude braucht ${bedarf} kW. Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.`));
+    if (alt && alt.leistung_kw < bedarf) k.append(chip('Station zu klein', 'rot'));
     const reihe = h('div', { class: 'knopfreihe' });
     for (const st of STATIONEN.filter((x) => x.leistung_kw >= bedarf && (!alt || x.leistung_kw > alt.leistung_kw)).slice(0, 3)) {
-      const preis = st.kosten_eur - (alt ? Math.round(alt.kosten_eur * KONSTANTEN.rueckkauf_anteil) : 0);
+      const preis = sp.stationspreis_eur(o, st);
       reihe.append(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'los' : '', { klein: true, unter: eur(preis) }));
     }
     k.append(reihe);
@@ -198,7 +203,7 @@ export class Kontext {
 
   private leitung(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, n = sp.netz, D = KATALOG[o.typ], key = o.y * KONSTANTEN.feldanzahl + o.x;
-    const last = n.last_kw.get(key) ?? 0, kap = D.kapazitaet_kw ?? 0;
+    const last = n.last_kw.get(key) ?? 0, kap = Math.round((D.kapazitaet_kw ?? 0) * n.spreizung_faktor);
     // Hauptleitung bis zum letzten Abzweig, danach Hausanschluss: Ab dem Abknick zum einzelnen Haus darf das Rohr kleiner sein.
     const kinder = new Map<number, number[]>();
     for (const [k, p] of n.eltern) if (p >= 0) kinder.set(p, [...(kinder.get(p) ?? []), k]);
@@ -213,6 +218,7 @@ export class Kontext {
     const anHaus = !verzweigt && haeuser.length === 1;
     c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser, deshalb dick. Erst ab dem Abzweig zum Haus darf es dünner werden.'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
+    if (Math.abs(n.spreizung_faktor - 1) > 0.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
     if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
     else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
     else if (o.geplant) c.append(h('p', {}, 'Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung (abseits der Straße samt Gestattung). Zählt noch nicht fürs Netz.'));

@@ -92,14 +92,14 @@ function platzhalterOrt(p: Plan): Ort {
     const typ: TypId = r() < p.mfhAnteil ? 'mfh' : r() < 0.3 ? 'rh' : 'efh';
     const s = typ === 'mfh' ? 2 : 1;
     const x = 2 + Math.floor(r() * (N - 5)), y = 2 + Math.floor(r() * (N - 5));
-    if (Math.hypot(x - 11, y - 10) > 10 || !anStrasse(x, y, s) || belegt(x, y, s)) continue;
+    if (Math.hypot(x - 11, y - 10) > 12 || !anStrasse(x, y, s) || belegt(x, y, s)) continue;
     haeuser.push({ typ, x, y });
   }
   return { id: p.id, name: p.name, platzhalter: true, beschreibung: p.beschreibung, haeuser, gross, strassen, fluss };
 }
 
 export const ORTE: ReadonlyArray<Ort> = [
-  platzhalterOrt({ id: 'hilpoltstein', name: 'Hilpoltstein', beschreibung: 'Kreisstadt: viele Wohnhäuser, Hallenbad, Klinik und ein Sägewerk als Großabnehmer.', seed: 91, anzahl: 18, mfhAnteil: 0.25, klinik: true }),
+  platzhalterOrt({ id: 'hilpoltstein', name: 'Hilpoltstein', beschreibung: 'Kreisstadt: viele Wohnhäuser, Hallenbad, Klinik und ein Sägewerk als Großabnehmer.', seed: 91, anzahl: 40, mfhAnteil: 0.25, klinik: true }),
 ];
 
 export const STANDARD_ORT = 'hilpoltstein';

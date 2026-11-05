@@ -535,3 +535,73 @@ describe('A48 Karte drehen', () => {
     expect(nachher[0]).toBeCloseTo(vorher[0]); expect(nachher[1]).toBeCloseTo(vorher[1]);
   });
 });
+
+describe('A47/A49 Leitungen wegnehmen, Anschlüsse erkennen, Rücklauf bringt Kapazität', () => {
+  const offenesSpiel = () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 500_000; s.stand.abschnitt = { phase: 'offen', bau: null };
+    return s;
+  };
+  it('A47: Geplante Leitungen lassen sich wegradieren und die letzte zurücknehmen, gebaute nicht', () => {
+    const s = offenesSpiel();
+    s.platzieren('d50', 10, 18); s.platzieren('d50', 10, 19);
+    expect(s.geplanteLeitungEntfernen(10, 18).ok).toBe(true);
+    expect(s.abschnittLeitungen()).toBe(1);
+    expect(s.letzteLeitungZurueck().ok).toBe(true);
+    expect(s.abschnittLeitungen()).toBe(0);
+    expect(s.letzteLeitungZurueck().ok).toBe(false);
+    const gebaut = s.stand.objekte.find((o) => o.typ === 'd50' && !o.geplant)!;
+    expect(s.geplanteLeitungEntfernen(gebaut.x, gebaut.y).ok).toBe(false);
+  });
+  it('A47: Eine geplante Leitung am Haus wird als Hausanschluss dieses Abschnitts erkannt', () => {
+    const s = offenesSpiel();
+    const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
+    expect(s.abschnittAnschluesse().some((a) => a.id === haus.id)).toBe(false);
+    expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
+    expect(s.abschnittAnschluesse().some((a) => a.id === haus.id)).toBe(true);
+  });
+  it('A47: Der automatische Hausanschluss läuft gerade (höchstens eine Biegung bei freiem Weg)', () => {
+    const s = offenesSpiel();
+    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 15)!;
+    expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
+    const f = s.stand.objekte.filter((o) => o.geplant).map((o) => [o.x, o.y]);
+    let biegungen = 0;
+    for (let i = 2; i < f.length; i++) if ((f[i][0] - f[i - 1][0] !== f[i - 1][0] - f[i - 2][0]) || (f[i][1] - f[i - 1][1] !== f[i - 1][1] - f[i - 2][1])) biegungen++;
+    expect(biegungen).toBeLessThanOrEqual(1);
+  });
+  it('A49: Kälterer Rücklauf (größere Spreizung) lässt Leitungen mehr Wärme schaffen', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    expect(s.netz.spreizung_faktor).toBeCloseTo(1);
+    for (const o of s.stand.objekte) if (KATALOG[o.typ].kategorie === 'haus' && o.station) o.upgrade = 3;
+    s.neuBerechnen();
+    expect(s.netz.spreizung_faktor).toBeGreaterThan(1.5);
+  });
+  it('A49: Eine Station lässt sich auch bei vorhandener Station gegen eine größere tauschen', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const haus = s.stand.objekte.find((o) => o.station)!;
+    expect(s.stationKaufen(haus.id, 'st_25').ok).toBe(true);
+    expect(haus.station).toBe('st_25');
+  });
+});
+
+describe('A50 volle Stadt, Interessenten', () => {
+  it('A50: Die Stadt hat deutlich mehr Häuser (mindestens 35)', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    expect(s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus').length).toBeGreaterThanOrEqual(35);
+  });
+  it('A50: Sind die Kunden lange zufrieden, möchte ein weiteres Haus anschließen (gelb); es bekommt Nachlass auf die Station', () => {
+    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.preisstufe = 4; // 11 ct: Kunden zufrieden
+    expect(s.stand.objekte.some((o) => o.interessent)).toBe(false);
+    for (let i = 0; i < 40; i++) { t += 60_000; s.bis(t); }
+    const wer = s.stand.objekte.find((o) => o.interessent);
+    expect(wer).toBeDefined();
+    const st = STATIONEN[0];
+    expect(s.stationspreis_eur(wer!, st)).toBe(Math.round(st.kosten_eur * (1 - KONSTANTEN.interessent_nachlass)));
+  });
+  it('A50: Höchstens vier Interessenten gleichzeitig', () => {
+    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+    s.stand.preisstufe = 4;
+    for (let i = 0; i < 300; i++) { t += 60_000; s.bis(t); }
+    expect(s.stand.objekte.filter((o) => o.interessent).length).toBeLessThanOrEqual(KONSTANTEN.interessenten_max);
+  });
+});
