@@ -26,6 +26,7 @@ export interface Szene {
   jetzt_ms: number;
   /** Straßenfelder des Ortes (nur Optik) */
   strassen?: ReadonlyArray<readonly [number, number]>;
+  fluss?: ReadonlyArray<readonly [number, number]>;
 }
 
 interface Gras { n: Punkt[]; blume: number; hell: number }
@@ -67,6 +68,29 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
           if (g.blume >= 0) m.kreis(cx + g.n[0][0] * tw * 0.4, cy + g.n[0][1] * th * 0.4, Math.max(1.2, tw * 0.022), KARTE.blumen[g.blume]);
         }
       } else { X.fillStyle = (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b; X.fill(); }
+    }
+  }
+  // Fluss (A46): Wasserfelder mit Uferlinie; Brücken entstehen, wo eine Straße darüber liegt
+  if (s.fluss?.length) {
+    const wasser = new Set(s.fluss.map(([fx, fy]) => fy * N + fx));
+    for (const [fx, fy] of s.fluss) {
+      const [cx, cy] = k.mitte(fx, fy);
+      if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
+      m.raute(cx, cy, 1.03); X.fillStyle = (fx + fy) % 2 ? KARTE.wasser_a : KARTE.wasser_b; X.fill();
+      const glitzer = Math.sin(m.zeit_s * 1.4 + fx * 1.3 + fy * 0.7);
+      if (glitzer > 0.6) { X.strokeStyle = 'rgba(255,255,255,.35)'; X.lineWidth = 1; X.beginPath(); X.moveTo(cx - tw * 0.12, cy); X.lineTo(cx + tw * 0.12, cy); X.stroke(); }
+    }
+    X.strokeStyle = KARTE.ufer; X.lineWidth = Math.max(1.5, tw * 0.03);
+    for (const [fx, fy] of s.fluss) {
+      const [cx, cy] = k.mitte(fx, fy);
+      if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
+      const ecken: Array<[number, number, [number, number], [number, number]]> = [
+        [0, -1, [0, -th / 2], [tw / 2, 0]], [1, 0, [tw / 2, 0], [0, th / 2]], [0, 1, [0, th / 2], [-tw / 2, 0]], [-1, 0, [-tw / 2, 0], [0, -th / 2]],
+      ];
+      for (const [dx, dy, a, b] of ecken) {
+        if (wasser.has((fy + dy) * N + fx + dx)) continue;
+        X.beginPath(); X.moveTo(cx + a[0], cy + a[1]); X.lineTo(cx + b[0], cy + b[1]); X.stroke();
+      }
     }
   }
   // Straßen (A44): helle Bänder mit feinem Rand und gestrichelter Mitte; Leitungen liegen darüber

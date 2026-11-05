@@ -7,9 +7,9 @@ const T0 = 1_000_000_000_000;
 const neuesSpiel = (): Spiel => new Spiel(neuerSpielstand(T0), () => T0);
 
 describe('A22/A29 Start', () => {
-  it('A29: Start mit 100.000 €, Wärmepreis 12 ct/kWh, zwei angeschlossene Häuser, ein weiteres nicht', () => {
+  it('A29: Start mit 30.000 €, Wärmepreis 12 ct/kWh, zwei angeschlossene Häuser, ein weiteres nicht', () => {
     const s = neuesSpiel();
-    expect(s.stand.geld_eur).toBe(100_000);
+    expect(s.stand.geld_eur).toBe(30_000);
     expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(12);
     s.ersteQuelleWaehlen('kessel');
     const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus');
@@ -40,15 +40,11 @@ function freiesPlus(s: Spiel): [number, number] {
 }
 
 describe('A23 Leitungen wie in echt', () => {
-  it('A23: ein T-Stück ist erlaubt, die Kreuzung (vierter Arm) wird abgelehnt', () => {
+  it('A23/A47: Kreuzungen und T-Stücke werden nicht mehr abgelehnt (Verbindung entsteht automatisch)', () => {
     const s = neuesSpiel();
     s.stand.geld_eur = 10_000; s.stand.abschnitt = { phase: 'offen', bau: null };
     const [mx, my] = freiesPlus(s);
-    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 0]]) expect(s.platzieren('d50', mx + dx, my + dy).ok).toBe(true); // T-Stück
-    expect(s.machtKreuzung(mx, my + 1)).toBe(true);
-    const r = s.platzieren('d50', mx, my + 1);
-    expect(r.ok).toBe(false);
-    expect(r.hinweis).toMatch(/Kreuzung/);
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 0], [0, 1]]) expect(s.platzieren('d50', mx + dx, my + dy).ok).toBe(true);
   });
   it('A23: Hausanschluss darf dünner sein als die Hauptleitung (kein Planungsfehler)', () => {
     const s = neuesSpiel();
@@ -448,5 +444,55 @@ describe('A45 Leitungen auf öffentlicher Straße, sonst Gestattung', () => {
     s.stand.abschnitt = { phase: 'offen', bau: null };
     s.platzieren('d50', 12, 15);
     expect(s.gestattung_eur()).toBe(0);
+  });
+});
+
+describe('A46 Straßen frei, Fluss mit Spülbohrung', () => {
+  const offen = () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    return s;
+  };
+  it('A46: Kein Objekt (außer Leitungen) steht auf Straße oder im Fluss', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    for (const o of s.stand.objekte) {
+      if (['d25', 'd32', 'd40', 'd50', 'd65', 'd80', 'd100', 'd125', 'd150'].includes(o.typ)) continue;
+      const k = KATALOG[o.typ].groesse ?? 1;
+      for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) {
+        expect(s.istStrasse(o.x + dx, o.y + dy), `${o.typ} ${o.x},${o.y} auf Straße`).toBe(false);
+        expect(s.istFluss(o.x + dx, o.y + dy), `${o.typ} im Fluss`).toBe(false);
+      }
+    }
+  });
+  it('A46: Bauen auf Straße und im Fluss wird abgelehnt', () => {
+    const s = offen();
+    expect(s.kannPlatzieren('efh', 10, 18)).toBe(false);
+    expect(s.kannPlatzieren('efh', 19, 3)).toBe(false);
+  });
+  it('A46: Leitung durch den Fluss kostet je Feld eine Spülbohrung', () => {
+    const s = offen();
+    expect(s.platzieren('d50', 19, 3).ok).toBe(true);
+    expect(s.bohrung_eur()).toBe(KONSTANTEN.bohrung_eur_je_feld);
+    expect(s.gestattung_eur()).toBe(0);
+    expect(s.abschnittKosten_eur()).toBe(KATALOG.d50.kosten_eur![0] + KONSTANTEN.bohrung_eur_je_feld);
+  });
+});
+
+describe('A47 Hausanschluss automatisch ziehen', () => {
+  it('A47: Der Hausanschluss führt vom Haus zur nächsten Leitung und verbindet sich', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 200_000; s.stand.abschnitt = { phase: 'offen', bau: null };
+    const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station && !s.netz.warm.has(o.id))!;
+    const vorher = s.abschnittLeitungen();
+    const r = s.hausanschlussPlanen(haus.id);
+    expect(r.ok, r.hinweis).toBe(true);
+    expect(s.abschnittLeitungen()).toBeGreaterThan(vorher);
+    expect(s.stand.objekte.filter((o) => o.geplant).every((o) => o.geplant)).toBe(true);
+    expect(s.hausanschlussPlanen(haus.id).ok).toBe(false); // liegt jetzt schon an einer Leitung
+  });
+  it('A47: Ohne offenen Bauabschnitt wird kein Anschluss geplant', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus')!;
+    expect(s.hausanschlussPlanen(haus.id).ok).toBe(false);
   });
 });

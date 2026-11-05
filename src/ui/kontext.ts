@@ -1,5 +1,5 @@
 import { istLeitung, DACH_PV, UPGRADES, VORLAUF, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
-import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor } from '../core/netz';
+import { bedarfKw, groesse, istAktiv, nutzungsfaktor } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -126,7 +126,7 @@ export class Kontext {
         h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'los', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
       return;
     }
-    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), h('div', { class: 'knopfreihe' }, knopf('Leitung legen', () => this.ui.stempeln('d25'), 'los')));
+    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), h('div', { class: 'knopfreihe' }, knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: sp.abschnitt?.phase === 'offen' ? 'zur nächsten Leitung' : 'braucht offenen Bauabschnitt', aus: sp.abschnitt?.phase !== 'offen' }), knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true })));
     if (o.ohne_station || n.kalt.get(o.id) === 'station') this.stationswahl(c, o);
     else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
@@ -206,7 +206,7 @@ export class Kontext {
     for (let kd = kinder.get(ende) ?? []; kd.length > 0; kd = kinder.get(ende) ?? []) { if (kd.length > 1) { verzweigt = true; break; } ende = kd[0]; }
     const ex = ende % KONSTANTEN.feldanzahl, ey = Math.floor(ende / KONSTANTEN.feldanzahl);
     const haeuser = sp.stand.objekte.filter((k) => {
-      if (!istKunde(k)) return false;
+      if (!['haus', 'gross'].includes(KATALOG[k.typ].kategorie)) return false;
       const g = groesse(k);
       return ex >= k.x - 1 && ex <= k.x + g && ey >= k.y - 1 && ey <= k.y + g && !(ex >= k.x && ex < k.x + g && ey >= k.y && ey < k.y + g);
     });

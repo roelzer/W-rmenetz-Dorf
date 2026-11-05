@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -31,7 +31,7 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   let id = 1;
   const add = (typ: TypId, x: number, y: number, extra: Partial<Objekt> = {}) =>
     objekte.push({ id: id++, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
-  // Start (A22/A29): Heizhaus, Büro, ein Monteurhäuschen, 100.000 €. Die Häuser des Ortes (A21) heizen noch mit Öl.
+  // Start (A22/A29): Heizhaus, Büro, ein Monteurhäuschen, 30.000 €. Die Häuser des Ortes (A21) heizen noch mit Öl.
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
   // A29: zwei Starthäuser sind von Anfang an mit 50er-Leitung angeschlossen (Hauptleitung zum Heizhaus); alle weiteren Häuser heizen noch mit Öl.
   for (const [x, y] of [[11, 12], [11, 13], [11, 14], [10, 13]]) add('d50', x, y);
@@ -44,7 +44,7 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
     add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true, ...(start ? { station: passendeStation(bedarf).id } : { ohne_station: true }) });
   });
   for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt', ohne_station: true });
-  const strassenFelder = new Set(ort.strassen.map(([sx, sy]) => sy * N + sx));
+  const strassenFelder = new Set([...ort.strassen, ...ort.fluss].map(([sx, sy]) => sy * N + sx));
   const r = zufall(9 + ortId.length);
   for (let i = 0; i < 46; i++) {
     const x = Math.floor(r() * N), y = Math.floor(r() * N);
@@ -72,6 +72,7 @@ export class Spiel {
   readonly ereignisse: Ereignis[] = [];
   private abwesend = false;
   private strassenSet?: Set<number>;
+  private flussSet?: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
     this.stand = stand;
     this.neuBerechnen();
@@ -218,18 +219,14 @@ export class Spiel {
     const s = kante ?? KATALOG[t].groesse ?? 1;
     if (x < 0 || y < 0 || x + s > N || y + s > N) return false;
     const belegung = belegungskarte(this.stand.objekte, this.objekt(ohneId));
-    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) if (belegung[(y + dy) * N + x + dx]) return false;
+    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) {
+      if (belegung[(y + dy) * N + x + dx]) return false;
+      // A46: Auf Straßen steht nichts (außer Leitungen, Laternen, Bänke); im Fluss nur Leitungen (per Spülbohrung)
+      const fx = x + dx, fy = y + dy;
+      if (!istLeitung(t) && this.istFluss(fx, fy)) return false;
+      if (!istLeitung(t) && KATALOG[t].kategorie !== 'deko' && this.istStrasse(fx, fy)) return false;
+    }
     return true;
-  }
-
-  /** Würde eine Leitung auf (x, y) eine Kreuzung (vier Leitungsnachbarn) erzeugen? Echte Netze kennen nur T-Stücke. */
-  machtKreuzung(x: number, y: number): boolean {
-    const leit = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
-    leit.add(y * N + x);
-    const zahl = (fx: number, fy: number): number =>
-      [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => leit.has((fy + dy) * N + fx + dx)).length;
-    if (zahl(x, y) >= 4) return true;
-    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => leit.has((y + dy) * N + x + dx) && zahl(x + dx, y + dy) >= 4);
   }
 
   kosten(t: TypId, stufe = 1): { taler?: number; eur?: number } {
@@ -277,7 +274,6 @@ export class Spiel {
       if (this.leitungsanzahl() >= this.grenze(t))
         return this.nein(this.grenze(t) ? 'Mehr Leitungen ab der nächsten Heizzentralen-Stufe' : `${D.name} ab Heizzentrale Stufe 2`);
     } else if (this.anzahl(t) >= this.grenze(t)) return this.nein(`Mehr ${D.name} ab der nächsten Heizzentralen-Stufe`);
-    if (istLeitung(t) && this.machtKreuzung(x, y)) return this.nein('Keine Kreuzungen: Leitungen verzweigen nur als T-Stück');
     if (istLeitung(t)) {
       // A41: Leitungen entstehen nur in einem Bauabschnitt, bezahlt wird erst bei der Materialbestellung.
       if (this.stand.abschnitt?.phase !== 'offen') return this.nein(this.stand.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : `Leitungen entstehen in Bauabschnitten – erst mit ${ABSCHNITT_HELFER.planung} einen Abschnitt planen`);
@@ -484,17 +480,79 @@ export class Spiel {
     this.strassenSet ??= new Set(ortHolen(this.stand.ort).strassen.map(([sx, sy]) => sy * N + sx));
     return this.strassenSet.has(y * N + x);
   }
-  /** A45: Geplante Leitungen abseits der Straße, für die noch keine Gestattung geklärt ist. */
+  istFluss(x: number, y: number): boolean {
+    this.flussSet ??= new Set(ortHolen(this.stand.ort).fluss.map(([sx, sy]) => sy * N + sx));
+    return this.flussSet.has(y * N + x);
+  }
+  /** A45: Geplante Leitungen abseits der Straße, für die noch keine Gestattung geklärt ist (Flussfelder zählen zur Spülbohrung). */
   gestattungsFelder(): number[] {
     const geklaert = new Set(this.stand.gestattungen ?? []);
-    return this.stand.objekte.filter((o) => o.geplant && !this.istStrasse(o.x, o.y) && !geklaert.has(o.y * N + o.x)).map((o) => o.y * N + o.x);
+    return this.stand.objekte.filter((o) => o.geplant && !this.istStrasse(o.x, o.y) && !this.istFluss(o.x, o.y) && !geklaert.has(o.y * N + o.x)).map((o) => o.y * N + o.x);
   }
+  /** A46: Geplante Leitungsfelder im Fluss: dort ist eine Spülbohrung nötig. */
+  bohrungsFelder(): number[] { return this.stand.objekte.filter((o) => o.geplant && this.istFluss(o.x, o.y)).map((o) => o.y * N + o.x); }
+  bohrung_eur(): number { return this.bohrungsFelder().length * KONSTANTEN.bohrung_eur_je_feld; }
   gestattung_eur(): number { return this.gestattungsFelder().length * KONSTANTEN.gestattung_eur_je_feld; }
   /** Summe der Leitungskosten des Abschnitts in € (Material und Gestattungen). */
   abschnittKosten_eur(): number {
-    return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur();
+    return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur() + this.bohrung_eur();
   }
   abschnittLeitungen(): number { return this.stand.objekte.filter((o) => o.geplant).length; }
+  /** A47: Kosten, eine Leitung auf dieses Feld zu legen (Material, Gestattung, Spülbohrung); Grundlage der automatischen Wegsuche. */
+  private feldKosten_eur(t: TypId, x: number, y: number): number {
+    const mat = (KATALOG[t].kosten_eur as number[])[0];
+    if (this.istFluss(x, y)) return mat + KONSTANTEN.bohrung_eur_je_feld;
+    if (this.istStrasse(x, y) || (this.stand.gestattungen ?? []).includes(y * N + x)) return mat;
+    return mat + KONSTANTEN.gestattung_eur_je_feld;
+  }
+  /** A47: Hausanschluss ziehen: vom Haus auf dem günstigsten Weg zur nächsten Leitung, im offenen Bauabschnitt (alles geplant). Gerade Hauptleitungen bleiben unberührt, der Anschluss dockt seitlich an (T-Stück). */
+  hausanschlussPlanen(hausId: number): Ergebnis {
+    const haus = this.objekt(hausId);
+    if (!haus || !['haus', 'gross'].includes(KATALOG[haus.typ].kategorie)) return { ok: false };
+    if (this.stand.abschnitt?.phase !== 'offen') return this.nein('Erst einen Bauabschnitt planen lassen und öffnen');
+    const bedarf = bedarfKw(haus);
+    const verfuegbar = LEITUNGEN.filter((l) => this.grenze(l) > 0);
+    const typ = verfuegbar.find((l) => (KATALOG[l].kapazitaet_kw as number) >= bedarf) ?? verfuegbar[verfuegbar.length - 1];
+    if (!typ) return this.nein('Noch keine Leitung freigeschaltet');
+    const belegung = belegungskarte(this.stand.objekte);
+    const leit = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
+    const g = groesse(haus);
+    const nachbarn = (f: number): number[] => {
+      const x = f % N, y = Math.floor(f / N);
+      return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => a >= 0 && b >= 0 && a < N && b < N).map(([a, b]) => b * N + a);
+    };
+    const imHaus = (f: number): boolean => { const x = f % N, y = Math.floor(f / N); return x >= haus.x && x < haus.x + g && y >= haus.y && y < haus.y + g; };
+    const frei = (f: number): boolean => !belegung[f] && !leit.has(f);
+    // Schon angeschlossen? (Haus grenzt an eine Leitung)
+    for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) if (nachbarn((haus.y + dy) * N + haus.x + dx).some((n) => leit.has(n))) return this.nein('Das Haus liegt schon an einer Leitung');
+    // Dijkstra über freie Felder, Startfelder = freie Felder rund ums Haus, Ziel = Feld neben einer Leitung (oder das Feld selbst neben dem Haus ist Leitung)
+    const dist = new Map<number, number>(), von = new Map<number, number>();
+    const offen: Array<[number, number]> = [];
+    for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) for (const n of nachbarn((haus.y + dy) * N + haus.x + dx)) {
+      if (imHaus(n) || !frei(n)) continue;
+      const c = this.feldKosten_eur(typ, n % N, Math.floor(n / N));
+      if (c < (dist.get(n) ?? Infinity)) { dist.set(n, c); von.set(n, -1); offen.push([c, n]); }
+    }
+    let ziel = -1;
+    while (offen.length) {
+      offen.sort((a, b) => a[0] - b[0]);
+      const [c, f] = offen.shift() as [number, number];
+      if (c > (dist.get(f) as number)) continue;
+      if (nachbarn(f).some((n) => leit.has(n))) { ziel = f; break; }
+      for (const n of nachbarn(f)) {
+        if (imHaus(n) || !frei(n)) continue;
+        const nc = c + this.feldKosten_eur(typ, n % N, Math.floor(n / N));
+        if (nc < (dist.get(n) ?? Infinity)) { dist.set(n, nc); von.set(n, f); offen.push([nc, n]); }
+      }
+    }
+    if (ziel < 0) return this.nein('Kein Weg zu einer Leitung gefunden');
+    const weg: number[] = [];
+    for (let f = ziel; f >= 0; f = von.get(f) as number) weg.push(f);
+    if (this.leitungsanzahl() + weg.length > this.grenze(typ)) return this.nein('Zu viele Leitungen für diese Heizzentralen-Stufe');
+    for (const f of weg) this.stand.objekte.push({ id: this.stand.naechste_id++, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
+    this.hinweis(`Hausanschluss geplant: ${weg.length} Felder, ${KATALOG[typ].name}`);
+    return ok();
+  }
   /** Neuen Bauabschnitt planen lassen (Philipp). */
   abschnittPlanen(): Ergebnis {
     if (this.stand.abschnitt) return this.nein('Es läuft schon ein Bauabschnitt');

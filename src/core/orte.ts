@@ -17,6 +17,8 @@ export interface Ort {
   gross: Array<{ typ: TypId; x: number; y: number }>;
   /** Straßenfelder (nur Optik und Lage der Häuser): Häuser stehen an Straßen, Leitungen dürfen darüber liegen */
   strassen: Array<[number, number]>;
+  /** Gewässerfelder (Fluss): hier darf nichts gebaut werden; Leitungen kommen nur per Spülbohrung hinüber (A46) */
+  fluss: Array<[number, number]>;
 }
 
 /** Geschätzter Haustyp aus der Grundfläche des Gebäudes (Spielwert, keine Norm): Wohnverbrauch wächst mit der Fläche. */
@@ -45,12 +47,19 @@ export function strassenNetz(): Array<[number, number]> {
   h(21, 5, 17);               // Südring
   h(2, 5, 17);                // Nordring
   v(13, 18, 22);              // Sackgasse Süd
-  v(21, 6, 15);               // Ortsrand Ost (endet blind)
-  h(12, 18, 21);              // Stichstraße Ost
+  v(21, 2, 19);               // Straße am Ostufer
+  h(11, 18, 21);              // Brücke über den Fluss
   h(9, 0, 4);                 // Stichstraße West
   v(7, 12, 16);               // Sackgasse West
   const seen = new Set<number>();
   return f.filter(([x, y]) => { const k = y * N + x; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+/** Fluss von Nord nach Süd östlich der Stadt (zwei Felder breit). Die Brücke trägt die Straße, aber keine Leitung. */
+export function flussNetz(): Array<[number, number]> {
+  const f: Array<[number, number]> = [];
+  for (let y = 0; y < N; y++) f.push([19, y], [20, y]);
+  return f;
 }
 
 interface Plan { id: string; name: string; beschreibung: string; seed: number; anzahl: number; mfhAnteil: number; klinik: boolean }
@@ -59,16 +68,18 @@ interface Plan { id: string; name: string; beschreibung: string; seed: number; a
 function platzhalterOrt(p: Plan): Ort {
   const r = zufall(p.seed);
   const haeuser = [...STARTHAEUSER];
-  const gross: Ort['gross'] = [{ typ: 'bad', x: 3, y: 3 }, { typ: 'gewerbe', x: 19, y: 4 }];
-  if (p.klinik) gross.push({ typ: 'klinik', x: 18, y: 18 });
+  const gross: Ort['gross'] = [{ typ: 'bad', x: 3, y: 3 }, { typ: 'gewerbe', x: 22, y: 3 }];
+  if (p.klinik) gross.push({ typ: 'klinik', x: 15, y: 18 });
   const strassen = strassenNetz();
+  const fluss = flussNetz();
   const strasse = new Set(strassen.map(([x, y]) => y * N + x));
+  const wasser = new Set(fluss.map(([x, y]) => y * N + x));
   const anStrasse = (x: number, y: number, s: number): boolean => {
     for (let i = 0; i < s; i++) for (const [fx, fy] of [[x + i, y - 1], [x + i, y + s], [x - 1, y + i], [x + s, y + i]]) if (strasse.has(fy * N + fx)) return true;
     return false;
   };
   const aufStrasse = (x: number, y: number, s: number): boolean => {
-    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) if (strasse.has((y + dy) * N + x + dx)) return true;
+    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) if (strasse.has((y + dy) * N + x + dx) || wasser.has((y + dy) * N + x + dx)) return true;
     return false;
   };
   const belegt = (x: number, y: number, s: number): boolean =>
@@ -84,7 +95,7 @@ function platzhalterOrt(p: Plan): Ort {
     if (Math.hypot(x - 11, y - 10) > 10 || !anStrasse(x, y, s) || belegt(x, y, s)) continue;
     haeuser.push({ typ, x, y });
   }
-  return { id: p.id, name: p.name, platzhalter: true, beschreibung: p.beschreibung, haeuser, gross, strassen };
+  return { id: p.id, name: p.name, platzhalter: true, beschreibung: p.beschreibung, haeuser, gross, strassen, fluss };
 }
 
 export const ORTE: ReadonlyArray<Ort> = [

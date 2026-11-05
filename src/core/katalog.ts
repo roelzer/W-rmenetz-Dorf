@@ -306,7 +306,7 @@ export const KONSTANTEN = {
   beschleunigen_s_je_taler: 10,
   /** Spieltempo (A26): alle Bau- und Ausbauzeiten werden mit diesem Faktor verlängert */
   bauzeit_faktor: 2.5,
-  startgeld_eur: 100000,
+  startgeld_eur: 30000,
   /** Preise von Technik (Leitungen, Quellen, Häuser, Heizzentrale) in Spiel-Euro gegenüber den Rohwerten im Katalog (A29: realistischer Rahmen mit 100.000 € Start) */
   kosten_faktor: 40,
   /** Rückkauf beim Verkaufen / Leitungstausch: Anteil des Einkaufspreises (A30/A31) */
@@ -328,6 +328,8 @@ export const KONSTANTEN = {
   baugebiet_anschluesse: 6, baugebiet_hz_stufe: 3, baugebiet_eur: 40000,
   /** A45: Gestattung (Leitungsrecht) je Feld abseits der öffentlichen Straße; Spielwert, keine Norm */
   gestattung_eur_je_feld: 1500,
+  /** A46: Spülbohrung unter dem Fluss je Feld; teuer, Spielwert */
+  bohrung_eur_je_feld: 8000,
   starttaler: 100,
   hoechststufe: 5,
 } as const;

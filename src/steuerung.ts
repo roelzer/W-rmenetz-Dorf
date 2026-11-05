@@ -32,6 +32,7 @@ export class Steuerung implements Ui {
   private geist: { typ: TypId; x: number; y: number; kante: number } | null = null;
   private verschiebeId: number | null = null;
   private stempelTyp: TypId | null = null;
+  private stempelLetzte: [number, number] | null = null;
   private modusBlatt: Blatt | null = null;
   private katalogUi: Katalog;
   private kontextUi: Kontext;
@@ -130,7 +131,7 @@ export class Steuerung implements Ui {
     if (this.modus !== 'stempel') reihe.append(knopf('Abbrechen', () => this.abbrechen()));
     this.modusBlatt.inhalt.append(h('p', {}, text), reihe);
   }
-  private modusZuruecksetzen(): void { this.modus = 'normal'; this.geist = null; this.verschiebeId = null; this.stempelTyp = null; }
+  private modusZuruecksetzen(): void { this.modus = 'normal'; this.geist = null; this.verschiebeId = null; this.stempelTyp = null; this.stempelLetzte = null; }
   private abbrechen(): void { if (this.modusBlatt) { const b = this.modusBlatt; this.modusBlatt = null; b.zu(); } this.modusZuruecksetzen(); }
 
   private geistOk(): boolean {
@@ -197,7 +198,7 @@ export class Steuerung implements Ui {
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
-        if (this.modus === 'stempel') this.stempelnBei(e.clientX, e.clientY);
+        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelnBei(e.clientX, e.clientY); }
       } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); }
     });
     l.addEventListener('pointermove', (e) => {
@@ -259,8 +260,26 @@ export class Steuerung implements Ui {
   private stempelnBei(mx: number, my: number): void {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
-    if (x < 0 || y < 0 || x >= N || y >= N || !this.spiel.kannPlatzieren(this.stempelTyp, x, y)) return;
-    if (this.spiel.platzieren(this.stempelTyp, x, y).ok) this.geaendert(); else this.hinweiseZeigen();
+    if (x < 0 || y < 0 || x >= N || y >= N) return;
+    // A47: Beim Ziehen läuft die Leitung automatisch gerade durch (dominante Achse), auch wenn der Finger Felder überspringt.
+    const l = this.stempelLetzte;
+    let felder: Array<[number, number]> = [[x, y]];
+    if (l && Math.abs(x - l[0]) + Math.abs(y - l[1]) > 1) {
+      felder = [];
+      const horizontal = Math.abs(x - l[0]) >= Math.abs(y - l[1]);
+      const ex = horizontal ? x : l[0], ey = horizontal ? l[1] : y;
+      const sx = Math.sign(ex - l[0]), sy = Math.sign(ey - l[1]);
+      for (let cx = l[0] + sx, cy = l[1] + sy; ; cx += sx, cy += sy) {
+        felder.push([cx, cy]);
+        if (cx === ex && cy === ey) break;
+      }
+    }
+    let geaendert = false;
+    for (const [fx, fy] of felder) {
+      if (!this.spiel.kannPlatzieren(this.stempelTyp, fx, fy)) continue;
+      if (this.spiel.platzieren(this.stempelTyp, fx, fy).ok) { geaendert = true; this.stempelLetzte = [fx, fy]; } else { this.hinweiseZeigen(); break; }
+    }
+    if (geaendert) this.geaendert();
   }
   private tippen(mx: number, my: number): void {
     if (this.modus === 'platzieren' || this.modus === 'verschieben') { this.geistSetzen(mx, my); return; }
@@ -287,7 +306,7 @@ export class Steuerung implements Ui {
       objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
-      strassen: ortHolen(this.spiel.stand.ort).strassen,
+      strassen: ortHolen(this.spiel.stand.ort).strassen, fluss: ortHolen(this.spiel.stand.ort).fluss,
     };
   }
 

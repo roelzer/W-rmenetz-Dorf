@@ -24,3 +24,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-04 20:09 | ■ 🟡 | rechercheur | Ampel: GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/enerpipe_rohre_stationen.md (sonst nichts geändert).  ([Bericht](docs/pruefberichte/20261104-200900-rechercheur-a3db25c5b03fb05fd.md)) |
 | 2026-11-04 20:42 | ▶ | reviewer | Reviewer Abschnitt A33–A43 |
 | 2026-11-04 20:47 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig – Prüfung über den ganzen Abschnitt (Modus `gesamt`, `31e0198..46b0041`)  ([Bericht](docs/pruefberichte/20261104-204721-reviewer-a41d64712c92aaa95.md)) |
+| 2026-11-05 07:01 | ▶ | rechercheur | Recherche Übergabestationen HP/ÜP |
+| 2026-11-05 07:02 | ■ 🟡 | rechercheur | GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/stationen-hp-up.md  ([Bericht](docs/pruefberichte/20261105-070235-rechercheur-a98bdfab09e67b36f.md)) |
