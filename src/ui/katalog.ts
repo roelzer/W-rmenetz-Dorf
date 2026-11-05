@@ -14,7 +14,6 @@ function werte(t: TypId): string {
   if (D.strom_je_waerme && D.leistung_kw) teile.push(`+ ${Math.round(D.leistung_kw[0] * D.strom_je_waerme)} kW Strom`);
   if (D.kapazitaet_kw) teile.push(`bis ${D.kapazitaet_kw} kW`);
   if (D.bedarf_kw) teile.push(D.verbrauch_kwh_a ? `${D.verbrauch_kwh_a.toLocaleString('de-DE')} kWh im Jahr = ${Math.round(D.bedarf_kw * 10) / 10} kW` : `braucht ${D.bedarf_kw} kW`);
-  if (D.einnahmen_eur_min && D.kategorie === 'haus') teile.push(`${D.einnahmen_eur_min[0]} €/min`);
   if (D.groesse && D.groesse > 1) teile.push(`${D.groesse}×${D.groesse} Felder`);
   return teile.join(' · ');
 }

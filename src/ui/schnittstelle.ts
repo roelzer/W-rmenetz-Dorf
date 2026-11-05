@@ -17,5 +17,4 @@ export interface Ui {
   katalog(kategorie?: string): void;
   kontext(id: number | null): void;
   /** Münzflug zum Geld-Symbol und Funken */
-  einsammeln(id: number): void;
 }

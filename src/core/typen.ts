@@ -51,6 +51,8 @@ export interface Objekt {
   aufgestockt?: boolean;
   /** A71: Pufferspeicher im Haus – Anschlussleistung mit 1.800 statt 1.500 Volllaststunden */
   hauspuffer?: boolean;
+  /** A81: im laufenden Monat gelieferte Wärme in kWh (Zähler, wird bei der Monatsabrechnung zurückgesetzt) */
+  zaehler_kwh?: number;
   /** A50: Nachbarhaus, das gern ans Netz möchte (leuchtet gelb) */
   interessent?: boolean;
   /** A36: PV-Anlage auf dem Dach */
@@ -109,6 +111,12 @@ export interface Spielstand {
   namen_gefragt?: boolean;
   /** A50: Sekunden, in denen die Anschlussnehmer zufrieden waren (Mundpropaganda) */
   zufrieden_s?: number;
+  /** A81: monatliche Grundgebühr je Anschluss in € */
+  grundgebuehr_eur?: number;
+  /** A81: Nummer des Monats, der gerade gezählt wird (Spielzeit ÷ Monatslänge) */
+  abrechnung_monat?: number;
+  /** A81: Ergebnis der letzten Monatsabrechnung */
+  letzte_abrechnung?: Abrechnung;
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;
@@ -152,4 +160,14 @@ export interface Netz {
   laeuft_mit_kw: Map<InnenQuelle, number>;
   belegung: Int32Array;
   nachId: Map<number, Objekt>;
+}
+
+/** A81: eine Monatsabrechnung über alle Kunden */
+export interface Abrechnung {
+  monat: number;
+  kunden: number;
+  waerme_kwh: number;
+  waerme_eur: number;
+  grund_eur: number;
+  summe_eur: number;
 }

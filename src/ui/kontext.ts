@@ -1,5 +1,5 @@
-import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
-import { bedarfKw, groesse, istAktiv, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
+import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
+import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -118,10 +118,10 @@ export class Kontext {
     else if (!warm) chips.append(chip('kalt', 'blau'));
     else chips.append(chip('warm', 'gruen'));
     c.append(chips);
-    const einnahme = (D.einnahmen_eur_min as number[])[o.stufe - 1] * PREISSTUFEN[sp.stand.preisstufe].einnahmefaktor;
     const st = stationHolen(o.station);
     const vlh = o.hauspuffer ? VOLLLASTSTUNDEN.mit_puffer_h : VOLLLASTSTUNDEN.ohne_puffer_h;
-    c.append(zeile('Jahresverbrauch', `${zahl((D.verbrauch_kwh_a ?? 0) * nutzungsfaktor(o))} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW (÷ ${zahl(vlh)} h)`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'), zeile('Einnahmen', `${zahl(einnahme * nutzungsfaktor(o))} €/min`));
+    c.append(zeile('Jahresverbrauch', `${zahl((D.verbrauch_kwh_a ?? 0) * nutzungsfaktor(o))} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW (÷ ${zahl(vlh)} h)`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'));
+    if (istKunde(o) && an) this.rechnungBereich(c, o); // A81: nur angeschlossene Kunden bekommen eine Rechnung
     if (o.interessent) chips.append(chip('möchte anschließen', 'blau'));
     if (o.vollversorgung) chips.append(chip('Kamin aus', 'gruen'));
     if (o.aufgestockt) chips.append(chip('aufgestockt', 'blau'));
@@ -137,7 +137,6 @@ export class Kontext {
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
     if (o.ohne_station || o.station) this.stationswahl(c, o);
     this.pufferBereich(c, o);
-    if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => { this.ui.einsammeln(o.id); }, 'los')));
     this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
     c.append(h('p', { class: 'gedaempft' }, 'Gebäude stehen fest. Wer näher am Netz liegt, hat es leichter – wer weit weg ist, braucht eine lange Leitung.'));
@@ -155,6 +154,17 @@ export class Kontext {
   }
 
   /** A33: Hausupgrades senken die nötige Vorlauftemperatur (Rücklauf). */
+  /** A81: Wärmerechnung des Kunden – Jahresverbrauch, Wärmepreis, Grundgebühr, Zähler im laufenden Monat. */
+  private rechnungBereich(c: HTMLElement, o: Objekt): void {
+    const sp = this.ui.spiel, m = sp.monat(), ct = PREISSTUFEN[sp.stand.preisstufe].ct_je_kwh;
+    const k = kasten('Wärmerechnung');
+    const jahr_eur = sp.jahresverbrauch_kwh(o) * ct / 100 + 12 * sp.grundgebuehr_eur;
+    k.append(zeile('Wärmepreis', `${zahl(ct)} ct/kWh`), zeile('Grundgebühr', `${eur(sp.grundgebuehr_eur)} im Monat`),
+      zeile(`${sp.monatsname(m.nr)} bisher`, `${zahl(o.zaehler_kwh ?? 0)} kWh`),
+      zeile(`Rechnung ${sp.monatsname(m.nr)} (erwartet)`, eur(sp.monatsbetrag_eur(o, m.nr))),
+      h('p', { class: 'gedaempft' }, `Im Jahr etwa ${eur(jahr_eur)}. Im Winter wird mehr geheizt als im Sommer – die Rechnung schwankt. Am Monatsende wird automatisch abgerechnet und überwiesen.`));
+    c.append(k);
+  }
   private upgradeBereich(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, n = o.upgrade ?? 0, mind = sp.mindestVorlauf_c(o);
     const k = kasten('Rücklauf und Heizflächen');
@@ -204,9 +214,9 @@ export class Kontext {
     }
     c.append(h('div', { class: 'chips' }, chip('Vertrag läuft', 'gruen'), chip(n.anschluss.has(o.id) ? (n.warm.has(o.id) || o.typ === 'gewerbe' ? 'angeschlossen' : 'kalt') : 'nicht angeschlossen', n.anschluss.has(o.id) ? '' : 'rot')));
     if (D.bedarf_kw && (o.ohne_station || n.kalt.get(o.id) === 'station')) this.stationswahl(c, o);
-    if (D.bedarf_kw) c.append(zeile('Jahresverbrauch', `${zahl(D.verbrauch_kwh_a ?? 0)} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW`), zeile('Einnahmen', `${zahl((D.einnahmen_eur_min as number[])[0] * PREISSTUFEN[sp.stand.preisstufe].einnahmefaktor)} €/min`));
+    if (D.bedarf_kw) c.append(zeile('Jahresverbrauch', `${zahl(D.verbrauch_kwh_a ?? 0)} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW`));
+    if (istKunde(o) && sp.netz.anschluss.has(o.id)) this.rechnungBereich(c, o);
     if (D.abwaerme_kw) c.append(zeile('Abwärme ins Netz', `bis ${D.abwaerme_kw} kW`));
-    if (o.kasse_eur >= 1) c.append(h('div', { class: 'knopfreihe' }, knopf(`Abholen · ${eur(o.kasse_eur)}`, () => this.ui.einsammeln(o.id), 'los')));
   }
 
   private aussenquelle(c: HTMLElement, o: Objekt): void {
@@ -312,9 +322,18 @@ export class Kontext {
     const preis = kasten(`Wärmepreis · ${P.ct_je_kwh} ct/kWh`);
     preis.append(h('div', { class: 'knopfreihe' },
       knopf('−', () => { sp.preisSetzen(s.preisstufe - 1); this.ui.geaendert(); }, '', { klein: true, aus: s.preisstufe <= 0 }),
-      h('span', { class: 'preiswert' }, `${P.ct_je_kwh} ct je kWh`),
+      h('span', { class: 'preiswert' }, `${P.ct_je_kwh} ct`),
       knopf('+', () => { sp.preisSetzen(s.preisstufe + 1); this.ui.geaendert(); }, '', { klein: true, aus: s.preisstufe >= PREISSTUFEN.length - 1 })));
     preis.append(h('p', { class: 'gedaempft' }, `Du bekommst die Vergütung für jede Kilowattstunde, die ein Abnehmer verbraucht (zwischen ${PREISSTUFEN[0].ct_je_kwh} und ${PREISSTUFEN.at(-1)!.ct_je_kwh} ct). Je höher der Preis, desto mehr Einnahmen – aber desto unzufriedener werden die Kunden (${P.name}).`));
+    // A81: Grundgebühr je Anschluss und Monat
+    const g = sp.grundgebuehr_eur;
+    preis.append(zeile('Grundgebühr', `${eur(g)} im Monat je Anschluss`), h('div', { class: 'knopfreihe' },
+      knopf('−', () => { sp.grundgebuehrSetzen(g - 1); this.ui.geaendert(); }, '', { klein: true, aus: g <= GRUNDGEBUEHR.min_eur }),
+      h('span', { class: 'preiswert' }, `${zahl(g)} €`),
+      knopf('+', () => { sp.grundgebuehrSetzen(g + 1); this.ui.geaendert(); }, '', { klein: true, aus: g >= GRUNDGEBUEHR.max_eur })));
+    const m = sp.monat(), a = s.letzte_abrechnung;
+    preis.append(h('p', { class: 'gedaempft' }, `Abgerechnet wird am Monatsende automatisch: verbrauchte kWh × Wärmepreis + Grundgebühr. Nächste Abrechnung (${sp.monatsname(m.nr)}) in ${zeitText(Math.ceil(m.rest_ms / 1000))}.`));
+    if (a) preis.append(zeile(`Letzte Abrechnung (${sp.monatsname(a.monat)})`, `${zahl(a.waerme_kwh)} kWh · ${eur(a.summe_eur)}`));
     return preis;
   }
 

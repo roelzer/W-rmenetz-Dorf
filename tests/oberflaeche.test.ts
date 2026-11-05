@@ -78,7 +78,7 @@ describe('A18 – Hinweis „fiktiv“ und Einheiten', () => {
   it('A18: Wärmezahlen in der Oberfläche tragen eine Einheit (kW)', () => {
     const quelle = lies('src/ui/kontext.ts') + lies('src/ui/katalog.ts') + lies('src/ui/hud.ts');
     expect(quelle).toMatch(/braucht \$\{[^}]+\} kW/);
-    expect(quelle).toContain('€/min');
+    expect(quelle).toContain('ct/kWh'); // A81: Geld als Wärmepreis je kWh statt €/min
     expect(quelle).toContain(' kW`');
   });
 });

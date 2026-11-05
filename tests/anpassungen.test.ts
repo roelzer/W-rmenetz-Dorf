@@ -24,7 +24,8 @@ describe('A22/A29 Start', () => {
   it('A29: Wärmepreis reicht von 7 bis 15 ct/kWh; die Vergütung folgt dem Preis je kWh', () => {
     expect(PREISSTUFEN[0].ct_je_kwh).toBe(7);
     expect(PREISSTUFEN.at(-1)!.ct_je_kwh).toBe(15);
-    for (const p of PREISSTUFEN) expect(p.einnahmefaktor).toBeCloseTo(p.ct_je_kwh / 14, 9);
+    // A81: Die Vergütung ist jetzt kWh × ct_je_kwh (Monatsabrechnung) – siehe Tests A81
+    for (let i = 1; i < PREISSTUFEN.length; i++) expect(PREISSTUFEN[i].ct_je_kwh).toBeGreaterThan(PREISSTUFEN[i - 1].ct_je_kwh);
   });
   it('A30: Leitungstausch kostet den Neupreis minus 50 % des Altpreises', () => {
     const s = neuesSpiel();
@@ -376,10 +377,10 @@ describe('Offene Anforderungen: A20, A27, A28, A35, A37, A42', () => {
     expect(s.mindestVorlauf_c(h)).toBeLessThan(vor);
     expect(s.verschieben(h.id, 1, 1).ok).toBe(false);
   });
-  it('A35: Eine echte Woche entspricht zehn Spieljahren', async () => {
-    const { SPIELJAHR_MS } = await import('../src/core/katalog');
-    expect(SPIELJAHR_MS * 10).toBe(7 * 24 * 3600 * 1000);
-    expect(SPIELJAHR_MS / 3_600_000).toBeCloseTo(16.8, 5);
+  it('A35/A81: Zeitraffer – ein Spielmonat dauert 10 Minuten, ein Spieljahr 2 Stunden (A81 ersetzt A35)', async () => {
+    const { SPIELJAHR_MS, SPIELMONAT_MS } = await import('../src/core/katalog');
+    expect(SPIELMONAT_MS).toBe(10 * 60 * 1000);
+    expect(SPIELJAHR_MS).toBe(12 * SPIELMONAT_MS);
   });
   it('A37: Beim Planen werden Gebäude durchsichtig, sonst nicht', async () => {
     const { istDurchsichtig } = await import('../src/render/szene');
@@ -1232,5 +1233,75 @@ describe('A80 Antippen trifft beim ersten Mal', () => {
     const src = readFileSync(new URL('../src/ui/kontext.ts', import.meta.url), 'utf8');
     expect(src).toContain('if (this.blatt !== b) return;');
     expect(src.indexOf('this.blatt = b; this.id = id;')).toBeGreaterThan(src.indexOf('blattOeffnen({ titel: D.name'));
+  });
+});
+
+describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
+  const JAN = 12 * 10 * 60 * 1000 * 1000; // Beginn eines Januars (Monatsnummer durch 12 teilbar)
+  const spiel = (t0 = JAN) => {
+    const z = { t: t0 }; const s = new Spiel(neuerSpielstand(t0), () => z.t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 10_000; return { s, z };
+  };
+  it('A81: Der Jahresverbrauch verteilt sich nach Monatsanteilen – Winter mehr als Sommer, zusammen 100 %', async () => {
+    const { MONATSANTEIL_PROMILLE, MONATE } = await import('../src/core/katalog');
+    expect(MONATE).toHaveLength(12);
+    expect(MONATSANTEIL_PROMILLE.reduce((a, b) => a + b, 0)).toBeCloseTo(1000, 6);
+    expect(MONATSANTEIL_PROMILLE[0]).toBeGreaterThan(MONATSANTEIL_PROMILLE[6] * 10);
+  });
+  it('A81: Rechnung = gelieferte kWh × Wärmepreis + Grundgebühr je Anschluss, automatisch überwiesen', () => {
+    const { s, z } = spiel();
+    const kunden = s.stand.objekte.filter((o) => s.netz.warm.has(o.id) && KATALOG[o.typ].verbrauch_kwh_a);
+    expect(kunden.length).toBeGreaterThan(0);
+    const soll_kwh = kunden.reduce((a, o) => a + s.jahresverbrauch_kwh(o), 0) * 0.170; // Januar 170 ‰
+    const vorher = s.stand.geld_eur;
+    z.t = JAN + 10 * 60 * 1000; s.bis(z.t);
+    const a = s.stand.letzte_abrechnung!;
+    expect(s.monatsname(a.monat)).toBe('Januar');
+    expect(a.waerme_kwh).toBeCloseTo(soll_kwh, -1);
+    const ct = PREISSTUFEN[s.stand.preisstufe].ct_je_kwh;
+    expect(a.waerme_eur).toBeCloseTo(soll_kwh * ct / 100, -1);
+    expect(a.grund_eur).toBe(a.kunden * 32);
+    expect(s.stand.geld_eur).toBeGreaterThan(vorher); // ohne Antippen
+    expect(s.ereignisse.some((e) => 'text' in e && e.text.startsWith('Abrechnung Januar'))).toBe(true);
+  });
+  it('A81: Im Juli wird viel weniger Wärme abgerechnet als im Januar', () => {
+    const jan = spiel(), jul = spiel(JAN + 6 * 10 * 60 * 1000);
+    jan.z.t += 10 * 60 * 1000; jan.s.bis(jan.z.t);
+    jul.z.t += 10 * 60 * 1000; jul.s.bis(jul.z.t);
+    expect(jul.s.monatsname(jul.s.stand.letzte_abrechnung!.monat)).toBe('Juli');
+    expect(jul.s.stand.letzte_abrechnung!.waerme_kwh * 10).toBeLessThan(jan.s.stand.letzte_abrechnung!.waerme_kwh);
+  });
+  it('A81: Grundgebühr ist einstellbar (25–40 €) und geht in die Rechnung ein; teurer senkt die Zufriedenheit', () => {
+    const a = spiel(), b = spiel();
+    a.s.grundgebuehrSetzen(30); b.s.grundgebuehrSetzen(35);
+    expect(a.s.grundgebuehr_eur).toBe(30);
+    b.s.grundgebuehrSetzen(99); expect(b.s.grundgebuehr_eur).toBe(40); b.s.grundgebuehrSetzen(10); expect(b.s.grundgebuehr_eur).toBe(25); b.s.grundgebuehrSetzen(35);
+    for (const g of [a, b]) { g.z.t += 10 * 60 * 1000; g.s.bis(g.z.t); }
+    expect(a.s.stand.letzte_abrechnung!.grund_eur).toBe(a.s.stand.letzte_abrechnung!.kunden * 30);
+    expect(b.s.stand.letzte_abrechnung!.grund_eur).toBe(b.s.stand.letzte_abrechnung!.kunden * 35);
+    const z = (g: typeof a) => g.s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.zufriedenheit_pct != null).reduce((x, o) => x + (o.zufriedenheit_pct ?? 0), 0);
+    expect(z(b)).toBeLessThan(z(a));
+  });
+  it('A81: Nach langer Abwesenheit wird jeder Monat einzeln abgerechnet, mit einer Sammelmeldung', () => {
+    const { s, z } = spiel();
+    s.ereignisse.length = 0;
+    z.t = JAN + 3 * 10 * 60 * 1000 + 5000; s.bis(z.t);
+    expect(s.monatsname(s.stand.letzte_abrechnung!.monat)).toBe('März');
+    const texte = s.ereignisse.map((e) => ('text' in e ? e.text : ''));
+    expect(texte.some((t) => t.includes('3 Monatsabrechnungen'))).toBe(true);
+    expect(texte.some((t) => t.startsWith('Abrechnung '))).toBe(false);
+  });
+  it('A81: Die Erzeugungskosten folgen der Jahreszeit (Juli billiger als Januar)', () => {
+    const kosten = (t0: number) => {
+      const g = spiel(t0); g.s.stand.geld_eur = 50_000; const v = g.s.stand.geld_eur;
+      g.z.t += 60_000; g.s.bis(g.z.t); return v - g.s.stand.geld_eur;
+    };
+    const jan = kosten(JAN), jul = kosten(JAN + 6 * 10 * 60 * 1000);
+    expect(jan).toBeGreaterThan(0);
+    expect(jul * 5).toBeLessThan(jan);
+  });
+  it('A81: keine Münzen mehr – die Häuser haben keine Kasse zum Abholen', () => {
+    const q = readFileSync(new URL('../src/ui/kontext.ts', import.meta.url), 'utf8') + readFileSync(new URL('../src/steuerung.ts', import.meta.url), 'utf8');
+    expect(q).not.toContain('einsammeln');
+    expect(q).not.toContain('Abholen');
   });
 });

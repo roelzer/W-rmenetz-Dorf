@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
+  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, GRUNDGEBUEHR, SPIELJAHR_MS, istLeitung, stationHolen,
   type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
@@ -80,7 +80,7 @@ export function leitungsNachbarn(x: number, y: number, istLeitungsfeld: (feld: n
  *  - Es wird nie mehr Wärme verteilt als erzeugt (genutzt ≤ verfügbar).
  *  - Einnahmen nur für warme Kunden, Betriebskosten nur für tatsächlich erzeugte Wärme.
  */
-export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe: number, vorlauf_c: number = VORLAUF.start_c): Netz {
+export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe: number, vorlauf_c: number = VORLAUF.start_c, grundgebuehr_eur: number = GRUNDGEBUEHR.start_eur): Netz {
   const belegung = belegungskarte(objekte);
   const nachId = new Map(objekte.map((o) => [o.id, o]));
   const hz = heizzentrale(objekte);
@@ -268,10 +268,12 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // A33: niedrigere Vorlauftemperatur spart Betriebskosten (Pumpen, Netzverluste)
   betriebskosten_eur_min *= Math.max(0.5, 1 - (VORLAUF.start_c - vorlauf_c) * VORLAUF.ersparnis_je_k);
   const P = PREISSTUFEN[preisstufe ?? 2];
-  let einnahmen_eur_min = 0;
+  // A81: mittlere Einnahmen je Minute aus der Monatsabrechnung (Jahresverbrauch × Wärmepreis + 12 Grundgebühren, verteilt aufs Spieljahr)
+  let einnahmen_eur_a = 0;
   for (const o of objekte) {
-    if (warm.has(o.id)) einnahmen_eur_min += ((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o);
+    if (warm.has(o.id) && istKunde(o)) einnahmen_eur_a += (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o) * P.ct_je_kwh / 100 + 12 * grundgebuehr_eur;
   }
+  const einnahmen_eur_min = einnahmen_eur_a / (SPIELJAHR_MS / 60_000);
   return {
     tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, reduzierung, aufteilung, anschluss, warm, kalt,
     verfuegbar_kw, genutzt_kw, bedarf_kw, betriebskosten_eur_min, einnahmen_eur_min,

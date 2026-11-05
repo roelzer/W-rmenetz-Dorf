@@ -54,8 +54,6 @@ export interface Definition {
   bedarf_kw?: number;
   /** A71: Jahreswärmeverbrauch in kWh (Spielwert). */
   verbrauch_kwh_a?: number;
-  /** Einnahmen je Stufe in €/min bei Preisstufe „fair“ */
-  einnahmen_eur_min?: number[];
   /** Abwärme-Einspeisung in kW (Sägewerk) */
   abwaerme_kw?: number;
   /** Großabnehmer: nötige Heizzentralen-Stufe und nötiger Ruf */
@@ -233,46 +231,39 @@ export const KATALOG: Record<TypId, Definition> = {
   },
   efh: {
     name: 'Einfamilienhaus', groesse: 1, kategorie: 'haus', verbrauch_kwh_a: 15000,
-    einnahmen_eur_min: [20, 30, 42, 58, 80],
     kosten_eur: [120, 300, 700, 1600, 3500], bauzeit_s: [4, 15, 40, 100, 240],
     grenze: [5, 8, 12, 16, 20],
     beschreibung: 'Zahlt für seine Wärme, wenn es angeschlossen und warm ist.',
   },
   rh: {
     name: 'Reihenhaus', groesse: 1, kategorie: 'haus', verbrauch_kwh_a: 24000,
-    einnahmen_eur_min: [34, 50, 70, 96, 130],
     kosten_eur: [300, 600, 1300, 2800, 6000], bauzeit_s: [8, 25, 60, 150, 300],
     grenze: [0, 3, 5, 7, 9],
     beschreibung: 'Drei Häuser Wand an Wand – spart Leitung und Fläche.',
   },
   baeck: {
     name: 'Bäckerei', groesse: 1, kategorie: 'haus', verbrauch_kwh_a: 30000,
-    einnahmen_eur_min: [45, 65, 90, 125, 170],
     kosten_eur: [400, 800, 1700, 3500, 7000], bauzeit_s: [10, 30, 80, 180, 360],
     grenze: [0, 1, 1, 1, 1],
     beschreibung: 'Braucht schon früh am Morgen viel Wärme.',
   },
   mfh: {
     name: 'Mehrfamilienhaus', groesse: 2, kategorie: 'haus', verbrauch_kwh_a: 45000,
-    einnahmen_eur_min: [60, 90, 125, 170, 230],
     kosten_eur: [700, 1200, 2500, 5000, 10000], bauzeit_s: [15, 40, 100, 240, 480],
     grenze: [0, 1, 2, 3, 4],
     beschreibung: 'Viele Wohnungen, viel Wärmebedarf.',
   },
   bad: {
-    name: 'Hallenbad', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 67500,
-    einnahmen_eur_min: [160], min_hz_stufe: 2, min_ruf_pct: 55,
+    name: 'Hallenbad', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 67500, min_hz_stufe: 2, min_ruf_pct: 55,
     beschreibung: 'Großabnehmer. Braucht dauerhaft viel Wärme und zahlt entsprechend.',
   },
   gewerbe: {
-    name: 'Sägewerk', groesse: 2, kategorie: 'gross', abwaerme_kw: 60,
-    einnahmen_eur_min: [0], min_hz_stufe: 2, min_ruf_pct: 0,
+    name: 'Sägewerk', groesse: 2, kategorie: 'gross', abwaerme_kw: 60, min_hz_stufe: 2, min_ruf_pct: 0,
     beschreibung:
       'Hat Abwärme übrig. Angeschlossen liefert es dir günstige Wärme ins Netz – solange der Betrieb läuft.',
   },
   klinik: {
-    name: 'Klinik', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 105000,
-    einnahmen_eur_min: [240], min_hz_stufe: 3, min_ruf_pct: 65,
+    name: 'Klinik', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 105000, min_hz_stufe: 3, min_ruf_pct: 65,
     beschreibung: 'Großabnehmer mit strengem Vertrag: Wird sie kalt, sinkt dein Ruf stark.',
   },
   buero: {
@@ -303,24 +294,32 @@ export const BAU_KATEGORIEN: ReadonlyArray<readonly [Kategorie, string]> = [
   ['dorf', 'Dorf'], ['deko', 'Deko'],
 ];
 
-/** Wärmepreisstufen: Preis in ct/kWh, Einnahme-Faktor, Ziel-Zufriedenheit in % */
-export interface Preisstufe { name: string; ct_je_kwh: number; einnahmefaktor: number; zufriedenheit_pct: number }
+/** Wärmepreisstufen: Preis in ct/kWh und Ziel-Zufriedenheit in % */
+export interface Preisstufe { name: string; ct_je_kwh: number; zufriedenheit_pct: number }
 export const PREISSTUFEN: ReadonlyArray<Preisstufe> = [
-  { name: 'sehr günstig', ct_je_kwh: 7, einnahmefaktor: 7 / 14, zufriedenheit_pct: 97 },
-  { name: 'sehr günstig', ct_je_kwh: 8, einnahmefaktor: 8 / 14, zufriedenheit_pct: 94 },
-  { name: 'günstig', ct_je_kwh: 9, einnahmefaktor: 9 / 14, zufriedenheit_pct: 90 },
-  { name: 'günstig', ct_je_kwh: 10, einnahmefaktor: 10 / 14, zufriedenheit_pct: 85 },
-  { name: 'fair', ct_je_kwh: 11, einnahmefaktor: 11 / 14, zufriedenheit_pct: 80 },
-  { name: 'fair', ct_je_kwh: 12, einnahmefaktor: 12 / 14, zufriedenheit_pct: 72 },
-  { name: 'üblich', ct_je_kwh: 13, einnahmefaktor: 13 / 14, zufriedenheit_pct: 60 },
-  { name: 'teuer', ct_je_kwh: 14, einnahmefaktor: 1, zufriedenheit_pct: 45 },
-  { name: 'sehr teuer', ct_je_kwh: 15, einnahmefaktor: 15 / 14, zufriedenheit_pct: 30 },
+  { name: 'sehr günstig', ct_je_kwh: 7, zufriedenheit_pct: 97 },
+  { name: 'sehr günstig', ct_je_kwh: 8, zufriedenheit_pct: 94 },
+  { name: 'günstig', ct_je_kwh: 9, zufriedenheit_pct: 90 },
+  { name: 'günstig', ct_je_kwh: 10, zufriedenheit_pct: 85 },
+  { name: 'fair', ct_je_kwh: 11, zufriedenheit_pct: 80 },
+  { name: 'fair', ct_je_kwh: 12, zufriedenheit_pct: 72 },
+  { name: 'üblich', ct_je_kwh: 13, zufriedenheit_pct: 60 },
+  { name: 'teuer', ct_je_kwh: 14, zufriedenheit_pct: 45 },
+  { name: 'sehr teuer', ct_je_kwh: 15, zufriedenheit_pct: 30 },
 ];
 /** Index der Startpreisstufe (12 ct/kWh). */
 export const START_PREISSTUFE = 5;
 
-/** A35: Eine echte Woche entspricht zehn Spieljahren. */
-export const SPIELJAHR_MS = (7 * 24 * 3600 * 1000) / 10;
+/** A81 (ersetzt A35): Zeitraffer – ein Spielmonat dauert 10 Minuten echte Zeit, ein Spieljahr also 2 Stunden (Simon 2026-11-05). */
+export const SPIELMONAT_MS = 10 * 60 * 1000;
+export const SPIELJAHR_MS = 12 * SPIELMONAT_MS;
+export const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'] as const;
+/** A81: Anteil am Jahres-Heizwärmeverbrauch je Monat in Promille, Januar bis Dezember (Summe 1000).
+ *  Quelle: Gradtagszahlen-Promilletabelle, wie sie die Heizkostenabrechnung bei Zwischenablesungen nutzt (VDI 2067 / DIN 4713-5).
+ *  Spielwert: Warmwasser (übers Jahr gleichmäßig) ist nicht eigens gerechnet. */
+export const MONATSANTEIL_PROMILLE: readonly number[] = [170, 150, 130, 80, 40, 13.3, 13.3, 13.4, 30, 80, 120, 160];
+/** A81: Monatliche Grundgebühr je Anschluss, einstellbar (Simon: „ca. 30–35 Euro“). Spielregel: jeder Euro über 32 kostet 1 % Zufriedenheit, darunter gibt es 1 % je Euro dazu. */
+export const GRUNDGEBUEHR = { min_eur: 25, max_eur: 40, start_eur: 32, neutral_eur: 32, zufriedenheit_je_eur_pct: 1 } as const;
 
 export const KONSTANTEN = {
   /** Karte N×N Felder */

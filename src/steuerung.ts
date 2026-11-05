@@ -125,12 +125,6 @@ export class Steuerung implements Ui {
       k.zentrierenBei(o.x, o.y, groesse(o), (k.breite - blattBreite) / 2, k.hoehe * 0.58);
     }
   }
-  einsammeln(id: number): void {
-    const o = this.spiel.objekt(id);
-    if (!o) return;
-    this.spiel.einsammeln(o);
-    this.geaendert();
-  }
 
   platzieren(typ: TypId): void {
     this.katalogUi.schliessen(); this.kontextUi.schliessen();
@@ -350,9 +344,6 @@ export class Steuerung implements Ui {
     }
     const o = objektAmPunkt(this.kamera, this.spiel.stand.objekte, mx, my); // A80: gezeichnete Form zählt, nicht nur das Bodenfeld
     if (!o) { this.kontextUi.schliessen(); return; }
-    const D = KATALOG[o.typ];
-    const muenze = (D.kategorie === 'haus' || (D.kategorie === 'gross' && o.zustand === 'vertrag')) && !o.bau && o.kasse_eur >= this.spiel.kassenCap_eur(o) * 0.08 && o.kasse_eur >= 1;
-    if (muenze) { this.einsammeln(o.id); return; }
     this.kontext(o.id);
   }
 

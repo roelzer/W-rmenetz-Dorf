@@ -310,7 +310,6 @@ function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: b
     if (netz.kalt.get(o.id) === 'leitung' || netz.kalt.get(o.id) === 'station') return 'leitung';
     if (!warm) return 'kalt';
     if ((o.zufriedenheit_pct ?? 80) < 40) return 'wuetend';
-    if (o.kasse_eur >= sp.kassenCap_eur(o) * 0.08) return 'muenze';
     return null;
   }
   if (kat === 'gross' && o.zustand !== 'vertrag' && sp.vertragBedingungen(o).ok) return 'angebot';

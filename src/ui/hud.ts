@@ -84,9 +84,9 @@ export class Hud {
       this.auftragText.textContent = 'Alle Aufträge erledigt';
       this.auftragLohn.textContent = '★';
     }
-    const ausstehend = s.objekte.reduce((a, o) => a + o.kasse_eur, 0), grenze = sp.kassengrenze_eur();
-    const voll = ausstehend >= grenze - 0.5;
-    this.setze(this.geld, voll ? `${zahl(s.geld_eur)} €` : `${zahl(s.geld_eur)} €`, ausstehend / grenze, `Geld ${zahl(s.geld_eur)} Euro. In den Kassen warten ${zahl(ausstehend)} von ${zahl(grenze)} Euro${voll ? ' – Kasse voll' : ''}`);
+    // A81: Keine Münzen mehr an den Häusern – der Balken zeigt, wie voll das Konto im Verhältnis zum Kassenspeicher ist
+    const grenze = sp.kassengrenze_eur(), voll = s.geld_eur >= grenze - 0.5;
+    this.setze(this.geld, `${zahl(s.geld_eur)} €`, s.geld_eur / grenze, `Geld ${zahl(s.geld_eur)} Euro von höchstens ${zahl(grenze)} Euro im Kassenspeicher${voll ? ' – Kasse voll' : ''}. Die Kunden zahlen am Monatsende automatisch`);
     this.geld.wurzel.classList.toggle('mangel', voll);
     const da = n.verfuegbar_kw, gebraucht = n.genutzt_kw;
     this.setze(this.waerme, `${zahl(gebraucht)}/${zahl(da)} kW`, da > 0 ? gebraucht / da : 0, `Wärme: ${zahl(gebraucht)} von ${zahl(da)} Kilowatt genutzt. Bedarf ${zahl(n.bedarf_kw)} Kilowatt`);

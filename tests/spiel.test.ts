@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
-import { KATALOG, KONSTANTEN } from '../src/core/katalog';
+import { KATALOG, KONSTANTEN, SPIELMONAT_MS } from '../src/core/katalog';
 
 const T0 = 1_000_000_000_000;
 function start(): { s: Spiel; zeit: { t: number } } {
@@ -158,31 +158,31 @@ describe('A10/A11 Einnahmen, Abholen, Kasse, Zufriedenheit', () => {
     // bestehendes Startdorf: Leitungen von hz zu Häusern liegen schon
     return { ...g, h };
   }
-  it('warme Kunden erzeugen Einnahmen, kalte nicht', () => {
+  it('A81: warme Kunden zahlen am Monatsende Wärme, kalte nur die Grundgebühr', () => {
     const { s, zeit } = mitHaus();
     expect(s.netz.einnahmen_eur_min).toBeGreaterThan(0);
-    zeit.t += 60_000; s.bis(zeit.t);
-    const summe = s.stand.objekte.reduce((a, o) => a + o.kasse_eur, 0);
-    expect(summe).toBeGreaterThan(0);
+    zeit.t += SPIELMONAT_MS; s.bis(zeit.t);
+    const a = s.stand.letzte_abrechnung!;
+    expect(a.waerme_kwh).toBeGreaterThan(0);
+    expect(a.summe_eur).toBe(a.waerme_eur + a.grund_eur);
     const { s: s2, zeit: z2 } = start(); // keine Quelle: alle kalt
-    z2.t += 60_000; s2.bis(z2.t);
-    expect(s2.stand.objekte.reduce((a, o) => a + o.kasse_eur, 0)).toBe(0);
+    z2.t += SPIELMONAT_MS; s2.bis(z2.t);
+    expect(s2.stand.letzte_abrechnung?.waerme_kwh ?? 0).toBe(0);
   });
-  it('Abholen bucht auf die Kasse und leert das Haus', () => {
+  it('A81: Die Überweisung landet ohne Antippen auf dem Konto', () => {
     const { s, zeit } = mitHaus();
-    zeit.t += 120_000; s.bis(zeit.t);
-    const o = s.stand.objekte.find((x) => x.kasse_eur >= 1)!;
-    const vorher = s.stand.geld_eur, menge = s.einsammeln(o);
-    expect(menge).toBeGreaterThan(0);
-    expect(s.stand.geld_eur).toBe(vorher + menge);
+    const naechste = (Math.floor(zeit.t / SPIELMONAT_MS) + 1) * SPIELMONAT_MS;
+    zeit.t = naechste - 1000; s.bis(zeit.t);
+    const vorher = s.stand.geld_eur;
+    zeit.t = naechste + 1000; s.bis(zeit.t);
+    expect(s.stand.geld_eur - vorher).toBeGreaterThan(s.stand.letzte_abrechnung!.summe_eur - 50); // minus 2 s Betriebskosten
+    expect(s.stand.objekte.every((o) => o.kasse_eur === 0)).toBe(true);
   });
   it('Kasse ist gedeckelt: nichts über das Limit', () => {
-    const { s } = mitHaus();
-    s.stand.geld_eur = s.kassengrenze_eur();
-    const o = s.stand.objekte.find((x) => x.typ === 'efh')!;
-    o.kasse_eur = 50;
-    expect(s.einsammeln(o)).toBe(0);
-    expect(s.stand.geld_eur).toBe(s.kassengrenze_eur());
+    const { s, zeit } = mitHaus();
+    s.stand.geld_eur = s.kassengrenze_eur() + 10_000;
+    zeit.t = (Math.floor(zeit.t / SPIELMONAT_MS) + 1) * SPIELMONAT_MS; s.bis(zeit.t);
+    expect(s.stand.geld_eur).toBeLessThanOrEqual(s.kassengrenze_eur() + 10_000);
   });
   it('Betriebskosten werden nur für tatsächlich erzeugte Wärme abgezogen', () => {
     const { s, zeit } = laufend();
@@ -272,8 +272,8 @@ describe('A15 Offline-Fortschritt', () => {
     const a = laufend(), b = laufend();
     a.zeit.t += 4 * 60_000; a.s.bis(a.zeit.t); // kürzer als die Abwesenheits-Schwelle (5 min, A38)
     for (let i = 0; i < 240; i++) { b.zeit.t += 1000; b.s.bis(b.zeit.t); }
-    const summe = (s: Spiel) => s.stand.objekte.reduce((x, o) => x + o.kasse_eur, 0);
-    expect(summe(a.s)).toBeCloseTo(summe(b.s), 3);
+    const zaehler = (s: Spiel) => s.stand.objekte.reduce((x, o) => x + (o.zaehler_kwh ?? 0), 0); // A81
+    expect(zaehler(a.s)).toBeCloseTo(zaehler(b.s), 3);
     expect(a.s.stand.geld_eur).toBeCloseTo(b.s.stand.geld_eur, 3);
   });
   it('Bauten, die offline fertig wurden, sind beim Zurückkommen fertig', () => {

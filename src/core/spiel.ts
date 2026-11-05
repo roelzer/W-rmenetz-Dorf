@@ -1,10 +1,10 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
 } from './netz';
-import type { Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
+import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen, STANDARD_ORT } from './orte';
 import { zufall } from './zufall';
 
@@ -80,6 +80,8 @@ export class Spiel {
   netz!: Netz;
   readonly ereignisse: Ereignis[] = [];
   private abwesend = false;
+  /** A81: Abrechnungsmeldung, die bei Abwesenheit erst am Ende gezeigt wird */
+  private offline_text = '';
   private strassenSet?: Set<number>;
   private flussSet?: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
@@ -89,6 +91,26 @@ export class Spiel {
 
   // ---------- Abfragen ----------
   get vorlauf_c(): number { return this.stand.vorlauf_c ?? VORLAUF.start_c; }
+  /** A81: monatliche Grundgebühr je Anschluss in € */
+  get grundgebuehr_eur(): number { return this.stand.grundgebuehr_eur ?? GRUNDGEBUEHR.start_eur; }
+  /** A81: Grundgebühr in ganzen Euro setzen (25–40 €). */
+  grundgebuehrSetzen(eur: number): void {
+    this.stand.grundgebuehr_eur = Math.max(GRUNDGEBUEHR.min_eur, Math.min(GRUNDGEBUEHR.max_eur, Math.round(eur)));
+    this.neuBerechnen();
+  }
+  /** A81: Monatsname zu einer Monatsnummer (Spielzeit ÷ Monatslänge). */
+  monatsname(nr: number): string { return MONATE[((nr % 12) + 12) % 12]; }
+  /** A81: Nummer des aktuellen Spielmonats und Rest bis zur nächsten Abrechnung in ms. */
+  monat(): { nr: number; rest_ms: number } {
+    const t = this.uhr(), nr = Math.floor(t / SPIELMONAT_MS);
+    return { nr, rest_ms: (nr + 1) * SPIELMONAT_MS - t };
+  }
+  /** A81: Jahresverbrauch eines Kunden in kWh (mit Kamin aus / Aufstockung). */
+  jahresverbrauch_kwh(o: Objekt): number { return (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o); }
+  /** A81: Erwarteter Monatsbetrag eines Kunden in € für einen Monat (kWh-Anteil × Wärmepreis + Grundgebühr). */
+  monatsbetrag_eur(o: Objekt, nr: number): number {
+    return this.jahresverbrauch_kwh(o) * (MONATSANTEIL_PROMILLE[((nr % 12) + 12) % 12] / 1000) * PREISSTUFEN[this.stand.preisstufe].ct_je_kwh / 100 + this.grundgebuehr_eur;
+  }
   /** Vorlauftemperatur in 5-K-Schritten setzen (A33). */
   vorlaufSetzen(c: number): void {
     const w = Math.max(VORLAUF.min_c, Math.min(VORLAUF.max_c, Math.round(c / VORLAUF.schritt_c) * VORLAUF.schritt_c));
@@ -187,7 +209,7 @@ export class Spiel {
     return liste.map((x) => ({ ...x, erreicht: x.ist >= x.soll }));
   }
 
-  neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte.filter((o) => !o.geplant), this.stand.innen, this.stand.preisstufe, this.vorlauf_c); }
+  neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte.filter((o) => !o.geplant), this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur); }
   get hz(): Objekt { return heizzentrale(this.stand.objekte); }
   get hzStufe(): number { return this.hz.stufe; }
   anzahl(t: TypId): number {
@@ -211,7 +233,6 @@ export class Spiel {
     const ks = this.stand.objekte.filter((o) => istKunde(o) && this.netz.anschluss.has(o.id));
     return ks.length ? ks.reduce((a, o) => a + (o.zufriedenheit_pct ?? 80), 0) / ks.length : 75;
   }
-  kassenCap_eur(o: Objekt): number { return ((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * 6; }
   dorfwert(): number { return dorfwert(this.stand.objekte, this.stand.innen); }
   objekt(id: number): Objekt | undefined { return this.stand.objekte.find((o) => o.id === id); }
 
@@ -390,19 +411,6 @@ export class Spiel {
     bau.ende_ms = this.uhr();
     this.bis(this.uhr());
     return ok();
-  }
-
-  einsammeln(o: Objekt, still = false): number {
-    if (o.kasse_eur < 1) { if (!still) this.hinweis('Noch nichts abzuholen'); return 0; }
-    const platz = this.kassengrenze_eur() - this.stand.geld_eur;
-    const menge = Math.floor(Math.min(o.kasse_eur, platz));
-    if (menge <= 0) { this.hinweis('Kasse voll – Abrechnungsbüro ausbauen'); return 0; }
-    this.stand.geld_eur += menge;
-    o.kasse_eur -= menge;
-    this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: `+${menge.toLocaleString('de-DE')}` });
-    this.ereignisse.push({ art: 'muenzen', objekt_id: o.id, betrag_eur: menge });
-    this.stand.erledigt.collect = true;
-    return menge;
   }
 
   hindernisRaeumen(id: number): Ergebnis {
@@ -826,14 +834,25 @@ export class Spiel {
     if (jetzt_ms - s.zuletzt_ms > MAX_OFFLINE_S * 1000) s.zuletzt_ms = jetzt_ms - MAX_OFFLINE_S * 1000;
     // A38: Bei längerer Abwesenheit kommen die Einnahmen direkt aufs Konto (die Hauskassen würden sonst überlaufen, die Kosten liefen aber weiter).
     this.abwesend = jetzt_ms - s.zuletzt_ms > OFFLINE_SCHWELLE_S * 1000;
+    if (s.abrechnung_monat == null) s.abrechnung_monat = Math.floor(s.zuletzt_ms / SPIELMONAT_MS);
+    const offline = { monate: 0, eur: 0 };
     while (s.zuletzt_ms < jetzt_ms) {
-      let ziel = Math.min(jetzt_ms, s.zuletzt_ms + SCHRITT_S * 1000);
+      // A81: Schritte enden an der Monatsgrenze, damit jeder Monat mit seinem eigenen Verbrauchsanteil gezählt wird
+      let ziel = Math.min(jetzt_ms, s.zuletzt_ms + SCHRITT_S * 1000, (Math.floor(s.zuletzt_ms / SPIELMONAT_MS) + 1) * SPIELMONAT_MS);
       const naechster = this.naechstesEreignis_ms();
       if (naechster !== null && naechster > s.zuletzt_ms && naechster < ziel) ziel = naechster;
       this.einnahmen((ziel - s.zuletzt_ms) / 1000);
       s.zuletzt_ms = ziel;
+      while (Math.floor(ziel / SPIELMONAT_MS) > (s.abrechnung_monat as number)) {
+        const a = this.abrechnen(s.abrechnung_monat as number);
+        s.abrechnung_monat = (s.abrechnung_monat as number) + 1;
+        offline.monate++; offline.eur += a.summe_eur;
+      }
       this.fertigstellen(ziel);
     }
+    if (this.abwesend && offline.monate === 1 && this.offline_text) this.hinweis(this.offline_text);
+    this.offline_text = '';
+    if (this.abwesend && offline.monate > 1) this.hinweis(`Während du weg warst: ${offline.monate} Monatsabrechnungen, zusammen +${Math.round(offline.eur).toLocaleString('de-DE')} € überwiesen`);
     this.abwesend = false;
   }
   private naechstesEreignis_ms(): number | null {
@@ -888,22 +907,45 @@ export class Spiel {
     }
     if (geaendert) this.neuBerechnen();
   }
+  /** A81: Monatsabrechnung – jeder angeschlossene Kunde zahlt gelieferte kWh × Wärmepreis + Grundgebühr; das Geld wird automatisch überwiesen. */
+  private abrechnen(nr: number): Abrechnung {
+    const s = this.stand, ct = PREISSTUFEN[s.preisstufe].ct_je_kwh;
+    let kunden = 0, kwh = 0, rest_kasse = 0;
+    for (const o of s.objekte) {
+      rest_kasse += o.kasse_eur; o.kasse_eur = 0; // Münzen aus Spielständen vor A81 werden mit überwiesen
+      if (istKunde(o) && this.netz.anschluss.has(o.id)) { kunden++; kwh += o.zaehler_kwh ?? 0; }
+      delete o.zaehler_kwh;
+    }
+    const waerme_eur = kwh * ct / 100, grund_eur = kunden * this.grundgebuehr_eur, summe_eur = waerme_eur + grund_eur;
+    const vorher = s.geld_eur, grenze = this.kassengrenze_eur();
+    s.geld_eur = Math.min(Math.max(s.geld_eur, grenze), s.geld_eur + summe_eur + rest_kasse);
+    const a: Abrechnung = { monat: nr, kunden, waerme_kwh: Math.round(kwh), waerme_eur: Math.round(waerme_eur), grund_eur: Math.round(grund_eur), summe_eur: Math.round(summe_eur) };
+    s.letzte_abrechnung = a;
+    if (kunden > 0) {
+      const eingang = Math.round(s.geld_eur - vorher);
+      const text = `Abrechnung ${this.monatsname(nr)}: ${kunden} Kunden · ${Math.round(kwh).toLocaleString('de-DE')} kWh · +${eingang.toLocaleString('de-DE')} € überwiesen${eingang < Math.round(summe_eur) ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`;
+      if (this.abwesend) this.offline_text = text; else this.hinweis(text);
+      const hz = this.hz;
+      if (!this.abwesend) this.ereignisse.push({ art: 'schwebtext', x: hz.x, y: hz.y, text: `+${eingang.toLocaleString('de-DE')} €`, farbe: '#ffd166' });
+    }
+    return a;
+  }
   private einnahmen(dt_s: number): void {
     const s = this.stand, P = PREISSTUFEN[s.preisstufe];
+    // A81: Der Wärmezähler jedes warmen Kunden läuft mit dem Verbrauchsanteil des laufenden Monats
+    const anteil = MONATSANTEIL_PROMILLE[Math.floor(s.zuletzt_ms / SPIELMONAT_MS) % 12] / 1000;
     for (const o of s.objekte) {
-      if (this.netz.warm.has(o.id)) {
-        const plus = (((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o) / 60) * dt_s;
-        if (this.abwesend) s.geld_eur = Math.min(Math.max(s.geld_eur, this.kassengrenze_eur()), s.geld_eur + plus);
-        else o.kasse_eur = Math.min(this.kassenCap_eur(o), o.kasse_eur + plus);
-      }
+      if (this.netz.warm.has(o.id) && istKunde(o)) o.zaehler_kwh = (o.zaehler_kwh ?? 0) + this.jahresverbrauch_kwh(o) * anteil * (dt_s * 1000 / SPIELMONAT_MS);
     }
-    s.geld_eur = Math.max(0, s.geld_eur - (this.netz.betriebskosten_eur_min / 60) * dt_s + (this.netz.einspeisung_kw * KONSTANTEN.einspeisung_eur_je_kw_min / 60) * dt_s);
+    // A81: Erzeugungskosten folgen der im Monat gelieferten Wärme (Monatsanteil × 12; übers Jahr gemittelt 1)
+    s.geld_eur = Math.max(0, s.geld_eur - (this.netz.betriebskosten_eur_min * anteil * 12 / 60) * dt_s + (this.netz.einspeisung_kw * KONSTANTEN.einspeisung_eur_je_kw_min / 60) * dt_s);
     let geaendert = false;
     for (const o of s.objekte) {
       if (!istKunde(o) || !this.netz.anschluss.has(o.id)) continue;
       const gross = KATALOG[o.typ].kategorie === 'gross';
       const kuehl = Math.max(0, this.mindestVorlauf_c(o) - this.vorlauf_c) * 4; // A33: Vorlauf zu niedrig → Räume zu kühl
-      const ziel = Math.max(0, Math.min(100, P.zufriedenheit_pct - kuehl + (this.netz.warm.has(o.id) ? 0 : gross ? -KONSTANTEN.kalt_abzug_gross_pct : -KONSTANTEN.kalt_abzug_haus_pct) + (o.stufe - 1) * 3));
+      const grund = (GRUNDGEBUEHR.neutral_eur - this.grundgebuehr_eur) * GRUNDGEBUEHR.zufriedenheit_je_eur_pct; // A81
+      const ziel = Math.max(0, Math.min(100, P.zufriedenheit_pct + grund - kuehl + (this.netz.warm.has(o.id) ? 0 : gross ? -KONSTANTEN.kalt_abzug_gross_pct : -KONSTANTEN.kalt_abzug_haus_pct) + (o.stufe - 1) * 3));
       const jetzt = o.zufriedenheit_pct ?? 80, tau = gross ? 60 : 90;
       o.zufriedenheit_pct = ziel + (jetzt - ziel) * Math.exp(-dt_s / tau);
       if (!gross && this.netz.warm.has(o.id)) {

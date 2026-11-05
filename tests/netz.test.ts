@@ -136,11 +136,6 @@ describe('A9 Wärmeerzeugung: Verteilung nur bis zur verfügbaren Leistung', () 
   });
 });
 
-describe('A10 Preisstufen (V3)', () => {
-  it('Einnahmefaktor = Preis ÷ 14 ct/kWh', () => {
-    for (const p of PREISSTUFEN) expect(p.einnahmefaktor).toBeCloseTo(p.ct_je_kwh / 14, 9);
-  });
-});
 
 describe('A10 Wirtschaft: Einnahmen nur für gelieferte Wärme, Kosten nur für erzeugte', () => {
   const eines = () => {
@@ -151,7 +146,8 @@ describe('A10 Wirtschaft: Einnahmen nur für gelieferte Wärme, Kosten nur für 
     const { objekte } = eines();
     PREISSTUFEN.forEach((p, i) => {
       const n = berechneNetz(objekte, [quelle('kessel')], i);
-      expect(n.einnahmen_eur_min).toBeCloseTo(20 * p.einnahmefaktor, 6);
+      // A81: (15.000 kWh × Preis + 12 × 32 € Grundgebühr) verteilt auf ein Spieljahr von 120 Minuten
+      expect(n.einnahmen_eur_min).toBeCloseTo((15000 * p.ct_je_kwh / 100 + 12 * 32) / 120, 6);
     });
   });
   it('kalter Kunde zahlt nichts', () => {
@@ -204,7 +200,7 @@ describe('A12 Großabnehmer', () => {
     const bad = neu('bad', 13, 10, { zustand: 'vertrag' });
     const n = berechneNetz(dorf(neu('d110', 12, 10), bad), [quelle('kessel', 5)], 2);
     expect(ID(n, bad)).toBe(true);
-    expect(n.einnahmen_eur_min).toBeCloseTo(160 * PREISSTUFEN[2].einnahmefaktor, 6);
+    expect(n.einnahmen_eur_min).toBeCloseTo((67500 * PREISSTUFEN[2].ct_je_kwh / 100 + 12 * 32) / 120, 6); // A81
   });
   it('Hallenbad (45 kW) an Verteilleitung (50 kW) geht, an Hausanschluss (12 kW) nicht', () => {
     const bad = neu('bad', 13, 10, { zustand: 'vertrag' });
