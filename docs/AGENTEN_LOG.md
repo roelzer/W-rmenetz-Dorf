@@ -80,3 +80,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 13:00 | ▶ | entwickler | A88 P2 fertig bauen |
 | 2026-11-05 13:11 | ▶ | entwickler | A88 P2 Freischalt-Leiter fertig bauen |
 | 2026-11-05 13:19 | ▶ | architekt | NR12 Ruckeln messen und Bauplan |
+| 2026-11-05 13:26 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Der Kontext ist voll, und die Test-Schranke meldet „NICHT OK“. Den Grund dafür habe ich nicht selbst verursacht, konnte ihn aber au ([Bericht](docs/pruefberichte/20261105-132621-entwickler-ac37b6299e90624a5.md)) |
+| 2026-11-05 13:27 | ▶ | reviewer | Review A88 P2 Paket |
