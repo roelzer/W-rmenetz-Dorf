@@ -59,7 +59,12 @@ export function karteAnpassen(stand: Spielstand): boolean {
   let geaendert = false;
   stand.objekte = stand.objekte.filter((o) => {
     if (!(o.typ in KATALOG)) return true;
-    if (istLeit(o.typ)) { if (fluss.has(o.y * N + o.x)) { geaendert = true; return false; } return true; }
+    if (istLeit(o.typ)) {
+      if (!fluss.has(o.y * N + o.x)) return true;
+      // Review: Gebaute Leitungen im Fluss verschwinden, ihr Preis wird erstattet (geplante waren noch nicht bezahlt).
+      if (!o.geplant) stand.geld_eur += (KATALOG[o.typ].kosten_eur ?? [0])[0];
+      geaendert = true; return false;
+    }
     if (!blockiert(o, o.x, o.y)) return true;
     const kat = KATALOG[o.typ].kategorie;
     if (o.landschaft || ['stein', 'busch', 'baum'].includes(o.typ) || kat === 'deko' && fluss.has(o.y * N + o.x)) { geaendert = true; return false; }
@@ -75,6 +80,9 @@ export function karteAnpassen(stand: Spielstand): boolean {
   for (const o of stand.objekte) {
     if (!(o.typ in KATALOG) || istLeit(o.typ) || !blockiert(o, o.x, o.y)) continue;
     let ziel: [number, number] | null = null;
+    // Review: Großabnehmer ziehen auf ihren Platz im neuen Ortsplan (z. B. das Sägewerk über den Fluss hinweg an seine Straße).
+    const platz = ort.gross.find((g) => g.typ === o.typ);
+    if (platz && frei(o, platz.x, platz.y)) ziel = [platz.x, platz.y];
     for (let r = 1; r < N && !ziel; r++) for (let dy = -r; dy <= r && !ziel; dy++) for (let dx = -r; dx <= r; dx++) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
       if (frei(o, o.x + dx, o.y + dy)) { ziel = [o.x + dx, o.y + dy]; break; }

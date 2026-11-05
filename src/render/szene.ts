@@ -1,7 +1,7 @@
 import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
-import { abzweigZeichnen, eigenerHausanschluss } from './anschluss';
-import { bedarfKw, groesse, heizzentrale } from '../core/netz';
+import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
+import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz';
 import type { Spiel } from '../core/spiel';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
@@ -258,7 +258,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     }
     // A25: Verbrauch jedes Kunden als kleines Schild am Fuß des Gebäudes
     const DK = KATALOG[o.typ];
-    if (!o.bau && DK.bedarf_kw && !o.gekuendigt && (DK.kategorie === 'haus' || (DK.kategorie === 'gross' && o.zustand === 'vertrag')) && tw >= 36 && s.kw_anzeigen !== false) {
+    if (kwSchildZeigen(o, DK.kategorie, DK.bedarf_kw, tw, s.kw_anzeigen)) {
       const txt = `${Math.round(bedarfKw(o))} kW`, fy = cy + tw * 0.16 * kante;
       oben.push(() => {
         const g = Math.max(10, tw * 0.17), w = txt.length * g * 0.56 + g * 0.9;
@@ -323,11 +323,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m, tw = k.tw, netz = s.netz;
   const nachFeld = new Map<number, Objekt>();
   for (const o of s.objekte) { const kante = groesse(o); for (let dy = 0; dy < kante; dy++) for (let dx = 0; dx < kante; dx++) nachFeld.set((o.y + dy) * N + o.x + dx, o); }
-  const leitungsNachbarn = (x: number, y: number): number => {
-    let z = 0;
-    for (const [dx, dy] of NACHBARN) { const n = nachFeld.get((y + dy) * N + x + dx); if (n && istLeitung(n.typ) && x + dx >= 0 && x + dx < N) z++; }
-    return z;
-  };
+  const rohrNachbarn = (x: number, y: number): number => leitungsNachbarn(x, y, (f) => { const n = nachFeld.get(f); return !!n && istLeitung(n.typ); });
   const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
@@ -344,7 +340,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       if (gebaeude) {
         if (n.ohne_station && !o.geplant) continue; // Haus ohne Station ist nicht angeschlossen
         const a = netz.anschluss.get(n.id);
-        if (a ? a.feld !== key : !(o.geplant && leitungsNachbarn(o.x, o.y) <= 1)) continue;
+        if (a ? a.feld !== key : !(o.geplant && rohrNachbarn(o.x, o.y) <= 1)) continue;
       }
       // A65: Treffen zwei verschieden dicke Leitungen, läuft die dünnere in ihrer Farbe bis in die dickere hinein
       // (Abzweig schließt an die Hauptleitung an); die dicke Leitung zeichnet keinen eigenen Stummel zum Abzweig.

@@ -4,11 +4,11 @@ import {
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
 
-/** A49: Mittlere Spreizung (Vorlauf minus Rücklauf) der angeschlossenen Häuser in K, nach Bedarf gewichtet. Niedrigere Rücklauftemperatur = größere Spreizung. */
-export function mittlereSpreizung_k(objekte: Objekt[]): number {
+/** A49: Mittlere Spreizung (Vorlauf minus Rücklauf) der Kunden in K, nach Bedarf gewichtet; mit `auswahl` nur diese Gebäude (z. B. die warmen). Niedrigere Rücklauftemperatur = größere Spreizung. */
+export function mittlereSpreizung_k(objekte: Objekt[], auswahl?: ReadonlySet<number>): number {
   let summe = 0, gew = 0;
   for (const o of objekte) {
-    if (!istKunde(o)) continue;
+    if (!istKunde(o) || (auswahl && !auswahl.has(o.id))) continue;
     const w = bedarfKw(o);
     summe += (SPREIZUNG_BASIS_K + UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0)) * w; gew += w;
   }
@@ -56,6 +56,13 @@ export function istKunde(o: Objekt): boolean {
 }
 
 const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/** Zahl der Leitungsfelder rund um (x|y) – gemeinsame Grundlage für „Leitungsende“ (≤ 1) und „durchlaufend“ (≥ 2). */
+export function leitungsNachbarn(x: number, y: number, istLeitungsfeld: (feld: number) => boolean): number {
+  let z = 0;
+  for (const [dx, dy] of NACHBARN) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && istLeitungsfeld(ny * N + nx)) z++; }
+  return z;
+}
 
 /**
  * Berechnet das Wärmenetz: Verbindung, Lastfluss, Kapazität, Versorgung, Kosten, Einnahmen.
@@ -121,8 +128,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       // A57: Eine Leitung, die nur am Haus vorbeiläuft, ist kein Anschluss. Bevorzugt wird ein Leitungsende,
       // das am Haus endet (Hausanschluss); nur wenn es keins gibt, zählt die vorbeilaufende Leitung.
       const px = k % N, py = (k - px) / N;
-      let nb = 0;
-      for (const [dx, dy] of NACHBARN) { const nx = px + dx, ny = py + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && leitungAn(ny * N + nx)) nb++; }
+      const nb = leitungsNachbarn(px, py, (f) => !!leitungAn(f));
       const wert = (nb <= 1 ? 0 : 1000) + t;
       if (wert < bd) { bd = wert; best = k; }
     }

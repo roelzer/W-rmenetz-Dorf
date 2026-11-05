@@ -5,6 +5,7 @@ import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
 import { Effekte } from './render/effekte';
 import { Kamera } from './render/kamera';
+import { drehSchritt } from './render/anschluss';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
 import { chip, knopf } from './ui/bausteine';
@@ -235,9 +236,9 @@ export class Steuerung implements Ui {
         const neu = this.pinchMass();
         this.kamera.zoomUm(neu.abstand / (this.pinch.abstand || 1), neu.mx, neu.my);
         this.kamera.schiebe_x += neu.mx - this.pinch.mx; this.kamera.schiebe_y += neu.my - this.pinch.my; this.kamera.begrenzen();
-        let dw = neu.winkel - this.pinch.winkel; if (dw > Math.PI) dw -= 2 * Math.PI; if (dw < -Math.PI) dw += 2 * Math.PI;
-        this.drehSumme += dw;
-        if (Math.abs(this.drehSumme) > 0.6) { this.kamera.drehen(this.drehSumme > 0 ? 1 : -1); this.drehSumme = 0; }
+        const d = drehSchritt(this.drehSumme, neu.winkel - this.pinch.winkel);
+        this.drehSumme = d.summe_rad;
+        if (d.schritt) this.kamera.drehen(d.schritt);
         this.pinch = neu; return;
       }
       if (!this.start) return;

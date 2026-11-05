@@ -2,7 +2,7 @@ import {
   KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
+  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
 } from './netz';
 import type { Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen, STANDARD_ORT } from './orte';
@@ -174,16 +174,7 @@ export class Spiel {
     return ok();
   }
   /** Spreizung des Netzes (Vorlauf minus Rücklauf): Grundwert plus die Rücklauf-Senkung der Upgrades, nach Bedarf gewichtet. Sie hängt nicht vom Regler ab – ein heißerer Vorlauf hebt auch den Rücklauf (A39). */
-  spreizung_k(): number {
-    let summe = 0, gew = 0;
-    for (const o of this.stand.objekte) {
-      if (!this.netz.warm.has(o.id)) continue;
-      const w = bedarfKw(o);
-      const senk = UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
-      summe += (SPREIZUNG_BASIS_K + senk) * w; gew += w;
-    }
-    return gew ? summe / gew : SPREIZUNG_BASIS_K;
-  }
+  spreizung_k(): number { return mittlereSpreizung_k(this.stand.objekte, this.netz.warm); }
   /** Bedingungen für die nächste Heizzentralen-Stufe (A39). */
   hzZiele(): { text: string; ist: number; soll: number; erreicht: boolean }[] {
     const z = HZ_ZIELE.find((x) => x.stufe === this.hzStufe + 1);
@@ -454,12 +445,7 @@ export class Spiel {
     const N_ = N, bau = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ) && !o.geplant).map((o) => o.y * N_ + o.x));
     const plan = new Set(this.stand.objekte.filter((o) => o.geplant).map((o) => o.y * N_ + o.x));
     // A57: Nur ein Leitungsende am Haus ist ein Hausanschluss – eine vorbeilaufende Leitung nicht.
-    const leitungsEnde = (f: number): boolean => {
-      const x = f % N_, y = (f - x) / N_;
-      let z = 0;
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N_ && ny < N_ && (plan.has(ny * N_ + nx) || bau.has(ny * N_ + nx))) z++; }
-      return z <= 1;
-    };
+    const leitungsEnde = (f: number): boolean => leitungsNachbarn(f % N_, Math.floor(f / N_), (n) => plan.has(n) || bau.has(n)) <= 1;
     return this.stand.objekte.filter((h) => {
       if (!['haus', 'gross'].includes(KATALOG[h.typ].kategorie)) return false;
       const g = groesse(h);
@@ -560,15 +546,8 @@ export class Spiel {
   anbohrung_eur(): number { return this.anbohrungsFelder().length * KONSTANTEN.anbohrung_eur; }
   /** Gebaute Leitungsnachbarn eines Feldes (die Heizzentrale zählt mit). */
   private gebauteNachbarn(f: number): number {
-    const x = f % N, y = (f - x) / N, bel = belegungskarte(this.stand.objekte);
-    let z = 0;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = x + dx, ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
-      const o = this.objekt(bel[ny * N + nx]);
-      if (o && ((istLeitung(o.typ) && !o.geplant) || o.typ === 'hz')) z++;
-    }
-    return z;
+    const bel = belegungskarte(this.stand.objekte);
+    return leitungsNachbarn(f % N, Math.floor(f / N), (n) => { const o = this.objekt(bel[n]); return !!o && ((istLeitung(o.typ) && !o.geplant) || o.typ === 'hz'); });
   }
   /** A69: Muss hier an eine laufende Leitung angebohrt werden? Ja, wenn sie durchläuft (kein Leitungsende) und keine Vorsehung hat. */
   private brauchtAnbohrung(o: Objekt): boolean {

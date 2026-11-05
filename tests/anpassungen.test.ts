@@ -460,7 +460,7 @@ describe('A46 Straßen frei, Fluss mit Spülbohrung', () => {
   it('A46: Kein Objekt (außer Leitungen) steht auf Straße oder im Fluss', () => {
     const s = new Spiel(neuerSpielstand(0), () => 0);
     for (const o of s.stand.objekte) {
-      if (['d25', 'd32', 'd40', 'd50', 'd65', 'd80', 'd100', 'd125', 'd150'].includes(o.typ)) continue;
+      if (istLeitung(o.typ)) continue; // Review: vorher Liste mit nicht vorhandenen Typen
       const k = KATALOG[o.typ].groesse ?? 1;
       for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) {
         expect(s.istStrasse(o.x + dx, o.y + dy), `${o.typ} ${o.x},${o.y} auf Straße`).toBe(false);
@@ -657,12 +657,31 @@ describe('A54 kW-Schilder schaltbar, weniger Zebrastreifen', () => {
     const { einstellungenLesen } = await import('../src/ui/einstellungen');
     const e = einstellungenLesen();
     expect(e.kw_anzeigen).toBe(true);
-    const aus = { ...e, kw_anzeigen: false };
-    expect(aus.kw_anzeigen).toBe(false);
+    // Review: die echte Entscheidung prüfen, nicht nur den gesetzten Wert
+    const { kwSchildZeigen } = await import('../src/render/anschluss');
+    const haus = { bau: null };
+    expect(kwSchildZeigen(haus, 'haus', 10, 60, true)).toBe(true);
+    expect(kwSchildZeigen(haus, 'haus', 10, 60, undefined)).toBe(true);
+    expect(kwSchildZeigen(haus, 'haus', 10, 60, false)).toBe(false);
+    expect(kwSchildZeigen(haus, 'haus', 10, 20, true)).toBe(false); // zu weit herausgezoomt
+    expect(kwSchildZeigen({ bau: null, gekuendigt: true }, 'haus', 10, 60, true)).toBe(false);
+    expect(kwSchildZeigen({ bau: null, zustand: 'gesperrt' }, 'gross', 40, 60, true)).toBe(false);
+    expect(kwSchildZeigen({ bau: null, zustand: 'vertrag' }, 'gross', 40, 60, true)).toBe(true);
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync(new URL('../src/render/szene.ts', import.meta.url), 'utf8')).toContain('kwSchildZeigen(o, DK.kategorie, DK.bedarf_kw, tw, s.kw_anzeigen)');
   });
 });
 
 describe('A55 Drehen per Geste', () => {
+  it('A55: Zwei-Finger-Drehung dreht erst ab der Schwelle um genau einen Schritt, in beide Richtungen, auch über ±π hinweg', async () => {
+    const { drehSchritt, DREH_SCHWELLE_RAD } = await import('../src/render/anschluss');
+    let z = drehSchritt(0, 0.3); expect(z.schritt).toBe(0);
+    z = drehSchritt(z.summe_rad, 0.25); expect(z.schritt).toBe(0);
+    z = drehSchritt(z.summe_rad, 0.1); expect(z.schritt).toBe(1); expect(z.summe_rad).toBe(0);
+    expect(drehSchritt(0, -(DREH_SCHWELLE_RAD + 0.01)).schritt).toBe(-1);
+    // Sprung des Winkels von +π nach −π ist nur eine kleine Drehung
+    expect(drehSchritt(0, -2 * Math.PI + 0.1).schritt).toBe(0);
+  });
   it('A55: Kamera dreht in 90°-Schritten, vier Schritte ergeben wieder die Ausgangsansicht', () => {
     const k = new Kamera(); k.groesseSetzen(844, 390, 1);
     const [x0, y0] = k.mitte(10, 10);
@@ -965,5 +984,25 @@ describe('Review A45–A66: Nachbesserungen', () => {
     expect(s.abschnittLeitungen()).toBeGreaterThan(1);
     expect(s.letzteLeitungZurueck().ok).toBe(true);
     expect(s.abschnittLeitungen()).toBe(0);
+  });
+});
+
+describe('Review: Anpassung alter Spielstände (A46)', () => {
+  it('A46: Das Sägewerk im neuen Fluss zieht auf seinen Platz im Ortsplan; gebaute Leitungen im Fluss werden erstattet', () => {
+    const s0 = neuerSpielstand(0);
+    delete s0.karte;
+    const ort = ortHolen(s0.ort);
+    const fluss = ort.fluss[0];
+    const saege = s0.objekte.find((o) => o.typ === 'gewerbe')!;
+    const platz = ort.gross.find((g) => g.typ === 'gewerbe')!;
+    saege.x = fluss[0]; saege.y = fluss[1]; saege.zustand = 'vertrag';
+    s0.objekte.push({ id: 9998, typ: 'd50', x: ort.fluss[1][0], y: ort.fluss[1][1], stufe: 1, bau: null, kasse_eur: 0 });
+    const geld = s0.geld_eur;
+    const r = ladenMitBefund(serialisieren(s0), 0);
+    const neu = r.stand.objekte.find((o) => o.typ === 'gewerbe')!;
+    expect([neu.x, neu.y]).toEqual([platz.x, platz.y]);
+    expect(neu.zustand).toBe('vertrag');
+    expect(r.stand.objekte.some((o) => o.id === 9998)).toBe(false);
+    expect(r.stand.geld_eur).toBe(geld + (KATALOG.d50.kosten_eur as number[])[0]);
   });
 });
