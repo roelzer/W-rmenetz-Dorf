@@ -237,3 +237,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:44 | ■ 🟡 | entwickler | ## NR15-P2 (A91 Netzbaum): FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261105-194416-entwickler-a451ccb84d3723843.md)) |
 | 2026-11-05 19:44 | ▶ | reviewer | Review NR15-P2 |
 | 2026-11-05 19:57 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Der Code ist inhaltlich richtig gebaut, die Schranke ist grün. Zwei Punkte blockieren den Merge:  ([Bericht](docs/pruefberichte/20261105-195736-reviewer-a8ded01c3b1f6bd63.md)) |
+| 2026-11-05 19:58 | ▶ | entwickler | NR15-P2 Fix-Runde 1 |
