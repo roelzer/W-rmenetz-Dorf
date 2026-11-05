@@ -32,7 +32,9 @@ export function anfrageKasten(sp: Spiel, o: Objekt, nachAktion: () => void): HTM
  *  für Zeichenleiste und Leitungskarte. LEITUNGEN ist dünn → dick sortiert, die erste gesperrte ist also die nächste Freischaltung. */
 export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement): HTMLButtonElement[] {
   const knoepfe = LEITUNGEN.filter((t) => t !== ohne && sp.freigeschaltet(t)).map(knopfFuer);
-  const naechste = LEITUNGEN.find((t) => !sp.freigeschaltet(t));
+  // Auf der Leitungskarte zählt nur eine gesperrte Leitung, die dicker ist als die vorhandene (`ohne`) – sonst gäbe es dort nichts „Dickeres“.
+  const ab = ohne ? LEITUNGEN.indexOf(ohne) + 1 : 0;
+  const naechste = LEITUNGEN.slice(ab).find((t) => !sp.freigeschaltet(t));
   const grund = naechste ? sp.sperrgrund(naechste) : null;
   if (grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, unter: grund }));
   return knoepfe;
