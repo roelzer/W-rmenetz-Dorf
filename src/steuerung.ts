@@ -9,7 +9,7 @@ import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
-import { chip, knopf } from './ui/bausteine';
+import { chip, erklaerKnopf, knopf } from './ui/bausteine';
 import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { eur, h } from './ui/dom';
 import { sprecherZeigen } from './ui/sprecher';
@@ -17,7 +17,7 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
-import { Kontext, leitungsKnoepfe } from './ui/kontext';
+import { Kontext, leitungsKnoepfe, OHNE_ABSCHNITT, tStueckHinweis } from './ui/kontext';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
@@ -47,6 +47,7 @@ export class Steuerung implements Ui {
   private einstellungen = einstellungenLesen();
   private letzteHudMs = 0;
   private letzterAuftragMs = 0;
+  private letzterKatalogMs = 0;
   private zeiger = new Map<number, { x: number; y: number }>();
   private zieht = false;
   private start: { x: number; y: number } | null = null;
@@ -146,22 +147,23 @@ export class Steuerung implements Ui {
   stempeln(typ: TypId, radieren = false, vorsehen = false): void {
     this.katalogUi.schliessen(); this.kontextUi.schliessen();
     this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
-    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); });
+    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); }, this.spiel.abschnitt?.phase === 'offen' ? null : OHNE_ABSCHNITT);
     // Durchmesser direkt wählen (Designer-Mangel 10)
     // A88: nur freigeschaltete Durchmesser plus ein deaktivierter Knopf für die dickeren – der Kern entscheidet; kurzer Grund, weil die Leiste eng ist
     const wahl = h('div', { class: 'durchmesser' }, ...leitungsKnoepfe(this.spiel, null, (t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true }), true));
     const sperreTStueck = this.spiel.sperrgrund('vorsehung');
     const werkzeug = h('div', { class: 'knopfreihe' },
       knopf(radieren ? 'Radierer an – tippe Leitungen weg' : 'Radierer', () => this.stempeln(typ, !radieren), radieren ? 'gewaehlt' : '', { klein: true }),
-      knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, unter: sperreTStueck ?? eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null }),
+      erklaerKnopf(knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, unter: sperreTStueck ?? eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true }), () => this.toast(tStueckHinweis())),
       knopf('Letzte zurück', () => { this.spiel.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); }, '', { klein: true }));
     this.modusBlatt?.inhalt.append(wahl, werkzeug);
   }
 
-  private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void): void {
+  /** `sperre`: Grund, warum der Bestätigen-Knopf gerade nichts tun kann (deaktiviert, Grund in Zeile 2). */
+  private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void, sperre: string | null = null): void {
     this.modusBlatt?.zu();
     this.modusBlatt = blattOeffnen({ titel, beiZu: () => { this.modusBlatt = null; this.modusZuruecksetzen(); } });
-    const reihe = h('div', { class: 'knopfreihe' }, knopf(ja, bei, 'los'));
+    const reihe = h('div', { class: 'knopfreihe' }, knopf(ja, bei, 'los', sperre ? { aus: true, unter: sperre } : {}));
     if (this.modus !== 'stempel') reihe.append(knopf('Abbrechen', () => this.abbrechen()));
     this.modusBlatt.inhalt.append(h('p', {}, text), reihe);
   }
@@ -369,6 +371,8 @@ export class Steuerung implements Ui {
     this.ereignisse();
     if (jetzt_ms - this.letzterAuftragMs > 1000) { this.letzterAuftragMs = jetzt_ms; this.auftrag = pruefeAuftraege(this.spiel); this.ereignisse(); }
     if (jetzt_ms - this.letzteHudMs > 250) { this.letzteHudMs = jetzt_ms; this.hudJetzt(); this.kontextUi.aktualisieren(); }
+    // A92: Restzeit des Bauabschnitts im Baumenü; einmal je Sekunde reicht für eine Sekundenanzeige und schont die Bildrate (A90)
+    if (jetzt_ms - this.letzterKatalogMs >= 1000) { this.letzterKatalogMs = jetzt_ms; this.katalogUi.aktualisieren(); }
   }
   private hudJetzt(): void { this.hud.aktualisieren(this.auftrag); }
   private hinweiseZeigen(): void { this.ereignisse(); }

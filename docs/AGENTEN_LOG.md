@@ -175,3 +175,11 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:11 | ■ 🟢 | designer | 🟢 **Vorgaben fertig.** Für alle drei Mängel und den gesperrten Knopf gibt es jetzt eine baubare Vorgabe mit Maßen, Zuständen und Prüfkriterium. Sie steh ([Bericht](docs/pruefberichte/20261105-171119-designer-a69fef3873825425f.md)) |
 | 2026-11-05 17:12 | ▶ | fachpruefer | Fachprüfung T-Stück-Hinweistext |
 | 2026-11-05 17:12 | ■ 🟡 | fachpruefer | 🟡 Fast richtig, ein Halbsatz führt aber in die Irre. Ich habe nur gelesen, nichts ausgeführt: den Text, A47, A69 und A88 im Lastenheft, src/core/spiel.ts ( ([Bericht](docs/pruefberichte/20261105-171257-fachpruefer-a2e8dcb79efb4e8f4.md)) |
+| 2026-11-05 17:21 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle fünf Punkte sind gebaut, getestet und committet. Bei Punkt 1 weicht eine Sache von der Designer-Vorgabe 12.19 ab: De ([Bericht](docs/pruefberichte/20261105-172157-entwickler-af90a159dbf863066.md)) |
+| 2026-11-05 17:22 | ▶ | reviewer | Review NR16-A Anschlussweg |
+| 2026-11-05 17:22 | ▶ | tester | Tester-Vorarbeit NR16-B/Kann 2 |
+| 2026-11-05 17:25 | ■ 🟡 | reviewer | 🟡 **NR16-A (A92) „Anschluss-Weg verständlich“: freigegeben mit kleinen Punkten**  ([Bericht](docs/pruefberichte/20261105-172526-reviewer-a4249c6d0bcaaa659.md)) |
+| 2026-11-05 17:26 | ▶ | architekt | NR15-Bauplan überarbeiten |
+| 2026-11-05 17:26 | ■ 🟢 | tester | 🟢 **Vorarbeit erledigt.** Vier Tests sind jetzt absichtlich rot, und zwar genau aus den gewünschten Gründen. Ich habe keine Zeile Programmcode geändert, n ([Bericht](docs/pruefberichte/20261105-172644-tester-a4145f69451376c4e.md)) |
+| 2026-11-05 17:27 | ▶ | entwickler | NR16-B bauen |
+| 2026-11-05 17:29 | ■ 🔴 | entwickler | 🔴 Status: BRAUCHT_KONTEXT. Ich habe nichts gebaut, weil sich zwei bestehende Testdateien widersprechen und ich keine davon ändern darf.  ([Bericht](docs/pruefberichte/20261105-172956-entwickler-a1d6e21cc008e6638.md)) |

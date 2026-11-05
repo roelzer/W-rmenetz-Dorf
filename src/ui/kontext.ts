@@ -1,9 +1,9 @@
-import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
+import { ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
-import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile } from './bausteine';
+import { balken, chip, erklaerKnopf, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -27,6 +27,13 @@ export function anfrageKasten(sp: Spiel, o: Objekt, nachAktion: () => void): HTM
     knopf('Später', () => { sp.anfrageAblehnen(o.id); nachAktion(); }, '', { klein: true, unter: 'fragt später wieder' })));
   return k;
 }
+
+/** A92: Grund an Knöpfen, die ohne offenen Bauabschnitt nichts tun können (Hausblatt, Zeichenleiste). */
+export const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
+
+/** A92 (NR16): Hinweis beim Antippen des gesperrten T-Stück-Knopfs – Spieler hielten das T-Stück für nötig zum Anschließen. */
+export const tStueckHinweis = (): string =>
+  `Für Hausanschlüsse nicht nötig – den Abzweig setzt das Spiel selbst. Ein T-Stück mit Vorsehung legt einen Abzweig für später bereit und spart dann das Anbohren. Frei ab Heizzentrale Stufe ${abStufe('vorsehung')}.`;
 
 /** Kurzer Sperrgrund für enge Leisten und Chips (DESIGN.md 12.15); die Stufe kommt aus dem Kern. */
 const kurzGrund = (m: Merkmal): string => `ab Stufe ${abStufe(m)}`;
@@ -170,14 +177,31 @@ export class Kontext {
         h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'geld', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
       return;
     }
-    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), h('div', { class: 'knopfreihe' }, knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: sp.abschnitt?.phase === 'offen' ? 'zur nächsten Leitung' : 'braucht offenen Bauabschnitt', aus: sp.abschnitt?.phase !== 'offen' }), knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true })));
-    if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
+    if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), ...this.anschlussWeg(o));
+    else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
     if (o.ohne_station || o.station) this.stationswahl(c, o);
     this.pufferBereich(c, o);
     this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
     c.append(h('p', { class: 'gedaempft' }, 'Gebäude stehen fest. Wer näher am Netz liegt, hat es leichter – wer weit weg ist, braucht eine lange Leitung.'));
+  }
+
+  /** A92 (NR16): Knöpfe zum Anschließen eines Hauses ohne Anschluss. Ohne offenen Bauabschnitt sind beide gesperrt und nennen den Grund;
+   *  gibt es noch gar keinen Abschnitt, lässt er sich hier gleich planen (dieselbe Aktion und derselbe Preis wie im Baumenü). */
+  private anschlussWeg(o: Objekt): HTMLElement[] {
+    const sp = this.ui.spiel, offen = sp.abschnitt?.phase === 'offen';
+    const reihen: HTMLElement[] = [];
+    if (!sp.abschnitt) {
+      const preis = KONSTANTEN.abschnitt_planung_eur;
+      reihen.push(h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Bauabschnitt planen lassen`, () => { sp.abschnittPlanen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(preis), aus: sp.stand.geld_eur < preis })));
+    }
+    const ziehen = sp.hausanschlussGeplant(o.id)
+      ? knopf('Hausanschluss geplant', () => undefined, '', { klein: true, aus: true, unter: 'kommt mit dem Bauabschnitt' })
+      : knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: offen ? 'zur nächsten Leitung' : OHNE_ABSCHNITT, aus: !offen });
+    const selbst = knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, aus: !offen, unter: offen ? undefined : OHNE_ABSCHNITT });
+    reihen.push(h('div', { class: 'knopfreihe' }, ziehen, selbst));
+    return reihen;
   }
 
   /** A71: Pufferspeicher im Haus – Anschlussleistung aus 1.800 statt 1.500 Volllaststunden. */
@@ -319,7 +343,7 @@ export class Kontext {
     else if (!o.geplant && n.tiefe.has(key) && sp.freigeschaltet('vorsehung')) c.append(h('p', { class: 'gedaempft' }, `Ohne Vorsehung muss für einen neuen Abzweig die laufende Leitung angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}). Am Leitungsende geht es ohne.`));
     // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
     const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
-    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, aus: sperreVorsehung !== null, unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
+    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, erklaerKnopf(knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) }), () => this.ui.toast(tStueckHinweis()))));
     const tausch = o.geplant ? [] : leitungsKnoepfe(sp, o.typ, (t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }));
     if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch));
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
