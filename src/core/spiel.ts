@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
@@ -20,7 +20,9 @@ export type Ereignis =
   | { art: 'hinweis'; text: string }
   | { art: 'funken'; objekt_id: number | 'heizzentrale'; farbe?: string }
   | { art: 'muenzen'; objekt_id: number; betrag_eur: number }
-  | { art: 'schwebtext'; x: number; y: number; text: string; farbe?: string };
+  | { art: 'schwebtext'; x: number; y: number; text: string; farbe?: string }
+  /** A51: Eine Figur (Philipp, Laura, ein Techniker) kommt kurz ins Bild und sagt etwas */
+  | { art: 'sprecher'; figur: string; text: string };
 
 export interface Ergebnis { ok: boolean; hinweis?: string }
 const ok = (): Ergebnis => ({ ok: true });
@@ -162,7 +164,7 @@ export class Spiel {
     const b = this.bezahlen({ eur: UPGRADES[n].kosten_eur });
     if (!b.ok) return b;
     o.upgrade_auftrag = { helfer: wer, ende_ms: this.uhr() + UPGRADES[n].dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
-    this.hinweis(`${wer} kümmert sich um: ${UPGRADES[n].name}`);
+    this.sagt(wer, `Alles klar, ${this.spielerName}, ich kümmere mich drum: ${UPGRADES[n].name}.`);
     return ok();
   }
   /** Spreizung des Netzes (Vorlauf minus Rücklauf): Grundwert plus die Rücklauf-Senkung der Upgrades, nach Bedarf gewichtet. Sie hängt nicht vom Regler ab – ein heißerer Vorlauf hebt auch den Rücklauf (A39). */
@@ -249,6 +251,11 @@ export class Spiel {
   }
   private nein(text: string): Ergebnis { this.ereignisse.push({ art: 'hinweis', text }); return { ok: false, hinweis: text }; }
   private hinweis(text: string): void { this.ereignisse.push({ art: 'hinweis', text }); }
+  /** Name des Spielers für die Ansprache der Helfer (A51). */
+  get spielerName(): string { return this.stand.spieler?.trim() || 'Chef'; }
+  private sagt(figur: string, text: string): void { this.ereignisse.push({ art: 'sprecher', figur, text }); }
+  /** Lieferzeit des Materials in Spielwochen (1 Spieljahr = 52 Wochen); mindestens 1. */
+  lieferwochen(): number { return Math.max(1, Math.round(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor * 1000 / (SPIELJAHR_MS / 52))); }
   private braucheMonteur(): boolean {
     if (this.beschaeftigt() >= this.monteure()) { this.nein('Alle Monteure sind beschäftigt'); return false; }
     return true;
@@ -608,7 +615,7 @@ export class Spiel {
     const b = this.bezahlen({ eur: KONSTANTEN.abschnitt_planung_eur });
     if (!b.ok) return b;
     this.stand.abschnitt = { phase: 'planung', bau: this.neuerBau('neu', KONSTANTEN.abschnitt_planung_s) };
-    this.hinweis(`${ABSCHNITT_HELFER.planung} plant den neuen Bauabschnitt`);
+    this.sagt(ABSCHNITT_HELFER.planung, `Alles klar, ${this.spielerName}, ich kümmere mich um die Planung.`);
     return ok();
   }
   /** Einzeichnen beenden; als Nächstes wird Material bestellt. */
@@ -643,7 +650,8 @@ export class Spiel {
     if (!b.ok) return b;
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
     a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
-    this.hinweis(`${ABSCHNITT_HELFER.material} hat das Material bestellt – der Bau beginnt`);
+    const w = this.lieferwochen();
+    this.sagt(ABSCHNITT_HELFER.material, `Hey ${this.spielerName}, dein Material ist bestellt. Lieferzeit: ${w} ${w === 1 ? 'Woche' : 'Wochen'}.`);
     return ok();
   }
 

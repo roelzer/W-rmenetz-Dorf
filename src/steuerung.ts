@@ -10,6 +10,7 @@ import type { Szene } from './render/szene';
 import { chip, knopf } from './ui/bausteine';
 import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { h } from './ui/dom';
+import { sprecherZeigen } from './ui/sprecher';
 import { einstellungenLesen, einstellungenOeffnen } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
@@ -333,6 +334,7 @@ export class Steuerung implements Ui {
     const ruhig = this.einstellungen.weniger_bewegung;
     for (const ev of this.spiel.ereignisse.splice(0)) {
       if (ev.art === 'hinweis') toast(ev.text);
+      else if (ev.art === 'sprecher') sprecherZeigen(ev.figur, ev.text);
       else if (ev.art === 'funken') {
         if (ruhig) continue;
         const o = ev.objekt_id === 'heizzentrale' ? this.spiel.hz : this.spiel.objekt(ev.objekt_id);

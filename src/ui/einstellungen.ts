@@ -24,6 +24,8 @@ export function einstellungenSchreiben(e: Einstellungen): boolean {
 export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Einstellungen) => void): void {
   const b = blattOeffnen({ titel: 'Dorf-Einstellungen', art: 'hoch' });
   const name = h('input', { class: 'feld', type: 'text', maxlength: 24, value: ui.spiel.stand.name, 'aria-label': 'Dorfname', id: 'dorfname' }) as HTMLInputElement;
+  const spieler = h('input', { class: 'feld', type: 'text', maxlength: 20, placeholder: 'Chef', value: ui.spiel.stand.spieler ?? '', 'aria-label': 'Dein Name', id: 'spielername' }) as HTMLInputElement;
+  spieler.addEventListener('change', () => { ui.spiel.stand.spieler = spieler.value.trim().slice(0, 20); ui.geaendert(); });
   name.addEventListener('change', () => { const n = name.value.trim().slice(0, 24); if (n) { ui.spiel.stand.name = n; ui.geaendert(); } else name.value = ui.spiel.stand.name; });
   const bewegung = h('input', { type: 'checkbox', id: 'bewegung' }) as HTMLInputElement;
   bewegung.checked = e.weniger_bewegung;
@@ -37,6 +39,7 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
   }, '', { klein: true });
   b.inhalt.append(
     h('label', { for: 'dorfname', class: 'gedaempft' }, 'Dorfname'), name,
+    h('label', { for: 'spielername', class: 'gedaempft' }, 'Dein Name (so sprechen dich Philipp, Laura und die Techniker an)'), spieler,
     h('label', { class: 'schalter', for: 'bewegung' }, bewegung, 'Weniger Bewegung'),
     h('p', { class: 'gedaempft' }, 'Rauch, Wasser und Münzflug stehen still. Wichtige Hinweise bleiben sichtbar.'),
     h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),

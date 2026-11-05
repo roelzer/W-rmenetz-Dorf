@@ -94,6 +94,8 @@ export interface Spielstand {
   gestattungen?: number[];
   /** Version des Kartenlayouts (Straßen, Fluss); ältere Spielstände werden beim Laden angepasst (A46) */
   karte?: number;
+  /** Name des Spielers, mit dem die Helfer ihn ansprechen (A51) */
+  spieler?: string;
   /** A50: Sekunden, in denen die Anschlussnehmer zufrieden waren (Mundpropaganda) */
   zufrieden_s?: number;
   antraege: Partial<Record<TypId, Foerderantrag>>;

@@ -605,3 +605,27 @@ describe('A50 volle Stadt, Interessenten', () => {
     expect(s.stand.objekte.filter((o) => o.interessent).length).toBeLessThanOrEqual(KONSTANTEN.interessenten_max);
   });
 });
+
+describe('A51 Helfer sprechen den Spieler an', () => {
+  it('A51: Philipp, Laura und die Techniker melden sich mit Sprechblase und Namen des Spielers', () => {
+    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+    s.stand.spieler = 'Simon'; s.stand.geld_eur = 100_000;
+    const sagt = () => s.ereignisse.splice(0).filter((e) => e.art === 'sprecher') as Array<{ figur: string; text: string }>;
+    sagt();
+    s.abschnittPlanen();
+    expect(sagt()[0]).toMatchObject({ figur: 'Philipp' });
+    t += 600_000; s.bis(t); sagt();
+    s.platzieren('d50', 10, 18); s.abschnittAbschliessen(); s.materialBestellen();
+    const l = sagt()[0];
+    expect(l.figur).toBe('Laura'); expect(l.text).toMatch(/Simon/); expect(l.text).toMatch(/Woche/);
+    const haus = s.stand.objekte.find((o) => o.station)!;
+    s.upgradeKaufen(haus.id);
+    const tech = sagt()[0];
+    expect(['Sebastian', 'Christian', 'Manfred']).toContain(tech.figur);
+    expect(tech.text).toMatch(/Simon/);
+  });
+  it('A51: Ohne eigenen Namen heißt der Spieler „Chef“', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    expect(s.spielerName).toBe('Chef');
+  });
+});
