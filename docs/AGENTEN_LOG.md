@@ -56,3 +56,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 11:17 | ▶ | designer | Designer-Treueprüfung Menü-Stil v2 |
 | 2026-11-05 11:18 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten** (Modus nachpruefung, Commits ded00d6 und 3349c96, Basis 85b4ca7)  ([Bericht](docs/pruefberichte/20261105-111844-reviewer-ad0b817183ed58e75.md)) |
 | 2026-11-05 11:19 | ▶ | reviewer | Review A84 Menü-Stil v2 |
+| 2026-11-05 11:23 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Plan-Treue ⚠️: fast alles ist umgesetzt. Die Farbregel „was Euro kostet, ist Gold“ fehlt aber an zwei Knöpfen. Außerdem ([Bericht](docs/pruefberichte/20261105-112347-reviewer-a982b881c0925e4bf.md)) |
+| 2026-11-05 11:24 | ■ 🟡 | designer | 🟡 **Treueprüfung A84 „Menü-Stil v2“: weitgehend wie entworfen. Vor dem Merge müssen 3 Punkte behoben werden, 5 weitere sind „soll“ oder „kann“ ([Bericht](docs/pruefberichte/20261105-112415-designer-aa18eccd55a98c373.md)) |

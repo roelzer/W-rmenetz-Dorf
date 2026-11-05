@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SYMBOLE } from '../src/ui/symbole';
 
 const lies = (p: string): string => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -96,7 +96,7 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
     expect((css.match(/var\(--menue-/g) ?? []).length).toBeGreaterThan(100);
     expect(css).toMatch(/\.blatt \.kopf\{[^}]*background:var\(--menue-farbe-kopfband\)/);
     expect(css).toMatch(/\.blatt \.kopf::after\{[^}]*var\(--menue-farbe-naht-vorlauf\) 0 50%,var\(--menue-farbe-naht-ruecklauf\) 50% 100%/);
-    for (const r of ['.knopf.geld,.knopf.heiss{--f:var(--menue-knopf-geld-0);--u:var(--menue-knopf-geld-1)', '.knopf.gefahr{--f:var(--menue-knopf-gefahr-0);--u:var(--menue-knopf-gefahr-1)}', '.knopf.taler{--f:var(--menue-knopf-taler-0);--u:var(--menue-knopf-taler-1)}', '.knopf.gewaehlt{--f:var(--menue-knopf-gewaehlt-0)', '.knopf.stepper{', '.schalter input{appearance:none', '.schliessen{width:var(--menue-mass-px-schliessen)']) {
+    for (const r of ['.knopf.geld{--f:var(--menue-knopf-geld-0);--u:var(--menue-knopf-geld-1)', '.knopf.gefahr{--f:var(--menue-knopf-gefahr-0);--u:var(--menue-knopf-gefahr-1)}', '.knopf.taler{--f:var(--menue-knopf-taler-0);--u:var(--menue-knopf-taler-1)}', '.knopf.gewaehlt{--f:var(--menue-knopf-gewaehlt-0)', '.knopf.stepper{', '.schalter input{appearance:none', '.schliessen{width:var(--menue-mass-px-schliessen)']) {
       expect(css, r).toContain(r);
     }
     expect(css).toMatch(/\.weniger-bewegung \.knopf:active:not\(:disabled\)[^{]*\{transform:none;background:var\(--u\)\}/);
@@ -114,5 +114,83 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
     const css = lies('src/ui/stil.css');
     expect(css).toMatch(/\.update-hinweis\{[^}]*background:var\(--menue-farbe-hud-grund\)[^}]*border:var\(--menue-mass-px-kontur-fein\) solid var\(--k\)/);
     expect(css).toMatch(/#toast \.toast,#toast \.toast\.lang\{background:var\(--menue-farbe-hud-grund\)/);
+  });
+});
+
+// ---- Review A84 W1: Verhalten statt nur Quelltext ----
+/** Winzige DOM-Nachbildung nur für die Bausteine (Vitest läuft ohne Browser). */
+function attrappe() {
+  const mime: string[] = [];
+  class El {
+    tag: string; className = ''; attrs: Record<string, string> = {}; kinder: unknown[] = []; ereignisse: Record<string, () => void> = {};
+    constructor(tag: string) { this.tag = tag; }
+    setAttribute(k: string, v: string) { this.attrs[k] = v; }
+    hasAttribute(k: string) { return k in this.attrs; }
+    addEventListener(k: string, f: () => void) { this.ereignisse[k] = f; }
+    append(...k: unknown[]) { this.kinder.push(...k); }
+  }
+  const doc = { createElement: (t: string) => new El(t), createTextNode: (t: string) => ({ text: t }), importNode: (n: unknown) => n };
+  class Parser { parseFromString(_t: string, m: string) { mime.push(m); return { documentElement: new El('svg') }; } }
+  return { doc, Parser, mime, El };
+}
+describe('A84 (Review W1) Bausteine verhalten sich richtig', () => {
+  it('A84: Symbole werden als SVG geparst, gesperrte Plus/Minus-Knöpfe sind wirklich gesperrt, Euro-Preis bekommt die Münze', async () => {
+    const a = attrappe();
+    vi.stubGlobal('document', a.doc); vi.stubGlobal('DOMParser', a.Parser);
+    try {
+      const b = await import('../src/ui/bausteine');
+      b.symbol('plus');
+      expect(a.mime).toEqual(['image/svg+xml']);
+      const aus = b.stepper('minus', 'Senken', () => {}, true) as unknown as InstanceType<typeof a.El>;
+      expect(aus.hasAttribute('disabled')).toBe(true);
+      expect(aus.attrs['aria-label']).toBe('Senken');
+      const an = b.stepper('plus', 'Erhöhen', () => {}, false) as unknown as InstanceType<typeof a.El>;
+      expect(an.hasAttribute('disabled')).toBe(false);
+      const geld = b.knopf('Kaufen', () => {}, 'geld', { unter: '100 €' }) as unknown as InstanceType<typeof a.El>;
+      const zeile = geld.kinder.at(-1) as InstanceType<typeof a.El>;
+      expect(zeile.tag).toBe('small');
+      expect((zeile.kinder[0] as InstanceType<typeof a.El>).className).toBe('sym preis-sym');
+      const frei = b.knopf('Planen', () => {}, 'los', { unter: 'kostenlos' }) as unknown as InstanceType<typeof a.El>;
+      expect((frei.kinder.at(-1) as InstanceType<typeof a.El>).kinder.length).toBe(1); // keine Münze bei Kostenlosem
+      const gesperrt = b.knopf('Ausbauen', () => {}, 'geld', { unter: 'Ziele noch offen', aus: true }) as unknown as InstanceType<typeof a.El>;
+      expect((gesperrt.kinder.at(-1) as InstanceType<typeof a.El>).kinder.length).toBe(1); // gesperrt: Grund statt Preis, keine Münze
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it('A84: Tippflächen – Tokens und CSS halten mindestens 44 px, Plus/Minus 48 px', () => {
+    const t = JSON.parse(lies('design/tokens.json'));
+    expect(t.menue.mass_px.knopf_hoehe).toBeGreaterThanOrEqual(48);
+    expect(t.menue.mass_px.knopf_hoehe_klein).toBeGreaterThanOrEqual(44);
+    expect(t.menue.mass_px.schliessen).toBeGreaterThanOrEqual(44);
+    const css = lies('src/ui/stil.css');
+    expect(css).toMatch(/\.knopf\.stepper\{width:48px;min-width:48px/);
+    expect(css).toMatch(/\.knopf\.klein\{min-height:var\(--menue-mass-px-knopf-hoehe-klein\)/);
+    expect(css).toMatch(/\.knopf\.los,\.knopf\.taler,\.knopf\.blau,\.knopf\.gefahr\{--t:#fff;/); // weiße Schrift auf Rot/Grün/Violett/Blau
+  });
+  it('A84: Plus erhöht, Minus senkt (Wärmepreis, Grundgebühr, Vorlauf)', () => {
+    const k = lies('src/ui/kontext.ts');
+    expect(k).toMatch(/stepper\('plus', 'Wärmepreis erhöhen', \(\) => \{ sp\.preisSetzen\(s\.preisstufe \+ 1\)/);
+    expect(k).toMatch(/stepper\('minus', 'Wärmepreis senken', \(\) => \{ sp\.preisSetzen\(s\.preisstufe - 1\)/);
+  });
+  it('A84 (Review W2): Was Euro kostet, ist Gold – auch Vorsehung setzen und Leitung tauschen', () => {
+    const k = lies('src/ui/kontext.ts');
+    expect(k).toContain("o.vorsehung ? '' : 'geld'");
+    expect(k).toMatch(/knopf\(`Tauschen: \$\{KATALOG\[t\]\.name\}`, [^]*?, 'geld', \{ unter: eur/);
+  });
+});
+
+describe('A84 Designer-Treueprüfung (Nr. 1–7)', () => {
+  it('A84: kein Fokusrahmen um die ganze Tafel, Update-Hinweis weicht Fenstern aus, Popup mittig, schmale Handys', () => {
+    const css = lies('src/ui/stil.css');
+    expect(css).toContain('#ebene>.blatt:focus,#ebene>.blatt:focus-visible{outline:none}');
+    expect(css).toContain('body:has(#ebene .blatt.popup) .update-hinweis{display:none}');
+    expect(css).toMatch(/\.blatt-offen \.update-hinweis\{left:/);
+    expect(css).toContain('#ebene.mitte>.blatt.popup{align-self:center}');
+    expect(css).toMatch(/@media \(orientation:landscape\) and \(max-width:799px\)\{\.hud-links\{width:170px\}/);
+  });
+  it('A84: Plus/Minus einfarbig kräftig, gesperrte Knöpfe ohne Münze, Hausausbau gesperrt als Knopf mit Grund', async () => {
+    expect(SYMBOLE.plus).not.toContain('#fff6e2'); expect(SYMBOLE.minus).not.toContain('#fff6e2');
+    const k = lies('src/ui/kontext.ts');
+    expect(k).not.toContain("'Für die nächste Stufe erst die Heizzentrale ausbauen.'");
+    expect(k).toContain("knopf(`Stufe ${o.stufe + 1}`, () => undefined, '', { aus: true, unter: 'Erst Heizzentrale ausbauen' })");
   });
 });

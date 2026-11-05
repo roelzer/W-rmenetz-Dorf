@@ -109,7 +109,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* weiße Schrift mit Kontur (Fläche erreicht auch ohne Kontur >= 4,5:1) */
 .knopf.los,.knopf.taler,.knopf.blau,.knopf.gefahr{--t:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-knopf) var(--k);paint-order:stroke fill;text-shadow:0 2px 0 var(--k)}
 .knopf.los{--f:var(--menue-knopf-haupt-0);--u:var(--menue-knopf-haupt-1)}
-.knopf.geld,.knopf.heiss{--f:var(--menue-knopf-geld-0);--u:var(--menue-knopf-geld-1);--t:var(--k);text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.knopf.geld{--f:var(--menue-knopf-geld-0);--u:var(--menue-knopf-geld-1);--t:var(--k);text-shadow:0 1px 0 rgba(255,255,255,.55)}
 .knopf.gefahr{--f:var(--menue-knopf-gefahr-0);--u:var(--menue-knopf-gefahr-1)}
 .knopf.taler{--f:var(--menue-knopf-taler-0);--u:var(--menue-knopf-taler-1)}
 .knopf.blau{--f:var(--menue-knopf-info-0);--u:var(--menue-knopf-info-1)}
@@ -359,3 +359,12 @@ span.schriftzug>span.heat{color:#ff8a1f}span.schriftzug>span.ville{color:#3a92ea
 /* Menü-Stil v2: dunkle Kapsel wie die Meldung (DESIGN.md 12.8) */
 .update-hinweis{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--menue-farbe-hud-grund);color:var(--menue-farbe-hud-text);border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:16px;box-shadow:0 3px 0 var(--k);padding:6px 8px 6px 14px;z-index:50;max-width:calc(100% - 32px);font-weight:700}
 .update-hinweis .knopf{min-height:44px}
+/* A84 Treue Nr. 2: Hinweis nie über einem offenen Fenster bzw. der Seitenfläche */
+.blatt-offen .update-hinweis{left:max(12px,env(safe-area-inset-left));transform:none;max-width:calc(100% - min(46%,400px) - 36px)}
+body:has(#ebene .blatt.popup) .update-hinweis{display:none}
+/* A84 Treue Nr. 1: das Fenster selbst bekommt beim Öffnen den Fokus – ohne Rahmen um die ganze Tafel */
+#ebene>.blatt:focus,#ebene>.blatt:focus-visible{outline:none}
+/* A84 Treue Nr. 7: Popups mittig mit Rand statt am Bildschirmrand */
+#ebene.mitte>.blatt.popup{align-self:center}
+/* A84 Treue Nr. 3: schmalere Handys quer (bis 667 px) – HUD-Kapseln dürfen Dorfschild und Zahnrad nicht überdecken */
+@media (orientation:landscape) and (max-width:799px){.hud-links{width:170px}.pille{min-width:0}.pillen{gap:var(--abstand-px-1)}}

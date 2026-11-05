@@ -11,8 +11,8 @@ export function symbol(name: SymbolName, klasse = 'sym'): HTMLSpanElement {
 type Variante = '' | 'los' | 'geld' | 'taler' | 'gefahr' | 'blau' | 'gewaehlt';
 export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string } = {}): HTMLButtonElement {
   const k = h('button', { type: 'button', class: `knopf ${variante} ${zusatz.klein ? 'klein' : ''}`.trim(), disabled: zusatz.aus || undefined, onclick: bei, 'data-id': zusatz.id }, text);
-  // Preiszeile mit Münze bzw. Taler davor: Der Preis ist so auch ohne Farbe als Preis erkennbar
-  if (zusatz.unter) k.append(h('small', {}, variante === 'geld' || variante === 'taler' ? symbol(variante, 'sym preis-sym') : null, zusatz.unter));
+  // Preiszeile mit Münze bzw. Taler davor: Der Preis ist so auch ohne Farbe als Preis erkennbar (gesperrt steht dort ein Grund, kein Preis)
+  if (zusatz.unter) k.append(h('small', {}, (variante === 'geld' || variante === 'taler') && !zusatz.aus ? symbol(variante, 'sym preis-sym') : null, zusatz.unter));
   return k;
 }
 

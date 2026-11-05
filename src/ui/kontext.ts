@@ -98,7 +98,9 @@ export class Kontext {
     const sp = this.ui.spiel, D = KATALOG[o.typ];
     if (!D.kosten_eur || !D.bauzeit_s) return;
     if (o.stufe >= sp.maxStufe(o)) {
-      c.append(h('p', { class: 'gedaempft' }, o.stufe >= KONSTANTEN.hoechststufe ? 'Höchste Stufe erreicht.' : 'Für die nächste Stufe erst die Heizzentrale ausbauen.'));
+      // gesperrt: deaktivierter Knopf mit Grund statt grauem Text an Knopfstelle (DESIGN.md 12.13 Punkt 5)
+      c.append(o.stufe >= KONSTANTEN.hoechststufe ? h('p', { class: 'gedaempft' }, 'Höchste Stufe erreicht.')
+        : h('div', { class: 'knopfreihe' }, knopf(`Stufe ${o.stufe + 1}`, () => undefined, '', { aus: true, unter: 'Erst Heizzentrale ausbauen' })));
       return;
     }
     const k = D.kosten_eur[o.stufe], zeit = D.bauzeit_s[o.stufe];
@@ -262,9 +264,9 @@ export class Kontext {
       ? `T-Stück mit Vorsehung geplant (${eur(KONSTANTEN.vorsehung_eur)}): Hier kann später ein Anschluss andocken, ohne die laufende Leitung anzubohren. Die Leitung darf hier auch dünner werden.`
       : 'T-Stück mit Vorsehung: Ein späterer Anschluss dockt hier ohne Anbohrung an – die Leitung läuft dabei weiter.'));
     else if (!o.geplant && n.tiefe.has(key)) c.append(h('p', { class: 'gedaempft' }, `Ohne Vorsehung muss für einen neuen Abzweig die laufende Leitung angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}). Am Leitungsende geht es ohne.`));
-    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'los', { klein: true, unter: o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}` })));
+    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, unter: o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}` })));
     const tausch = o.geplant ? [] : LEITUNGEN.filter((t) => t !== o.typ && sp.grenze(t) > 0);
-    if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch.map((t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, '', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }))));
+    if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch.map((t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }))));
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
   }
 

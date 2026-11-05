@@ -158,7 +158,7 @@ Anlass: Simon: „Die Menüs sind noch recht hässlich … gerne an sowas wie Cl
 
 ### 12.1 Richtung
 **Plastische Spielmenüs wie Spielzeug aus der Kiste:** dicke dunkelbraune Kontur, Knöpfe mit Unterkante, die sich beim Tippen eindrücken, cremefarbene Tafeln mit blauem Kopfband, Titel in dicker Spielschrift mit Kontur. Das passt zum Ladebild (`src/ui/vorspann.ts`: Kontur `#3b1d0a`, Schrift Lilita One, Heat-Orange und net-Blau) und zur Kartengrafik, die schon dunkle Umrisse hat. Menüs und Ladebild sprechen damit eine Sprache.
-- **Erkennungsmerkmal: die Rohrnaht.** Unter jedem Kopfband liegt ein 4 px Streifen, links Orange (Vorlauf, „Heat“), rechts Blau (Rücklauf, „net“), hart in der Mitte geteilt. Das ist das Logo-Paar als Leitung und gibt es so in keinem anderen Spiel.
+- **Erkennungsmerkmal: die Rohrnaht.** Unter jedem Kopfband liegt ein 4 px Streifen, links Orange (Vorlauf, „Heat“), rechts Blau (Rücklauf, „ville“ – seit 2026-11-05 heißt das Spiel Heatville, das Farbpaar bleibt), hart in der Mitte geteilt. Das ist das Logo-Paar als Leitung und gibt es so in keinem anderen Spiel.
 - **Nur Genre, keine Kopie:** keine fremde Schrift (Lilita One ist frei, OFL, und schon im Projekt), keine Holz- oder Steintexturen, keine Wappen- oder Schildformen, keine Figuren, keine fremden Namen, kein fremdes Layout. Unser Aufbau (Seitenfläche rechts, Anzeigen oben) bleibt.
 - **Bewusste Abweichung vom Oberflächen-Standard** (`wissen/oberflaeche.md`: „Bewegung nie verspielt“, eine Schrift, keine Rahmen plus Schatten): Simon wünscht ausdrücklich den verspielten Genre-Look. Lesbarkeit, Kontrast, Tastatur, Fokus und Tippflächen gelten unverändert (12.10). Der Projektleiter trägt das in `docs/ENTSCHEIDUNGEN.md` ein.
 
@@ -181,7 +181,7 @@ Anlass: Simon: „Die Menüs sind noch recht hässlich … gerne an sowas wie Cl
 
 ### 12.3 Schrift
 - **Lilita One** (`menue.schrift.anzeige`, schon geladen über `vorspann.ts`) **nur** für: Tafel-Titel 22 px (Popup 26), Knopf-Beschriftung 18 px (klein 16), Kasten-Titel 16, Dorfname 18, Stufen-Abzeichen 15, Rundknopf-Etikett 15, Katalog-Kartentitel 16. Laufweite +0,02 em. Umlaute, ß, €, ’ und − sind enthalten (gemessen im Browser).
-- **Manrope** für alles andere: Fließtext 13–14 px/500, gedämpft 600, Zeilenwert 15/800, Chip 13/800, Knopf-Zweitzeile 12/800, **HUD-Wert 16/800**. Jede Zahl, die sich ändert, in Manrope mit `tabular-nums` (Lilita hat keine gleich breiten Ziffern, die Anzeige würde zappeln).
+- **Manrope** für alles andere: Fließtext 13–14 px/500, gedämpft 600, Zeilenwert 15/800, Chip 13/800, Knopf-Zweitzeile 12/800, **HUD-Wert 16/800** (im Querformat bis 900 px Breite 14/800, Treueprüfung 2026-11-05: bei 16 px passen die fünf Anzeigen auf 844 px nicht mehr neben das Dorfschild). Jede Zahl, die sich ändert, in Manrope mit `tabular-nums` (Lilita hat keine gleich breiten Ziffern, die Anzeige würde zappeln).
 - Höchstens zwei Schriftgrößen je Kasten (Titel + Text).
 
 ### 12.4 Kontur, Schatten, Sockel
@@ -291,3 +291,13 @@ Fotos: HUD oben · Hauskarte (oben und ganz unten gescrollt) · Heizzentralen-Ka
 11. Fokus mit Tab sichtbar: auf Tafel braun, im Kopfband weiß, im HUD hellgelb.
 12. Kein Text abgeschnitten, keine waagrechte Scrollleiste, Tippflächen ≥ 44 px (per Skript gemessen: `getBoundingClientRect` aller `button` in der Tafel).
 13. Keine Farbe, Größe oder Zeit steht direkt in `stil.css` außer den in der Referenz-Datei genannten Schatten-Deckkräften; der Test „A2 – Design-Variablen“ bleibt grün.
+
+### 12.14 Entscheidungen aus der Treueprüfung A84 (2026-11-05)
+- Plus/Minus: Symbol einfarbig dunkel (keine helle Füllung auf Creme), Strichstärke 3,5 im 24er-Raster.
+- HUD-Wert 14 px im Querformat angenommen (siehe 12.3).
+- Fokusrahmen angenommen; Ausnahme: die Tafel selbst bekommt beim Öffnen keinen Rahmen, nur ihre Bedienelemente.
+- Gold für alles, was Euro kostet, angenommen (Regel 12.5). Münzsymbol in Zeile 2 nur, wenn dort ein Preis steht – nicht vor einem Grund.
+- Gesperrte Ausbau-Stufe ist überall ein deaktivierter Knopf mit Grund in Zeile 2 (auch in der Hauskarte), nie grauer Text.
+- Sprechblase und Banner ziehen im nächsten Abschnitt auf den Tafel-Look nach: Creme `tafel`, 2 px `kontur`, Sockel `0 3px 0 kontur`, Radius 14 (Ecke zum Sprecher 4), Name in Lilita 15 `kontur`, Text Manrope 600 14 `text`.
+- Update-Hinweis darf nie über einer offenen Tafel liegen: bei Seitenfläche links daneben, bei Popup ausgeblendet bis zum Schließen.
+- Popups mittig (Abschnitt 5), nicht rechtsbündig.

@@ -16,9 +16,9 @@ export const SYMBOLE = {
   stern: SVG(`<path d="M12 2.500l2.800 6 6.500.7-4.900 4.400 1.400 6.400L12 16.600l-5.800 3.400 1.400-6.400L2.700 9.200l6.500-.7z" fill="#f6c22c" ${U}/>`),
   ausruf: SVG(`<circle cx="12" cy="12" r="10" fill="#e2582b" ${U}/><path d="M12 6.500v7" stroke="#fff" stroke-width="2.800" stroke-linecap="round"/><circle cx="12" cy="17.300" r="1.700" fill="#fff"/>`),
   zahnrad: SVG(`<path d="M12 8.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7zM10.500 2.500h3l.5 2.300 1.700.7 2-1.300 2.100 2.100-1.300 2 .7 1.700 2.300.5v3l-2.300.5-.7 1.700 1.300 2-2.100 2.100-2-1.300-1.700.7-.5 2.300h-3l-.5-2.300-1.700-.7-2 1.300-2.100-2.100 1.300-2-.7-1.700-2.300-.5v-3l2.300-.5.700-1.700-1.300-2 2.100-2.100 2 1.300 1.700-.7z" fill="#fff6e2" ${U}/>`),
-  // Plus/Minus für Stufenknöpfe: dunkler Unterstrich + helle Linie wie beim Schließen-X, damit sie auf Creme und Grau lesbar bleiben
-  plus: SVG(`<path d="M12 5v14M5 12h14" stroke="#1a1208" stroke-width="5" stroke-linecap="round"/><path d="M12 5v14M5 12h14" stroke="#fff6e2" stroke-width="2.4" stroke-linecap="round"/>`),
-  minus: SVG(`<path d="M5 12h14" stroke="#1a1208" stroke-width="5" stroke-linecap="round"/><path d="M5 12h14" stroke="#fff6e2" stroke-width="2.4" stroke-linecap="round"/>`),
+  // Plus/Minus für Stufenknöpfe: ein kräftiges dunkles Zeichen (Designer-Treueprüfung A84 Nr. 4: hell gefüllt wirkte es hohl)
+  plus: SVG(`<path d="M12 5v14M5 12h14" stroke="#1a1208" stroke-width="3.5" stroke-linecap="round"/>`),
+  minus: SVG(`<path d="M5 12h14" stroke="#1a1208" stroke-width="3.5" stroke-linecap="round"/>`),
   schloss: SVG(`<path d="M8 10V7.500a4 4 0 0 1 8 0V10" fill="none" stroke="#1a1208" stroke-width="2.200" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2.500" fill="#f6c22c" ${U}/><circle cx="12" cy="14.300" r="1.500" fill="#7a5200"/><path d="M12 15.500v2" stroke="#7a5200" stroke-width="1.600" stroke-linecap="round"/>`),
 } as const;
 
