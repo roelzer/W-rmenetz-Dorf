@@ -22,6 +22,9 @@ function werte(t: TypId): string {
 export class Katalog {
   private blatt: Blatt | null = null;
   private kategorie: Kategorie = 'netz';
+  /** A92: Phase des Bauabschnitts beim letzten Aufbau und die Restzeit-Anzeige darin – fürs Auffrischen ohne Neuaufbau. */
+  private gebautePhase: string | undefined;
+  private restzeit: HTMLElement | null = null;
 
   constructor(private readonly ui: Ui) {}
 
@@ -32,9 +35,21 @@ export class Katalog {
   }
   schliessen(): void { this.blatt?.zu(); }
 
+  /** A92: Läuft der Bauabschnitt weiter, zählt nur die Restzeit; wechselt seine Phase (z. B. Planung fertig), wird das Blatt einmal neu gebaut.
+   *  Tut bei geschlossenem Blatt nichts. */
+  aktualisieren(): void {
+    if (!this.blatt || this.kategorie !== 'netz') return;
+    if (this.ui.spiel.abschnitt?.phase !== this.gebautePhase) { this.aufbauen(); return; }
+    if (this.restzeit) this.restzeit.textContent = this.restText();
+  }
+  private restText(): string {
+    return zeitText(Math.ceil(Math.max(0, (this.ui.spiel.abschnitt?.bau?.ende_ms ?? 0) - this.ui.jetzt_ms()) / 1000));
+  }
+
   private aufbauen(): void {
     if (!this.blatt) return;
     const { spiel: sp } = this.ui, s = sp.stand;
+    this.gebautePhase = sp.abschnitt?.phase; this.restzeit = null;
     const reiter = h('div', { class: 'reiter', role: 'tablist' }, ...BAU_KATEGORIEN.map(([k, name]) =>
       h('button', { type: 'button', role: 'tab', 'aria-selected': k === this.kategorie, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, onclick: () => { this.kategorie = k; this.aufbauen(); } }, name)));
     const raster = h('div', { class: 'raster' });
@@ -49,13 +64,13 @@ export class Katalog {
   private abschnittKasten(): HTMLElement {
     const sp = this.ui.spiel, a = sp.abschnitt, k = h('div', { class: 'kasten' });
     const neu = (): void => { this.ui.geaendert(); this.aufbauen(); };
-    const rest = (): string => zeitText(Math.ceil(Math.max(0, (a?.bau?.ende_ms ?? 0) - this.ui.jetzt_ms()) / 1000));
+    const rest = (): HTMLElement => { this.restzeit = h('span', {}, this.restText()); return this.restzeit; };
     k.append(h('h3', {}, 'Bauabschnitt')); // Mini-Kopfband wie jeder Kasten (DESIGN.md 12.7)
     if (!a) {
       k.append(h('p', { class: 'gedaempft' }, `Leitungen werden abschnittsweise gebaut: ${ABSCHNITT_HELFER.planung} plant, du zeichnest die Leitungen ein, ${ABSCHNITT_HELFER.material} bestellt das Material, danach dauert der Bau.`),
         h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'geld', { unter: eur(KONSTANTEN.abschnitt_planung_eur), aus: sp.stand.geld_eur < KONSTANTEN.abschnitt_planung_eur })));
     } else if (a.phase === 'planung') {
-      k.append(h('p', {}, `${ABSCHNITT_HELFER.planung} plant den Abschnitt … noch ${rest()}`));
+      k.append(h('p', {}, `${ABSCHNITT_HELFER.planung} plant den Abschnitt … noch `, rest()));
     } else if (a.phase === 'offen') {
       const n = sp.abschnittLeitungen();
       // A88/F1: Gestattung, Spülbohrung, Anbohrung und Vorsehung erst erwähnen, wenn sie freigeschaltet sind – vorher kosten sie nichts.
@@ -81,7 +96,7 @@ export class Katalog {
       const c = a.bau ? sp.beschleunigungskosten_taler(a.bau) : 0;
       const ex = sp.expresskosten_eur();
       const sperreExpress = sp.sperrgrund('express');
-      k.append(h('p', {}, `Der Bauabschnitt wird gebaut … noch ${rest()}${a.express ? ' (Expresslieferung)' : ''}`),
+      k.append(h('p', {}, 'Der Bauabschnitt wird gebaut … noch ', rest(), a.express ? ' (Expresslieferung)' : ''),
         h('div', { class: 'knopfreihe' },
           // A88: gesperrt = deaktiviert mit Grund statt Preis
           a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: sperreExpress ?? eur(ex), aus: sperreExpress !== null || sp.stand.geld_eur < ex }),
