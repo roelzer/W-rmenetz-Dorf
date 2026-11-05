@@ -63,3 +63,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 11:32 | ▶ | reviewer | Review A86, A87, HUD-Fix |
 | 2026-11-05 11:34 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig (ein wichtiger Befund).** Prüfmodus „paket“ (klein), geprüft wurde `2406971..23a324b`.  ([Bericht](docs/pruefberichte/20261105-113409-reviewer-ae640507c50297d1b.md)) |
 | 2026-11-05 11:35 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit einem kleinen Punkt.** Nachprüfung von `23a324b..ad64d6a`, in einer eigenen Kopie geprüft. Die Kopie ist wieder entfernt, der Projektor ([Bericht](docs/pruefberichte/20261105-113548-reviewer-ae640507c50297d1b.md)) |
+| 2026-11-05 11:36 | ▶ | architekt | Bauplan NR1 Freischalt-Leiter |
