@@ -27,6 +27,10 @@ export type Ereignis =
 export interface Ergebnis { ok: boolean; hinweis?: string }
 const ok = (): Ergebnis => ({ ok: true });
 
+/** Ein Spieltag in ms (1 Spieljahr = 365 Tage). */
+const SPIELTAG_MS = SPIELJAHR_MS / 365;
+const tageText = (t: number): string => `${t} ${t === 1 ? 'Tag' : 'Tage'}`;
+
 export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT): Spielstand {
   const ort = ortHolen(ortId);
   const objekte: Objekt[] = [];
@@ -256,8 +260,8 @@ export class Spiel {
   /** Name des Spielers für die Ansprache der Helfer (A51). */
   get spielerName(): string { return this.stand.spieler?.trim() || 'Chef'; }
   private sagt(figur: string, text: string): void { this.ereignisse.push({ art: 'sprecher', figur, text }); }
-  /** Lieferzeit des Materials in Spielwochen (1 Spieljahr = 52 Wochen); mindestens 1. */
-  lieferwochen(): number { return Math.max(1, Math.round(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor * 1000 / (SPIELJAHR_MS / 52))); }
+  /** Lieferzeit des Materials in Spieltagen (1 Spieljahr = 365 Tage); mindestens 1. Wochen wären zu grob (Review: immer „1 Woche“). */
+  liefertage(): number { return Math.max(1, Math.round(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor * 1000 / SPIELTAG_MS)); }
   private braucheMonteur(): boolean {
     if (this.beschaeftigt() >= this.monteure()) { this.nein('Alle Monteure sind beschäftigt'); return false; }
     return true;
@@ -441,7 +445,8 @@ export class Spiel {
     const geplant = this.stand.objekte.filter((a) => a.geplant);
     const letzte = geplant[geplant.length - 1];
     if (!letzte) return { ok: false };
-    this.stand.objekte = this.stand.objekte.filter((a) => a !== letzte);
+    // Review: Ein automatisch gezogener Hausanschluss wird als Ganzes zurückgenommen.
+    this.stand.objekte = this.stand.objekte.filter((a) => a !== letzte && !(letzte.gruppe !== undefined && a.geplant && a.gruppe === letzte.gruppe));
     return ok();
   }
   /** A47: Häuser und Großabnehmer, die an eine geplante Leitung des Bauabschnitts grenzen und noch an keiner gebauten Leitung hängen: Das sind die Hausanschlüsse dieses Abschnitts. */
@@ -668,7 +673,8 @@ export class Spiel {
     const weg: number[] = [];
     for (let z = ziel; z >= 0; z = von.get(z) as number) weg.push(Math.floor(z / 4));
     if (this.leitungsanzahl() + weg.length > this.grenze(typ)) return this.nein('Zu viele Leitungen für diese Heizzentralen-Stufe');
-    for (const f of weg) this.stand.objekte.push({ id: this.stand.naechste_id++, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
+    const gruppe = this.stand.naechste_id;
+    for (const f of weg) this.stand.objekte.push({ id: this.stand.naechste_id++, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0, geplant: true, gruppe, _pop: this.uhr() });
     this.hinweis(`Hausanschluss geplant: ${weg.length} Felder, ${KATALOG[typ].name}`);
     return ok();
   }
@@ -717,8 +723,8 @@ export class Spiel {
     this.vorsehungenVerbrauchen();
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
     a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
-    const w = this.lieferwochen();
-    this.sagt(ABSCHNITT_HELFER.material, `Hey ${this.spielerName}, dein Material ist bestellt. Lieferzeit: ${w} ${w === 1 ? 'Woche' : 'Wochen'}.`);
+    const t = this.liefertage();
+    this.sagt(ABSCHNITT_HELFER.material, `Hey ${this.spielerName}, dein Material ist bestellt. Lieferzeit: ${tageText(t)}.`);
     return ok();
   }
 
@@ -732,27 +738,28 @@ export class Spiel {
   }
   /** A62: Aufpreis für die Expresslieferung des laufenden Bauabschnitts. */
   expresskosten_eur(): number {
-    const m = this.stand.abschnitt?.material_eur ?? 0;
+    // Review: Alte Spielstände ohne gemerkten Materialpreis rechnen mit den (noch geplanten) Leitungen des Abschnitts.
+    const m = this.stand.abschnitt?.material_eur ?? this.abschnittKosten_eur();
     return Math.max(KONSTANTEN.express_min_eur, Math.round(m * KONSTANTEN.express_anteil));
   }
-  /** Restliche Lieferzeit des Bauabschnitts in Spielwochen (mindestens 1). */
-  restwochen(): number {
+  /** Restliche Lieferzeit des Bauabschnitts in Spieltagen (mindestens 1). */
+  resttage(): number {
     const a = this.stand.abschnitt;
     if (!a?.bau) return 0;
-    return Math.max(1, Math.round(Math.max(0, a.bau.ende_ms - this.uhr()) / (SPIELJAHR_MS / 52)));
+    return Math.max(1, Math.round(Math.max(0, a.bau.ende_ms - this.uhr()) / SPIELTAG_MS));
   }
   /** A62: Expresslieferung (Laura): einmal je Abschnitt, gegen Aufpreis schrumpft die Restlieferzeit deutlich. */
   expressLiefern(): Ergebnis {
     const a = this.stand.abschnitt;
     if (a?.phase !== 'bau' || !a.bau) return { ok: false };
     if (a.express) return this.nein('Express ist schon bestellt');
+    if (a.bau.ende_ms - this.uhr() < SPIELTAG_MS) return this.nein('Das Material kommt sowieso in weniger als einem Tag – Express lohnt sich nicht mehr');
     const b = this.bezahlen({ eur: this.expresskosten_eur() });
     if (!b.ok) return b;
     const jetzt = this.uhr(), rest = Math.max(0, a.bau.ende_ms - jetzt);
     a.bau.ende_ms = jetzt + Math.round(rest * KONSTANTEN.express_faktor);
     a.express = true;
-    const w = this.restwochen();
-    this.sagt(ABSCHNITT_HELFER.material, `Alles klar ${this.spielerName}, ich hab auf Express umgestellt. Dein Material kommt jetzt in ${w} ${w === 1 ? 'Woche' : 'Wochen'}.`);
+    this.sagt(ABSCHNITT_HELFER.material, `Alles klar ${this.spielerName}, ich hab auf Express umgestellt. Dein Material kommt jetzt in ${tageText(this.resttage())}.`);
     return ok();
   }
 
@@ -865,7 +872,7 @@ export class Spiel {
     if (ab?.bau && ab.bau.ende_ms <= t) {
       if (ab.phase === 'planung') { ab.phase = 'offen'; ab.bau = null; this.hinweis(`${ABSCHNITT_HELFER.planung} ist fertig: Zeichne jetzt die Leitungen ein`); }
       else {
-        for (const o of s.objekte) if (o.geplant) { delete o.geplant; o._pop = t; }
+        for (const o of s.objekte) if (o.geplant) { delete o.geplant; delete o.gruppe; o._pop = t; }
         delete s.abschnitt; this.hinweis('Bauabschnitt fertig – die Leitungen liegen'); this.ereignisse.push({ art: 'funken', objekt_id: 'heizzentrale' });
       }
       geaendert = true;
@@ -928,8 +935,11 @@ export class Spiel {
       }
     }
     // A50: Sind die Anschlussnehmer lange zufrieden, sprechen sich das die Nachbarn herum: einzelne Häuser möchten ebenfalls anschließen.
-    const warmeHaeuser = s.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && istKunde(o) && this.netz.warm.has(o.id));
-    if (warmeHaeuser.length && warmeHaeuser.every((o) => (o.zufriedenheit_pct ?? 80) >= KONSTANTEN.interesse_ab_pct)) {
+    // Review: Alle angeschlossenen Kunden zählen – friert einer oder ist einer unzufrieden, beginnt die Zeit von vorn.
+    const warmeHaeuser = s.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && istKunde(o) && this.netz.anschluss.has(o.id));
+    const alleZufrieden = warmeHaeuser.length > 0 && warmeHaeuser.every((o) => this.netz.warm.has(o.id) && (o.zufriedenheit_pct ?? 80) >= KONSTANTEN.interesse_ab_pct);
+    if (!alleZufrieden) s.zufrieden_s = 0;
+    else {
       s.zufrieden_s = (s.zufrieden_s ?? 0) + dt_s;
       while ((s.zufrieden_s ?? 0) >= KONSTANTEN.interesse_alle_s) {
         s.zufrieden_s = (s.zufrieden_s ?? 0) - KONSTANTEN.interesse_alle_s;

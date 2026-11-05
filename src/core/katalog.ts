@@ -351,7 +351,7 @@ export const KONSTANTEN = {
   /** A41: Planung durch Philipp (Sekunden vor Spieltempo) und Planungsgebühr in € */
   abschnitt_planung_s: 30,
   abschnitt_planung_eur: 2000,
-  /** A41: Bauzeit eines Bauabschnitts nach der Materialbestellung (Sekunden vor Spieltempo; entspricht „ein Jahr Wartezeit“, für die Vorführung verkürzt) */
+  /** A41: Bauzeit eines Bauabschnitts nach der Materialbestellung (Sekunden vor Spieltempo; Laura sagt die Lieferzeit in Spieltagen an) */
   abschnitt_bau_s: 360,
   /** A62: Expresslieferung – Aufpreis als Anteil am Material (mindestens express_min_eur), Restlieferzeit schrumpft auf express_faktor */
   express_anteil: 0.3,
@@ -372,7 +372,7 @@ export const KONSTANTEN = {
   /** A50: Nach so vielen Sekunden zufriedener Kunden möchte ein weiteres Haus anschließen (Spielwert) */
   interesse_alle_s: 600,
   interessenten_max: 4,
-  /** A50: Ab dieser Zufriedenheit aller Kunden spricht es sich herum (heißt: Preis höchstens 11 ct/kWh) */
+  /** A50: Ab dieser Zufriedenheit aller Kunden spricht es sich herum (alle angeschlossenen Kunden warm und so zufrieden; sonst beginnt die Zeit von vorn) */
   interesse_ab_pct: 75,
   /** A50: Nachlass auf die Übergabestation für ein Haus, das selbst angeklopft hat */
   interessent_nachlass: 0.2,

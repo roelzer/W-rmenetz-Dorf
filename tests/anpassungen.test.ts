@@ -620,7 +620,7 @@ describe('A51 Helfer sprechen den Spieler an', () => {
     t += 600_000; s.bis(t); sagt();
     s.platzieren('d50', 10, 18); s.abschnittAbschliessen(); s.materialBestellen();
     const l = sagt()[0];
-    expect(l.figur).toBe('Laura'); expect(l.text).toMatch(/Simon/); expect(l.text).toMatch(/Woche/);
+    expect(l.figur).toBe('Laura'); expect(l.text).toMatch(/Simon/); expect(l.text).toMatch(/Lieferzeit: ([2-9]|\d{2,}) Tage/); // Review: Ansage in Tagen statt immer „1 Woche“
     const haus = s.stand.objekte.find((o) => o.station)!;
     s.upgradeKaufen(haus.id);
     const tech = sagt()[0];
@@ -907,5 +907,63 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const ohne = kosten(false), mit = kosten(true);
     expect(mit.anbohrungen).toBe(0);
     expect(mit.eur).toBeLessThanOrEqual(ohne.eur);
+  });
+});
+
+describe('Review A45–A66: Nachbesserungen', () => {
+  it('A50: Friert ein angeschlossener Kunde, kommen keine Interessenten, und die Zeit beginnt von vorn', () => {
+    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.preisstufe = 4;
+    const start = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
+    // Ein Starthaus wächst über seine 15-kW-Station hinaus: angeschlossen, aber kalt
+    Object.assign(start[0], { station: 'st_15', aufgestockt: true, vollversorgung: true });
+    s.neuBerechnen();
+    s.stand.zufrieden_s = 500;
+    for (let i = 0; i < 40; i++) { t += 60_000; s.bis(t); }
+    expect(s.netz.anschluss.has(start[0].id)).toBe(true);
+    expect(s.netz.warm.has(start[0].id)).toBe(false);
+    expect(s.stand.objekte.some((o) => o.interessent)).toBe(false);
+    expect(s.stand.zufrieden_s).toBe(0);
+  });
+  it('A62: Laura sagt die Lieferzeit in Tagen an; nach Express ist sie kürzer; kurz vor Lieferende gibt es keinen Express mehr', () => {
+    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 100_000; s.stand.abschnitt = { phase: 'offen', bau: null };
+    const ende = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 11 && o.y === 14)!;
+    const frei = ([[1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [ende.x + dx, ende.y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b))!;
+    s.platzieren('d25', frei[0], frei[1]); s.abschnittAbschliessen(); s.ereignisse.length = 0;
+    expect(s.materialBestellen().ok).toBe(true);
+    const tage = (x: { text?: string }) => Number(/(\d+) Tag/.exec(x.text ?? '')?.[1]);
+    const vorher = tage(s.ereignisse.find((e) => e.art === 'sprecher') as { text: string });
+    expect(vorher).toBe(s.liefertage());
+    expect(vorher).toBeGreaterThan(1);
+    s.ereignisse.length = 0;
+    expect(s.expressLiefern().ok).toBe(true);
+    const nachher = tage(s.ereignisse.find((e) => e.art === 'sprecher') as { text: string });
+    expect(nachher).toBeLessThan(vorher);
+    // zweiter Abschnitt: Express eine Sekunde vor Lieferende wird abgelehnt und kostet nichts
+    s.stand.abschnitt!.express = false;
+    t = s.stand.abschnitt!.bau!.ende_ms - 1000;
+    const geld = s.stand.geld_eur;
+    expect(s.expressLiefern().ok).toBe(false);
+    expect(s.stand.geld_eur).toBe(geld);
+  });
+  it('A62: Bei alten Spielständen ohne gemerkten Materialpreis richtet sich Express nach den Leitungen des Abschnitts', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.objekte.push(...Array.from({ length: 12 }, (_, i) => ({ id: 9000 + i, typ: 'd110' as const, x: i, y: 20, stufe: 1, bau: null, kasse_eur: 0, geplant: true })));
+    s.stand.abschnitt = { phase: 'bau', bau: { art: 'neu', start_ms: 0, ende_ms: 10_000_000 } };
+    expect(s.expresskosten_eur()).toBe(Math.max(KONSTANTEN.express_min_eur, Math.round(s.abschnittKosten_eur() * KONSTANTEN.express_anteil)));
+    expect(s.expresskosten_eur()).toBeGreaterThan(KONSTANTEN.express_min_eur);
+  });
+  it('A49: „Letzte zurück“ nimmt einen automatisch gezogenen Hausanschluss als Ganzes zurück', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 1_000_000; s.stand.abschnitt = { phase: 'offen', bau: null };
+    // ein Haus suchen, dessen Anschluss mehrere Felder lang ist
+    for (const haus of s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)) {
+      if (!s.hausanschlussPlanen(haus.id).ok) continue;
+      if (s.abschnittLeitungen() > 1) break;
+      s.abschnittVerwerfen(); s.stand.abschnitt = { phase: 'offen', bau: null };
+    }
+    expect(s.abschnittLeitungen()).toBeGreaterThan(1);
+    expect(s.letzteLeitungZurueck().ok).toBe(true);
+    expect(s.abschnittLeitungen()).toBe(0);
   });
 });
