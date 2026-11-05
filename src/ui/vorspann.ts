@@ -16,9 +16,9 @@ export function logoElement(groesse_px: number): SVGSVGElement {
   return svg;
 }
 
-/** Schriftzug „Heatnet“: „Heat“ warm (Vorlauf), „net“ kühl (Rücklauf). */
+/** Schriftzug „Heatville“ (A85): „Heat“ warm (Vorlauf), „ville“ kühl (Rücklauf). */
 export function schriftzug(): HTMLElement {
-  return h('span', { class: 'schriftzug', 'aria-label': 'Heatnet' }, h('span', { class: 'heat' }, 'Heat'), h('span', { class: 'net' }, 'net'));
+  return h('span', { class: 'schriftzug', 'aria-label': 'Heatville' }, h('span', { class: 'heat' }, 'Heat'), h('span', { class: 'ville' }, 'ville'));
 }
 
 // ---------- Ladebild (A64): gezeichnete Dorfszene im Stil der Spiel-Ladebildschirme ----------
@@ -164,8 +164,8 @@ const TIPPS = [
 
 /** Großer Schriftzug als SVG (Verlauf, dicker Rand, Schatten) – für den Ladebildschirm. */
 function schriftzugGross(): SVGSVGElement {
-  const t = (fill: string, extra = '') => `<text x="12" y="92" font-family="Lilita One, sans-serif" font-size="100" letter-spacing="2" ${extra}><tspan fill="${fill === 'v' ? 'url(#sz-h)' : fill}">Heat</tspan><tspan fill="${fill === 'v' ? 'url(#sz-n)' : fill}">net</tspan></text>`;
-  const svg = svgAus(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  const t = (fill: string, extra = '') => `<text x="12" y="92" font-family="Lilita One, sans-serif" font-size="100" letter-spacing="2" ${extra}><tspan fill="${fill === 'v' ? 'url(#sz-h)' : fill}">Heat</tspan><tspan fill="${fill === 'v' ? 'url(#sz-n)' : fill}">ville</tspan></text>`;
+  const svg = svgAus(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="500" height="120">
     <defs><linearGradient id="sz-h" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#fff3a0"/><stop offset=".5" stop-color="#ffc23a"/><stop offset="1" stop-color="#ff7a1a"/></linearGradient>
     <linearGradient id="sz-n" x1="0" y1="0" x2="0" y2="1"><stop offset=".1" stop-color="#e2f4ff"/><stop offset=".5" stop-color="#6cc0ff"/><stop offset="1" stop-color="#2c7fe0"/></linearGradient></defs>
     <g transform="translate(0 9)" opacity=".35">${t('#000', 'stroke="#000" stroke-width="18" stroke-linejoin="round"')}</g>
@@ -174,7 +174,7 @@ function schriftzugGross(): SVGSVGElement {
     ${t('v')}
     <path d="M30 40q60-14 120-6" stroke="#fff" stroke-opacity=".6" stroke-width="6" fill="none" stroke-linecap="round"/>
   </svg>`);
-  svg.classList.add('vs-schriftzug'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Heatnet');
+  svg.classList.add('vs-schriftzug'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Heatville');
   return svg;
 }
 
@@ -201,7 +201,7 @@ export function vorspannZeigen(weniger_bewegung: boolean, tippNr = Math.floor(Ma
   const szene = svgAus(ladebildSvg()); szene.classList.add('vs-szene'); szene.setAttribute('aria-hidden', 'true');
   const bewegt = bewegteEbene(szene);
   const balken = h('div', { class: 'vs-balken' }, h('div', { class: 'vs-fuellung' }), h('span', { class: 'vs-prozent' }, 'Lädt …'));
-  const v = h('div', { id: 'vorspann', class: weniger_bewegung ? 'still' : '', role: 'img', 'aria-label': 'Heatnet wird geladen' },
+  const v = h('div', { id: 'vorspann', class: weniger_bewegung ? 'still' : '', role: 'img', 'aria-label': 'Heatville wird geladen' },
     szene, bewegt,
     h('div', { class: 'vs-kopf' }, logoElement(96), h('div', { class: 'vs-titel' }, schriftzugGross(), h('span', { class: 'unterzeile' }, h('span', { class: 'vs-blattzeichen', 'aria-hidden': 'true' }, '🌿'), 'Heize dein Dorf klimaneutral'))),
     h('div', { class: 'vs-fuss' }, balken, h('p', { class: 'vs-tipp' }, h('b', {}, 'Tipp: '), TIPPS[tippNr % TIPPS.length])));

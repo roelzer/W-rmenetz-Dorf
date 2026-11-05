@@ -99,7 +99,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   const hatteVersion = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hatteVersion) return;
-    hinweisMitKnopf('Neue Version von Heatnet ist da.', 'Neu laden', () => { speichern(); location.reload(); });
+    hinweisMitKnopf('Neue Version von Heatville ist da.', 'Neu laden', () => { speichern(); location.reload(); });
   });
 }
 // A83: Den Browser bitten, den Spielstand dauerhaft zu behalten (vor allem iPhone/Safari räumen sonst auf).

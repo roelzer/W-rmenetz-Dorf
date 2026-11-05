@@ -785,12 +785,12 @@ describe('A60 kein Rauch aus Hauskaminen', () => {
   });
 });
 
-describe('A61 Spielname Heatnet', () => {
-  it('A61: Seitentitel und App-Name heißen „Heatnet“', async () => {
+describe('A61/A85 Spielname (seit A85 „Heatville“)', () => {
+  it('A61/A85: Seitentitel und App-Name heißen „Heatville“', async () => {
     const { readFileSync } = await import('node:fs');
-    expect(readFileSync(new URL('../index.html', import.meta.url), 'utf8')).toContain('<title>Heatnet</title>');
+    expect(readFileSync(new URL('../index.html', import.meta.url), 'utf8')).toContain('<title>Heatville</title>');
     const m = JSON.parse(readFileSync(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8'));
-    expect(m.name).toBe('Heatnet'); expect(m.short_name).toBe('Heatnet');
+    expect(m.name).toBe('Heatville'); expect(m.short_name).toBe('Heatville');
   });
 });
 
@@ -1365,7 +1365,7 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
   it('A83: Sicherung – Dateiname aus Dorfname und Datum, nur sichere Zeichen', async () => {
     const { sicherungsDateiname } = await import('../src/core/speichern');
     const st = neuerSpielstand(0); st.name = 'Groß Ölbach/../x';
-    expect(sicherungsDateiname(st, new Date('2026-11-05T10:00:00Z'))).toBe('heatnet-gross-oelbach-x-2026-11-05.json');
+    expect(sicherungsDateiname(st, new Date('2026-11-05T10:00:00Z'))).toBe('heatville-gross-oelbach-x-2026-11-05.json');
   });
   it('A83: Sicherung einspielen übernimmt nur lesbare Spielstände und sperrt danach das Zurückschreiben', async () => {
     vi.resetModules(); // frisches Modul: der Lösch-Merker darf nicht aus einem anderen Test stammen (Review W1)
@@ -1401,7 +1401,7 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
   it('A83: Update-Hinweis, dauerhafter Speicher, Versionsnummer, Node-Version für Cloudflare', () => {
     const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
     expect(main).toContain('controllerchange');
-    expect(main).toContain("hinweisMitKnopf('Neue Version von Heatnet ist da.', 'Neu laden'");
+    expect(main).toContain("hinweisMitKnopf('Neue Version von Heatville ist da.', 'Neu laden'");
     expect(main).toContain('navigator.storage?.persist');
     expect(main).toContain('if (!hatteVersion) return;'); // beim allerersten Besuch kein Hinweis
     expect(main).toMatch(/speichern\(\); location\.reload\(\)/); // vor dem Neuladen speichern
@@ -1411,5 +1411,17 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
     const kopf = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
     for (const d of ['/sw.js', '/index.html']) expect(kopf).toContain(d);
     expect(kopf).toMatch(/^\/\n\s+Cache-Control: no-cache/m); // Cloudflare liefert die Seite unter „/“ aus // Seite und Service Worker nie aus dem Zwischenspeicher
+  });
+});
+
+describe('A85 Spielname Heatville (Simon 2026-11-05)', () => {
+  it('A85: Kein „Heatnet“ mehr in angezeigten Texten, Manifest und Titel; Speicherschlüssel unverändert', async () => {
+    for (const f of ['../index.html', '../public/manifest.webmanifest', '../src/main.ts', '../src/ui/vorspann.ts', '../src/ui/einstellungen.ts', '../src/ui/hud.ts', '../src/core/speichern.ts', '../src/ui/stil.css']) {
+      expect(readFileSync(new URL(f, import.meta.url), 'utf8')).not.toMatch(/heatnet/i);
+    }
+    const v = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
+    expect(v).toContain('>ville</tspan>'); expect(v).toContain("class: 'ville' }, 'ville'");
+    const m = await import('../src/core/speichern');
+    expect(m.SPEICHER_SCHLUESSEL).toBe('waermedorf-spielstand-v1');
   });
 });

@@ -1,6 +1,6 @@
 {
-  "name": "Heatnet",
-  "short_name": "Heatnet",
+  "name": "Heatville",
+  "short_name": "Heatville",
   "description": "Baue ein Dorf mit Wärmenetz. Alle Wärmenetze und Werte sind fiktiv.",
   "lang": "de",
   "start_url": "./",

@@ -137,7 +137,7 @@ export function speichernErlaubt(): boolean { return !geloescht; }
 /** A83: Dateiname für eine Sicherung des Spielstands (Dorfname + Datum, nur sichere Zeichen). */
 export function sicherungsDateiname(stand: Spielstand, datum: Date): string {
   const dorf = (stand.name || 'dorf').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'dorf';
-  return `heatnet-${dorf}-${datum.toISOString().slice(0, 10)}.json`;
+  return `heatville-${dorf}-${datum.toISOString().slice(0, 10)}.json`;
 }
 
 /** A83: Eine Sicherungsdatei einspielen. Nur ein lesbarer Spielstand wird übernommen; danach ist das Zurückschreiben
@@ -148,7 +148,7 @@ export const SICHERUNG_MAX_ZEICHEN = 5_000_000;
 export function sicherungEinspielen(speicher: Pick<Storage, 'setItem'>, text: string, jetzt_ms: number): { ok: true; stand: Spielstand } | { ok: false; grund: string } {
   if (text.length > SICHERUNG_MAX_ZEICHEN) return { ok: false, grund: 'Die Datei ist zu groß für einen Spielstand.' };
   const { stand, befund } = ladenMitBefund(text, jetzt_ms);
-  if (befund === 'defekt' || befund === 'neu') return { ok: false, grund: 'Die Datei ist kein lesbarer Heatnet-Spielstand.' };
+  if (befund === 'defekt' || befund === 'neu') return { ok: false, grund: 'Die Datei ist kein lesbarer Heatville-Spielstand.' };
   try { speicher.setItem(SPEICHER_SCHLUESSEL, serialisieren(stand)); } catch (fehler) {
     console.warn('Sicherung ließ sich nicht schreiben', fehler);
     return { ok: false, grund: 'Der Speicher auf dem Gerät ist voll – die Sicherung wurde nicht übernommen.' };

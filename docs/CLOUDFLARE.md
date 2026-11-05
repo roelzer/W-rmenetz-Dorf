@@ -1,10 +1,10 @@
-# Heatnet über Cloudflare Pages veröffentlichen (A83)
+# Heatville über Cloudflare Pages veröffentlichen (A83)
 
 ## Einmal einrichten (nur Simon)
 1. Kostenloses Konto auf cloudflare.com anlegen.
 2. „Workers & Pages“ → „Erstellen“ → Reiter **Pages** → „Mit Git verbinden“ → GitHub-Projekt `roelzer/W-rmenetz-Dorf` wählen.
 3. Einstellungen:
-   - Projektname: endgültig wählen (wird Teil der Adresse `<name>.pages.dev`; eine neue Adresse = leerer Spielstand bei den Spielern)
+   - Projektname: `heatville` (Spielname seit A85; wird Teil der Adresse `<name>.pages.dev`; eine neue Adresse = leerer Spielstand bei den Spielern)
    - Production branch: `main`
    - Framework preset: None
    - Build command: `npm run build`
@@ -15,7 +15,7 @@
 
 ## Ablauf danach
 - Projektleiter baut auf dem Arbeitsbranch → Cloudflare legt einen Vorschau-Link an → dort testen.
-- Nach Prüfung (Schranke, Reviewer) kommt der Stand auf `main` → Cloudflare baut automatisch → wer das Spiel neu öffnet, hat meist sofort die neue Version; wer es gerade offen hat, sieht „Neue Version von Heatnet ist da – Neu laden“. Der Spielstand bleibt in beiden Fällen.
+- Nach Prüfung (Schranke, Reviewer) kommt der Stand auf `main` → Cloudflare baut automatisch → wer das Spiel neu öffnet, hat meist sofort die neue Version; wer es gerade offen hat, sieht „Neue Version von Heatville ist da – Neu laden“. Der Spielstand bleibt in beiden Fällen.
 
 ## Spielstand
 - Liegt im Browser des Spielers (Schlüssel `waermedorf-spielstand-v1`, nie umbenennen); Updates ändern ihn nicht, alte Stände werden beim Laden umgestellt.
