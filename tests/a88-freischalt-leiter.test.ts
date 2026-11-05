@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
-import { BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, passendeStation, type TypId } from '../src/core/katalog';
+import { BAU_KATEGORIEN, KATALOG, KONSTANTEN, passendeStation, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
+import { pruefeAuftraege } from '../src/core/auftraege';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { abStufe, FREISCHALTUNGEN, FUNKTION_NAME, freigeschaltet, neuBeiStufe, sperrgrund, type Funktion, type Merkmal } from '../src/core/freischaltung';
 import { blase } from '../src/render/szene';
@@ -189,14 +190,12 @@ describe('A88 Freischalt-Leiter – Stufe 1 ist durchspielbar (T6)', () => {
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
     vor(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor + 10);
-    // Die Wegsuche legt den Anschluss über (12|12),(11|12) – beide Felder grenzen an die Heizzentrale. Das Netzmodell speist
-    // die Start-40er dann über die 25er bei (11|12) (genauso vor A88, Entscheidung Projektleiter: Wegsuche wie vor A88).
-    // Ausweg mit Mitteln der Stufe 1: diese 25er gegen eine 40er tauschen.
-    const zuleitung = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 11 && o.y === 12)!;
-    expect(zuleitung.typ).toBe('d25');
-    expect(s.leitungTauschen(zuleitung.id, 'd40').ok).toBe(true);
+    // A89: Der automatische Hausanschluss macht kein Haus kalt – ohne Leitungstausch sind nach der Bauzeit alle drei Häuser warm
+    // (die beiden Starthäuser und das neu angeschlossene (13|12)).
     const warm = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id));
-    expect(warm.length).toBe(3);
+    expect(warm.map((o) => `${o.x}|${o.y}`).sort()).toEqual(['12|14', '13|12', '9|13']);
+    pruefeAuftraege(s); // K2: Auftrag c2 („drittes Haus anschließen“) ist damit erledigt
+    expect(s.stand.erledigt.c2).toBe(true);
     expect(s.hzZiele()[0]).toMatchObject({ ist: 3, erreicht: true });
     vor(3 * 3600);
     expect(warm.every((o) => s.netz.warm.has(o.id))).toBe(true);

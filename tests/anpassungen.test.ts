@@ -924,10 +924,15 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const plane = (vorsehungBei?: [number, number]) => {
       const s = offen();
       delete s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 14)!.vorsehung; // Start-Vorsehung (A74) weg, sonst dockt der Weg dort an
+      // A89: Das Starthaus (9|13) hat in diesem Aufbau noch keine Übergabestation. Sonst hängt das Netzmodell es an die neue
+      // 25er bei (9|12), die dann 2 × 10 kW tragen müsste (Nennleistung 15 kW) – die Wegsuche darf diesen Weg seit A89 nicht nehmen.
+      // So trägt die 25er nur das neue Haus, und der Vergleich Vorsehung gegen Anbohrung bleibt derselbe wie vor A89.
+      const nachbar = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 13)!;
+      delete nachbar.station; nachbar.ohne_station = true;
       if (vorsehungBei) s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === vorsehungBei[0] && o.y === vorsehungBei[1])!.vorsehung = true;
       const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 6 && o.y === 15)!;
       expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
-      return { s, plan: s.stand.objekte.filter((o) => o.geplant).map((o) => [o.x, o.y] as const) };
+      return { s, haus, plan: s.stand.objekte.filter((o) => o.geplant).map((o) => [o.x, o.y] as const) };
     };
     const ohne = plane();
     expect(ohne.s.anbohrungsFelder()).toEqual([14 * N + 10]); // ohne Vorsehung: Weg unten herum, Anbohrung an (10|14)
@@ -935,6 +940,16 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(mit.s.anbohrungsFelder()).toEqual([]);
     expect(mit.plan).toContainEqual([9, 12]); // endet an der Vorsehung (10|12)
     expect(mit.s.abschnittKosten_eur()).toBeLessThan(ohne.s.abschnittKosten_eur());
+    // Der Weg zur Vorsehung trägt: nach dem Bau ist das neue Haus warm, das Starthaus (12|14) bleibt warm, keins ist wegen der Leitung kalt.
+    const s = mit.s;
+    expect(s.stationKaufen(mit.haus.id, passendeStation(bedarfKw(mit.haus)).id).ok).toBe(true);
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    expect(s.materialBestellen().ok).toBe(true);
+    s.bis(s.stand.abschnitt!.bau!.ende_ms);
+    expect(s.stand.abschnitt).toBeUndefined();
+    const warm = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id)).map((o) => `${o.x}|${o.y}`).sort();
+    expect(warm).toEqual(['12|14', '6|15']);
+    expect([...s.netz.kalt.values()].filter((grund) => grund === 'leitung')).toEqual([]);
   });
   it('A69: Neben der Heizzentrale ist die erste Leitung durchlaufend – Andocken kostet eine Anbohrung', () => {
     const s = offen();
