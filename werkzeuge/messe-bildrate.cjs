@@ -21,6 +21,9 @@ const SPIELSTAND_SCHLUESSEL = 'waermedorf-spielstand-v1';
 const EINSTELLUNGS_SCHLUESSEL = 'waermedorf-einstellungen-v1';
 /** „Nicht schlechter“ = höchstens 10 % über vorher (Messrauschen, Bauplan Abschnitt 6). */
 const NICHT_SCHLECHTER_FAKTOR = 1.10;
+/** Bildabstand zusätzlich + ein Bildintervall bei 60 Hz: die Abstände liegen in 16,7-ms-Stufen, p95 kippt sonst ohne
+ *  Code-Änderung um eine Stufe (Entscheidung Projektleiter 2026-11-05, docs/ENTSCHEIDUNGEN.md). */
+const BILDINTERVALL_MS = 16.7;
 /** Ein Bild-Rückruf zählt als JS-Arbeit erst ab 0,3 ms (Bauplan P4: FireAnimationFrame > 0,3 ms); darunter liegt der Zählrückruf. */
 const JS_MIN_MS = 0.3;
 const RUHE_MS = 4000, GESTE_MS = 3000;
@@ -29,14 +32,14 @@ const RUHE_MS = 4000, GESTE_MS = 3000;
 const WIEDERHOLUNGEN = 5;
 /** Zielgrenzen Z1–Z7 (Bauplan Abschnitt 6). */
 const GRENZE = {
-  z1_bilder_s: 3, z2_bilder_s: 5, z3_bilder_s: 31, z3_befehle: 9000, z4_js_p95_ms: 32, z5_js_p95_ms: 36,
+  z1_bilder_s: 5, z2_bilder_s: 5, z3_bilder_s: 31, z3_befehle: 9000, z4_js_p95_ms: 32, z5_js_p95_ms: 36,
   z6_weitere_bilder: 0, z6_animationen: 2, z7_handy_px: 1_500_000, z7_laptop_px: 2_000_000, z7_spar_px: 550_000,
 };
 const Z6_ERLAUBT = ['vs-laden', 'vs-plopp'];
 /** Z10: Stichprobe 40×40 CSS-Pixel um den Tipp, Vergleich vor dem Tipp und 2 Bildaufrufe danach. */
 const Z10_KANTE_PX = 40, Z10_BILDAUFRUFE = 2;
-/** Nur zum Vergleich mit Bauplan Abschnitt 1 (16 900 / 8 600 Befehle): dort wurden nur diese Zeichenbefehle gezählt.
- *  Z3 prüft wie im Bauplan (Technik P4) alle Methoden. */
+/** Z3 prüft nur diese 11 Zeichenbefehle – so wurde die Grenze 9 000 in Bauplan Abschnitt 1 hergeleitet (16 900 → 8 600);
+ *  die Zahl aller Methoden wird nur berichtet (Entscheidung Projektleiter 2026-11-05). */
 const AUSWAHL_ABSCHNITT_1 = ['fill', 'stroke', 'fillRect', 'fillText', 'strokeText', 'arc', 'ellipse', 'createRadialGradient', 'createLinearGradient', 'lineTo', 'measureText'];
 
 function argumenteLesen(argv) {
@@ -401,7 +404,7 @@ function zielePruefen(erg, vorher) {
   hoechstens('Z1', 'Ruhe, Sparmodus, 1×', f['1x Ruhe Sparmodus (Zählung)'].gezeichnet_s, GRENZE.z1_bilder_s, 'gezeichnete Bilder/s');
   hoechstens('Z2', 'Ruhe, Weniger Bewegung, 1×', f['1x Ruhe Weniger Bewegung (Zählung)'].gezeichnet_s, GRENZE.z2_bilder_s, 'gezeichnete Bilder/s');
   hoechstens('Z3', 'Ruhe, normal, 1×', f['1x Ruhe normal (Zählung)'].gezeichnet_s, GRENZE.z3_bilder_s, 'gezeichnete Bilder/s');
-  hoechstens('Z3', 'Ruhe, normal, 1×', f['1x Ruhe normal (Zählung)'].befehle_je_bild, GRENZE.z3_befehle, 'Befehle je gezeichnetem Bild');
+  hoechstens('Z3', 'Ruhe, normal, 1×', f['1x Ruhe normal (Zählung)'].befehle_auswahl_je_bild, GRENZE.z3_befehle, 'Zeichenbefehle (11 Arten) je gezeichnetem Bild');
   hoechstens('Z4', 'Ruhe, normal, 4×', f['4x Ruhe'].js_p95_ms, GRENZE.z4_js_p95_ms, 'ms JS je Bild p95');
   hoechstens('Z5', 'Verschieben, normal, 4×', f['4x Verschieben'].js_p95_ms, GRENZE.z5_js_p95_ms, 'ms JS je Bild p95');
   hoechstens('Z6', 'Vorspann, 1×', erg.z6.weitere_bilder, GRENZE.z6_weitere_bilder, 'weitere Bilder unter dem Vorspann');
@@ -411,17 +414,17 @@ function zielePruefen(erg, vorher) {
   hoechstens('Z7', 'Leinwand 844×390 @3', px(erg.info.handy_1x), GRENZE.z7_handy_px, 'Pixel');
   hoechstens('Z7', 'Leinwand 1920×1000 @2', px(erg.info.laptop), GRENZE.z7_laptop_px, 'Pixel');
   hoechstens('Z7', 'Leinwand Sparmodus 844×390 @3', px(erg.info.spar), GRENZE.z7_spar_px, 'Pixel');
-  const relativ = (id, fall, wert, alt, einheit) => {
+  const relativ = (id, fall, wert, alt, einheit, zuschlag = 0) => {
     if (alt == null) { z.push({ id, fall, grenze: 'nicht schlechter als vorher', wert: `${zahlText(wert)} ${einheit} (kein Vorher-Wert)`, ok: false }); return; }
-    hoechstens(id, `${fall} (vorher ${zahlText(alt)})`, wert, runde(alt * NICHT_SCHLECHTER_FAKTOR), einheit);
+    hoechstens(id, `${fall} (vorher ${zahlText(alt)})`, wert, runde(alt * NICHT_SCHLECHTER_FAKTOR + zuschlag), einheit);
   };
   const v = vorher;
   relativ('Z8', 'Zoomen+Drehen, 1×', f['1x Zoomen+Drehen'].js_p95_ms, v?.z8.zoom_1x.js_p95_ms, 'ms JS je Bild p95');
-  relativ('Z8', 'Zoomen+Drehen, 1×', f['1x Zoomen+Drehen'].abstand_p95_ms, v?.z8.zoom_1x.abstand_p95_ms, 'ms Bildabstand p95');
+  relativ('Z8', 'Zoomen+Drehen, 1×', f['1x Zoomen+Drehen'].abstand_p95_ms, v?.z8.zoom_1x.abstand_p95_ms, 'ms Bildabstand p95', BILDINTERVALL_MS);
   relativ('Z8', 'Zoomen+Drehen, 4×', f['4x Zoomen+Drehen'].js_p95_ms, v?.z8.zoom_4x.js_p95_ms, 'ms JS je Bild p95');
-  relativ('Z8', 'Zoomen+Drehen, 4×', f['4x Zoomen+Drehen'].abstand_p95_ms, v?.z8.zoom_4x.abstand_p95_ms, 'ms Bildabstand p95');
-  relativ('Z9', 'Ruhe, 1×', f['1x Ruhe'].abstand_p95_ms, v?.z9.ruhe_1x.abstand_p95_ms, 'ms Bildabstand p95');
-  relativ('Z9', 'Verschieben, 1×', f['1x Verschieben'].abstand_p95_ms, v?.z9.verschieben_1x.abstand_p95_ms, 'ms Bildabstand p95');
+  relativ('Z8', 'Zoomen+Drehen, 4×', f['4x Zoomen+Drehen'].abstand_p95_ms, v?.z8.zoom_4x.abstand_p95_ms, 'ms Bildabstand p95', BILDINTERVALL_MS);
+  relativ('Z9', 'Ruhe, 1×', f['1x Ruhe'].abstand_p95_ms, v?.z9.ruhe_1x.abstand_p95_ms, 'ms Bildabstand p95', BILDINTERVALL_MS);
+  relativ('Z9', 'Verschieben, 1×', f['1x Verschieben'].abstand_p95_ms, v?.z9.verschieben_1x.abstand_p95_ms, 'ms Bildabstand p95', BILDINTERVALL_MS);
   const t = erg.z10.tipp;
   z.push({ id: 'Z10', fall: `Gebäude antippen (${t.punkt.join('|')}), Weniger Bewegung, 1×`, grenze: `Stichprobe ${Z10_KANTE_PX}×${Z10_KANTE_PX} ändert sich in ${Z10_BILDAUFRUFE} Bildaufrufen`,
     wert: `${t.geaendert} von ${t.pixel} Pixeln anders, Blatt „${t.blatt ?? '–'}“ (ohne Tipp: ${erg.z10.leer.geaendert} anders)`, ok: t.geaendert > 0 && !!t.blatt });

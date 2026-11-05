@@ -55,7 +55,11 @@ Leinwand: Handy 1688×780 · Laptop 3840×2000 · Sparmodus 1688×780. Vorspann:
 
 Ein zweiter Prüflauf ergab bei Z8/Z9 ebenfalls „erfüllt“ (JS 1× 10,2 ms, 4× 45,5 ms; Bildabstand 50 / 283,4 / 66,7 / 66,7 ms).
 
-**Auffälligkeiten für die Folgepakete:** (1) „Befehle“ zählt wie im Bauplan (Technik P4) **alle** Methoden: heute 29 495 je Bild. Die Grenze 9 000 in Z3 ist aus der Zählung in Abschnitt 1 abgeleitet, die nur 11 Zeichenbefehle zählte (heute 17 006, in Klammern). (2) Im großen Stand sind alle 164 Leitungen überlastet und kein Kunde warm (d40 trägt die 42 Häuser nicht) – Überlast-Blinken läuft dauernd. (3) Z1 (≤ 3 Bilder/s im Sparmodus) passt nicht zur Takt-Regel 7 aus P1, wenn ein Fluss oder eine Überlast sichtbar ist (dann 4 Bilder/s).
+**Entscheidungen Projektleiter 2026-11-05 (docs/ENTSCHEIDUNGEN.md), im Werkzeug umgesetzt:** Z1 ≤ 5 gezeichnete Bilder/s (Regel 7 zeigt Information auch im Sparmodus mit 4/s). Z3 prüft die 11 Zeichenbefehle wie in Abschnitt 1 (≤ 9 000); die Zahl aller Methoden wird nur berichtet. Z8/Z9: Bildabstand p95 ≤ vorher × 1,10 + 16,7 ms (ein Bildintervall), JS p95 weiter ≤ vorher × 1,10; 5 Seiten je Zeitfall. Die Tabelle oben ist der Lauf vor diesen Entscheidungen.
+
+**Prüflauf mit den Entscheidungen, gegen die gespeicherten Vorher-Werte** (`node werkzeuge/messe-bildrate.cjs` → Exit 1, 9 von 18 Prüfungen nicht erfüllt, erwartet): Z1 19,2/s (≤ 5) · Z2 18,8/s · Z3 19,5/s erfüllt, 17 006 Zeichenbefehle (≤ 9 000) nicht erfüllt · Z4 51,7 ms · Z5 47,4 ms · Z6 47 Bilder, 7 Animationen · Z7 Handy erfüllt, Laptop/Sparmodus nicht · **Z8** JS 1× 11,6 (≤ 13,3), Bildabstand 1× 50 (≤ 71,8), JS 4× 46,7 (≤ 50,1), Bildabstand 4× 283,4 (≤ 346,6) – erfüllt · **Z9** Ruhe 66,7 (≤ 108,3), Verschieben 66,7 (≤ 90,1) – erfüllt · Z10 erfüllt (6 374 von 6 400 Pixeln anders, ohne Tipp 0).
+
+**Auffälligkeit für die Folgepakete:** Im großen Stand sind alle 164 Leitungen überlastet und kein Kunde warm (d40 trägt die 42 Häuser nicht) – Überlast-Blinken läuft dauernd (vom Projektleiter so angenommen).
 
 ## Läufe der Test-Schranke
 
