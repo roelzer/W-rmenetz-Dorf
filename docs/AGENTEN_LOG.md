@@ -227,3 +227,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:07 | ■ 🟡 | reviewer | **Ampel: 🟡 freigegeben mit kleinen Punkten (NR15-P1, Commit bdfb632)**  ([Bericht](docs/pruefberichte/20261105-190725-reviewer-a0445d80c676f8cb2.md)) |
 | 2026-11-05 19:09 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** Paket NR16-B2a (A92), Commit e46e2f4, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/pl-b2a  ([Bericht](docs/pruefberichte/20261105-190933-reviewer-ae6b3416944cfc8cd.md)) |
 | 2026-11-05 19:09 | ▶ | entwickler | Baue NR15-P2 |
+| 2026-11-05 19:11 | ▶ | tester | Tester-Nachzug B2a/P1 Tests |
