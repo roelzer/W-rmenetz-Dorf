@@ -185,6 +185,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .sprecher-karte.sichtbar{opacity:1;transform:none}
 .sprecher-bild{flex:none;width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid var(--farbe-ui-pergament-rand);background:var(--farbe-ui-pergament);box-shadow:0 2px 8px rgba(20,28,31,.25)}
 .sprecher-bild svg,.sprecher-bild img{width:100%;height:100%;display:block;object-fit:cover}
+/* Freigestelltes Foto: kein Kreis, Kopf und Oberkörper stehen frei neben der Blase */
+.sprecher-bild.foto{width:auto;height:112px;border-radius:0;border:0;background:none;box-shadow:none;overflow:visible;margin-bottom:-2px}
+.sprecher-bild.foto img{width:auto;height:100%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(20,28,31,.35))}
 .sprecher-blase{position:relative;background:var(--farbe-ui-pergament);border:1px solid var(--farbe-ui-pergament-rand);border-radius:14px 14px 14px 4px;padding:8px 12px;color:var(--farbe-ui-tinte);box-shadow:0 2px 8px rgba(20,28,31,.2);font-size:14px;line-height:1.3;display:flex;flex-direction:column;gap:2px}
 .sprecher-blase strong{font-size:12px;color:var(--farbe-ui-hud-etikett-text)}
 @media (prefers-reduced-motion:reduce){.sprecher-karte{transition:none}}

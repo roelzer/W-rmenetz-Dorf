@@ -629,3 +629,12 @@ describe('A51 Helfer sprechen den Spieler an', () => {
     expect(s.spielerName).toBe('Chef');
   });
 });
+
+describe('A52 Wärmepreis in der Heizzentrale', () => {
+  it('A52: Der Preis lässt sich über preisSetzen ändern und die Stufe bleibt zwischen 7 und 15 ct', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    s.preisSetzen(0); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7);
+    s.preisSetzen(99); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7); // außerhalb wird ignoriert
+    s.preisSetzen(PREISSTUFEN.length - 1); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(15);
+  });
+});

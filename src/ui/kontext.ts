@@ -270,14 +270,14 @@ export class Kontext {
       const a = sp.helferAuftrag(name);
       hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
     }
-    c.append(k, vl, pvk, zk, hk, bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
+    c.append(k, vl, this.preisKasten(), pvk, zk, hk, bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
     void groesse;
   }
 
-  private buero(c: HTMLElement, o: Objekt): void {
+  /** Wärmepreis einstellen (A52): gehört zur Heizzentrale, nicht ins Büro. */
+  private preisKasten(): HTMLElement {
     const sp = this.ui.spiel, s = sp.stand;
-    c.append(zeile('Kassenspeicher', eur(sp.kassengrenze_eur())));
     const P = PREISSTUFEN[s.preisstufe];
     const preis = kasten(`Wärmepreis · ${P.ct_je_kwh} ct/kWh`);
     preis.append(h('div', { class: 'knopfreihe' },
@@ -285,7 +285,13 @@ export class Kontext {
       h('span', { class: 'preiswert' }, `${P.ct_je_kwh} ct je kWh`),
       knopf('+', () => { sp.preisSetzen(s.preisstufe + 1); this.ui.geaendert(); }, '', { klein: true, aus: s.preisstufe >= PREISSTUFEN.length - 1 })));
     preis.append(h('p', { class: 'gedaempft' }, `Du bekommst die Vergütung für jede Kilowattstunde, die ein Abnehmer verbraucht (zwischen ${PREISSTUFEN[0].ct_je_kwh} und ${PREISSTUFEN.at(-1)!.ct_je_kwh} ct). Je höher der Preis, desto mehr Einnahmen – aber desto unzufriedener werden die Kunden (${P.name}).`));
-    c.append(preis);
+    return preis;
+  }
+
+  private buero(c: HTMLElement, o: Objekt): void {
+    const sp = this.ui.spiel, s = sp.stand;
+    c.append(zeile('Kassenspeicher', eur(sp.kassengrenze_eur())));
+    c.append(h('p', { class: 'gedaempft' }, 'Den Wärmepreis stellst du jetzt in der Heizzentrale ein.'));
     const f = kasten('Förderanträge');
     f.append(h('p', { class: 'gedaempft' }, `Bewilligte Förderung: ${Math.round(KONSTANTEN.foerderquote * 100)} % der Baukosten fließen zurück – nur, wenn du erst nach dem Bescheid baust.`));
     for (const t of QUELLEN) {

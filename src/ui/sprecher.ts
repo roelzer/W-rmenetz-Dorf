@@ -29,11 +29,11 @@ function figur(name: string): HTMLElement {
   // Der SVG-Text entsteht nur aus festen Farbwerten der Tabelle oben, nie aus Spielerdaten.
   kasten.append(document.importNode(new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement, true));
   const foto = new Image();
-  const endungen = ['jpg', 'png', 'webp'];
+  const endungen = ['webp', 'png', 'jpg'];
   // Einzeldatei-Vorschau: Fotos stehen dort als Datenadressen in window.__figuren
   const eingebettet = (window as unknown as { __figuren?: Record<string, string> }).__figuren?.[name.toLowerCase()];
   const probieren = (i: number): void => { if (eingebettet) foto.src = eingebettet; else if (i < endungen.length) foto.src = `figuren/${name.toLowerCase()}.${endungen[i]}`; };
-  foto.onload = () => { foto.alt = name; kasten.replaceChildren(foto); };
+  foto.onload = () => { foto.alt = name; kasten.classList.add('foto'); kasten.replaceChildren(foto); };
   let versuch = 0;
   foto.onerror = () => { if (eingebettet) return; versuch++; probieren(versuch); };
   probieren(0);
