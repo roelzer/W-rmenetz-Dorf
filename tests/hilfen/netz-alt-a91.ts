@@ -1,0 +1,317 @@
+// EINGEFROREN für den A91-Vergleich – nicht anpassen.
+// Wörtliche Kopie von src/core/netz.ts aus Commit 042e419 (alte Netzrechnung vor A91; Bauplan docs/bauplaene/NR15-netzmodell.md,
+// Fassung 3, Paket P0). Einzige Änderungen: Importpfade auf ../../src/core/…, `berechneNetz` heißt hier `berechneNetzAlt`,
+// dieser Kopfkommentar. Importiert bewusst nichts aus src/core/netz.ts (alle Hilfsfunktionen sind eigene Kopien), nur Daten aus
+// src/core/katalog.ts und Typen aus src/core/typen.ts. Ändert ein späteres Paket berechneNetz absichtlich, entscheidet der
+// Projektleiter, ob der Vergleichstest angepasst oder entfernt wird (Bauplan R4).
+import {
+  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, GRUNDGEBUEHR, SPIELJAHR_MS, istLeitung, stationHolen,
+  type TypId,
+} from '../../src/core/katalog';
+import type { InnenQuelle, Netz, Objekt } from '../../src/core/typen';
+
+/** Spreizung eines Kunden in K: Grundwert plus Upgrades (A33), aber höchstens Vorlauf minus Mindest-Rücklauf 40 °C (A73). */
+export function spreizungHaus_k(o: Objekt, vorlauf_c: number = VORLAUF.start_c): number {
+  const ziel = SPREIZUNG_BASIS_K + UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
+  return Math.max(0, Math.min(ziel, vorlauf_c - MIN_RUECKLAUF_C));
+}
+/** A49: Mittlere Spreizung (Vorlauf minus Rücklauf) der Kunden in K, nach Bedarf gewichtet; mit `auswahl` nur diese Gebäude (z. B. die warmen). Niedrigere Rücklauftemperatur = größere Spreizung. */
+export function mittlereSpreizung_k(objekte: Objekt[], auswahl?: ReadonlySet<number>, vorlauf_c: number = VORLAUF.start_c): number {
+  let summe = 0, gew = 0;
+  for (const o of objekte) {
+    if (!istKunde(o) || (auswahl && !auswahl.has(o.id))) continue;
+    const w = bedarfKw(o);
+    summe += spreizungHaus_k(o, vorlauf_c) * w; gew += w;
+  }
+  return gew ? summe / gew : Math.min(SPREIZUNG_BASIS_K, vorlauf_c - MIN_RUECKLAUF_C);
+}
+
+const N = KONSTANTEN.feldanzahl;
+
+/** Kantenlänge des Objekts in Feldern. Die Heizzentrale wächst ab Stufe 3 (oder im Ausbau auf 3) auf 3×3. */
+export function groesse(o: Pick<Objekt, 'typ' | 'stufe' | 'bau'>): number {
+  if (o.typ === 'hz') {
+    return o.stufe >= 3 || (o.stufe === 2 && o.bau?.art === 'ausbau') ? 3 : 2;
+  }
+  return KATALOG[o.typ].groesse ?? 1;
+}
+
+export const istAktiv = (o: { bau: { art: string } | null }): boolean => !(o.bau && o.bau.art === 'neu');
+
+export const heizzentrale = (objekte: Objekt[]): Objekt =>
+  objekte.find((o) => o.typ === 'hz') as Objekt;
+
+/** Belegung: Feld → Objekt-ID (0 = frei). */
+export function belegungskarte(objekte: Objekt[], ohne?: Objekt): Int32Array {
+  const m = new Int32Array(N * N);
+  for (const o of objekte) {
+    if (o === ohne) continue;
+    const s = groesse(o);
+    for (let dy = 0; dy < s; dy++) {
+      for (let dx = 0; dx < s; dx++) {
+        const x = o.x + dx, y = o.y + dy;
+        if (x >= 0 && y >= 0 && x < N && y < N) m[y * N + x] = o.id;
+      }
+    }
+  }
+  return m;
+}
+
+/** Zahlender oder abnehmender Kunde? Häuser ohne Kündigung, Großabnehmer mit Vertrag und Wärmebedarf. */
+export function istKunde(o: Objekt): boolean {
+  const k = KATALOG[o.typ].kategorie;
+  return (
+    !o.ohne_station && ((k === 'haus' && istAktiv(o) && !o.gekuendigt) ||
+    (k === 'gross' && o.zustand === 'vertrag' && !!KATALOG[o.typ].bedarf_kw))
+  );
+}
+
+const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/** Zahl der Leitungsfelder rund um (x|y) – gemeinsame Grundlage für „Leitungsende“ (≤ 1) und „durchlaufend“ (≥ 2). */
+export function leitungsNachbarn(x: number, y: number, istLeitungsfeld: (feld: number) => boolean): number {
+  let z = 0;
+  for (const [dx, dy] of NACHBARN) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && istLeitungsfeld(ny * N + nx)) z++; }
+  return z;
+}
+
+/**
+ * Berechnet das Wärmenetz: Verbindung, Lastfluss, Kapazität, Versorgung, Kosten, Einnahmen.
+ * Rein und deterministisch – keine Zeit, kein Zufall, kein Browser.
+ * Fachregeln (siehe docs/lastenheft.md A6–A10):
+ *  - Versorgt wird nur, wer über eine durchgehende Leitung mit der Heizzentrale verbunden ist.
+ *  - Ein Leitungsabschnitt überträgt höchstens seine Nennleistung (Summe der Last dahinter).
+ *  - Wird die Leitung Richtung Kunde dünner und danach wieder dicker, ist das ein Planungsfehler.
+ *  - Dünner wird sie nur an einem Abzweig (A67), sonst ist das ebenfalls ein Planungsfehler.
+ *  - Es wird nie mehr Wärme verteilt als erzeugt (genutzt ≤ verfügbar).
+ *  - Einnahmen nur für warme Kunden, Betriebskosten nur für tatsächlich erzeugte Wärme.
+ */
+export function berechneNetzAlt(objekte: Objekt[], innen: InnenQuelle[], preisstufe: number, vorlauf_c: number = VORLAUF.start_c, grundgebuehr_eur: number = GRUNDGEBUEHR.start_eur): Netz {
+  const belegung = belegungskarte(objekte);
+  const nachId = new Map(objekte.map((o) => [o.id, o]));
+  const hz = heizzentrale(objekte);
+  const leitungAn = (k: number): Objekt | null => {
+    const o = nachId.get(belegung[k]);
+    return o && istLeitung(o.typ) ? o : null;
+  };
+  const rund = (o: Objekt): Array<[number, number]> => {
+    const s = groesse(o);
+    const r: Array<[number, number]> = [];
+    for (let i = 0; i < s; i++) r.push([o.x + i, o.y - 1], [o.x + i, o.y + s], [o.x - 1, o.y + i], [o.x + s, o.y + i]);
+    return r.filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < N);
+  };
+
+  // Ausbreitung von der Heizzentrale über zusammenhängende Leitungsfelder
+  const tiefe = new Map<number, number>();
+  const eltern = new Map<number, number>();
+  const reihenfolge: number[] = [];
+  for (const [x, y] of rund(hz)) {
+    const k = y * N + x;
+    if (leitungAn(k) && !tiefe.has(k)) { tiefe.set(k, 1); eltern.set(k, -1); reihenfolge.push(k); }
+  }
+  for (let i = 0; i < reihenfolge.length; i++) {
+    const k = reihenfolge[i], x = k % N, y = (k - x) / N;
+    for (const [dx, dy] of NACHBARN) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      const nk = ny * N + nx;
+      if (leitungAn(nk) && !tiefe.has(nk)) {
+        tiefe.set(nk, (tiefe.get(k) as number) + 1);
+        eltern.set(nk, k);
+        reihenfolge.push(nk);
+      }
+    }
+  }
+  const hzFelder = new Set<number>();
+  { const s = groesse(hz); for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) hzFelder.add((hz.y + dy) * N + hz.x + dx); }
+
+  // Anschlusspunkt je Gebäude: nächstes erreichtes Leitungsfeld (oder direkt an der Heizzentrale)
+  const anschluss = new Map<number, { feld: number; tiefe: number }>();
+  for (const o of objekte) {
+    const kat = KATALOG[o.typ].kategorie;
+    if (!(kat === 'haus' || kat === 'waerme' || kat === 'gross')) continue;
+    let best: number | null = null, bd = 1e9;
+    for (const [x, y] of rund(o)) {
+      const k = y * N + x;
+      if (hzFelder.has(k)) { best = -1; bd = 0; break; }
+      const t = tiefe.get(k);
+      if (t === undefined) continue;
+      // A57: Eine Leitung, die nur am Haus vorbeiläuft, ist kein Anschluss. Bevorzugt wird ein Leitungsende,
+      // das am Haus endet (Hausanschluss); nur wenn es keins gibt, zählt die vorbeilaufende Leitung.
+      const px = k % N, py = (k - px) / N;
+      const nb = leitungsNachbarn(px, py, (f) => !!leitungAn(f));
+      const wert = (nb <= 1 ? 0 : 1000) + t;
+      if (wert < bd) { bd = wert; best = k; }
+    }
+    if (best !== null) anschluss.set(o.id, { feld: best, tiefe: best === -1 ? 0 : (tiefe.get(best) as number) });
+    // A24: Ein Pufferspeicher außen ist ohne eigene Leitung mit der Heizzentrale verbunden.
+    else if (o.typ === 'puffer') anschluss.set(o.id, { feld: -1, tiefe: 0 });
+  }
+
+  // Last in den Leitungen (Baum von der Heizzentrale aus)
+  const last_kw = new Map<number, number>();
+  const eigen = new Map<number, number>();
+  for (const k of reihenfolge) { last_kw.set(k, 0); eigen.set(k, 0); }
+  const kunden = objekte.filter((o) => istKunde(o) && anschluss.has(o.id));
+  for (const o of kunden) {
+    const a = anschluss.get(o.id) as { feld: number };
+    if (a.feld >= 0) eigen.set(a.feld, (eigen.get(a.feld) as number) + bedarfKw(o));
+  }
+  for (const k of reihenfolge) last_kw.set(k, eigen.get(k) as number);
+  for (let i = reihenfolge.length - 1; i >= 0; i--) {
+    const k = reihenfolge[i], p = eltern.get(k) as number;
+    if (p >= 0) last_kw.set(p, (last_kw.get(p) as number) + (last_kw.get(k) as number));
+  }
+  // A49: Eine Leitung transportiert bei größerer Spreizung mehr Wärme (Q = m·c·ΔT): Kapazität × Spreizung / Basisspreizung
+  const spreizung_faktor = mittlereSpreizung_k(objekte, undefined, vorlauf_c) / SPREIZUNG_BASIS_K;
+  const kapazitaet_ok = new Map<number, boolean>();
+  for (const k of reihenfolge) {
+    const p = eltern.get(k) as number;
+    const kap = (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor;
+    kapazitaet_ok.set(k, (p < 0 || (kapazitaet_ok.get(p) as boolean)) && (last_kw.get(k) as number) <= kap);
+  }
+  // Fachregel: Dimension in Fließrichtung nur gleich oder kleiner
+  const engpass = new Set<number>();
+  for (const k of reihenfolge) {
+    const p = eltern.get(k) as number;
+    if (p >= 0 && LEITUNGSRANG[(leitungAn(k) as Objekt).typ] > LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) {
+      engpass.add(k); engpass.add(p);
+    }
+  }
+  // A67 (Simon): Kleiner wird eine Leitung nur an einem Abzweig (T-Stück), nie mitten auf der Strecke.
+  // Abzweig = das Feld davor hat mehrere Leitungen dahinter oder ein Gebäude schließt dort seitlich an.
+  const kinderzahl = new Map<number, number>();
+  for (const k of reihenfolge) { const p = eltern.get(k) as number; if (p >= 0) kinderzahl.set(p, (kinderzahl.get(p) ?? 0) + 1); }
+  const angebunden = new Set<number>();
+  for (const a of anschluss.values()) if (a.feld >= 0) angebunden.add(a.feld);
+  const reduzierung = new Set<number>();
+  for (const k of reihenfolge) {
+    const p = eltern.get(k) as number;
+    if (p < 0 || LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) continue;
+    if ((kinderzahl.get(p) ?? 0) >= 2 || angebunden.has(p) || (leitungAn(p) as Objekt).vorsehung) continue; // A69: T-Stück mit Vorsehung ist ein Abzweig
+    reduzierung.add(k); reduzierung.add(p);
+  }
+  // A76 (Simon): Teilt sich eine Leitung an einem T-Stück, laufen nicht beide Abgänge so dick weiter wie die Zuleitung –
+  // dann braucht es eine dickere Zuleitung (z. B. 90er aus der Heizzentrale) oder zwei eigene Abgänge an der Heizzentrale.
+  const aufteilung = new Set<number>();
+  const gleichDick = new Map<number, number[]>();
+  for (const k of reihenfolge) {
+    const p = eltern.get(k) as number;
+    if (p >= 0 && LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) gleichDick.set(p, [...(gleichDick.get(p) ?? []), k]);
+  }
+  for (const [p, kinder] of gleichDick) if (kinder.length >= 2) { aufteilung.add(p); for (const k of kinder) aufteilung.add(k); }
+
+  // Erzeugung. Fachregel V1: Von außen eingespeiste Wärme ist höchstens so groß wie die kleinste
+  // Leitungskapazität auf dem Weg zur Heizzentrale. V2: Ein Speicher erzeugt keine Wärme (zählt nur, wenn eine Quelle läuft).
+  const wegKapazitaet_kw = (feld: number): number => {
+    let kap = Infinity;
+    for (let k = feld; k >= 0; k = eltern.get(k) as number) kap = Math.min(kap, (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor);
+    return kap;
+  };
+  let aussen_kw = 0, strom_kw = 0, speicher_kw = 0;
+  for (const o of objekte) {
+    const D = KATALOG[o.typ];
+    if (D.kategorie === 'waerme' && istAktiv(o) && anschluss.has(o.id)) {
+      const weg = wegKapazitaet_kw((anschluss.get(o.id) as { feld: number }).feld);
+      if (D.leistung_kw) {
+        const kw = Math.min(D.leistung_kw[o.stufe - 1], weg);
+        if (o.typ === 'puffer') speicher_kw += kw; else aussen_kw += kw;
+      }
+      if (D.strom_kw) strom_kw += D.strom_kw[o.stufe - 1];
+    }
+  }
+  if (hz.dach_pv) strom_kw += DACH_PV.kw_je_stufe[hz.stufe - 1] ?? 0; // A36: PV auf dem Heizhaus-Dach
+  let abwaerme_kw = 0;
+  for (const o of objekte) {
+    if (o.typ === 'gewerbe' && o.zustand === 'vertrag' && anschluss.has(o.id))
+      abwaerme_kw += Math.min(KATALOG.gewerbe.abwaerme_kw as number, wegKapazitaet_kw((anschluss.get(o.id) as { feld: number }).feld));
+  }
+  const quellen = innen.filter((k) => istAktiv(k));
+  const leistung = (k: InnenQuelle): number => (KATALOG[k.typ].leistung_kw as number[])[k.stufe - 1];
+  const innen_kw = quellen.reduce((a, k) => a + leistung(k), 0);
+  const ohneSpeicher_kw = aussen_kw + abwaerme_kw + innen_kw;
+  if (ohneSpeicher_kw > 0) aussen_kw += speicher_kw;
+  const verfuegbar_kw = aussen_kw + abwaerme_kw + innen_kw;
+
+  // Wärme verteilen: nah zuerst, nur wenn die Leitungen reichen
+  const warm = new Set<number>();
+  const kalt = new Map<number, 'leitung' | 'waerme' | 'station'>();
+  let genutzt_kw = 0, bedarf_kw = 0;
+  const geordnet = [...kunden].sort(
+    (a, b) => (anschluss.get(a.id) as { tiefe: number }).tiefe - (anschluss.get(b.id) as { tiefe: number }).tiefe || a.id - b.id,
+  );
+  for (const o of geordnet) {
+    const n = bedarfKw(o);
+    const a = anschluss.get(o.id) as { feld: number };
+    bedarf_kw += n;
+    if (a.feld >= 0 && !kapazitaet_ok.get(a.feld)) { kalt.set(o.id, 'leitung'); continue; }
+    const st = stationHolen(o.station);
+    if (st && st.leistung_kw < n) { kalt.set(o.id, 'station'); continue; } // A32: Station zu klein
+    if (genutzt_kw + n <= verfuegbar_kw) { genutzt_kw += n; warm.add(o.id); } else kalt.set(o.id, 'waerme');
+  }
+
+  // Betriebskosten (Merit-Order: kostenlose Außenanlagen, dann Abwärme, dann günstigste Innenquelle)
+  const elektrisch_kw = quellen.filter((k) => KATALOG[k.typ].elektrisch).reduce((a, k) => a + leistung(k), 0);
+  const pv_faktor = Math.max(0.25, 1 - strom_kw / Math.max(1, elektrisch_kw));
+  const preis = (k: InnenQuelle): number =>
+    (KATALOG[k.typ].betriebskosten_eur_je_kw_min as number) * (KATALOG[k.typ].elektrisch ? pv_faktor : 1);
+  let rest = Math.max(0, genutzt_kw - aussen_kw);
+  let betriebskosten_eur_min = 0;
+  const ab = Math.min(rest, abwaerme_kw);
+  betriebskosten_eur_min += ab * KONSTANTEN.abwaerme_eur_je_kw_min;
+  rest -= ab;
+  const laeuft_mit_kw = new Map<InnenQuelle, number>();
+  for (const k of [...quellen].sort((a, b) => preis(a) - preis(b))) {
+    const h = Math.min(rest, leistung(k));
+    rest -= h;
+    laeuft_mit_kw.set(k, h);
+    betriebskosten_eur_min += h * preis(k);
+  }
+  // A58: Ein BHKW erzeugt Strom im Verhältnis zur tatsächlich erzeugten Wärme (Kraft-Wärme-Kopplung).
+  // Der BHKW-Strom zählt erst nach der Einsatzreihenfolge, damit er seine eigene Laufzeit nicht beeinflusst.
+  for (const k of quellen) strom_kw += (laeuft_mit_kw.get(k) ?? 0) * (KATALOG[k.typ].strom_je_waerme ?? 0);
+  const einspeisung_kw = Math.max(0, strom_kw - elektrisch_kw);
+  // A33: niedrigere Vorlauftemperatur spart Betriebskosten (Pumpen, Netzverluste)
+  betriebskosten_eur_min *= Math.max(0.5, 1 - (VORLAUF.start_c - vorlauf_c) * VORLAUF.ersparnis_je_k);
+  const P = PREISSTUFEN[preisstufe ?? 2];
+  // A81: mittlere Einnahmen je Minute aus der Monatsabrechnung (Jahresverbrauch × Wärmepreis + 12 Grundgebühren, verteilt aufs Spieljahr)
+  let einnahmen_eur_a = 0;
+  for (const o of objekte) {
+    if (!istKunde(o) || !anschluss.has(o.id)) continue;
+    einnahmen_eur_a += 12 * grundgebuehr_eur; // Grundgebühr zahlen alle angeschlossenen Kunden mit Station (Review A81 K6)
+    if (warm.has(o.id)) einnahmen_eur_a += (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o) * P.ct_je_kwh / 100;
+  }
+  const einnahmen_eur_min = einnahmen_eur_a / (SPIELJAHR_MS / 60_000);
+  return {
+    tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, reduzierung, aufteilung, anschluss, warm, kalt,
+    verfuegbar_kw, genutzt_kw, bedarf_kw, betriebskosten_eur_min, einnahmen_eur_min,
+    spreizung_faktor, pv_faktor, strom_kw, einspeisung_kw, laeuft_mit_kw, belegung, nachId,
+  };
+}
+
+/** Faktor auf Bedarf und Einnahmen: Vollversorgung (Kamin aus, A34) und Aufstockung erhöhen beides. */
+export function nutzungsfaktor(o: Objekt): number {
+  return (o.vollversorgung ? KONSTANTEN.vollversorgung_faktor : 1) * (o.aufgestockt ? KONSTANTEN.aufstockung_faktor : 1);
+}
+/** A71: Anschlussleistung = Jahresverbrauch ÷ Volllaststunden (1.800 h mit Pufferspeicher im Haus, sonst 1.500 h), mal Nutzung (Kamin aus, aufgestockt). */
+export function bedarfKw(o: Objekt): number {
+  const D = KATALOG[o.typ];
+  const basis = D.verbrauch_kwh_a ? D.verbrauch_kwh_a / (o.hauspuffer ? VOLLLASTSTUNDEN.mit_puffer_h : VOLLLASTSTUNDEN.ohne_puffer_h) : (D.bedarf_kw ?? 0);
+  return basis * nutzungsfaktor(o);
+}
+
+/** Dorfwert für die Rangliste. */
+export function dorfwert(objekte: Objekt[], innen: InnenQuelle[]): number {
+  let v = innen.reduce((a, k) => a + k.stufe * 12, 0);
+  for (const o of objekte) {
+    const D = KATALOG[o.typ];
+    if (o.typ === 'hz') v += o.stufe * 60;
+    else if (D.bauzeit_s) v += o.stufe * (D.groesse ?? 1) * 8;
+    else if (D.kategorie === 'deko') v += 2;
+    else if (istLeitung(o.typ)) v += LEITUNGSRANG[o.typ];
+    else if (D.kategorie === 'gross' && o.zustand === 'vertrag') v += 40;
+  }
+  return v;
+}
+
+export type { TypId };
