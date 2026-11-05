@@ -131,3 +131,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:33 | ■ 🟡 | entwickler | 🟡 Status: FERTIG_MIT_BEDENKEN. Gebaut, committet und von der Test-Schranke geprüft. Mein Kontext ist danach voll gelaufen; deshalb ist dieser Bericht kürze ([Bericht](docs/pruefberichte/20261105-143302-entwickler-a700bf2f083fcd358.md)) |
 | 2026-11-05 14:33 | ▶ | reviewer | Review NR12 P3a Bodenebene |
 | 2026-11-05 14:35 | ■ 🟢 | designer | 🟢 **Nachprüfung der Treue-Befunde A88 P2 und NR12 P2 (Startbildschirm), Stand dba9c76**  ([Bericht](docs/pruefberichte/20261105-143528-designer-a4e8b6033fd3fb867.md)) |
+| 2026-11-05 14:38 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Es gibt einen wichtigen Befund. Er betrifft eine fehlende Prüfung, keinen Fehler im Code.  ([Bericht](docs/pruefberichte/20261105-143814-reviewer-a59dfbf3f765e17a1.md)) |
