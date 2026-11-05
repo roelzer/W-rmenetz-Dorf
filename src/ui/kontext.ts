@@ -1,9 +1,9 @@
 import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
-import { merkmalName } from '../core/freischaltung';
+import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
-import { balken, chip, knopf, kasten, sperrHinweis, stepper, zeile } from './bausteine';
+import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -28,14 +28,18 @@ export function anfrageKasten(sp: Spiel, o: Objekt, nachAktion: () => void): HTM
   return k;
 }
 
+/** Kurzer Sperrgrund für enge Leisten und Chips (DESIGN.md 12.15); die Stufe kommt aus dem Kern. */
+const kurzGrund = (m: Merkmal): string => `ab Stufe ${abStufe(m)}`;
+
 /** A88: freigeschaltete Leitungen als Knöpfe (ohne `ohne`) plus höchstens ein deaktivierter Knopf „Dickere“ mit dem Grund –
- *  für Zeichenleiste und Leitungskarte. LEITUNGEN ist dünn → dick sortiert, die erste gesperrte ist also die nächste Freischaltung. */
-export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement): HTMLButtonElement[] {
+ *  für Zeichenleiste und Leitungskarte. LEITUNGEN ist dünn → dick sortiert, die erste gesperrte ist also die nächste Freischaltung.
+ *  `kurz`: In der engen Zeichenleiste reicht „ab Stufe X“ (DESIGN.md 12.15), die Leitungskarte behält den langen Grund. */
+export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement, kurz = false): HTMLButtonElement[] {
   const knoepfe = LEITUNGEN.filter((t) => t !== ohne && sp.freigeschaltet(t)).map(knopfFuer);
   // Auf der Leitungskarte zählt nur eine gesperrte Leitung, die dicker ist als die vorhandene (`ohne`) – sonst gäbe es dort nichts „Dickeres“.
   const ab = ohne ? LEITUNGEN.indexOf(ohne) + 1 : 0;
   const naechste = LEITUNGEN.slice(ab).find((t) => !sp.freigeschaltet(t));
-  const grund = naechste ? sp.sperrgrund(naechste) : null;
+  const grund = naechste ? (kurz ? kurzGrund(naechste) : sp.sperrgrund(naechste)) : null;
   if (grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, unter: grund }));
   return knoepfe;
 }
@@ -238,7 +242,7 @@ export class Kontext {
     // A88: Ohne freie Stationswahl gibt es nur die kleinste passende Station – so bleibt jedes Haus versorgbar.
     if (!frei && (!alt || alt.leistung_kw < bedarf)) {
       const st = passendeStation(bedarf);
-      reihe.append(knopf(`${alt ? 'Größere Station einbauen' : 'Übergabestation einbauen'} · ${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(sp.stationspreis_eur(o, st)) }));
+      reihe.append(knopf(alt ? 'Größere Station einbauen' : 'Station einbauen', () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${st.name} · ${eur(sp.stationspreis_eur(o, st))}` }));
     }
     if (frei) for (const st of STATIONEN.filter((x) => x.leistung_kw >= bedarf && (!alt || x.leistung_kw > alt.leistung_kw)).slice(0, 3)) {
       const preis = sp.stationspreis_eur(o, st);
@@ -402,10 +406,14 @@ export class Kontext {
     c.append(h('p', { class: 'gedaempft' }, 'Den Wärmepreis stellst du jetzt in der Heizzentrale ein.'));
     const f = kasten('Förderanträge');
     f.append(h('p', { class: 'gedaempft' }, `Bewilligte Förderung: ${Math.round(KONSTANTEN.foerderquote * 100)} % der Baukosten fließen zurück – nur, wenn du erst nach dem Bescheid baust.`));
-    for (const t of QUELLEN) {
+    // DESIGN.md 12.15: frei zuerst, dann gesperrte nach Freischalt-Stufe (sort ist stabil, gleiche Stufe behält die Katalogreihenfolge).
+    const rang = (t: TypId): number => (sp.freigeschaltet(t) ? 0 : abStufe(t));
+    for (const t of [...QUELLEN].sort((x, y) => rang(x) - rang(y))) {
       const a = s.antraege[t];
-      const sperre = sp.sperrgrund(t); // A88: gesperrte Quelle = deaktivierter Knopf mit Grund; ein gestellter Antrag bleibt sichtbar
-      const rechts = a ? chip(a.stand === 'wartet' ? 'in Prüfung' : 'bewilligt', a.stand === 'wartet' ? 'blau' : 'gruen') : knopf('Antrag stellen', () => { sp.foerderungBeantragen(t); this.ui.geaendert(); }, 'blau', { klein: true, aus: sperre !== null, unter: sperre ?? undefined });
+      // Gesperrte Quelle = nicht tippbarer Chip statt Knopf (viele gesperrte Zeilen); ein gestellter Antrag bleibt sichtbar.
+      const rechts = a ? chip(a.stand === 'wartet' ? 'in Prüfung' : 'bewilligt', a.stand === 'wartet' ? 'blau' : 'gruen')
+        : sp.freigeschaltet(t) ? knopf('Antrag stellen', () => { sp.foerderungBeantragen(t); this.ui.geaendert(); }, 'blau', { klein: true })
+        : sperrChip(kurzGrund(t));
       f.append(zeile(KATALOG[t].name, rechts));
     }
     c.append(f);

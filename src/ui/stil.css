@@ -167,6 +167,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .chip.gruen{background:var(--menue-chip-gruen-0);color:var(--menue-chip-gruen-1)}
 .chip.rot{background:var(--menue-chip-rot-0);color:var(--menue-chip-rot-1)}
 .chip.blau{background:var(--menue-chip-blau-0);color:var(--menue-chip-blau-1)}
+.chip.sperr{cursor:default;user-select:none;-webkit-user-select:none;white-space:nowrap;flex:none}
+.chip.sperr .sym{flex:none;width:14px;height:14px}
 .chip.gold{background:var(--menue-chip-gold-0);color:var(--menue-chip-gold-1)}
 
 /* ---------- Balken ---------- */
