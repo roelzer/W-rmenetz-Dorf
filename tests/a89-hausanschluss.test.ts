@@ -7,24 +7,16 @@ import { ORTE } from '../src/core/orte';
 import type { Objekt } from '../src/core/typen';
 
 // A89 – Hausanschluss macht keine Häuser kalt (docs/lastenheft.md A89; Entscheidung Projektleiter Variante a: die Wegsuche nimmt
-// einen Weg nur, wenn danach kein Haus neu wegen der Leitung kalt ist; zusätzlich keine Felder direkt neben der Heizzentrale).
+// einen Weg nur, wenn danach kein Haus neu wegen der Leitung kalt ist). Die frühere Sperre „keine Felder direkt neben der
+// Heizzentrale“ entfällt mit A91 (NR15-P3, Bauplan docs/bauplaene/NR15-netzmodell.md Abschnitt 8).
 // Echtes Kernmodul, keine Attrappen, echte Freischalt-Leiter.
 
 const T0 = 1_000_000_000_000;
-// Heizzentrale des Startdorfs: (11|10), 2×2 Felder → Nachbarfelder von Hand: links (10|10),(10|11), rechts (13|10),(13|11),
-// oben (11|9),(12|9), unten (11|12),(12|12).
-const NEBEN_HZ = new Set(['10|10', '10|11', '13|10', '13|11', '11|9', '12|9', '11|12', '12|12']);
 // Gefundene Wege über alle noch nicht angeschlossenen Häuser und Großabnehmer des Ortes, gemessen am Stand 01c80ec (vor A89):
 // Stufe 1: 41 (2 ohne Weg: Haus liegt schon an einer Leitung bzw. jenseits des Flusses ohne Spülbohrung), Stufe 2: 42.
 // A89 darf keine Häuser „unanschließbar“ machen, die vorher einen Weg hatten.
 const WEGE_VOR_A89: Record<number, number> = { 1: 41, 2: 42 };
 
-/** Felder, die seitlich an die Heizzentrale grenzen (quadratische Grundfläche, Kantenlänge aus dem Katalog). */
-const nebenHzVon = (hz: Objekt): Set<string> => {
-  const g = KATALOG[hz.typ].groesse as number, r = new Set<string>();
-  for (let i = 0; i < g; i++) for (const [x, y] of [[hz.x + i, hz.y - 1], [hz.x + i, hz.y + g], [hz.x - 1, hz.y + i], [hz.x + g, hz.y + i]]) r.add(`${x}|${y}`);
-  return r;
-};
 const anschliessbar = (s: Spiel): Objekt[] => s.stand.objekte.filter((o) => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie) && o.ohne_station);
 const feld = (o: Objekt) => `${o.x}|${o.y}`;
 
@@ -53,36 +45,8 @@ describe('A89 Hausanschluss macht keine Häuser kalt', () => {
     expect(s.stand.erledigt.c2).toBe(true);
   });
 
-  it('A89: der Hausanschluss zu (13|12) legt kein Feld direkt neben die Heizzentrale', () => {
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
-    s.ersteQuelleWaehlen('kessel');
-    s.stand.abschnitt = { phase: 'offen', bau: null };
-    expect(nebenHzVon(s.hz)).toEqual(NEBEN_HZ); // Voraussetzung: Heizzentrale bei (11|10), 2×2
-    const haus = s.stand.objekte.find((o) => o.x === 13 && o.y === 12)!;
-    expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
-    const weg = s.stand.objekte.filter((o) => o.geplant).map(feld);
-    expect(weg.length).toBeGreaterThan(0);
-    expect(weg.filter((f) => NEBEN_HZ.has(f))).toEqual([]);
-  });
-
-  it('A89: geht es nur über ein Feld neben der Heizzentrale, wird kein Weg geplant', () => {
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
-    s.ersteQuelleWaehlen('kessel');
-    s.stand.geld_eur = 1_000_000;
-    s.stand.abschnitt = { phase: 'offen', bau: null };
-    const haus = s.stand.objekte.find((o) => o.x === 13 && o.y === 12)!;
-    // Freie Nachbarn von (13|12): (14|12), (13|13) – mit Felsbrocken zustellen. Übrig bleiben (12|12) und (13|11), beide neben der Heizzentrale.
-    for (const [x, y] of [[14, 12], [13, 13]]) s.stand.objekte.push({ id: s.stand.naechste_id++, typ: 'stein', x, y, stufe: 1, bau: null, kasse_eur: 0 });
-    const geld = s.stand.geld_eur;
-    const r = s.hausanschlussPlanen(haus.id);
-    expect(r.ok).toBe(false);
-    expect(r.hinweis ?? '').not.toBe('');
-    expect(s.stand.objekte.some((o) => o.geplant)).toBe(false);
-    expect(s.stand.geld_eur).toBe(geld);
-  });
-
   for (const stufe of [1, 2]) {
-    it(`A89: Stufe ${stufe} – kein Hausanschluss im ganzen Ort macht ein vorher warmes Haus kalt, keiner liegt neben der Heizzentrale, nicht weniger Wege als vor A89`, () => {
+    it(`A89: Stufe ${stufe} – kein Hausanschluss im ganzen Ort macht ein vorher warmes Haus kalt, nicht weniger Wege als vor A89`, () => {
       const befunde: string[] = [];
       let gefunden = 0;
       for (const ort of ORTE) {
@@ -100,8 +64,6 @@ describe('A89 Hausanschluss macht keine Häuser kalt', () => {
           if (!s.hausanschlussPlanen(haus.id).ok) continue;
           gefunden++;
           const geplant = s.stand.objekte.filter((o) => o.geplant);
-          const nebenHz = geplant.map(feld).filter((f) => nebenHzVon(s.hz).has(f));
-          if (nebenHz.length) befunde.push(`${feld(haus)}: Weg neben der Heizzentrale ${nebenHz}`);
           if (KATALOG[haus.typ].kategorie === 'haus') expect(s.stationKaufen(haus.id, passendeStation(bedarfKw(haus)).id).ok).toBe(true);
           for (const o of geplant) delete o.geplant; // wie nach der Bauzeit
           s.neuBerechnen();
