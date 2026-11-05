@@ -231,3 +231,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:23 | ■ 🟢 | tester | 🟢 Grün: Beide fehlenden Testbereiche sind jetzt abgedeckt. Am Produktivcode ist nichts geändert. Alle Tests laufen durch, die Schranke meldet OK.  ([Bericht](docs/pruefberichte/20261105-192349-tester-a08f4533441874409.md)) |
 | 2026-11-05 19:25 | ▶ | designer | Designer-Vorgaben NR16-B2b |
 | 2026-11-05 19:29 | ■ 🟢 | designer | 🟢 Die Vorgaben für NR16-B2b stehen in DESIGN.md. Ich habe keinen Code geändert. Commit **dfd770c** liegt auf `claude/keen-mccarthy-f4p5us` und ist gepusht. ([Bericht](docs/pruefberichte/20261105-192938-designer-ac12eeb911a60085e.md)) |
+| 2026-11-05 19:30 | ▶ | tester | Tester-Vorarbeit NR16-B2b |
