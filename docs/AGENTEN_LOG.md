@@ -99,3 +99,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 13:59 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-05 13:59 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Ich habe nur einen Teil gebaut. Gebaut und grün sind die Punkte 3, 4 und 5. Die Punkte 1, 2 und 6 sind **blockiert**: Wie ([Bericht](docs/pruefberichte/20261105-135955-entwickler-ad98e4b61d187ca3c.md)) |
 | 2026-11-05 14:03 | ■ 🟢 | architekt | 🟢 **Grün.** Ich habe den Bauplan `docs/bauplaene/NR12-fluessig.md` nach der Kritikerprüfung überarbeitet (Fassung 2). Alle sieben Muss-Befunde B1–B7 und ([Bericht](docs/pruefberichte/20261105-140307-architekt-a4ea654ae3338b7c6.md)) |
+| 2026-11-05 14:03 | ▶ | tester | Tester-Vorarbeit A78 für NR12 P2 |
+| 2026-11-05 14:03 | ▶ | entwickler | NR12 P0 Szenen-Schlüssel bauen |
+| 2026-11-05 14:03 | ▶ | entwickler | NR12 P4 Messwerkzeug bauen |
