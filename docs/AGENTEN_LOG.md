@@ -233,3 +233,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:29 | ■ 🟢 | designer | 🟢 Die Vorgaben für NR16-B2b stehen in DESIGN.md. Ich habe keinen Code geändert. Commit **dfd770c** liegt auf `claude/keen-mccarthy-f4p5us` und ist gepusht. ([Bericht](docs/pruefberichte/20261105-192938-designer-ac12eeb911a60085e.md)) |
 | 2026-11-05 19:30 | ▶ | tester | Tester-Vorarbeit NR16-B2b |
 | 2026-11-05 19:41 | ■ 🟡 | tester | 🟡 BLOCKIERT, Grund: Kontext voll. Ein Teil ist fertig und committet, der Rest fehlt. Ein frischer Tester-Agent muss weitermachen.  ([Bericht](docs/pruefberichte/20261105-194119-tester-a0365dcbe9cd2aaab.md)) |
+| 2026-11-05 19:41 | ▶ | tester | Tester-Vorarbeit B2b Teil 2 |
