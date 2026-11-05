@@ -170,6 +170,10 @@ describe('A84 (Review W1) Bausteine verhalten sich richtig', () => {
     const k = lies('src/ui/kontext.ts');
     expect(k).toMatch(/stepper\('plus', 'Wärmepreis erhöhen', \(\) => \{ sp\.preisSetzen\(s\.preisstufe \+ 1\)/);
     expect(k).toMatch(/stepper\('minus', 'Wärmepreis senken', \(\) => \{ sp\.preisSetzen\(s\.preisstufe - 1\)/);
+    expect(k).toContain("stepper('plus', 'Grundgebühr erhöhen', () => { sp.grundgebuehrSetzen(g + 1)");
+    expect(k).toContain("stepper('minus', 'Grundgebühr senken', () => { sp.grundgebuehrSetzen(g - 1)");
+    expect(k).toContain("stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c)");
+    expect(k).toContain("stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c)");
   });
   it('A84 (Review W2): Was Euro kostet, ist Gold – auch Vorsehung setzen und Leitung tauschen', () => {
     const k = lies('src/ui/kontext.ts');
