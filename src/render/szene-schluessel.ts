@@ -1,7 +1,8 @@
 import { istLeitung, KATALOG } from '../core/katalog';
 import type { Netz, Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
-import { blase, type Szene } from './szene';
+import { blase } from './blase';
+import type { Szene } from './szene';
 
 /** Wie oft muss neu gezeichnet werden, damit sichtbare Bewegung weiterläuft? */
 export type AnimBedarf = 'keine' | 'langsam' | 'fluessig';
