@@ -3,7 +3,7 @@ import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k 
 import { merkmalName } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
-import { balken, chip, knopf, kasten, stepper, zeile } from './bausteine';
+import { balken, chip, knopf, kasten, sperrHinweis, stepper, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -344,7 +344,7 @@ export class Kontext {
       stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, sperreVorlauf !== null || sp.vorlauf_c <= VORLAUF.min_c),
       h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
       stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, sperreVorlauf !== null || sp.vorlauf_c >= VORLAUF.max_c)),
-      sperreVorlauf ? h('p', {}, `${merkmalName('vorlauf')} ${sperreVorlauf}`) : h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
+      sperreVorlauf ? sperrHinweis(`${merkmalName('vorlauf')} ${sperreVorlauf}`) : h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
     const pvk = kasten('Solarstrom');
     const pvKw = sp.dachPvLeistung_kw(), sperrePv = sp.sperrgrund('dach_pv');
     if (hzObj.dach_pv) pvk.append(h('p', {}, `PV-Anlage auf dem Heizhaus-Dach: ${pvKw} kWp. Sie senkt die Stromkosten von Wärmepumpe und Power-to-Heat-Kessel, Überschuss wird ins Stromnetz eingespeist.`));
@@ -364,7 +364,7 @@ export class Kontext {
     const hk = kasten('Helfer');
     const sperreHelfer = sp.sperrgrund('ruecklauf_helfer');
     // A88: gesperrt = eine Zeile mit Grund; laufende Aufträge aus einem alten Stand werden trotzdem gezeigt
-    if (sperreHelfer && !HELFER.some((name) => sp.helferAuftrag(name))) hk.append(h('p', { class: 'gedaempft' }, `${merkmalName('ruecklauf_helfer')} ${sperreHelfer}`));
+    if (sperreHelfer && !HELFER.some((name) => sp.helferAuftrag(name))) hk.append(sperrHinweis(`${merkmalName('ruecklauf_helfer')} ${sperreHelfer}`));
     else for (const name of HELFER) {
       const a = sp.helferAuftrag(name);
       hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
