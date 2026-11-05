@@ -1,6 +1,6 @@
 {
-  "name": "Wärmenetz-Dorf",
-  "short_name": "Wärmedorf",
+  "name": "Heatnet",
+  "short_name": "Heatnet",
   "description": "Baue ein Dorf mit Wärmenetz. Alle Wärmenetze und Werte sind fiktiv.",
   "lang": "de",
   "start_url": "./",

@@ -752,3 +752,12 @@ describe('A60 kein Rauch aus Hauskaminen', () => {
     expect((q.match(/m\.wolke\(/g) ?? []).length).toBeLessThanOrEqual(2); // Heizzentrale + eigenes Sägewerk
   });
 });
+
+describe('A61 Spielname Heatnet', () => {
+  it('A61: Seitentitel und App-Name heißen „Heatnet“', async () => {
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync(new URL('../index.html', import.meta.url), 'utf8')).toContain('<title>Heatnet</title>');
+    const m = JSON.parse(readFileSync(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8'));
+    expect(m.name).toBe('Heatnet'); expect(m.short_name).toBe('Heatnet');
+  });
+});
