@@ -232,45 +232,47 @@ describe('A92 / 12.20 S1–S3 – Ausbau-Knöpfe', () => {
 const ZEICHNEN_KNOEPFE = ['Hausanschluss ziehen', 'Leitung selbst legen'];
 
 describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauchen', () => {
-  it('A92 B1: kein Bauabschnitt – Hausblatt und Großabnehmer: „braucht offenen Bauabschnitt“, Schloss, Hinweis', async () => {
+  // Stand B2b (Designer-Treue Muss 1, 12.20 Regel 1 / 12.21): Im Hausblatt stehen zwei Knöpfe nebeneinander – Zeile 2 nutzt dort
+  // die Kurzform aus 12.21 („kein Bauabschnitt“ …). Der Großabnehmer-Knopf steht allein und behält die lange Form. Hinweis überall lang.
+  it('A92 B1: kein Bauabschnitt – Hausblatt Kurzform „kein Bauabschnitt“, Großabnehmer „braucht offenen Bauabschnitt“, Schloss, Hinweis', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     await karte(s, haus(s), uhr, (b) => {
-      for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'braucht offenen Bauabschnitt', schloss: true, hinweis: B1_HINWEIS }, n);
+      for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'kein Bauabschnitt', schloss: true, hinweis: B1_HINWEIS }, n);
     });
     await karte(s, bad(s), uhr, (b) => {
       pruefeZeile(b, b.einer('40er-Leitung legen'), { zeile2: 'braucht offenen Bauabschnitt', schloss: true, hinweis: B1_HINWEIS }, 'Großabnehmer');
     });
   });
 
-  it('A92 B2: in Planung – „Philipp plant noch“, Schloss; Hinweis nennt die Restzeit zum Zeitpunkt des Antippens', async () => {
+  it('A92 B2: in Planung – Hausblatt Kurzform „wird noch geplant“, Schloss; Hinweis nennt die Restzeit zum Zeitpunkt des Antippens', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.stand.abschnitt = { phase: 'planung', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 30_000 } };
     await karte(s, haus(s), uhr, (b) => {
       const k = b.einer('Leitung selbst legen');
       uhr.t = T0 + 12_000; // Blatt bleibt offen, die Zeit läuft weiter: 18 s übrig
-      pruefeZeile(b, k, { zeile2: 'Philipp plant noch', schloss: true, hinweis: 'Philipp plant den Bauabschnitt noch (18s). Danach kannst du zeichnen.' }, 'B2');
+      pruefeZeile(b, k, { zeile2: 'wird noch geplant', schloss: true, hinweis: 'Philipp plant den Bauabschnitt noch (18s). Danach kannst du zeichnen.' }, 'B2');
       uhr.t = T0 + 29_500; // aufgerundet 1 s
       expect(norm(b.tippe(k) ?? '')).toBe('Philipp plant den Bauabschnitt noch (1s). Danach kannst du zeichnen.');
       uhr.t = T0;
-      pruefeZeile(b, b.einer('Hausanschluss ziehen'), { zeile2: 'Philipp plant noch', schloss: true, hinweis: 'Philipp plant den Bauabschnitt noch (30s). Danach kannst du zeichnen.' }, 'B2 Anschluss');
+      pruefeZeile(b, b.einer('Hausanschluss ziehen'), { zeile2: 'wird noch geplant', schloss: true, hinweis: 'Philipp plant den Bauabschnitt noch (30s). Danach kannst du zeichnen.' }, 'B2 Anschluss');
     });
   });
 
-  it('A92 B3: Abschnitt wartet auf die Bestellung – „Abschnitt ist geplant“, Schloss, Hinweis mit Laura', async () => {
+  it('A92 B3: Abschnitt wartet auf die Bestellung – Hausblatt Kurzform „Bestellung offen“, Schloss, Hinweis mit Laura', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.stand.abschnitt = { phase: 'bestellen', bau: null };
     await karte(s, haus(s), uhr, (b) => {
-      for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'Abschnitt ist geplant', schloss: true, hinweis: 'Abschnitt wartet auf Lauras Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.' }, n);
+      for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'Bestellung offen', schloss: true, hinweis: 'Abschnitt wartet auf Lauras Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.' }, n);
     });
   });
 
-  it('A92 B4: Abschnitt wird gebaut – „Abschnitt wird gebaut“, Schloss, Restzeit beim Antippen (7m 30s statt 10m)', async () => {
+  it('A92 B4: Abschnitt wird gebaut – Hausblatt Kurzform „Abschnitt im Bau“, Großabnehmer „Abschnitt wird gebaut“, Schloss, Restzeit beim Antippen (7m 30s statt 10m)', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.stand.abschnitt = { phase: 'bau', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 600_000 } };
     await karte(s, haus(s), uhr, (b) => {
       const k = b.einer('Leitung selbst legen');
       uhr.t = T0 + 150_000;
-      pruefeZeile(b, k, { zeile2: 'Abschnitt wird gebaut', schloss: true, hinweis: 'Der Bauabschnitt wird gerade gebaut (7m 30s). Danach kannst du den nächsten planen.' }, 'B4');
+      pruefeZeile(b, k, { zeile2: 'Abschnitt im Bau', schloss: true, hinweis: 'Der Bauabschnitt wird gerade gebaut (7m 30s). Danach kannst du den nächsten planen.' }, 'B4');
     });
     await karte(s, bad(s), uhr, (b) => {
       pruefeZeile(b, b.einer('40er-Leitung legen'), { zeile2: 'Abschnitt wird gebaut', schloss: true, hinweis: 'Der Bauabschnitt wird gerade gebaut (7m 30s). Danach kannst du den nächsten planen.' }, 'B4 Großabnehmer');
@@ -285,6 +287,38 @@ describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauch
       pruefeZeile(b, b.einer('Hausanschluss geplant'), { zeile2: 'kommt mit dem Bauabschnitt', schloss: false, hinweis: 'Der Hausanschluss ist schon eingeplant. Gebaut wird er mit dem Bauabschnitt.' }, 'B5');
     });
   });
+});
+
+describe('A92 / 12.21 Kurzformen B1–B4 – Hausblatt kurz, Großabnehmer lang, Hinweis überall lang', () => {
+  // Designer-Treue B2b Muss 1: Im Hausblatt stehen zwei Knöpfe nebeneinander (135 px bei 667×375); „braucht offenen Bauabschnitt“
+  // bräche dort auf 3 Zeilen um (erlaubt 2, 12.20 Regel 1). Entscheidung: Hausblatt nutzt die Kurzformen aus 12.21 (≤ 18 Zeichen),
+  // der Großabnehmer-Knopf (allein, volle Breite) die lange Form aus 12.20; der Hinweis beim Antippen ist überall die lange Form.
+  // Restzeiten bewusst andere als in den übrigen Tests: Ende nach 250 s, getippt nach 40 s → 3m 30s.
+  const FAELLE = [
+    { nr: 'B1', abschnitt: null, kurz: 'kein Bauabschnitt', lang: 'braucht offenen Bauabschnitt', hinweis: B1_HINWEIS },
+    { nr: 'B2', abschnitt: { phase: 'planung', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 250_000 } }, kurz: 'wird noch geplant', lang: 'Philipp plant noch', hinweis: 'Philipp plant den Bauabschnitt noch (3m 30s). Danach kannst du zeichnen.' },
+    { nr: 'B3', abschnitt: { phase: 'bestellen', bau: null }, kurz: 'Bestellung offen', lang: 'Abschnitt ist geplant', hinweis: 'Abschnitt wartet auf Lauras Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.' },
+    { nr: 'B4', abschnitt: { phase: 'bau', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 250_000 } }, kurz: 'Abschnitt im Bau', lang: 'Abschnitt wird gebaut', hinweis: 'Der Bauabschnitt wird gerade gebaut (3m 30s). Danach kannst du den nächsten planen.' },
+  ] as const;
+
+  for (const f of FAELLE) {
+    it(`A92 ${f.nr}: Hausblatt-Zeile 2 „${f.kurz}“ (≤ 18 Zeichen), Großabnehmer „${f.lang}“, Hinweis beim Tippen in beiden lang`, async () => {
+      expect(f.kurz.length, 'Kurzform höchstens 18 Zeichen (12.20 Regel 1)').toBeLessThanOrEqual(18);
+      const uhr = { t: T0 }, s = neu(1, uhr);
+      if (f.abschnitt) s.stand.abschnitt = structuredClone(f.abschnitt) as typeof s.stand.abschnitt;
+      else delete s.stand.abschnitt;
+      await karte(s, haus(s), uhr, (b) => {
+        uhr.t = T0 + 40_000;
+        for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: f.kurz, schloss: true, hinweis: f.hinweis }, `${f.nr} Hausblatt ${n}`);
+      });
+      uhr.t = T0;
+      await karte(s, bad(s), uhr, (b) => {
+        uhr.t = T0 + 40_000;
+        pruefeZeile(b, b.einer('40er-Leitung legen'), { zeile2: f.lang, schloss: true, hinweis: f.hinweis }, `${f.nr} Großabnehmer`);
+      });
+      expect(s.abschnitt?.phase ?? null, 'nichts geändert').toBe(f.abschnitt?.phase ?? null);
+    });
+  }
 });
 
 describe('A92 / 12.20 B6, B8–B10 – Baumenü und Geld', () => {

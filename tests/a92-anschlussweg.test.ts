@@ -17,7 +17,8 @@ import { sichtbar, type El } from './hilfen/dom-attrappe';
 const T0 = 1_000_000_000_000;
 // DESIGN.md 12.20 S5, fachgeprüft (ENTSCHEIDUNGEN 2026-11-05): 90 Zeichen, der Nutzen (Anbohren sparen) bleibt vor Stufe 4 unerwähnt.
 const TSTUECK_HINWEIS = 'Für Hausanschlüsse nicht nötig, den Abzweig setzt das Spiel. Frei ab Heizzentrale Stufe 4.';
-const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
+// Hausblatt: zwei Knöpfe nebeneinander → Zeile 2 in der Kurzform aus DESIGN.md 12.21 (Designer-Treue B2b Muss 1, 12.20 Regel 1).
+const OHNE_ABSCHNITT = 'kein Bauabschnitt';
 // Hinweistexte beim Antippen gesperrter Knöpfe, wörtlich aus DESIGN.md 12.19 (Punkt 2) bzw. 12.18 (Leitung selbst legen).
 const SELBST_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
 const DICKERE_HINWEIS = 'Dickere Leitungen gibt es ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.';
@@ -230,8 +231,8 @@ describe('A92 Hausblatt – Weg zum Anschluss', () => {
   });
 
   it('A92: in Planung, beim Bestellen und im Bau – kein Planen-Knopf, „Leitung selbst legen“ gesperrt mit Grund der Phase (12.20 B2–B4)', async () => {
-    // DESIGN.md 12.20 B2/B3/B4: Zeile 2 nennt, woran es gerade hängt, statt immer „braucht offenen Bauabschnitt“.
-    const ZEILE2 = { planung: 'Philipp plant noch', bestellen: 'Abschnitt ist geplant', bau: 'Abschnitt wird gebaut' } as const;
+    // DESIGN.md 12.20 B2/B3/B4: Zeile 2 nennt, woran es gerade hängt; im Hausblatt (zwei Knöpfe nebeneinander) in der Kurzform aus 12.21.
+    const ZEILE2 = { planung: 'wird noch geplant', bestellen: 'Bestellung offen', bau: 'Abschnitt im Bau' } as const;
     for (const phase of ['planung', 'bestellen', 'bau'] as const) {
       const { s } = neu(1);
       s.stand.abschnitt = { phase, bau: phase === 'bestellen' ? null : { art: 'neu', start_ms: T0, ende_ms: T0 + 60_000 } };
