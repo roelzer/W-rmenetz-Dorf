@@ -172,3 +172,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:03 | ■ 🟡 | produktpruefer | AMPEL: GELB. Kurzfassung: NR16 liess sich so, wie Simon es beschreibt, auf dem Stand origin/main (c20ec80) NICHT als "es geht gar nichts mehr" nachstellen. Der  ([Bericht](docs/pruefberichte/20261105-170318-produktpruefer-acc1cb51cb125b2fb.md)) |
 | 2026-11-05 17:03 | ▶ | entwickler | NR16-A Anschlussweg klarer |
 | 2026-11-05 17:04 | ▶ | designer | NR16-B Designvorgabe Reiter/Toast |
+| 2026-11-05 17:11 | ■ 🟢 | designer | 🟢 **Vorgaben fertig.** Für alle drei Mängel und den gesperrten Knopf gibt es jetzt eine baubare Vorgabe mit Maßen, Zuständen und Prüfkriterium. Sie steh ([Bericht](docs/pruefberichte/20261105-171119-designer-a69fef3873825425f.md)) |

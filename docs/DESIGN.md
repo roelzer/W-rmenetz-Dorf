@@ -307,3 +307,144 @@ Fotos: HUD oben · Hauskarte (oben und ganz unten gescrollt) · Heizzentralen-Ka
 - In engen Leisten (Zeichenleiste) kurzer Grund „ab Stufe X“.
 - Gesperrte Hinweiszeilen einheitlich gedämpft mit Schloss 14 px davor, 8 px Abstand nach oben.
 - Grund auf Katalogkarten in `menue.farbe.text`.
+
+### 12.16 Baumenü-Reiter: eine Reihe, Symbol + Wort, nie scrollen (Produktprüfung NR16, 2026-11-05)
+Anlass: Bei 844×390 liegen „Dorf“ und „Deko“ außerhalb der Leiste, bei 667×375 ist schon „Leitungen“ abgeschnitten (Fotos 04-bauen, 24-reiter-Dorf, 51-667-bauen). Auf Foto 24-reiter-Dorf ist sogar der **aktive** Reiter nicht zu sehen. Neue Spieler finden Büro und Deko nicht. **Ersetzt** in Abschnitt 6 (S4) „waagrecht scrollbar, Ausblendmaske“ und in 12.7 den Punkt „Reiter“.
+
+**Entscheidung: alle fünf Reiter immer in einer Reihe, jeder mit Symbol oben und Wort darunter. Die Leiste scrollt nie.**
+Warum nicht die anderen Wege:
+- *Zwei Reihen* kosten rund 56 px Höhe. Im Querformat ist die Höhe das Knappste (390 px, davon 63 px Kopfband). Dann passt nur noch eine Reihe Katalogkarten ins Bild.
+- *Reiter senkrecht links im Blatt* kosten rund 60 px Breite. Das Blatt ist bei 667 nur 306 px breit; der Katalog mit 2 Spalten würde zu eng (Karten unter 110 px).
+- *Nur schmalere Schrift* reicht nicht: „Außenanlagen“ allein braucht 86 px Text.
+- *Symbol + Wort* bleibt so hoch wie heute (64 px Leiste), alle fünf sind sofort sichtbar, und das Symbol hilft beim Wiederfinden.
+
+**Gemessen** (Chrome, echte Schriften, Manrope 800 12 px): Heizhaus 54,9 · Außen 38,3 · Netz 27,8 · Dorf 25,6 · Deko 29,9 · Leitungen 60,2 · Außenanlagen 85,8 px.
+
+```
+667×375, Blatt 306 px, Leiste innen 287 px (kurze Wörter):
+┌───────────────────────────────────────┐
+│ Bauen                           [ X ] │ Kopfband 56
+│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ Rohrnaht
+│ ┌────────┐┌──────┐┌─────┐┌────┐┌────┐ │ Leiste 64 (Innenabstand 6 oben/unten, 8 seitlich)
+│ │ Flamme ││Sonne ││Rohr ││Haus││Baum│ │ Reiter 52 hoch, Symbol 20
+│ │Heizhaus││Außen ││Netz ││Dorf││Deko│ │ Wort Manrope 800 12
+│ └────────┘└──────┘└═════┘└────┘└────┘ │ aktiver Reiter blau, eingedrückt
+│  Katalog (2 Spalten) …                │
+```
+844×390 (Blatt 388 px, Leiste innen 369 px): gleiche Leiste, aber mit den **langen Wörtern** Heizhaus · Außenanlagen · Leitungen · Dorf · Deko (Summe gemessen 355 px ≤ 369).
+
+| Teil | Vorgabe | Token |
+|---|---|---|
+| Leiste | eine Reihe, `display:flex`, **kein** `overflow-x`, **keine** Ausblendmaske. Fläche `kasten_kopf`, unten 2 px `tafel_linie`, Innenabstand 6 oben/unten, 8 seitlich | `menue.mass_px.reiter_leiste_innen` |
+| Reiter | Kleiner neutraler Knopf (3 px Kontur, Sockel), **Höhe 52**, Mindestbreite 48, `flex: 1 1 auto` (Breite nach Wort, der Rest wird verteilt), Innenabstand seitlich 4, Lücke 4 | `reiter_hoehe`, `reiter_min_breite`, `reiter_innen_seite`, `reiter_luecke` |
+| Inhalt Reiter | Symbol 20 px oben mittig, 2 px darunter das Wort, Manrope 800 12, Farbe `kontur`, eine Zeile, kein Umbruch | `reiter_symbol`, `schrift.groesse_px.reiter` |
+| Symbole | Heizhaus = `waerme` (Flamme, vorhanden) · Außenanlagen = **`sonne`** (neu) · Leitungen = **`rohr`** (neu, orange über blau wie die Rohrnaht) · Dorf = `haus` (vorhanden) · Deko = **`baum`** (neu). Vorlage zum Abzeichnen: `design/reiter-symbole.svg` | – |
+| Wort-Stufen | Leiste innen ≥ 356 px: lange Wörter. 281–355 px: kurze Wörter **Heizhaus · Außen · Netz · Dorf · Deko**. Unter 281 px (z. B. 568 px breite Geräte): nur Symbol, 48 breit. Umschalten per Container-Abfrage auf der Leiste (beide Wörter im HTML, eins ausgeblendet) | `reiter_lang_ab`, `reiter_nur_symbol_unter` |
+| Beschriftung für Vorleser | `aria-label` immer der volle Name („Außenanlagen“, „Leitungen“), `role="tab"`, `aria-selected` | – |
+
+**Zustände:**
+- *normal:* Creme, Sockel. *gedrückt:* 3 px tiefer, ohne Sockel (12.9).
+- *aktiv:* Kopfband-Blau, Wort weiß mit 3 px Kontur, eingedrückt (wie 12.5 „Gewählt“ im Reiter). Das Symbol bleibt farbig.
+- *Fokus:* 3 px Ring in `kontur`, auf dem aktiven blauen Reiter weiß.
+- *Reiter ohne Inhalt in dieser Stufe:* bleibt tippbar, Inhalt zeigt den Leer-Text aus S4 („Hier gibt es ab Heizzentrale Stufe 2 mehr.“).
+- *Weniger Bewegung:* kein Eindrücken, Farbe wechselt (12.9).
+
+**Prüfkriterium (Foto):** 844×390 und 667×375, Baumenü offen, je einmal Reiter „Heizhaus“ und „Deko“ aktiv. Alle fünf Reiter vollständig sichtbar, kein Wort abgeschnitten, keine Ausblendmaske, aktiver Reiter blau. Per Skript: jeder Reiter `getBoundingClientRect()` liegt ganz innerhalb der Leiste, Höhe ≥ 44, Breite ≥ 44; `scrollWidth === clientWidth` an der Leiste.
+
+### 12.17 Meldung (Toast): nie über einem offenen Blatt (Produktprüfung NR16, 2026-11-05)
+Anlass: Die Meldung steht mittig auf 30 % Höhe über dem ganzen Bildschirm und deckt Blattinhalt ab („Viel Erfolg, Tester! …“ über den Einstellungs-Feldern, Foto 20-einstellungen; „Hausanschluss geplant …“ über dem Haus-Text, Foto 13). Abschnitt 4 verlangte schon „bei offenem Seitenblatt über der freien Kartenfläche“, das ist aber nicht gebaut. **Ersetzt** Lage und Dauer in Abschnitt 4 (Zeile „Toast“). Das Aussehen bleibt wie 12.8 (dunkle Kapsel `hud_grund`, 2 px Kontur, Radius 16, Manrope 700 15, weiß).
+
+**Lage – Grundregel: unten mittig in der freien Kartenfläche.**
+| Lage | Wo steht die Meldung? |
+|---|---|
+| Kein Blatt offen | unten mittig auf dem Bildschirm, 12 px über dem unteren Rand (plus Sicherheitsabstand des Geräts). Breite höchstens min(420 px, Bildschirmbreite − 176 px), damit Bauen-Knopf und Zoom frei bleiben |
+| Seitenblatt oder Zeichenleiste offen | unten mittig in der **freien Fläche links vom Blatt**. Freie Breite = Bildschirmbreite − tatsächliche Blattbreite (aus dem Blatt-Rechteck lesen, nicht nachrechnen). Breite höchstens min(420 px, freie Breite − 24 px). Die Meldung berührt das Blatt nie |
+| Popup offen (Willkommen, Rückfrage) | oben mittig, 8 px unter dem oberen Rand, über dem Abdunkeln. Sie liegt dann auf dem Kopfband des Popups (nur Titel), nie auf Text oder Knöpfen |
+| Unten steht schon etwas (Sprecher-Karte, Besuchs-Banner, Update-Hinweis) | Die Meldung rückt 8 px **über** das oberste dieser Elemente, in derselben freien Fläche |
+
+Lange Texte brechen in der Kapsel um (höchstens 3 Zeilen). Gemessen: „Hausanschluss geplant: 1 Felder, 25er-Leitung“ = 334 px, passt bei 844 einzeilig in die freie Fläche (456 − 24 = 432 px), bei 667 zweizeilig.
+
+**Dauer:** sichtbar = 1000 ms + 60 ms je Zeichen, mindestens 2000 ms, höchstens 6000 ms (Lesetempo rund 15 Zeichen pro Sekunde). Beispiele: „Tempo: Normal“ 2,0 s · „Hausanschluss geplant …“ (46 Zeichen) 3,8 s · Hinweis zum gesperrten T-Stück (rund 110 Zeichen) 6,0 s. Die bisherige Regel „2 s, lang + 1,2 s“ entfällt.
+
+**Verhalten:**
+- Es gibt höchstens **eine** Meldung. Eine neue ersetzt die alte sofort; derselbe Text erneut startet nur die Zeit neu (kein Stapeln, kein Flackern).
+- Die Meldung fängt keine Berührungen ab (`pointer-events: none`): Zeichnen und Verschieben der Karte gehen unter ihr weiter.
+- Öffnet oder schließt sich ein Blatt, während eine Meldung steht, gleitet sie in 200 ms in die neue Lage (`kurve.weich`).
+- Einblenden: von 8 px tiefer nach oben + Einblenden, 200 ms. Ausblenden: nur Blende 200 ms.
+- *Weniger Bewegung:* nur Blende, kein Versatz, kein Gleiten (springt in die neue Lage).
+- Vorleser: weiter `role="status"`, `aria-live="polite"`.
+
+Tokens: `menue.mass_px.toast_max_breite` 420, `toast_rand` 12, `toast_stapel_luecke` 8, `toast_versatz_ein` 8; `menue.zeit_ms.toast_grund` 1000, `toast_je_zeichen` 60, `toast_min` 2000, `toast_max` 6000, `toast_blende` 200, `toast_wandern` 200.
+
+**Prüfkriterium (Foto):** 844×390 und 667×375, je ein Foto mit Meldung bei (a) offenem Haus-Blatt direkt nach „Hausanschluss ziehen“, (b) offenen Einstellungen direkt nach dem Start („Viel Erfolg …“), (c) ohne Blatt, (d) offener Zeichenleiste. Per Skript: Rechteck der Meldung und Rechteck des Blatts überschneiden sich nicht (`toast.right ≤ blatt.left`); Meldung liegt nicht über dem Bauen-Knopf. Zeitmessung: Meldung mit 46 Zeichen ist nach 3,5 s noch da und nach 4,2 s weg.
+
+### 12.18 Zeichenleiste: schmal, alles ohne Scrollen sichtbar (Produktprüfung NR16, 2026-11-05)
+Anlass: Im Zeichenmodus ist die Leiste so breit wie ein normales Blatt (388 px bei 844, Foto 43-gezeichnet); die Karte zum Zeichnen ist nur rund 450 px breit. Der lange Erklärtext oben schiebt „Letzte zurück“ unten aus dem Bild. **Ersetzt** für den Zeichenmodus die Blattbreite aus Abschnitt 5 (die anderen Blätter bleiben bei min(46 %, 400 px)).
+
+**Entscheidung:** eigene **Zeichenleiste 216 px breit**, volle Höhe rechts. Die Karte wird damit 628 px (844) bzw. 451 px (667) breit statt 456 bzw. 361 px. Der Erklärtext wandert hinter einen „?“-Knopf; die Bedienelemente stehen fest und brauchen kein Scrollen.
+
+```
+844×390 (667×375 gleich, nur die Karte ist schmaler)
+┌──────────────────────────────────────────────────┬──────────────────────────┐
+│(Dorfschild)        (Geld)                        │ Zeichnen        [?] [ X ]│ Kopfband 48, Titel Lilita 20
+│(Auftrag)                                         │▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ Rohrnaht 4 + Kontur 3
+│                                                  │ [25][32][40][Schl.]      │ Farbknöpfe 44×44, Lücke 6, 4 je Reihe
+│            K A R T E  (628 px)                   │ [..][..][..][..]         │ 2. Reihe nur, wenn > 4 Knöpfe
+│                                                  │ bis 12 kW · 10 €/Feld    │ Kennzeile Manrope 600 12, gedämpft
+│                                                  │ [Radierer] [↶ Zurück]    │ 2 Spalten, je 94 breit, Höhe 44
+│                                                  │ [ T-Stück mit Vorsehung ]│ volle Breite, 2 Zeilen, Höhe 52
+│                                                  │ [ Schloss ab Heizzentrale Stufe 4 ]
+│          (Meldung unten mittig)                  ├──────────────────────────┤
+│                                                  │ [Abschnitt abschließen]  │ Aktionsleiste fest, Knopf 48
+└──────────────────────────────────────────────────┴──────────────────────────┘
+```
+
+**Maße** (Leiste innen 216 − 3 Kontur − 2×8 = 197 px; Breiten mit echten Schriften gemessen):
+| Teil | Vorgabe | gemessen / passt |
+|---|---|---|
+| Leiste | rechts, volle Höhe, Breite 216, Tafel-Look wie 12.6 (3 px Kontur links/oben/unten, Radius 18 links) | `zeichenleiste_breite` |
+| Kopfband (kompakt) | Höhe 48 statt 56 (Ausnahme nur hier). Titel **„Zeichnen“** Lilita 20 weiß mit Kontur. Rechts [?] (neutral, 44×44, Fragezeichen-Symbol) und [X] (rot, 44×44) | Titel 76,7 px + 2×44 + Lücken → 201 ≤ 213 |
+| Farbknöpfe (Durchmesser) | 44×44, Lücke 6, 4 je Reihe. Zahl „25“ Lilita 16 in `kontur`, unten ein 6 px Streifen in `leitung.dNN`. Gewählt: eingedrückt, Fläche `gewaehlt`. Gesperrte dickere Leitungen: **ein** grauer Knopf mit Schloss 14 px und „St. 2“ (Manrope 800 11), Vorleser-Text „Dickere Leitungen ab Heizzentrale Stufe 2“, Tippen zeigt Hinweis nach 12.19 | 4×44 + 3×6 = 194 ≤ 197 |
+| Kennzeile | eine Zeile Manrope 600 12 `text_gedaempft`: Werte der gewählten Leitung („bis 12 kW · 10 €/Feld“, Zahlen aus dem Katalog). Im Radierer-Modus: „Leitung antippen = löschen“. Im T-Stück-Modus: „Geplante Leitung antippen“ | 111 / 157 / 152 px ≤ 197 |
+| Radierer · Zurück | 2 Spalten, Höhe 44, Schrift Lilita 16, Innenabstand seitlich 8. Radierer an = `gewaehlt` (Wort bleibt „Radierer“, die Kennzeile erklärt). „Zurück“ mit Pfeil-Symbol 18 px davor, Vorleser-Text „Letzte Leitung zurück“ | Radierer 59 + 22 = 81 ≤ 94 · Zurück 48 + 22 + 22 = 92 ≤ 94 |
+| T-Stück | volle Breite, Höhe 52, zwei Zeilen: „T-Stück mit Vorsehung“ (Lilita 16) und darunter Preis mit Münze oder Sperrgrund mit Schloss (Manrope 800 12). An = `gewaehlt`, Kennzeile wechselt | 157 + 22 = 179 ≤ 197; Grund „ab Heizzentrale Stufe 4“ 137 + 18 ≤ 197 |
+| Aktionsleiste | fest unten, 2 px Linie oben, Innenabstand 6/8, ein Knopf **„Abschnitt abschließen“** (`los`, Höhe 48, Schrift 16 statt 18) über die volle Breite | 151 + 34 = 185 ≤ 197 (bei 18 px wären es 204, zu breit) |
+| Erklärtext | der heutige Absatz („Zieh die Leitung mit dem Finger …“) steht **nicht** mehr fest in der Leiste. [?] tauscht den Mittelteil (Farbknöpfe bis T-Stück) gegen den Text (Manrope 500 14, scrollt) und einen Knopf [Verstanden] (neutral). Kopf und Aktionsleiste bleiben | – |
+
+**Höhe** (2 Reihen Farbknöpfe, schlechtester Fall): 3 + 48 + 4 + 3 + 8 + 94 + 4 + 16 + 8 + 44 + 8 + 52 + 8 + 62 + 3 = **365 px**. Passt in 375 (667×375) und mit 21 px unterem Gerätespielraum in 390 (= 386). Mit einer Reihe Farbknöpfe (heute Stufe 1) 315 px. Wird es doch zu eng (kleinere Geräte), scrollt nur der Mittelteil, Kopf und Aktionsleiste bleiben fest – kein Knopf wird angeschnitten.
+
+**Zustände:**
+- *Erste Nutzung* (erstes Öffnen je Spielstand): Mittelteil zeigt den Erklärtext mit [Verstanden]; die Karte ist trotzdem schon bedienbar.
+- *Normal:* wie Skizze. *Radierer an* / *T-Stück an:* Knopf `gewaehlt`, Kennzeile mit Handlungssatz.
+- *Nichts gezeichnet:* „Zurück“ gesperrt-grau nach 12.19, Tippen → „Noch nichts gezeichnet.“
+- *Kein offener Bauabschnitt:* Die Leiste öffnet sich gar nicht; „Leitung selbst legen“ ist vorher gesperrt nach 12.19 (Grund „braucht offenen Bauabschnitt“, Hinweis „Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.“). Inhaltliche Umsetzung entscheidet der Projektleiter (Prüfbericht Punkt a).
+- *Fehler beim Abschließen:* Meldung nach 12.17 in der freien Fläche, Leiste bleibt offen.
+- *Kamera:* Der Abschnitt liegt in der Mitte der freien Fläche (Bildschirm − 216 px), nicht mehr mit festen 46 % rechnen (`steuerung.ts` nutzt heute `0.46` und `400`).
+- *Weniger Bewegung:* wie 12.9.
+
+Tokens: `menue.mass_px.zeichenleiste_breite` 216, `zeichenleiste_kopf` 48, `farbknopf` 44, `farbknopf_luecke` 6, `farbknopf_streifen` 6, `zeichen_knopf_innen_seite` 8, `schloss_klein` 14; `menue.schrift.groesse_px.zeichen_titel` 20, `farbknopf` 16, `farbknopf_sperre` 11. Neue Symbole in `symbole.ts` (gleicher Linienstil): `frage` (Fragezeichen im Kreis) und `zurueck` (Bogenpfeil nach links).
+
+*Kann (nicht Teil dieses Auftrags):* Platzieren/Verschieben nutzen heute ebenfalls ein volles Blatt. Dieselbe 216-px-Leiste (Kopf, Kennzeile, Aktionsleiste mit [Hier bauen] über [Abbrechen]) würde dort auch Kartenfläche schaffen.
+
+**Prüfkriterium (Foto):** 844×390 und 667×375: Zeichenmodus frisch geöffnet (Erste Nutzung), nach dem Zeichnen (Foto 43 nachstellen), Radierer an, Hilfe offen. Alle Knöpfe vollständig sichtbar, „Zurück“ und „Abschnitt abschließen“ ganz im Bild, kein Scrollbalken. Per Skript: Breite der Leiste = 216; jedes `button`-Rechteck liegt ganz im Bildschirm (`bottom ≤ innerHeight`) und ist ≥ 44×44; Kartenfläche links ≥ 620 px (844) bzw. ≥ 450 px (667).
+
+### 12.19 Gesperrter Knopf mit Hinweis beim Antippen (Produktprüfung NR16, 2026-11-05)
+Anlass: „T-Stück mit Vorsehung“ ist grau, Antippen tut nichts (Foto 40, 43). Spieler denken, sie kämen nicht weiter. **Ergänzt** 12.5 „Deaktiviert“: Das Aussehen bleibt, neu ist die Antwort beim Antippen. Gilt für **jeden** gesperrten Knopf (T-Stück, dickere Leitungen, Stufe +1, Leitung selbst legen ohne Abschnitt, Zurück ohne Zeichnung).
+
+**Aussehen** (wie 12.5, ergänzt):
+- Fläche `knopf.aus`, Rand `aus_rand`, Text `aus_text`, Sockel bleibt sichtbar (der Knopf wirkt antippbar, nicht durchsichtig), keine Deckkraft-Absenkung.
+- Zeile 1: Name wie im freien Zustand. Zeile 2: **Schloss-Symbol 14 px** (`schloss`, vorhanden) + 4 px + kurzer Grund (Manrope 800 12), z. B. „ab Heizzentrale Stufe 4“. In sehr kleinen Knöpfen (Farbknopf 44×44) Schloss über „St. 2“ (11 px).
+- Gleiche Größe wie der freie Knopf, Tippfläche ≥ 44.
+
+**Antippen** (Maus, Finger, Enter, Leertaste):
+1. Der Knopf drückt sich **nicht** ein. Stattdessen wackelt er waagrecht ±3 px, zwei Mal, 240 ms – das Zeichen für „geht gerade nicht“.
+2. Gleichzeitig erscheint eine Meldung nach 12.17 mit **Grund + was man tun kann**. Für das T-Stück (Textvorschlag aus der Produktprüfung; ob die Aussage fachlich so stimmt, prüft der Projektleiter bzw. Fachprüfer):
+   „T-Stück mit Vorsehung gibt es ab Heizzentrale Stufe 4. Für Hausanschlüsse brauchst du es nicht – die schließen von selbst an die Leitung an.“
+   Weitere: Dickere Leitungen: „Dickere Leitungen gibt es ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.“ · Leitung selbst legen: „Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.“ · Zurück: „Noch nichts gezeichnet.“
+3. Mehrmaliges Tippen: dieselbe Meldung startet nur die Zeit neu (12.17), kein Stapeln.
+- *Weniger Bewegung:* kein Wackeln, nur die Meldung.
+- *Technik-Hinweis:* **nicht** das HTML-Attribut `disabled` verwenden (dann kommt kein Tippen an und Tastatur-Nutzer erreichen den Knopf nicht), sondern `aria-disabled="true"` plus Klasse für das Aussehen; der Klick führt die Aktion nicht aus, sondern zeigt den Hinweis. Der Grund steht zusätzlich per `aria-describedby` am Knopf. Fokus bleibt sichtbar (12.10).
+
+Tokens: `menue.mass_px.schloss_klein` 14, `wackeln_weg` 3; `menue.zeit_ms.wackeln` 240.
+
+**Prüfkriterium (Foto):** 844×390, Zeichenleiste in Stufe 1: Foto des grauen T-Stück-Knopfs (Schloss + „ab Heizzentrale Stufe 4“ in Zeile 2) und Foto direkt nach dem Antippen (Meldung in der freien Kartenfläche, nicht über der Leiste). Per Skript: Knopf hat `aria-disabled="true"` und kein `disabled`; nach `click()` erscheint `#toast` mit dem Grund; Tab erreicht den Knopf, Enter zeigt dieselbe Meldung.
