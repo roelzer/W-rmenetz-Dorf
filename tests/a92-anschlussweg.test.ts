@@ -5,6 +5,8 @@ import type { Objekt } from '../src/core/typen';
 import { readFileSync } from 'node:fs';
 import { SYMBOLE } from '../src/ui/symbole';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
+import { gesperrt, gesperrtMitHinweis, htmlDisabled } from './hilfen/gesperrt';
+import { serialisieren } from '../src/core/speichern';
 
 // A92 (NR16) – Der Weg zum Hausanschluss erklärt sich: T-Stück-Hinweis beim Antippen, Sperren mit Grund ohne offenen
 // Bauabschnitt, Planungsstand zählt live, „Angeschlossen …“ nur bei angeschlossenen Häusern, „Hausanschluss geplant“
@@ -13,6 +15,9 @@ import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext
 const T0 = 1_000_000_000_000;
 const TSTUECK_HINWEIS = 'Für Hausanschlüsse nicht nötig – den Abzweig setzt das Spiel selbst. Ein T-Stück mit Vorsehung legt einen Abzweig für später bereit und spart dann das Anbohren. Frei ab Heizzentrale Stufe 4.';
 const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
+// Hinweistexte beim Antippen gesperrter Knöpfe, wörtlich aus DESIGN.md 12.19 (Punkt 2) bzw. 12.18 (Leitung selbst legen).
+const SELBST_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
+const DICKERE_HINWEIS = 'Dickere Leitungen gibt es ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.';
 
 const neu = (stufe = 1) => {
   const z = { t: T0 };
@@ -51,17 +56,26 @@ function attrappeMitText(): Attrappe {
     },
     configurable: true,
   });
+  // document.body wie im Browser (steuerung.ts setzt dort die Klasse „weniger-bewegung“)
+  (a.doc as unknown as { body: AttrappenElement }).body = new a.El('body');
   return a;
 }
 
+/** „Weniger Bewegung“: aus der Einstellung (Klasse am body, wie steuerung.ts) oder vom System (prefers-reduced-motion, stil.css). */
+type Bewegung = 'normal' | 'einstellung' | 'system';
+
 type Knopf = { text: string; aus: boolean; klick?: () => void; el: AttrappenElement };
 /** Oberflächen-Module frisch mit der Attrappe laden; Toasts werden gesammelt. */
-async function mitAttrappe<E>(arbeit: (a: Attrappe, toasts: string[], blatt: { inhalt: AttrappenElement; zu: () => void }) => Promise<E>): Promise<E> {
+async function mitAttrappe<E>(arbeit: (a: Attrappe, toasts: string[], blatt: { inhalt: AttrappenElement; zu: () => void }) => Promise<E>, bewegung: Bewegung = 'normal'): Promise<E> {
   const a = attrappeMitText();
   const toasts: string[] = [];
   vi.resetModules();
   vi.stubGlobal('document', a.doc); vi.stubGlobal('DOMParser', a.Parser);
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {} });
+  if (bewegung === 'einstellung') (a.doc as unknown as { body: AttrappenElement }).body.className = 'weniger-bewegung';
+  const matchMedia = (q: string) => ({ matches: bewegung === 'system' && q.includes('prefers-reduced-motion') && q.includes('reduce'), media: q, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {} });
+  vi.stubGlobal('matchMedia', matchMedia);
+  vi.stubGlobal('window', { matchMedia, setTimeout: (f: () => void, ms?: number) => setTimeout(f, ms), clearTimeout: (t: ReturnType<typeof setTimeout>) => clearTimeout(t), devicePixelRatio: 1 });
   const blatt = { inhalt: new a.El('div'), zu: () => {} };
   vi.doMock('../src/ui/blatt', () => ({ blattOeffnen: () => blatt, blattOffen: () => false }));
   vi.doMock('../src/ui/bild', () => ({ katalogBild: () => new a.El('canvas') }));
@@ -72,15 +86,36 @@ async function mitAttrappe<E>(arbeit: (a: Attrappe, toasts: string[], blatt: { i
     for (const m of ['../src/ui/blatt', '../src/ui/bild', '../src/ui/toast', '../src/ui/sprecher']) vi.doUnmock(m);
   }
 }
-const knoepfeIn = (a: Attrappe, c: AttrappenElement): Knopf[] => a.alle(c).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: e.attrs.disabled !== undefined, klick: e.on.click, el: e }));
+const knoepfeIn = (a: Attrappe, c: AttrappenElement): Knopf[] => a.alle(c).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: gesperrt(e), klick: e.on.click, el: e }));
 const mit = (k: Knopf[], anfang: string) => k.filter((x) => x.text.startsWith(anfang));
-/** Das Element, das ein Tippen auf den Knopf empfängt: Ein deaktivierter Knopf meldet im Browser kein Tippen, also nur eine
- *  Hülle mit eigenem Klick; ein freier Knopf empfängt es selbst. */
-const tippziel = (a: Attrappe, c: AttrappenElement, knopf: AttrappenElement): AttrappenElement | undefined =>
-  knopf.attrs.disabled !== undefined ? a.alle(c).find((e) => e.kinder.includes(knopf) && e.on.click !== undefined) : knopf.on.click ? knopf : undefined;
+/** Das Element, das ein Tippen auf den Knopf empfängt. DESIGN.md 12.19: Der gesperrte Knopf trägt aria-disabled="true" statt
+ *  disabled und empfängt das Tippen selbst (keine Hülle mehr). Mit HTML-disabled kommt im Browser kein Tippen an. */
+const tippziel = (_a: Attrappe, _c: AttrappenElement, knopf: AttrappenElement): AttrappenElement | undefined =>
+  !htmlDisabled(knopf) && knopf.on.click ? knopf : undefined;
+type Ereignis_ = { key?: string; target: AttrappenElement; currentTarget: AttrappenElement; defaultPrevented: boolean; preventDefault: () => void; stopPropagation: () => void };
+/** Ereignis-Attrappe wie im Browser (preventDefault merkt sich die Absage). */
+const ereignis = (el: AttrappenElement, key?: string): Ereignis_ => {
+  const ev: Ereignis_ = { key, target: el, currentTarget: el, defaultPrevented: false, preventDefault() { ev.defaultPrevented = true; }, stopPropagation() {} };
+  return ev;
+};
+type Handler = (ev?: unknown) => void;
+/** Tippen wie im Browser: Ein Knopf mit HTML-disabled bekommt keinen Klick, sonst läuft sein click-Handler. */
+const tippe = (el: AttrappenElement): void => { if (!htmlDisabled(el)) (el.on.click as Handler | undefined)?.(ereignis(el)); };
+/** Taste auf dem fokussierten Knopf wie im Browser: Enter löst nach keydown einen Klick aus, die Leertaste nach keyup –
+ *  außer ein Handler sagt per preventDefault ab. Ein Knopf mit HTML-disabled ist nicht fokussierbar, also passiert nichts. */
+const taste = (el: AttrappenElement, key: 'Enter' | ' '): void => {
+  if (htmlDisabled(el)) return;
+  const runter = ereignis(el, key); (el.on.keydown as Handler | undefined)?.(runter);
+  const hoch = ereignis(el, key); (el.on.keyup as Handler | undefined)?.(hoch);
+  if ((key === 'Enter' && !runter.defaultPrevented) || (key === ' ' && !runter.defaultPrevented && !hoch.defaultPrevented)) tippe(el);
+};
+/** Per Tab erreichbar: kein HTML-disabled und nicht aus der Tab-Reihenfolge genommen. */
+const perTabErreichbar = (el: AttrappenElement): boolean => !htmlDisabled(el) && el.attrs.tabindex !== '-1';
 
 /** Kontextkarte eines Objekts aufbauen; liefert Text, Knöpfe, gestempelte Leitungen und Toasts. */
-async function karte(s: Spiel, o: Objekt, jetzt_ms = T0) {
+type Karte = { a: Attrappe; c: AttrappenElement; text: string; knoepfe: Knopf[]; gestempelt: string[]; toasts: string[] };
+/** `tun` läuft noch mit der Attrappe (Tippen darf auf document zugreifen, z. B. für „Weniger Bewegung“). */
+async function karte(s: Spiel, o: Objekt, jetzt_ms = T0, tun?: (k: Karte) => void, bewegung: Bewegung = 'normal'): Promise<Karte> {
   return mitAttrappe(async (a, toasts) => {
     const { Kontext } = await import('../src/ui/kontext');
     const gestempelt: string[] = [];
@@ -88,9 +123,24 @@ async function karte(s: Spiel, o: Objekt, jetzt_ms = T0) {
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);
-    return { a, c, text: a.text(c), knoepfe: knoepfeIn(a, c), gestempelt, toasts };
-  });
+    const kk: Karte = { a, c, text: a.text(c), knoepfe: knoepfeIn(a, c), gestempelt, toasts };
+    tun?.(kk);
+    return kk;
+  }, bewegung);
 }
+
+type Leiste = { a: Attrappe; toasts: string[]; c: AttrappenElement; knoepfe: Knopf[]; st: { vorsehen: boolean }; s: Spiel };
+/** Zeichenleiste aufbauen; `tun` läuft noch mit der Attrappe (Tippen darf auf document zugreifen). */
+const zeichenleiste = (stufe: number, abschnitt: boolean, tun?: (z: Leiste) => void, bewegung: Bewegung = 'normal') => mitAttrappe(async (a, toasts, blatt) => {
+  const { Steuerung } = await import('../src/steuerung');
+  const { s } = neu(stufe);
+  if (abschnitt) offen(s);
+  const st = Object.assign(Object.create(Steuerung.prototype), { spiel: s, katalogUi: { schliessen: () => {} }, kontextUi: { schliessen: () => {} }, modusBlatt: null, vorsehen: false });
+  (st as { stempeln: (t: TypId) => void }).stempeln('d25');
+  const z: Leiste = { a, toasts, c: blatt.inhalt, knoepfe: knoepfeIn(a, blatt.inhalt), st: st as { vorsehen: boolean }, s };
+  tun?.(z);
+  return z;
+}, bewegung);
 
 describe('A92 Kern – Meldungen und Zustand des Hausanschlusses', () => {
   it('A92: Hausanschluss-Meldung beugt „Feld“ richtig – 1 Feld, 4 Felder', () => {
@@ -213,12 +263,17 @@ describe('A92 T-Stück mit Vorsehung – der gesperrte Knopf erklärt sich beim 
   it('A92: Leitungskarte (geplante Leitung, Stufe 1) – Tippen auf den gesperrten Knopf zeigt den Hinweis', async () => {
     const { s } = neu(1); offen(s);
     const l = lege(s, 'd25', 3, 3, { geplant: true });
-    const k = await karte(s, l);
+    let ziel: AttrappenElement | undefined;
+    const k = await karte(s, l, T0, (k) => {
+      const t = mit(k.knoepfe, 'T-Stück mit Vorsehung setzen');
+      ziel = t.length ? tippziel(k.a, k.c, t[0].el) : undefined;
+      if (ziel) tippe(ziel);
+    });
     const t = mit(k.knoepfe, 'T-Stück mit Vorsehung setzen');
     expect(t).toEqual([expect.objectContaining({ aus: true, text: 'T-Stück mit Vorsehung setzenab Heizzentrale Stufe 4' })]);
-    const ziel = tippziel(k.a, k.c, t[0].el);
-    expect(ziel).toBeDefined();
-    ziel!.on.click();
+    // DESIGN.md 12.19: aria-disabled="true" statt disabled; die breite Karte behält den langen Grund
+    expect(gesperrtMitHinweis(t[0].el), 'aria-disabled="true" ohne disabled').toBe(true);
+    expect(ziel, 'der Knopf selbst empfängt das Tippen').toBe(t[0].el);
     expect(k.toasts).toEqual([TSTUECK_HINWEIS]);
     expect(l.vorsehung).toBeUndefined();
   });
@@ -226,44 +281,40 @@ describe('A92 T-Stück mit Vorsehung – der gesperrte Knopf erklärt sich beim 
   it('A92: Leitungskarte auf Stufe 4 – Knopf frei, kein Hinweis, Tippen setzt die Vorsehung', async () => {
     const { s } = neu(4); offen(s);
     const l = lege(s, 'd25', 3, 3, { geplant: true });
-    const k = await karte(s, l);
+    const k = await karte(s, l, T0, (k) => tippe(mit(k.knoepfe, 'T-Stück mit Vorsehung setzen')[0].el));
     const t = mit(k.knoepfe, 'T-Stück mit Vorsehung setzen');
     expect(t[0].aus).toBe(false);
-    tippziel(k.a, k.c, t[0].el)!.on.click();
     expect(k.toasts).toEqual([]);
     expect(l.vorsehung).toBe(true);
   });
 
-  const zeichenleiste = (stufe: number, abschnitt: boolean) => mitAttrappe(async (a, toasts, blatt) => {
-    const { Steuerung } = await import('../src/steuerung');
-    const { s } = neu(stufe);
-    if (abschnitt) offen(s);
-    const st = Object.assign(Object.create(Steuerung.prototype), { spiel: s, katalogUi: { schliessen: () => {} }, kontextUi: { schliessen: () => {} }, modusBlatt: null, vorsehen: false });
-    (st as { stempeln: (t: TypId) => void }).stempeln('d25');
-    return { a, toasts, c: blatt.inhalt, knoepfe: knoepfeIn(a, blatt.inhalt), st: st as { vorsehen: boolean } };
-  });
 
-  it('A92: Zeichenleiste Stufe 1 – gesperrter T-Stück-Knopf behält den Grund und zeigt beim Antippen den Hinweis', async () => {
-    const z = await zeichenleiste(1, true);
+  it('A92: Zeichenleiste Stufe 1 – gesperrter T-Stück-Knopf mit kurzem Grund zeigt beim Antippen den Hinweis', async () => {
+    // DESIGN.md 12.15 / Kann 2b: enge Leiste → kurzer Grund „ab Stufe 4“ (geschütztes Leerzeichen U+00A0, wie a88)
+    let ziel: AttrappenElement | undefined;
+    const z = await zeichenleiste(1, true, (z) => {
+      const t = mit(z.knoepfe, 'T-Stück mit Vorsehung');
+      ziel = t.length ? tippziel(z.a, z.c, t[0].el) : undefined;
+      if (ziel) tippe(ziel);
+    });
     const t = mit(z.knoepfe, 'T-Stück mit Vorsehung');
-    expect(t).toEqual([expect.objectContaining({ aus: true, text: 'T-Stück mit Vorsehungab Heizzentrale Stufe 4' })]);
-    const ziel = tippziel(z.a, z.c, t[0].el);
-    expect(ziel).toBeDefined();
-    ziel!.on.click();
+    expect(t).toEqual([expect.objectContaining({ aus: true, text: 'T-Stück mit Vorsehungab Stufe\u00a04' })]);
+    expect(gesperrtMitHinweis(t[0].el), 'aria-disabled="true" ohne disabled (12.19)').toBe(true);
+    expect(ziel, 'der Knopf selbst empfängt das Tippen').toBe(t[0].el);
     expect(z.toasts).toEqual([TSTUECK_HINWEIS]);
     expect(z.st.vorsehen).toBe(false);
-    // DESIGN.md 12.19: Schloss vor dem Grund, Wackeln beim Antippen, nach der Animation wieder ruhig
+    // DESIGN.md 12.19: Schloss vor dem Grund, Wackeln beim Antippen (Klasse am Knopf), nach der Animation wieder ruhig
     expect(z.a.alle(t[0].el).some((e) => e.tag === 'svg' && e.attrs.quelle === SYMBOLE.schloss)).toBe(true);
-    expect(ziel!.className.split(' ')).toContain('wackelt');
-    ziel!.on.animationend();
-    expect(ziel!.className.split(' ')).not.toContain('wackelt');
+    expect(t[0].el.className.split(' ')).toContain('wackelt');
+    (t[0].el.on.animationend as Handler)(ereignis(t[0].el));
+    expect(t[0].el.className.split(' ')).not.toContain('wackelt');
   });
 
   it('A92: stil.css – Wackeln ±3 px / 240 ms aus den Tokens, nicht bei „Weniger Bewegung“', () => {
     const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
-    expect(css).toMatch(/\.sperr-tipp\.wackelt\{[^}]*animation:wackeln var\(--menue-zeit-ms-wackeln\)/);
+    expect(css).toMatch(/\.knopf\[aria-disabled="true"\]\.wackelt\{[^}]*animation:wackeln var\(--menue-zeit-ms-wackeln\)/);
     expect(css).toMatch(/@keyframes wackeln\{[^@]*var\(--menue-mass-px-wackeln-weg\)/);
-    expect(css).toMatch(/\.weniger-bewegung \.sperr-tipp\.wackelt\{animation:none\}/);
+    expect(css).toMatch(/\.weniger-bewegung \.knopf\[aria-disabled="true"\]\.wackelt\{animation:none\}/);
     expect(css).toMatch(/\.schloss-klein\{[^}]*width:var\(--menue-mass-px-schloss-klein\)/);
   });
 
@@ -271,6 +322,7 @@ describe('A92 T-Stück mit Vorsehung – der gesperrte Knopf erklärt sich beim 
     const z = await zeichenleiste(4, true);
     const t = mit(z.knoepfe, 'T-Stück mit Vorsehung');
     expect(t[0].aus).toBe(false);
+    expect(t[0].el.attrs['aria-disabled'], 'frei: kein aria-disabled="true"').not.toBe('true');
     expect(z.a.alle(z.c).some((e) => e.kinder.includes(t[0].el) && e.on.click !== undefined)).toBe(false);
   });
 
@@ -278,6 +330,98 @@ describe('A92 T-Stück mit Vorsehung – der gesperrte Knopf erklärt sich beim 
     expect(mit((await zeichenleiste(1, false)).knoepfe, 'Abschnitt abschließen')).toEqual([expect.objectContaining({ aus: true, text: `Abschnitt abschließen${OHNE_ABSCHNITT}` })]);
     expect(mit((await zeichenleiste(1, true)).knoepfe, 'Abschnitt abschließen')).toEqual([expect.objectContaining({ aus: false, text: 'Abschnitt abschließen' })]);
   });
+});
+
+// Abnahme DESIGN.md 12.19 (NR16-B): Ein gesperrter Knopf bekommt Tippen und Tasten (aria-disabled statt disabled). Deshalb muss
+// die Oberfläche selbst dafür sorgen, dass die Aktion nie ausgeführt wird, und stattdessen den Hinweis zeigen.
+// Tippen/Enter/Leertaste werden wie im Browser nachgestellt (tippe/taste oben): Mit HTML-disabled käme nichts an.
+describe('A92 / DESIGN 12.19 – gesperrte Knöpfe: nie die Aktion, immer der Hinweis', () => {
+  /** Alle gesperrten Knöpfe antippen und per Enter und Leertaste auslösen. */
+  const alleAusloesen = (knoepfe: Knopf[]) => { for (const k of knoepfe.filter((x) => x.aus)) { tippe(k.el); taste(k.el, 'Enter'); taste(k.el, ' '); } };
+  const faelle: Array<[string, () => { s: Spiel; o: Objekt }]> = [
+    ['Hauskarte ohne Bauabschnitt (Leitung selbst legen, Hausanschluss ziehen)', () => { const { s } = neu(1); return { s, o: objektBei(s, 9, 15) }; }],
+    ['Hauskarte, Geld reicht nicht für die Planung (1.999 €)', () => { const { s } = neu(1); s.stand.geld_eur = 1_999; return { s, o: objektBei(s, 9, 15) }; }],
+    ['Hauskarte mit geplantem Hausanschluss', () => { const { s } = neu(1); offen(s); s.hausanschlussPlanen(objektBei(s, 9, 15).id); s.ereignisse.splice(0); return { s, o: objektBei(s, 9, 15) }; }],
+    ['Hauskarte Starthaus Stufe 1 (Puffer, Helfer)', () => { const { s } = neu(1); return { s, o: objektBei(s, 9, 13) }; }],
+    ['Leitungskarte geplante 25er Stufe 1 (T-Stück setzen)', () => { const { s } = neu(1); offen(s); return { s, o: lege(s, 'd25', 3, 3, { geplant: true }) }; }],
+    ['Leitungskarte 40er Stufe 1 (Dickere)', () => { const { s } = neu(1); return { s, o: s.stand.objekte.find((x) => x.typ === 'd40' && x.x === 10 && x.y === 12)! }; }],
+    ['Heizzentrale Stufe 1', () => { const { s } = neu(1); return { s, o: s.stand.objekte.find((x) => x.typ === 'hz')! }; }],
+  ];
+  for (const [name, aufbau] of faelle) {
+    it(`A92: ${name} – gesperrte Knöpfe ändern per Tippen, Enter und Leertaste nichts am Spielstand`, async () => {
+      const { s, o } = aufbau();
+      const vorher = serialisieren(s.stand);
+      let gesperrte = 0;
+      const k = await karte(s, o, T0, (k) => { gesperrte = k.knoepfe.filter((x) => x.aus).length; alleAusloesen(k.knoepfe); });
+      expect(gesperrte, 'Vorbedingung: mindestens ein gesperrter Knopf').toBeGreaterThan(0);
+      expect(serialisieren(s.stand)).toBe(vorher);
+      expect(k.gestempelt, 'kein Zeichnen gestartet').toEqual([]);
+    });
+  }
+
+  it('A92: Zeichenleiste Stufe 1 ohne Bauabschnitt – gesperrte Knöpfe (Dickere, T-Stück, Abschnitt abschließen) ändern nichts', async () => {
+    let vorher = '', gesperrte: string[] = [], modusVorher = '', modusNachher = '';
+    const z = await zeichenleiste(1, false, (z) => {
+      vorher = serialisieren(z.s.stand);
+      gesperrte = z.knoepfe.filter((x) => x.aus).map((x) => x.text);
+      const st = z.st as unknown as { modus: string };
+      modusVorher = st.modus;
+      alleAusloesen(z.knoepfe);
+      modusNachher = st.modus;
+    });
+    expect(gesperrte.some((t) => t.startsWith('Dickere')), 'Dickere gesperrt').toBe(true);
+    expect(gesperrte.some((t) => t.startsWith('T-Stück mit Vorsehung')), 'T-Stück gesperrt').toBe(true);
+    expect(gesperrte.some((t) => t.startsWith('Abschnitt abschließen')), 'Abschnitt abschließen gesperrt').toBe(true);
+    expect(serialisieren(z.s.stand)).toBe(vorher);
+    expect(z.st.vorsehen, 'T-Stück-Werkzeug bleibt aus').toBe(false);
+    expect(modusNachher, 'Zeichnen nicht abgebrochen').toBe(modusVorher);
+  });
+
+  it('A92: Zeichenleiste Stufe 1 – T-Stück per Tab erreichbar, Enter und Leertaste zeigen denselben Hinweis wie Tippen', async () => {
+    let erreichbar = false, nachEnter: string[] = [];
+    const z = await zeichenleiste(1, true, (z) => {
+      const t = mit(z.knoepfe, 'T-Stück mit Vorsehung')[0].el;
+      erreichbar = perTabErreichbar(t);
+      taste(t, 'Enter'); nachEnter = [...z.toasts];
+      taste(t, ' ');
+    });
+    expect(erreichbar, 'kein disabled, kein tabindex=-1').toBe(true);
+    expect(nachEnter).toEqual([TSTUECK_HINWEIS]);
+    expect(z.toasts).toEqual([TSTUECK_HINWEIS, TSTUECK_HINWEIS]);
+    expect(z.st.vorsehen).toBe(false);
+  });
+
+  it('A92: Hauskarte ohne Bauabschnitt – Tippen auf „Leitung selbst legen“ zeigt den Philipp-Hinweis und zeichnet nicht', async () => {
+    const { s } = neu(1);
+    const k = await karte(s, objektBei(s, 9, 15), T0, (k) => tippe(mit(k.knoepfe, 'Leitung selbst legen')[0].el));
+    expect(gesperrtMitHinweis(mit(k.knoepfe, 'Leitung selbst legen')[0].el), 'aria-disabled="true" ohne disabled').toBe(true);
+    expect(k.toasts).toEqual([SELBST_HINWEIS]);
+    expect(k.gestempelt).toEqual([]);
+  });
+
+  it('A92: Zeichenleiste Stufe 1 – Tippen auf „Dickere“ zeigt den Ausbau-Hinweis', async () => {
+    const z = await zeichenleiste(1, true, (z) => tippe(mit(z.knoepfe, 'Dickere')[0].el));
+    expect(gesperrtMitHinweis(mit(z.knoepfe, 'Dickere')[0].el), 'aria-disabled="true" ohne disabled').toBe(true);
+    expect(z.toasts).toEqual([DICKERE_HINWEIS]);
+  });
+
+  for (const bewegung of ['einstellung', 'system'] as const) {
+    it(`A92: „Weniger Bewegung“ (${bewegung}) – nach dem Tippen bleibt keine Klasse „wackelt“ hängen, der Hinweis kommt trotzdem`, async () => {
+      // Ohne Animation kommt nie ein animationend (stil.css: animation:none) – die Klasse darf also gar nicht erst bleiben.
+      let klasse = '';
+      const z = await zeichenleiste(1, true, (z) => {
+        vi.useFakeTimers();
+        try {
+          const t = mit(z.knoepfe, 'T-Stück mit Vorsehung')[0].el;
+          tippe(t);
+          vi.advanceTimersByTime(1_000);
+          klasse = t.className;
+        } finally { vi.useRealTimers(); }
+      }, bewegung);
+      expect(klasse.split(' ')).not.toContain('wackelt');
+      expect(z.toasts).toEqual([TSTUECK_HINWEIS]);
+    });
+  }
 });
 
 describe('A92 Baumenü – Planungsstand zählt live', () => {
