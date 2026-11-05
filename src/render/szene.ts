@@ -301,7 +301,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
 }
 
 /** Welche Sprechblase gehört über das Gebäude? Nur eine, wichtigste zuerst. */
-function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: boolean): Blase | null {
+export function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: boolean): Blase | null {
   const D = KATALOG[o.typ], kat = D.kategorie;
   if (kat === 'haus' || (kat === 'gross' && o.zustand === 'vertrag' && D.bedarf_kw)) {
     if (o.gekuendigt) return 'weg';
@@ -310,6 +310,7 @@ function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: b
     if (netz.kalt.get(o.id) === 'leitung' || netz.kalt.get(o.id) === 'station') return 'leitung';
     if (!warm) return 'kalt';
     if ((o.zufriedenheit_pct ?? 80) < 40) return 'wuetend';
+    if (o.anfrage) return 'anfrage'; // A88/F2: Probleme haben Vorrang vor der Kundenanfrage
     return null;
   }
   if (kat === 'gross' && o.zustand !== 'vertrag' && sp.vertragBedingungen(o).ok) return 'angebot';

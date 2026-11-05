@@ -210,7 +210,7 @@ function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   void st;
 }
 
-export type Blase = 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot';
+export type Blase = 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot' | 'anfrage';
 
 export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase): void {
   const { X } = m, r = m.tw * 0.17;
@@ -219,10 +219,31 @@ export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase): void 
   X.beginPath(); X.arc(cx, y, r, 0, ALLES); X.fill(); X.stroke();
   X.beginPath(); X.moveTo(cx - r * 0.4, y + r * 0.82); X.lineTo(cx, y + r * 1.5); X.lineTo(cx + r * 0.4, y + r * 0.82); X.closePath(); X.fill(); X.stroke();
   X.beginPath(); X.arc(cx, y, r - 1.5, 0, ALLES); X.fill();
-  const farbe = { stecker: '#8d99a5', kalt: '#3b86d1', wuetend: '#d8392f', weg: '#4a4038', leitung: '#e2582b', angebot: '#4caf3e' }[art];
+  // A88/F2: Kundenanfrage in Heat-Orange (Rohrnaht Vorlauf, DESIGN.md 12.2)
+  const farbe = { stecker: '#8d99a5', kalt: '#3b86d1', wuetend: '#d8392f', weg: '#4a4038', leitung: '#e2582b', angebot: '#4caf3e', anfrage: '#ff8a1f' }[art];
   m.kreis(cx, y, r * 0.7, farbe);
+  if (art === 'anfrage') { flammeMitPlus(m, cx, y, r * 0.5); return; }
   const sym = { stecker: 'ausruf', kalt: 'flocke', wuetend: 'ausruf', weg: 'kreuz', leitung: 'ausruf', angebot: 'frage' } as const;
   m.symbol(sym[art], cx, y, r * 0.5);
+}
+
+/** A88/F2: Symbol der Kundenanfrage – Flamme („mehr Wärme“) mit kleinem Plus rechts oben. */
+function flammeMitPlus(m: Maler, x: number, y: number, r: number): void {
+  const { X } = m, fx = x - r * 0.15;
+  X.save(); X.lineJoin = 'round'; X.lineCap = 'round';
+  X.beginPath();
+  X.moveTo(fx, y - r);
+  X.bezierCurveTo(fx + r * 0.75, y - r * 0.3, fx + r * 0.75, y + r * 0.35, fx + r * 0.45, y + r * 0.7);
+  X.quadraticCurveTo(fx, y + r * 1.05, fx - r * 0.45, y + r * 0.7);
+  X.bezierCurveTo(fx - r * 0.75, y + r * 0.3, fx - r * 0.55, y - r * 0.2, fx, y - r);
+  X.closePath();
+  X.fillStyle = '#fff'; X.fill(); X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = Math.max(1, r * 0.16); X.stroke();
+  const px = x + r * 0.7, py = y - r * 0.55, a = r * 0.38;
+  for (const [farbe, breite] of [['rgba(32,28,22,.5)', Math.max(3, r * 0.42)], ['#fff', Math.max(1.6, r * 0.22)]] as const) {
+    X.strokeStyle = farbe; X.lineWidth = breite;
+    X.beginPath(); X.moveTo(px - a, py); X.lineTo(px + a, py); X.moveTo(px, py - a); X.lineTo(px, py + a); X.stroke();
+  }
+  X.restore();
 }
 
 export function zeichneBalken(m: Maler, cx: number, y: number, b: Bau, jetzt_ms: number): void {

@@ -1,5 +1,6 @@
 import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
+import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, stepper, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -10,6 +11,21 @@ import type { Ui } from './schnittstelle';
 import { zeitText } from '../render/gebaeude';
 
 const QUELLEN: TypId[] = ['kessel', 'pellet', 'gas', 'bhkw', 'wpg', 'ptk', 'pv', 'puffer', 'solar', 'sonde'];
+
+/** A88/F2: Kasten „Anfrage“ der Hauskarte – Satz des Kunden, Leistung vorher → nachher, Annehmen/Später (DESIGN.md 12.5/12.7). */
+export function anfrageKasten(sp: Spiel, o: Objekt, nachAktion: () => void): HTMLDivElement | null {
+  if (o.anfrage !== 'vollversorgung' && o.anfrage !== 'aufstockung') return null;
+  const vorher_kw = bedarfKw(o), nachher_kw = sp.anfrageBedarf_kw(o), st = stationHolen(o.station);
+  const k = kasten('Anfrage', h('p', {}, o.anfrage === 'vollversorgung'
+    ? 'Darf ich meinen Kaminofen abschalten und ganz mit Fernwärme heizen?'
+    : 'Wir bauen ein Stockwerk auf – könnt ihr mehr Wärme liefern?'),
+  zeile('Anschlussleistung danach', `${kw(vorher_kw)} → ${kw(nachher_kw)} kW`));
+  if (st && st.leistung_kw < nachher_kw) k.append(chip('Station dann zu klein', 'rot'));
+  k.append(h('div', { class: 'knopfreihe' },
+    knopf('Annehmen', () => { sp.anfrageAnnehmen(o.id); nachAktion(); }, 'los', { klein: true, unter: `+${kw(nachher_kw - vorher_kw)} kW Bedarf` }),
+    knopf('Später', () => { sp.anfrageAblehnen(o.id); nachAktion(); }, '', { klein: true, unter: 'fragt später wieder' })));
+  return k;
+}
 
 function signatur(c: HTMLElement): string {
   const k = c.cloneNode(true) as HTMLElement;
@@ -123,7 +139,10 @@ export class Kontext {
     const st = stationHolen(o.station);
     const vlh = o.hauspuffer ? VOLLLASTSTUNDEN.mit_puffer_h : VOLLLASTSTUNDEN.ohne_puffer_h;
     c.append(zeile('Jahresverbrauch', `${zahl((D.verbrauch_kwh_a ?? 0) * nutzungsfaktor(o))} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW (÷ ${zahl(vlh)} h)`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'));
+    const anfrage = anfrageKasten(sp, o, () => this.ui.geaendert());
+    if (anfrage) c.append(anfrage);
     if (istKunde(o) && an) this.rechnungBereich(c, o); // A81: nur angeschlossene Kunden bekommen eine Rechnung
+    if (o.anfrage) chips.append(h('span', { class: 'chip gold' }, 'fragt an'));
     if (o.interessent) chips.append(chip('möchte anschließen', 'blau'));
     if (o.vollversorgung) chips.append(chip('Kamin aus', 'gruen'));
     if (o.aufgestockt) chips.append(chip('aufgestockt', 'blau'));
@@ -190,7 +209,7 @@ export class Kontext {
     const empfohlen = passendeStation(bedarf).id, alt = stationHolen(o.station);
     const k = kasten(alt ? 'Übergabestation tauschen' : 'Übergabestation wählen');
     k.append(h('p', { class: 'gedaempft' }, alt
-      ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${bedarf} kW. Schaltet der Kunde seinen Ofen ab oder baut an, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
+      ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${bedarf} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
       : `Das Gebäude braucht ${bedarf} kW. Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.`));
     if (alt && alt.leistung_kw < bedarf) k.append(chip('Station zu klein', 'rot'));
     const reihe = h('div', { class: 'knopfreihe' });

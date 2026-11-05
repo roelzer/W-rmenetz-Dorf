@@ -82,6 +82,8 @@ export class Spiel {
   private abwesend = false;
   /** A81: Abrechnungsmeldung, die bei Abwesenheit erst am Ende gezeigt wird */
   private offline_text = '';
+  /** A88/F2: während der laufenden Abwesenheit neu entstandene Kundenanfragen (eine Sammelmeldung statt vieler) */
+  private offline_anfragen = 0;
   private strassenSet?: Set<number>;
   private flussSet?: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
@@ -812,6 +814,55 @@ export class Spiel {
     return ok();
   }
 
+  /** A88/F2: Der Kunde fragt nach mehr Wärme; der Bedarf ändert sich erst beim Annehmen. */
+  private anfrageStellen(o: Objekt, art: NonNullable<Objekt['anfrage']>): void {
+    o.anfrage = art;
+    if (this.abwesend) { this.offline_anfragen++; return; }
+    const name = KATALOG[o.typ].name, kw = this.anfrageBedarf_kw(o).toFixed(0);
+    this.hinweis(art === 'vollversorgung' ? `${name} fragt an: Kamin abschalten und ganz mit Fernwärme heizen? Bedarf dann ${kw} kW` : `${name} baut ein Stockwerk auf und fragt nach mehr Wärme: Bedarf dann ${kw} kW`);
+    this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'fragt an', farbe: '#ffd166' });
+  }
+  /** A88/F2: Haus mit gültiger offener Anfrage; ein unbekannter Wert (z. B. aus einem veränderten Spielstand) wird dabei gelöscht. */
+  private offeneAnfrage(id: number): Objekt | null {
+    const o = this.objekt(id);
+    if (!o || KATALOG[o.typ].kategorie !== 'haus' || o.gekuendigt || !o.anfrage) return null;
+    if (o.anfrage !== 'vollversorgung' && o.anfrage !== 'aufstockung') { delete o.anfrage; return null; }
+    return o;
+  }
+  /** A88/F2: Anfrage annehmen – kostenlos, ab Stufe 1, ohne Kapazitätsprüfung (der Spieler entscheidet). */
+  anfrageAnnehmen(id: number): Ergebnis {
+    const o = this.offeneAnfrage(id);
+    if (!o) return { ok: false };
+    const name = KATALOG[o.typ].name;
+    if (o.anfrage === 'vollversorgung') {
+      o.vollversorgung = true;
+      this.hinweis(`${name} hat den Kamin abgeschaltet und heizt nur noch mit Fernwärme (+${Math.round((KONSTANTEN.vollversorgung_faktor - 1) * 100)} % Verbrauch)`);
+      this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Kamin aus', farbe: '#7bd88f' });
+    } else {
+      o.aufgestockt = true;
+      this.hinweis(`${name} stockt auf: Bedarf ${bedarfKw(o).toFixed(0)} kW – reicht die Übergabestation noch?`);
+      this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Aufstockung', farbe: '#ffd166' });
+    }
+    delete o.anfrage;
+    this.neuBerechnen();
+    return ok();
+  }
+  /** A88/F2: Anfrage vorerst ablehnen – ohne Kosten und Strafe; der Zähler beginnt von vorn, die Anfrage kommt nach derselben Wartezeit wieder. */
+  anfrageAblehnen(id: number): Ergebnis {
+    const o = this.offeneAnfrage(id);
+    if (!o) return { ok: false };
+    if (o.anfrage === 'vollversorgung') o.voll_s = 0; else o.warm_s = 0;
+    delete o.anfrage;
+    this.hinweis(`${KATALOG[o.typ].name} wartet und fragt später wieder`);
+    return ok();
+  }
+  /** A88/F2: Anschlussleistung nach dem Annehmen der offenen Anfrage (ohne gültige Anfrage = heutiger Bedarf). */
+  anfrageBedarf_kw(o: Objekt): number {
+    if (o.anfrage === 'vollversorgung') return bedarfKw({ ...o, vollversorgung: true });
+    if (o.anfrage === 'aufstockung') return bedarfKw({ ...o, aufgestockt: true });
+    return bedarfKw(o);
+  }
+
   foerderungBeantragen(t: TypId): Ergebnis {
     if (this.stand.antraege[t]) return { ok: false };
     this.stand.antraege[t] = { stand: 'wartet', bewilligt_ms: this.uhr() + KONSTANTEN.foerderdauer_s * 1000 };
@@ -854,6 +905,8 @@ export class Spiel {
     if (this.abwesend && offline.monate === 1 && this.offline_text) this.hinweis(this.offline_text);
     this.offline_text = '';
     if (this.abwesend && offline.monate > 1) this.hinweis(`Während du weg warst: ${offline.monate} Monatsabrechnungen, zusammen +${Math.round(offline.eur).toLocaleString('de-DE')} € eingegangen${offline.voll ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`);
+    if (this.abwesend && this.offline_anfragen > 0) this.hinweis(`Während du weg warst: ${this.offline_anfragen === 1 ? '1 Kunde fragt' : `${this.offline_anfragen} Kunden fragen`} nach mehr Wärme`);
+    this.offline_anfragen = 0;
     this.abwesend = false;
   }
   private naechstesEreignis_ms(): number | null {
@@ -965,22 +1018,16 @@ export class Spiel {
       o.zufriedenheit_pct = ziel + (jetzt - ziel) * Math.exp(-dt_s / tau);
       if (!gross && this.netz.warm.has(o.id)) {
         o.warm_s = (o.warm_s ?? 0) + dt_s;
-        // A34: Dauerhaft sehr zufrieden → Kamin aus, ganze Wärme aus dem Netz
+        // A34: Dauerhaft sehr zufrieden → der Kunde möchte den Kamin abschalten (ganze Wärme aus dem Netz)
         o.voll_s = o.zufriedenheit_pct >= 95 ? (o.voll_s ?? 0) + dt_s : o.zufriedenheit_pct < 85 ? 0 : (o.voll_s ?? 0);
-        if (!o.vollversorgung && o.voll_s >= KONSTANTEN.vollversorgung_nach_s) {
-          o.vollversorgung = true; geaendert = true;
-          this.hinweis(`${KATALOG[o.typ].name} hat den Kamin abgeschaltet und heizt nur noch mit Fernwärme (+${Math.round((KONSTANTEN.vollversorgung_faktor - 1) * 100)} % Verbrauch)`);
-          this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Kamin aus', farbe: '#7bd88f' });
-        }
-        // Aufstockung: Nach einiger Zeit baut ein Wohnhaus ein Stockwerk auf, der Bedarf steigt
-        if (!o.aufgestockt && (['efh', 'rh', 'baeck'] as TypId[]).includes(o.typ) && o.warm_s >= KONSTANTEN.aufstockung_nach_s + (o.id % 4) * 300) {
-          o.aufgestockt = true; geaendert = true;
-          this.hinweis(`${KATALOG[o.typ].name} stockt auf: Bedarf ${bedarfKw(o).toFixed(0)} kW – reicht die Übergabestation noch?`);
-          this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Aufstockung', farbe: '#ffd166' });
-        }
+        // A88/F2: Der Bedarf steigt nicht von selbst – der Kunde fragt an, der Spieler entscheidet. Höchstens eine Anfrage je Haus, Kamin zuerst.
+        if (!o.anfrage && !o.vollversorgung && o.voll_s >= KONSTANTEN.vollversorgung_nach_s) this.anfrageStellen(o, 'vollversorgung');
+        // Aufstockung: Nach einiger Zeit möchte ein Wohnhaus ein Stockwerk aufsetzen
+        if (!o.anfrage && !o.aufgestockt && (['efh', 'rh', 'baeck'] as TypId[]).includes(o.typ) && o.warm_s >= KONSTANTEN.aufstockung_nach_s + (o.id % 4) * 300) this.anfrageStellen(o, 'aufstockung');
       }
       if (o.zufriedenheit_pct < KONSTANTEN.kuendigung_haus_pct && KATALOG[o.typ].kategorie === 'haus') {
         o.gekuendigt = true; geaendert = true;
+        delete o.anfrage; // A88/F2: Wer gekündigt hat, will keine Wärme mehr
         this.hinweis(`${KATALOG[o.typ].name} hat gekündigt!`);
         this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Gekündigt', farbe: '#ff6a5a' });
       }
