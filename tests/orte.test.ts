@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ORTE, ortHolen, typAusGrundflaeche } from '../src/core/orte';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { KATALOG, KONSTANTEN } from '../src/core/katalog';
+// A88: Diese Tests prüfen Mechaniken nach den Freischalt-Stufen von vor A88 (Bauplan Abschnitt 11)
+vi.mock('../src/core/freischaltung', async (orig) => (await import('./ohne-leiter')).ohneLeiter(await orig()));
 
 const T0 = 1_000_000_000_000;
 

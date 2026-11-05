@@ -6,6 +6,8 @@ import { bedarfKw } from '../src/core/netz';
 import { ortHolen } from '../src/core/orte';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation, LEITUNGEN, MIN_VORLAUF_C } from '../src/core/katalog';
+// A88: Diese Tests prüfen Mechaniken nach den Freischalt-Stufen von vor A88 (Bauplan Abschnitt 11)
+vi.mock('../src/core/freischaltung', async (orig) => (await import('./ohne-leiter')).ohneLeiter(await orig()));
 
 const T0 = 1_000_000_000_000;
 const neuesSpiel = (): Spiel => new Spiel(neuerSpielstand(T0), () => T0);
@@ -285,21 +287,7 @@ describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
   const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
   const lauf = (s: Spiel, z: { t: number }, sek: number) => { for (let i = 0; i < sek / 10; i++) { z.t += 10_000; s.bis(z.t); } };
   const startHaus = (s: Spiel) => s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
-  it('A34: Dauerhaft hohe Zufriedenheit schaltet den Kamin ab – der Verbrauch steigt', () => {
-    const { s, z } = mitUhr(); const h = startHaus(s);
-    s.preisSetzen(0); // 7 ct: Kunden sind sehr zufrieden
-    const vorher = KATALOG[h.typ].bedarf_kw!;
-    lauf(s, z, KONSTANTEN.vollversorgung_nach_s + 1200);
-    expect(h.vollversorgung).toBe(true);
-    expect(bedarfKw(h)).toBeCloseTo(vorher * KONSTANTEN.vollversorgung_faktor * (h.aufgestockt ? KONSTANTEN.aufstockung_faktor : 1), 9);
-    expect(bedarfKw(h)).toBeGreaterThan(vorher);
-    expect(s.netz.bedarf_kw).toBeGreaterThan(20); // zwei Starthäuser à 10 kW vorher
-  });
-  it('Aufstockung: Ein Wohnhaus stockt nach einiger Zeit auf, der Bedarf steigt', () => {
-    const { s, z } = mitUhr(); const h = startHaus(s);
-    lauf(s, z, KONSTANTEN.aufstockung_nach_s + 1500);
-    expect(h.aufgestockt).toBe(true);
-  });
+  // A34 Kamin aus / Aufstockung automatisch: ersetzt durch tests/a88-kundenanfrage.test.ts (A88/F2)
   it('A36: PV gehört aufs Heizhaus-Dach: kostet Geld, liefert Strom, Überschuss wird eingespeist; Häuser haben keine PV', () => {
     const { s } = mitUhr();
     expect(s.netz.einspeisung_kw).toBe(0);

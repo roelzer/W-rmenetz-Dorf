@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { nachbardoerfer, neuesNachbardorf } from '../src/core/nachbarn';
 import { Spiel } from '../src/core/spiel';
 import { neuerSpielstand } from '../src/core/spiel';
+// A88: Diese Tests prüfen Mechaniken nach den Freischalt-Stufen von vor A88 (Bauplan Abschnitt 11)
+vi.mock('../src/core/freischaltung', async (orig) => (await import('./ohne-leiter')).ohneLeiter(await orig()));
 
 describe('A17 – Nachbardörfer besuchen (Beispieldörfer, kein Server)', () => {
   it('A17: Es gibt Beispieldörfer mit Namen, Besitzer, Heizzentrale und Dorfwert', () => {
