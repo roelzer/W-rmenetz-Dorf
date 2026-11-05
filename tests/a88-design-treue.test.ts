@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import type { Objekt } from '../src/core/typen';
 import { SYMBOLE } from '../src/ui/symbole';
+import { kontextKarte } from './hilfen/kontext-attrappe';
 
 // A88 Designer-Treue P2 (DESIGN.md 12.15, Fotos docs/pruefberichte/fotos-a88p2/). Nutzt das echte Kernmodul.
 
@@ -23,39 +24,10 @@ const neu = (stufe = 1): Spiel => {
   return s;
 };
 
-/** Winzige DOM-Nachbildung wie in tests/a88-freischalt-leiter.test.ts; der Parser merkt sich das geparste SVG. */
-function attrappe() {
-  class El {
-    tag: string; className = ''; attrs: Record<string, string> = {}; kinder: unknown[] = []; style: Record<string, string> = {};
-    on: Record<string, () => void> = {};
-    constructor(tag: string) { this.tag = tag; }
-    setAttribute(k: string, v: string) { this.attrs[k] = v; }
-    hasAttribute(k: string) { return k in this.attrs; }
-    addEventListener(n: string, f: () => void) { this.on[n] = f; }
-    append(...k: unknown[]) { this.kinder.push(...k); }
-    replaceChildren(...k: unknown[]) { this.kinder = [...k]; }
-  }
-  const doc = { createElement: (t: string) => new El(t), createTextNode: (t: string) => ({ text: t }), importNode: (n: unknown) => n, addEventListener: () => {} };
-  class Parser { parseFromString(q: string) { const svg = new El('svg'); svg.attrs.quelle = q; return { documentElement: svg }; } }
-  const text = (n: unknown): string => (n && typeof n === 'object' && 'text' in n ? String((n as { text: string }).text) : n instanceof El ? n.kinder.map(text).join('') : '');
-  const alle = (n: unknown): El[] => (n instanceof El ? [n, ...n.kinder.flatMap(alle)] : []);
-  return { doc, Parser, El, text, alle };
-}
-
-/** Kontextkarte eines Objekts ohne Browser aufbauen. */
+/** Kontextkarte eines Objekts ohne Browser aufbauen (gemeinsame Hilfe tests/hilfen/kontext-attrappe.ts). */
 async function karte(s: Spiel, o: Objekt) {
-  const a = attrappe();
-  vi.resetModules();
-  vi.stubGlobal('document', a.doc); vi.stubGlobal('DOMParser', a.Parser);
-  vi.doMock('../src/ui/blatt', () => ({ blattOeffnen: () => ({ inhalt: new a.El('div'), zu: () => {} }), blattOffen: () => false }));
-  try {
-    const { Kontext } = await import('../src/ui/kontext');
-    const ui = { spiel: s, jetzt_ms: () => T0, geaendert: () => {}, stempeln: () => {}, toast: () => {}, katalog: () => {} };
-    const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
-    const c = new a.El('div');
-    (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);
-    return { a, alle: a.alle(c) };
-  } finally { vi.unstubAllGlobals(); vi.doUnmock('../src/ui/blatt'); }
+  const { a, c } = await kontextKarte(s, o, T0);
+  return { a, alle: a.alle(c) };
 }
 
 describe('A88 Designer-Treue P2 (DESIGN.md 12.15)', () => {
