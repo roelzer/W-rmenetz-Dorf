@@ -786,7 +786,34 @@ describe('A63 Logo', () => {
   it('A63: Das Logo zeigt Flamme und Leitungen (Vorlauf rot, Rücklauf blau) und ist auch App-Symbol', async () => {
     const { readFileSync } = await import('node:fs');
     const logo = readFileSync(new URL('../src/ui/logo.svg', import.meta.url), 'utf8');
-    expect(logo).toContain('#e8463a'); expect(logo).toContain('#3a8de0');
+    expect(logo).toContain('#f0453a'); expect(logo).toContain('#3a92ea');
     expect(readFileSync(new URL('../public/icon.svg', import.meta.url), 'utf8')).toBe(logo);
+  });
+});
+
+describe('A64 Ladebildschirm, A65 Abzweig an der Hauptleitung', () => {
+  it('A64: Der Ladebildschirm hat Spieltipps; jeder Tipp ist ein kurzer Satz', async () => {
+    const { readFileSync } = await import('node:fs');
+    const q = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
+    expect(q).toContain('const TIPPS');
+    expect(q).toContain('Je kälter der Rücklauf');
+    expect(q).not.toMatch(/innerHTML/);
+    expect(q).toContain('Heize dein Dorf klimaneutral');
+  });
+  it('A65: Die dünnere Leitung läuft bis in die Hauptleitung, die Hauptleitung zeichnet keinen Stummel', async () => {
+    const { abzweigZeichnen, eigenerHausanschluss } = await import('../src/render/anschluss');
+    expect(abzweigZeichnen('d40', 'd25')).toBe('nichts');
+    expect(abzweigZeichnen('d25', 'd40')).toBe('bis_mitte_nachbar');
+    expect(abzweigZeichnen('d40', 'd40')).toBe('halb');
+    expect(eigenerHausanschluss('d40', 10)).toBe('d25'); // Haus direkt an der 40er bekommt einen 25er-Anschluss
+    expect(eigenerHausanschluss('d25', 10)).toBeNull();
+  });
+});
+
+describe('A66 keine Autos', () => {
+  it('A66: Auf den Straßen werden keine Autos mehr gezeichnet', async () => {
+    const { readFileSync } = await import('node:fs');
+    const q = readFileSync(new URL('../src/render/szene.ts', import.meta.url), 'utf8');
+    expect(q).not.toMatch(/farben = \['#c0392b'/);
   });
 });

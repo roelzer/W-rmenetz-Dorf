@@ -1,4 +1,4 @@
-<!-- Stand 2026-11-05: A45–A55 fertig, 197 Tests grün; Details docs/SITZUNGSUEBERGABE.md -->
+<!-- Stand 2026-11-05: A45–A66 fertig, 212 Tests grün; zuletzt Logo/Ladebildschirm (A63/A64), Abzweig-Darstellung (A65), Autos raus (A66); Details docs/SITZUNGSUEBERGABE.md -->
 # Status
 
 **Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Zuletzt aktualisiert:** 2026-11-04

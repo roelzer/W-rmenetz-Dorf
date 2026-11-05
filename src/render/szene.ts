@@ -1,5 +1,6 @@
 import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
+import { abzweigZeichnen, eigenerHausanschluss } from './anschluss';
 import { bedarfKw, groesse, heizzentrale } from '../core/netz';
 import type { Spiel } from '../core/spiel';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
@@ -98,7 +99,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       }
     }
   }
-  // Straßen (A53): Asphalt zwischen Gehwegen mit Bordstein, Mittelmarkierung, Zebrastreifen, Laternen und parkenden Autos; Leitungen liegen darüber
+  // Straßen (A53): Asphalt zwischen Gehwegen mit Bordstein, Mittelmarkierung, Zebrastreifen, Laternen; Leitungen liegen darüber
   if (s.strassen?.length) {
     const feld = new Set(s.strassen.map(([sx, sy]) => sy * N + sx));
     const strasse = (x: number, y: number): boolean => feld.has(y * N + x);
@@ -151,7 +152,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       // Flicken im Asphalt
       if (hash(sx, sy) > 0.8) { const o = (hash(sy, sx) - 0.5) * 0.3; poly(sx, sy, [[o - 0.07, o * 0.5 - 0.05], [o + 0.07, o * 0.5 - 0.05], [o + 0.07, o * 0.5 + 0.05], [o - 0.07, o * 0.5 + 0.05]], 'rgba(0,0,0,.09)'); }
     }
-    // 4. Laternen am Rand, Gullydeckel und parkende Autos (feste Verteilung nach Feldposition)
+    // 4. Laternen am Rand, Gullydeckel (feste Verteilung nach Feldposition)
     for (const [sx, sy] of s.strassen) {
       const [cx, cy] = k.mitte(sx, sy);
       if (!sichtbar(cx, cy) || tw < 30) continue;
@@ -162,13 +163,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
         const [lx, ly] = k.mitte(sx + (waag ? 0 : seite * 0.43), sy + (waag ? seite * 0.43 : 0));
         X.strokeStyle = '#3b3f44'; X.lineWidth = Math.max(1, tw * 0.02); X.beginPath(); X.moveTo(lx, ly); X.lineTo(lx, ly - tw * 0.2); X.stroke();
         m.kreis(lx, ly - tw * 0.21, Math.max(1.5, tw * 0.026), '#ffe9a6');
-      } else if (hash(sx + 3, sy + 7) > 0.84) {
-        const [px, py] = k.mitte(sx + (waag ? 0 : seite * 0.17), sy + (waag ? seite * 0.17 : 0));
-        const farben = ['#c0392b', '#2f6db3', '#e9e9e9', '#2a2a2e', '#d9a12a', '#3d8b5a'];
-        const f = farben[Math.floor(hash(sx, sy + 9) * farben.length)];
-        const a = m.quader(px, py, 0.34, tw * 0.05, f, true);
-        void a; m.quader(px, py - tw * 0.02, 0.2, tw * 0.035, 'rgba(180,215,235,.95)', true);
-      }
+      } // A66: keine Autos mehr (Simon 2026-11-05)
     }
   }
   // Hausanschlussweg und Garten (A53): Plattenweg vom Haus zur nächsten Straße, abgesetzter Garten mit Zaun
@@ -333,8 +328,10 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     for (const [dx, dy] of NACHBARN) { const n = nachFeld.get((y + dy) * N + x + dx); if (n && istLeitung(n.typ) && x + dx >= 0 && x + dx < N) z++; }
     return z;
   };
-  for (const o of s.objekte) {
-    if (!istLeitung(o.typ)) continue;
+  const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
+  // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
+  const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
+  for (const o of rohre) {
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
     for (const [dx, dy] of NACHBARN) {
       const nx = o.x + dx, ny = o.y + dy;
@@ -349,7 +346,24 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
         const a = netz.anschluss.get(n.id);
         if (a ? a.feld !== key : !(o.geplant && leitungsNachbarn(o.x, o.y) <= 1)) continue;
       }
-      if (istLeitung(n.typ) || n.typ === 'hz' || gebaeude) { const [a, b] = k.mitte(nx, ny); seg.push([(cx + a) / 2, (cy + b) / 2]); }
+      // A65: Treffen zwei verschieden dicke Leitungen, läuft die dünnere in ihrer Farbe bis in die dickere hinein
+      // (Abzweig schließt an die Hauptleitung an); die dicke Leitung zeichnet keinen eigenen Stummel zum Abzweig.
+      if (istLeitung(n.typ)) {
+        const art = abzweigZeichnen(o.typ, n.typ);
+        if (art === 'nichts') continue;
+        const [a, b] = k.mitte(nx, ny);
+        seg.push(art === 'bis_mitte_nachbar' ? [a, b] : [(cx + a) / 2, (cy + b) / 2]);
+        continue;
+      }
+      if (n.typ === 'hz') { const [a, b] = k.mitte(nx, ny); seg.push([(cx + a) / 2, (cy + b) / 2]); }
+      else if (gebaeude) {
+        // A65: Liegt das Haus direkt an einer dicken Leitung, führt ein eigener, dünner Hausanschluss
+        // (kleinste passende Leitung) vom Haus bis an die Hauptleitung – kein Stummel in der Farbe der Hauptleitung.
+        const [a, b] = k.mitte(nx, ny), mx = (cx + a) / 2, my = (cy + b) / 2;
+        const eigen = KATALOG[n.typ].kategorie !== 'waerme' ? eigenerHausanschluss(o.typ, KATALOG[n.typ].bedarf_kw ?? 0) : null;
+        if (eigen) stummel.push({ von: [cx, cy], bis: [mx, my], typ: eigen, an });
+        else seg.push([mx, my]);
+      }
     }
     const plan = !!o.geplant;
     if (plan) { X.save(); X.globalAlpha = 0.6; }
@@ -374,6 +388,15 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     if (plan) {
       X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = '#2a6fb0'; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
       X.restore();
+    }
+  }
+  // A65: eigene dünne Hausanschlüsse von der Hauptleitung bis ans Haus (beginnen am Rand der Hauptleitung)
+  X.lineCap = 'round';
+  for (const st of stummel) {
+    const D = KATALOG[st.typ], w = Math.max(2, tw * (D.breite ?? 0.06));
+    const v: Punkt = [st.von[0] + (st.bis[0] - st.von[0]) * 0.3, st.von[1] + (st.bis[1] - st.von[1]) * 0.3];
+    for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, st.an ? (D.farbe ?? '#d8392f') : '#9aa4ab']] as const) {
+      X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(v[0], v[1]); X.lineTo(st.bis[0], st.bis[1]); X.stroke();
     }
   }
   // Wärmepunkte fließen vom Heizhaus zum Kunden

@@ -46,3 +46,6 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-05 – A61: Spielname „Heatnet“ (ohne „Clash“ wegen Markenrisiko Supercell); Speicherschlüssel bleiben unverändert, damit Spielstände erhalten bleiben – Simon
 - 2026-11-05 – A62: Express = 30 % Aufpreis aufs Material (min. 500 €), Restlieferzeit × 0,35, einmal je Abschnitt; „Beschleunigen“ mit Talern heißt jetzt „Sofort fertig“ – Simon: Expresslieferung
 - 2026-11-05 – A63: Logo vom Projektleiter entworfen (Designer-Prüfung offen): Flamme im Kreis, drei Häuser, Doppelleitung rot/blau; Schriftzug „Heat“ rot, „net“ blau; Vorspann 1,7 s – Simon: Logo
+- 2026-11-05 – A64: neues Symbol (Flammen-Figur im Rohrring), Schrift „Lilita One“ (frei, SIL OFL) für Logo und Ladebildschirm; Ladebildschirm 2,8 s, bei „Weniger Bewegung“ 1,2 s und ohne Animation – Simon: moderner, verspielter, wie Clash of Clans
+- 2026-11-05 – A65: Abzweige zeichnen: dünnere Leitung läuft bis zur Mitte der dickeren; Haus direkt an dicker Leitung bekommt optisch einen eigenen dünnen Anschluss (nur Darstellung, Netzberechnung unverändert) – Simon: T-Stück unrealistisch
+- 2026-11-05 – A66: Autos entfernt; Titelbild an das Spiel angeglichen (Unterzeile „Heize dein Dorf klimaneutral“ – Aussage „klimaneutral“ für Holz/Biomasse ist vereinfacht, Fachprüfer offen) – Simon

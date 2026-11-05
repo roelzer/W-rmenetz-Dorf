@@ -196,13 +196,44 @@ button{font:inherit;color:inherit;cursor:pointer}
 .dorfschild .zahnrad{position:absolute;right:8px;top:6px;font-size:16px;line-height:1;color:var(--farbe-ui-dorfschild-untertext);opacity:.8}
 .kwknopf{font-size:15px;font-weight:800}
 .kwknopf.aus{opacity:.55;text-decoration:line-through}
-/* A63: Logo, Schriftzug und Vorspann */
-.schriftzug{font-family:var(--schrift-anzeige);font-weight:800;letter-spacing:.01em;line-height:1}
-span.schriftzug>span.heat{color:#e8463a}span.schriftzug>span.net{color:#3a8de0}
-#vorspann{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle at 50% 45%,#58a83f,#2f6a26);transition:opacity .45s}
-#vorspann .logo-bild{border-radius:28%;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-#vorspann .schriftzug{font-size:52px;-webkit-text-stroke:2px #fff6e6;paint-order:stroke fill;text-shadow:0 3px 0 rgba(0,0,0,.25)}
-#vorspann .unterzeile{color:#fff6e6;font-weight:700;font-size:16px;opacity:.9}
-#vorspann.aus{opacity:0;pointer-events:none}
-@media (prefers-reduced-motion:reduce){#vorspann{transition:none}}
-.einst-logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}.einst-logo .logo-bild{border-radius:24%}.einst-logo .schriftzug{font-size:28px}
+/* A63/A64: Logo, Schriftzug und Ladebildschirm */
+.schriftzug{font-family:'Lilita One',var(--schrift-anzeige);font-weight:400;letter-spacing:.02em;line-height:1;display:inline-flex}
+span.schriftzug>span.heat{color:#ff8a1f}span.schriftzug>span.net{color:#3a92ea}
+#vorspann{position:fixed;inset:0;z-index:100;overflow:hidden;background:#3f8ff0;transition:opacity .5s,transform .5s}
+#vorspann .vs-szene{position:absolute;inset:0;width:100%;height:100%}
+#vorspann.aus{opacity:0;transform:scale(1.04);pointer-events:none}
+.vs-kopf{position:absolute;left:50%;top:6%;transform:translateX(-50%) rotate(-3deg);display:flex;align-items:center;gap:14px;animation:vs-plopp .7s cubic-bezier(.2,1.6,.4,1) both}
+.vs-kopf .logo-bild{border-radius:26%;box-shadow:0 6px 0 #3b1d0a,0 14px 26px rgba(0,0,0,.35);border:4px solid #3b1d0a}
+.vs-titel{display:flex;flex-direction:column;align-items:flex-start}
+#vorspann .schriftzug{font-size:78px;-webkit-text-stroke:9px #3b1d0a;paint-order:stroke fill;filter:drop-shadow(0 6px 0 #3b1d0a) drop-shadow(0 12px 14px rgba(0,0,0,.35))}
+#vorspann span.schriftzug>span.heat{background:linear-gradient(#fff3a0,#ffc23a 45%,#ff7a1a);-webkit-background-clip:text;background-clip:text;color:transparent}
+#vorspann span.schriftzug>span.net{background:linear-gradient(#e2f4ff,#6cc0ff 45%,#2c7fe0);-webkit-background-clip:text;background-clip:text;color:transparent}
+#vorspann .unterzeile{font-family:'Lilita One',var(--schrift-anzeige);color:#fff;font-size:20px;letter-spacing:.04em;-webkit-text-stroke:5px #3b1d0a;paint-order:stroke fill;margin:4px 0 0 6px}
+.vs-fuss{position:absolute;left:50%;bottom:2.5%;transform:translateX(-50%);width:min(480px,62vw);display:flex;flex-direction:column;align-items:center;gap:8px}
+.vs-balken{position:relative;width:100%;height:20px;border:4px solid #3b1d0a;border-radius:16px;background:#2a3b4f;box-shadow:0 4px 0 #3b1d0a;overflow:hidden}
+.vs-fuellung{position:absolute;inset:0;width:0;background:linear-gradient(#c8ff8a,#5fd14a 50%,#3a9e2e);animation:vs-laden 2.5s ease-out forwards}
+.vs-fuellung::after{content:'';position:absolute;inset:3px 6px auto;height:5px;border-radius:4px;background:rgba(255,255,255,.55)}
+.vs-prozent{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Lilita One',var(--schrift-anzeige);color:#fff;font-size:13px;-webkit-text-stroke:4px #3b1d0a;paint-order:stroke fill}
+.vs-tipp{margin:0;padding:4px 12px;border-radius:10px;background:rgba(32,20,10,.72);color:#fff;font-weight:700;font-size:12px;text-align:center;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-tipp b{color:#ffd45c}
+.vs-wolke{animation:vs-wolke linear infinite}
+.vs-strahlen{animation:vs-drehen 40s linear infinite;transform-origin:0 0}
+.vs-dampf{animation:vs-dampf 2.4s ease-out infinite;opacity:0;transform-box:fill-box;transform-origin:center}
+.vs-fluss{animation:vs-fluss 1.4s linear infinite}
+.vs-rotor{animation:vs-drehen 3s linear infinite;transform-origin:0 0}
+.vs-freude{animation:vs-wippen 1.6s ease-in-out infinite;transform-box:fill-box}
+.vs-blatt{animation:vs-blatt linear infinite;opacity:0;transform-box:fill-box}
+@keyframes vs-wippen{50%{transform:translateY(-8px)}}
+@keyframes vs-blatt{0%{opacity:0;translate:0 0;rotate:0deg}15%{opacity:.9}100%{opacity:0;translate:120px 160px;rotate:220deg}}
+.vs-blattzeichen{margin-right:6px;-webkit-text-stroke:0}
+@keyframes vs-laden{to{width:100%}}
+@keyframes vs-plopp{from{transform:translateX(-50%) rotate(-3deg) scale(.3);opacity:0}to{transform:translateX(-50%) rotate(-3deg) scale(1);opacity:1}}
+@keyframes vs-wolke{from{transform:translateX(-60px)}to{transform:translateX(60px)}}
+@keyframes vs-drehen{to{transform:rotate(360deg)}}
+@keyframes vs-dampf{0%{opacity:.85;transform:translate(0,0) scale(.6)}100%{opacity:0;transform:translate(30px,-110px) scale(2)}}
+@keyframes vs-fluss{to{stroke-dashoffset:-70}}
+#vorspann.still *{animation:none!important}#vorspann.still .vs-fuellung{width:100%}
+@media (prefers-reduced-motion:reduce){#vorspann *{animation:none!important}#vorspann .vs-fuellung{width:100%}}
+#vorspann .vs-schriftzug{width:360px;height:auto;display:block;overflow:visible}
+@media (max-height:420px){#vorspann .vs-schriftzug{width:300px}.vs-kopf .logo-bild{width:76px;height:76px}#vorspann .unterzeile{font-size:16px}}
+.einst-logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}.einst-logo .logo-bild{border-radius:24%}.einst-logo .schriftzug{font-size:30px}
