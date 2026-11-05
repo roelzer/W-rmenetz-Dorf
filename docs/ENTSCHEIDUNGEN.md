@@ -21,3 +21,5 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 2026-11-04 – A38 Weiterlauf: Nachrechnung höchstens 7 Tage; bei Abwesenheit über 5 Minuten fließen die Einnahmen direkt aufs Konto (statt in die Hauskassen) – Grund: Reviewer fand, dass die Betriebskosten sonst die Kasse leeren, während die gedeckelten Hauskassen nichts auffangen.
 2026-11-04 – A39 Spreizung = Grundwert 20 K + Rücklauf-Senkung durch Upgrades, unabhängig vom Vorlauf-Regler – Grund: sonst wäre das Ziel durch Hochdrehen des Vorlaufs erreichbar. Spielwert, dem Fachprüfer vorzulegen.
 2026-11-04 – Vorführ-Tempo (×1/×10/×60) liegt außerhalb des Spielkerns (src/tempo.ts) und gilt nicht bei verborgenem Fenster.
+- 2026-11-05 – Spielstart immer mit Hackschnitzelkessel, keine Quellenwahl (A3 geändert) – Simon: „man startet immer mit nem Hackschnitzelkessel“
+- 2026-11-05 – Leitungskarte: Hauptleitung bis zum letzten Abzweig, Hausanschluss ab dem Abknick zum einzelnen Haus (dort darf das Rohr dünner sein; Regel „dünner in Fließrichtung ok“ gilt schon) – Simon

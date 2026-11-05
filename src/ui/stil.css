@@ -126,10 +126,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 #laden .bahn{width:200px;height:14px;border-radius:var(--radius-px-chip);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);background:var(--farbe-hud-fuellung-bautimer-grund);overflow:hidden}
 #laden .bahn i{display:block;height:100%;width:40%;background:var(--farbe-hud-fuellung-bautimer-0);animation:laden 1.1s ease-in-out infinite alternate}
 @keyframes laden{to{margin-left:60%}}
-.start-karten{display:grid;gap:var(--abstand-px-1)}
-.start-karten .bkarte{flex-direction:row;align-items:center;gap:var(--abstand-px-2)}
-.start-karten .bkarte canvas{width:96px;height:80px;flex:none}
-.start-karten .info{flex:1;min-width:0}
 .vorteil{color:var(--farbe-chip-gruen-text);font-weight:700;font-size:var(--schrift-groesse-px-klein)}
 .nachteil{color:var(--farbe-chip-rot-text);font-weight:700;font-size:var(--schrift-groesse-px-klein)}
 
@@ -167,9 +163,6 @@ button{font:inherit;color:inherit;cursor:pointer}
   .blatt{width:min(46%,400px);max-width:none;height:100%;max-height:100%;margin:0;border-radius:var(--radius-px-popup) 0 0 var(--radius-px-popup);border-right:0}
   .blatt.hoch{max-height:100%}
   .blatt.popup{width:min(92%,640px);height:auto;max-height:94%;border-radius:var(--radius-px-popup);border-right:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand)}
-  .start-karten{grid-template-columns:repeat(3,1fr)}
-  .start-karten .bkarte{flex-direction:column;align-items:stretch}
-  .start-karten .bkarte canvas{width:100%}
   .raster{grid-template-columns:repeat(2,1fr)}
   #ebene>.blatt{align-self:flex-end}
   .banner{top:auto;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom))}

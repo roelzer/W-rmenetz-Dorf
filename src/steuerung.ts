@@ -16,7 +16,6 @@ import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
 import { Kontext } from './ui/kontext';
 import type { Ui } from './ui/schnittstelle';
-import { startwahl } from './ui/start';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
 
@@ -63,7 +62,7 @@ export class Steuerung implements Ui {
     document.getElementById('app')!.append(this.hud.wurzel, h('div', { id: 'ebene' }));
     this.eingabe();
     this.bewegungAnwenden();
-    if (!spiel.stand.quelle_gewaehlt) { this.hud.sichtbar({ alles: false }); this.zentrieren(); startwahl(this, () => { this.hud.sichtbar({ alles: true }); this.zentrieren(); }); }
+    if (!spiel.stand.quelle_gewaehlt) { this.spiel.ersteQuelleWaehlen('kessel'); this.geaendert(); this.zentrieren(); }
   }
 
   private bewegungAnwenden(): void {
