@@ -1,14 +1,9 @@
-<!-- Stand 2026-11-05: A45–A66 fertig, 212 Tests grün; zuletzt Logo/Ladebildschirm (A63/A64), Abzweig-Darstellung (A65), Autos raus (A66); Details docs/SITZUNGSUEBERGABE.md -->
+<!-- Stand 2026-11-05 mittags: A67–A70 fertig, Prüfrunde A45–A66 (Fachprüfer, Reviewer, Designer) ausgewertet und umgesetzt; 233 Tests grün -->
 # Status
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** Sitzungswechsel – Übergabe in docs/SITZUNGSUEBERGABE.md · **Zuletzt fertig:** A45–A66 (Straßen/Fluss, Heizhaus-Ausbau, Express, Logo, Ladebildschirm, Abzweige) · **Als Nächstes:** Simons nächste Wünsche; Fachprüfer, Designer-Treue, Reviewer über A45–A66 · **Fortschritt:** 212 Tests grün, Schranke projektleiter OK · **Artefakt:** Version 30 · **Frage an Simon:** docs/OFFENE_FRAGEN.md
-
-## Gerade läuft
-Nichts – Sitzung wird übergeben. Kein Agent läuft.
-
-**Arbeitsbranch:** claude/youthful-feynman-jaegcj
+> **Jetzt:** Nachprüfung durch frischen Reviewer · **Zuletzt fertig:** A67 Reduzierung nur am Abzweig, A68 Fachprüfungs-Befunde, A69 T-Stück mit Vorsehung/Anbohrung, A70 Kartenoptik; Reviewer-Befunde 1–9 · **Als Nächstes:** Nachprüfung auswerten, Artefakt neu, main aktualisieren; Antworten auf Q2–Q5 · **Fortschritt:** 233 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us (main = Stand von heute Morgen)
 
 ## Ampel
 🟢 läuft
