@@ -200,3 +200,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:09 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Die Nachbesserung ist fertig gebaut und alle 886 Tests laufen grün. Die Test-Schranke meldet trotzdem „NICHT OK“. Schuld ist ni ([Bericht](docs/pruefberichte/20261105-180923-entwickler-a2e85dff036432c58.md)) |
 | 2026-11-05 18:09 | ▶ | reviewer | Nachprüfung NR16-B1 Fix |
 | 2026-11-05 18:13 | ■ 🟡 | reviewer | 🟡 **GELB: Freigabe mit Bedingungen.** Die Nachbesserung ist sauber. 3 von 4 Befunden sind behoben. Der Befund W1a ist nur zur Hälfte behoben, weil ein beste ([Bericht](docs/pruefberichte/20261105-181356-reviewer-a6a96f78d8367431d.md)) |
+| 2026-11-05 18:15 | ▶ | designer | Designer: Sperrtexte für B2 |
