@@ -164,6 +164,24 @@ describe('NR12 P5b Bodenebene erst nach echter Ruhe neu aufbauen (A90)', () => {
     expect(f.befehle()).toBeGreaterThan(gemalt);
   });
 
+  it('NR12 P5b: neue Kameraänderung setzt die Bildzählung zurück (ruhige Bilder davor zählen nicht)', () => {
+    const { f, k, s } = start();
+    k.zoomUm(1.05, 400, 200); // Mausrad
+    bild(k, s, 0.016, false);
+    const gemalt = f.befehle();
+    bild(k, s, 0.05, false);
+    bild(k, s, 0.05, false); // 2 ruhige Bilder, 0,1 s: noch kein Neuaufbau
+    expect(f.befehle()).toBe(gemalt);
+    k.zoomUm(1.05, 400, 200);
+    bild(k, s, 0.016, true); // Zwei-Finger-Zoom setzt neu an
+    bild(k, s, 0.2, false); // Finger weg, ein langes Bild
+    expect(f.befehle()).toBe(gemalt);
+    bild(k, s, 0.016, false);
+    expect(f.befehle()).toBe(gemalt);
+    bild(k, s, 0.016, false);
+    expect(f.befehle()).toBeGreaterThan(gemalt);
+  });
+
   it('NR12 P5b: nach der Geste reichen 3 ruhige Bilder nicht vor 150 ms Ruhe', () => {
     const { f, k, s } = start();
     k.zoomUm(1.1, 400, 200);

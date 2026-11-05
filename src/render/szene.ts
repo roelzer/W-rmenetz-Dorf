@@ -474,7 +474,8 @@ function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number, finger_auf_k
   }
   if (ruhe_ausstehend) {
     if (finger_auf_karte) ruhe_nach_geste = true;
-    const ruhig = !finger_auf_karte && ruhe_s >= BODEN_RUHE_S && (!ruhe_nach_geste || ruhe_bilder >= BODEN_RUHE_BILDER);
+    // „Kein Finger auf der Karte“ steckt im Bildzähler: ein Finger setzt ihn auf 0 und markiert die Geste.
+    const ruhig = ruhe_s >= BODEN_RUHE_S && (!ruhe_nach_geste || ruhe_bilder >= BODEN_RUHE_BILDER);
     if (ruhig) { ruhe_ausstehend = false; ruhe_nach_geste = false; }
   }
   const breite_px = k.breite * pv, hoehe_px = k.hoehe * pv;
