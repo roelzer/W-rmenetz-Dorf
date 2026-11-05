@@ -71,6 +71,7 @@ export class Spiel {
   netz!: Netz;
   readonly ereignisse: Ereignis[] = [];
   private abwesend = false;
+  private strassenSet?: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
     this.stand = stand;
     this.neuBerechnen();
@@ -478,9 +479,20 @@ export class Spiel {
 
   // ---------- Bauabschnitte (A41) ----------
   get abschnitt() { return this.stand.abschnitt; }
-  /** Summe der Leitungskosten des Abschnitts in €. */
+  /** Liegt das Feld auf der öffentlichen Straße des Ortes? */
+  istStrasse(x: number, y: number): boolean {
+    this.strassenSet ??= new Set(ortHolen(this.stand.ort).strassen.map(([sx, sy]) => sy * N + sx));
+    return this.strassenSet.has(y * N + x);
+  }
+  /** A45: Geplante Leitungen abseits der Straße, für die noch keine Gestattung geklärt ist. */
+  gestattungsFelder(): number[] {
+    const geklaert = new Set(this.stand.gestattungen ?? []);
+    return this.stand.objekte.filter((o) => o.geplant && !this.istStrasse(o.x, o.y) && !geklaert.has(o.y * N + o.x)).map((o) => o.y * N + o.x);
+  }
+  gestattung_eur(): number { return this.gestattungsFelder().length * KONSTANTEN.gestattung_eur_je_feld; }
+  /** Summe der Leitungskosten des Abschnitts in € (Material und Gestattungen). */
   abschnittKosten_eur(): number {
-    return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0);
+    return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur();
   }
   abschnittLeitungen(): number { return this.stand.objekte.filter((o) => o.geplant).length; }
   /** Neuen Bauabschnitt planen lassen (Philipp). */
@@ -523,6 +535,7 @@ export class Spiel {
     if (a?.phase !== 'bestellen') return { ok: false };
     const b = this.bezahlen({ eur: this.abschnittKosten_eur() });
     if (!b.ok) return b;
+    this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
     a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
     this.hinweis(`${ABSCHNITT_HELFER.material} hat das Material bestellt – der Bau beginnt`);
     return ok();

@@ -252,7 +252,7 @@ describe('A41 Bauabschnitte', () => {
     expect(s.netz.warm.size).toBe(2); // geplante Leitung zählt noch nicht
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
-    expect(s.stand.geld_eur).toBe(g1 - KATALOG.d50.kosten_eur![0]);
+    expect(s.stand.geld_eur).toBe(g1 - KATALOG.d50.kosten_eur![0] - KONSTANTEN.gestattung_eur_je_feld); // (12,12) liegt abseits der Straße: A45
     z.t += 60_000; s.bis(z.t);
     expect(s.abschnitt?.phase).toBe('bau');
     z.t += 3_600_000; s.bis(z.t);
@@ -413,5 +413,40 @@ describe('Review-Nachbesserungen A41', () => {
     expect(ladenMitBefund(JSON.stringify(kaputt), T0).befund).toBe('defekt');
     const gut = JSON.parse(serialisieren(s.stand)); gut.abschnitt = { phase: 'offen', bau: null };
     expect(ladenMitBefund(JSON.stringify(gut), T0).befund).not.toBe('defekt');
+  });
+});
+
+describe('A45 Leitungen auf öffentlicher Straße, sonst Gestattung', () => {
+  const offen = () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    return s;
+  };
+  it('A45: Leitung auf der Straße kostet nur Material, keine Gestattung', () => {
+    const s = offen();
+    expect(s.istStrasse(10, 18)).toBe(true);
+    expect(s.platzieren('d50', 10, 18).ok).toBe(true);
+    expect(s.gestattung_eur()).toBe(0);
+    expect(s.abschnittKosten_eur()).toBe(KATALOG.d50.kosten_eur![0]);
+  });
+  it('A45: Leitung abseits der Straße kostet zusätzlich Gestattung, einmal je Feld', () => {
+    const s = offen();
+    expect(s.istStrasse(12, 12)).toBe(false);
+    expect(s.platzieren('d50', 12, 15).ok).toBe(true);
+    expect(s.gestattung_eur()).toBe(KONSTANTEN.gestattung_eur_je_feld);
+    s.abschnittAbschliessen();
+    const g = s.stand.geld_eur;
+    expect(s.materialBestellen().ok).toBe(true);
+    expect(g - s.stand.geld_eur).toBe(KATALOG.d50.kosten_eur![0] + KONSTANTEN.gestattung_eur_je_feld);
+    expect(s.stand.gestattungen).toContain(15 * KONSTANTEN.feldanzahl + 12);
+  });
+  it('A45: Verwerfen kostet keine Gestattung; geklärte Felder kosten nicht erneut', () => {
+    const s = offen();
+    s.platzieren('d50', 12, 15); s.abschnittVerwerfen();
+    expect(s.stand.gestattungen).toBeUndefined();
+    s.stand.gestattungen = [15 * KONSTANTEN.feldanzahl + 12];
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    s.platzieren('d50', 12, 15);
+    expect(s.gestattung_eur()).toBe(0);
   });
 });

@@ -326,6 +326,8 @@ export const KONSTANTEN = {
   einspeisung_eur_je_kw_min: 0.2,
   /** A43: Baugebiet: Mindestanschlüsse, Mindest-Stufe und Erschließungskosten */
   baugebiet_anschluesse: 6, baugebiet_hz_stufe: 3, baugebiet_eur: 40000,
+  /** A45: Gestattung (Leitungsrecht) je Feld abseits der öffentlichen Straße; Spielwert, keine Norm */
+  gestattung_eur_je_feld: 1500,
   starttaler: 100,
   hoechststufe: 5,
 } as const;

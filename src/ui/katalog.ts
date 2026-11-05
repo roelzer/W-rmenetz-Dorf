@@ -58,13 +58,13 @@ export class Katalog {
       k.append(h('p', {}, `${ABSCHNITT_HELFER.planung} plant den Abschnitt … noch ${rest()}`));
     } else if (a.phase === 'offen') {
       const n = sp.abschnittLeitungen();
-      k.append(h('p', { class: 'gedaempft' }, `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Material ${eur(sp.abschnittKosten_eur())}.`),
+      k.append(h('p', { class: 'gedaempft' }, `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}. Leitungen gehören auf die öffentliche Straße. Abseits davon brauchst du die Gestattung des Eigentümers (${eur(KONSTANTEN.gestattung_eur_je_feld)} je Feld${sp.gestattungsFelder().length ? `, aktuell ${sp.gestattungsFelder().length} Felder = ${eur(sp.gestattung_eur())}` : ''}).`),
         h('div', { class: 'knopfreihe' },
           knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, aus: !n }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
     } else if (a.phase === 'bestellen') {
       const kost = sp.abschnittKosten_eur();
-      k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungen sind geplant. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
+      k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungen sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
         h('div', { class: 'knopfreihe' },
           knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'los', { unter: eur(kost), aus: sp.stand.geld_eur < kost }),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true }),

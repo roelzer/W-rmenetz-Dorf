@@ -88,6 +88,8 @@ export interface Spielstand {
   abschnitt?: Abschnitt;
   /** A43: Baugebiet bereits erschlossen */
   baugebiet?: boolean;
+  /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
+  gestattungen?: number[];
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;

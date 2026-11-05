@@ -32,10 +32,23 @@ const STARTHAEUSER: Array<{ typ: TypId; x: number; y: number }> = [
   { typ: 'efh', x: 9, y: 13 }, { typ: 'efh', x: 12, y: 14 }, { typ: 'efh', x: 13, y: 12 },
 ];
 
-/** Straßennetz des Dorfes: Hauptstraße von Nord nach Süd links am Heizhaus vorbei, zwei Querstraßen und zwei Nebenstraßen. */
+/** Straßennetz der Stadt (öffentlicher Raum): Hauptstraße, Ring- und Querstraßen, Nebenstraßen und Sackgassen. Nur hier dürfen Leitungen ohne Gestattung liegen. */
 export function strassenNetz(): Array<[number, number]> {
   const f: Array<[number, number]> = [];
-  for (let i = 0; i < N; i++) { f.push([10, i], [i, 6], [i, 17], [17, i]); if (i >= 2 && i <= 21) f.push([5, i]); }
+  const h = (y: number, x0: number, x1: number): void => { for (let x = x0; x <= x1; x++) f.push([x, y]); };
+  const v = (x: number, y0: number, y1: number): void => { for (let y = y0; y <= y1; y++) f.push([x, y]); };
+  v(10, 0, N - 1);            // Hauptstraße Nord–Süd
+  h(6, 0, N - 1);             // Querstraße Nord
+  h(17, 0, N - 1);            // Querstraße Süd
+  v(17, 0, N - 1);            // Ringstraße Ost
+  v(5, 2, 21);                // Ringstraße West
+  h(21, 5, 17);               // Südring
+  h(2, 5, 17);                // Nordring
+  v(13, 18, 22);              // Sackgasse Süd
+  v(21, 6, 15);               // Ortsrand Ost (endet blind)
+  h(12, 18, 21);              // Stichstraße Ost
+  h(9, 0, 4);                 // Stichstraße West
+  v(7, 12, 16);               // Sackgasse West
   const seen = new Set<number>();
   return f.filter(([x, y]) => { const k = y * N + x; if (seen.has(k)) return false; seen.add(k); return true; });
 }
