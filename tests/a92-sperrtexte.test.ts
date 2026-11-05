@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
-import { HELFER, KATALOG } from '../src/core/katalog';
+import { HELFER, KATALOG, PREISSTUFEN } from '../src/core/katalog';
 import type { Nachbardorf } from '../src/core/nachbarn';
 import type { Objekt } from '../src/core/typen';
 import { SYMBOLE } from '../src/ui/symbole';
@@ -522,10 +522,13 @@ describe('A92 / 12.20 Z1–Z3, R1–R4 – Heizhaus', () => {
   it('A92 R3: Wärmepreis am Rand (7 bzw. 15 ct/kWh) – Hinweis mit dem Grenzpreis', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.preisSetzen(0);
+    expect(s.stand.preisstufe, 'Vorbedingung: unterste Preisstufe gesetzt').toBe(0);
     await karte(s, hz(s), uhr, (b) => {
       pruefeZeile(b, b.stepper('Wärmepreis senken'), { schloss: false, hinweis: 'Günstiger geht es im Spiel nicht: 7 ct/kWh ist der niedrigste Preis.' }, 'R3 min');
     });
-    s.preisSetzen(9); // letzte Stufe (15 ct/kWh)
+    s.preisSetzen(PREISSTUFEN.length - 1); // letzte Stufe der Tabelle (15 ct/kWh)
+    expect(s.stand.preisstufe, 'Vorbedingung: oberste Preisstufe gesetzt').toBe(PREISSTUFEN.length - 1);
+    expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(15);
     await karte(s, hz(s), uhr, (b) => {
       pruefeZeile(b, b.stepper('Wärmepreis erhöhen'), { schloss: false, hinweis: 'Teurer geht es im Spiel nicht: 15 ct/kWh ist der höchste Preis.' }, 'R3 max');
     });
@@ -534,10 +537,12 @@ describe('A92 / 12.20 Z1–Z3, R1–R4 – Heizhaus', () => {
   it('A92 R4: Grundgebühr am Rand (25 € bzw. 40 €) – Hinweis mit der Grenze', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.grundgebuehrSetzen(25);
+    expect(s.grundgebuehr_eur, 'Vorbedingung: Grundgebühr 25 €').toBe(25);
     await karte(s, hz(s), uhr, (b) => {
       pruefeZeile(b, b.stepper('Grundgebühr senken'), { schloss: false, hinweis: 'Die Grundgebühr geht im Spiel nicht unter 25 € im Monat.' }, 'R4 min');
     });
     s.grundgebuehrSetzen(40);
+    expect(s.grundgebuehr_eur, 'Vorbedingung: Grundgebühr 40 €').toBe(40);
     await karte(s, hz(s), uhr, (b) => {
       pruefeZeile(b, b.stepper('Grundgebühr erhöhen'), { schloss: false, hinweis: 'Die Grundgebühr geht im Spiel nicht über 40 € im Monat.' }, 'R4 max');
     });
