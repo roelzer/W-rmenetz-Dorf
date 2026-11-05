@@ -206,3 +206,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:20 | ▶ | kritiker | Kritiker NR15 Fassung 3 |
 | 2026-11-05 18:20 | ▶ | fachpruefer | Fachprüfer: dünner Hausanschluss |
 | 2026-11-05 18:20 | ■ 🟢 | designer | 🟢 **Grün.** Die Vorgabe für NR16-B2 steht in `docs/DESIGN.md`: der neue Abschnitt 12.20 plus Nachbesserungen in 12.18 und 12.19. Ich habe nichts committet  ([Bericht](docs/pruefberichte/20261105-182037-designer-a7681d3b5658a09b4.md)) |
+| 2026-11-05 18:20 | ▶ | fachpruefer | Fachprüfung Sperrtexte 12.20 |
+| 2026-11-05 18:21 | ■ 🟢 | fachpruefer | 🟢 **Die Regel ist fachlich vertretbar. Ich bestätige sie, mit zwei kleinen Hinweisen zum Text.**  ([Bericht](docs/pruefberichte/20261105-182111-fachpruefer-a2dc4328a956d05ad.md)) |
