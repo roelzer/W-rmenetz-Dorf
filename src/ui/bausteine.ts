@@ -9,11 +9,22 @@ export function symbol(name: SymbolName, klasse = 'sym'): HTMLSpanElement {
 
 /** Knopfarten nach DESIGN.md 12.5: kostenlos = los, kostet € = geld, kostet Taler = taler, nicht umkehrbar = gefahr, Auswahl an = gewaehlt. */
 type Variante = '' | 'los' | 'geld' | 'taler' | 'gefahr' | 'blau' | 'gewaehlt';
-export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string } = {}): HTMLButtonElement {
+export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string; schloss?: boolean } = {}): HTMLButtonElement {
   const k = h('button', { type: 'button', class: `knopf ${variante} ${zusatz.klein ? 'klein' : ''}`.trim(), disabled: zusatz.aus || undefined, onclick: bei, 'data-id': zusatz.id }, text);
   // Preiszeile mit Münze bzw. Taler davor: Der Preis ist so auch ohne Farbe als Preis erkennbar (gesperrt steht dort ein Grund, kein Preis)
-  if (zusatz.unter) k.append(h('small', {}, (variante === 'geld' || variante === 'taler') && !zusatz.aus ? symbol(variante, 'sym preis-sym') : null, zusatz.unter));
+  // `schloss`: gesperrter Knopf mit Schloss vor dem Grund (DESIGN.md 12.19)
+  if (zusatz.unter) k.append(h('small', {}, (variante === 'geld' || variante === 'taler') && !zusatz.aus ? symbol(variante, 'sym preis-sym') : zusatz.aus && zusatz.schloss ? symbol('schloss', 'sym schloss-klein') : null, zusatz.unter));
   return k;
+}
+
+/** Gesperrter Knopf, der sich beim Antippen erklärt (A92). Ein deaktivierter Knopf meldet im Browser kein Tippen; deshalb
+ *  liegt er in einer gleich großen Hülle, die das Tippen auffängt (stil.css: der Knopf darin lässt Zeigerereignisse durch).
+ *  Ein freier Knopf bleibt unverändert. */
+export function erklaerKnopf(k: HTMLButtonElement, erklaeren: () => void): HTMLElement {
+  if (!k.hasAttribute('disabled')) return k;
+  // DESIGN.md 12.19: Antippen wackelt kurz (stil.css, entfällt bei „Weniger Bewegung“) und erklärt; nach der Animation wieder ruhig
+  const huelle: HTMLElement = h('span', { class: 'sperr-tipp', onclick: () => { huelle.classList.add('wackelt'); erklaeren(); }, onanimationend: () => huelle.classList.remove('wackelt') }, k);
+  return huelle;
 }
 
 /** Stufenknopf (48×48) mit gezeichnetem Plus/Minus; der Text für Vorlesen steht in `label`. */

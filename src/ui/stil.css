@@ -18,6 +18,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 .knopf{min-width:var(--groesse-px-tippflaeche-min)}
 .knopfreihe{display:flex;flex-wrap:wrap}
 .knopfreihe>.knopf{flex:1 1 130px}
+/* A92: Hülle eines gesperrten Knopfs, die das Tippen auffängt – nimmt in der Reihe den Platz des Knopfs ein */
+.knopfreihe>.sperr-tipp{flex:1 1 130px;display:flex}
+.sperr-tipp>.knopf{flex:1;pointer-events:none}
+/* DESIGN.md 12.19: gesperrter Knopf wackelt beim Antippen waagrecht, zwei Mal */
+.sperr-tipp.wackelt{animation:wackeln var(--menue-zeit-ms-wackeln) ease-in-out}
+@keyframes wackeln{25%{transform:translateX(calc(-1 * var(--menue-mass-px-wackeln-weg)))}50%{transform:translateX(var(--menue-mass-px-wackeln-weg))}75%{transform:translateX(calc(-1 * var(--menue-mass-px-wackeln-weg)))}100%{transform:none}}
+.weniger-bewegung .sperr-tipp.wackelt{animation:none}
+@media (prefers-reduced-motion:reduce){.sperr-tipp.wackelt{animation:none}}
+.knopf small .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein);margin-right:4px;vertical-align:-2px}
 .schliessen{display:grid;place-items:center;flex:none}
 .sym{display:inline-block}
 .knopf small .preis-sym{width:14px;height:14px;margin-right:4px;vertical-align:-2px}

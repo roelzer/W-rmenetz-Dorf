@@ -502,6 +502,8 @@ export class Spiel {
       return anPlan && !anBau;
     });
   }
+  /** A92: Hat das Haus im laufenden Bauabschnitt schon einen geplanten Hausanschluss? Dann ist „Hausanschluss ziehen“ erledigt. */
+  hausanschlussGeplant(hausId: number): boolean { return this.abschnittAnschluesse().some((h) => h.id === hausId); }
   /** A32: Übergabestation für ein Haus/einen Großabnehmer kaufen (auch größere, z. B. als Reserve für einen Anbau). */
   stationKaufen(id: number, stationId: string): Ergebnis {
     const o = this.objekt(id), st = stationHolen(stationId);
@@ -769,7 +771,7 @@ export class Spiel {
     if (this.leitungsanzahl() + weg.length > this.grenze(typ)) return this.nein('Zu viele Leitungen für diese Heizzentralen-Stufe');
     const gruppe = this.stand.naechste_id;
     for (const f of weg) this.stand.objekte.push({ id: this.stand.naechste_id++, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0, geplant: true, gruppe, _pop: this.uhr() });
-    this.hinweis(`Hausanschluss geplant: ${weg.length} Felder, ${KATALOG[typ].name}`);
+    this.hinweis(`Hausanschluss geplant: ${weg.length} ${weg.length === 1 ? 'Feld' : 'Felder'}, ${KATALOG[typ].name}`);
     return ok();
   }
   /** Neuen Bauabschnitt planen lassen (Philipp). */
@@ -1042,7 +1044,7 @@ export class Spiel {
     for (const k of s.innen) if (k.bau && k.bau.ende_ms <= t) fertig(k, KATALOG[k.typ].name, false);
     const ab = s.abschnitt;
     if (ab?.bau && ab.bau.ende_ms <= t) {
-      if (ab.phase === 'planung') { ab.phase = 'offen'; ab.bau = null; this.hinweis(`${ABSCHNITT_HELFER.planung} ist fertig: Zeichne jetzt die Leitungen ein`); }
+      if (ab.phase === 'planung') { ab.phase = 'offen'; ab.bau = null; this.hinweis('Bauabschnitt bereit – jetzt Häuser anschließen'); }
       else {
         for (const o of s.objekte) if (o.geplant) { delete o.geplant; delete o.gruppe; o._pop = t; }
         this.vorsehungenVerbrauchen();
