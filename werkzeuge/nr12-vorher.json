@@ -1,0 +1,230 @@
+{
+  "erzeugt": "2026-11-05T14:30:06.607Z",
+  "url": "http://localhost:4317/",
+  "nicht_schlechter_faktor": 1.1,
+  "spielstand": {
+    "objekte": 229,
+    "leitungen": 164,
+    "haeuser": 42,
+    "quellen": "gas3 gas3 gas3 gas3 gas3 gas3",
+    "warme_kunden": 0,
+    "leitungen_mit_fluss": 95
+  },
+  "werte": {
+    "z8": {
+      "zoom_1x": {
+        "js_p95_ms": 12.1,
+        "abstand_p95_ms": 50.1
+      },
+      "zoom_4x": {
+        "js_p95_ms": 45.5,
+        "abstand_p95_ms": 299.9
+      }
+    },
+    "z9": {
+      "ruhe_1x": {
+        "abstand_p95_ms": 83.3
+      },
+      "verschieben_1x": {
+        "abstand_p95_ms": 66.7
+      }
+    }
+  },
+  "alle_faelle": {
+    "1x Ruhe normal (Zählung)": {
+      "fenster": 1,
+      "dauer_ms": 4063,
+      "aufrufe": 71,
+      "abstand_p50_ms": 50,
+      "abstand_p95_ms": 83.4,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 94,
+      "gezeichnet_s": 17.2,
+      "befehle_je_bild": 29495,
+      "befehle_auswahl_je_bild": 17006,
+      "lange_aufgaben": 37,
+      "js_p50_ms": null,
+      "js_p95_ms": null,
+      "uebergabe_p50_ms": null
+    },
+    "1x Ruhe Sparmodus (Zählung)": {
+      "fenster": 1,
+      "dauer_ms": 4049,
+      "aufrufe": 84,
+      "abstand_p50_ms": 50,
+      "abstand_p95_ms": 66.6,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 82,
+      "gezeichnet_s": 20.5,
+      "befehle_je_bild": 29495,
+      "befehle_auswahl_je_bild": 17006,
+      "lange_aufgaben": 14,
+      "js_p50_ms": null,
+      "js_p95_ms": null,
+      "uebergabe_p50_ms": null
+    },
+    "1x Ruhe Weniger Bewegung (Zählung)": {
+      "fenster": 1,
+      "dauer_ms": 4022,
+      "aufrufe": 82,
+      "abstand_p50_ms": 50,
+      "abstand_p95_ms": 66.6,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 84,
+      "gezeichnet_s": 20.1,
+      "befehle_je_bild": 29493,
+      "befehle_auswahl_je_bild": 17005,
+      "lange_aufgaben": 18,
+      "js_p50_ms": null,
+      "js_p95_ms": null,
+      "uebergabe_p50_ms": null
+    },
+    "1x Ruhe": {
+      "fenster": 5,
+      "dauer_ms": 20185,
+      "aufrufe": 376,
+      "abstand_p50_ms": 50,
+      "abstand_p95_ms": 83.3,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 91,
+      "gezeichnet_s": null,
+      "befehle_je_bild": null,
+      "befehle_auswahl_je_bild": null,
+      "lange_aufgaben": 178,
+      "js_p50_ms": 7,
+      "js_p95_ms": 12.4,
+      "uebergabe_p50_ms": 41.3
+    },
+    "1x Verschieben": {
+      "fenster": 5,
+      "dauer_ms": 16045,
+      "aufrufe": 315,
+      "abstand_p50_ms": 50,
+      "abstand_p95_ms": 66.7,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 84,
+      "gezeichnet_s": null,
+      "befehle_je_bild": null,
+      "befehle_auswahl_je_bild": null,
+      "lange_aufgaben": 119,
+      "js_p50_ms": 6.4,
+      "js_p95_ms": 11.9,
+      "uebergabe_p50_ms": 40.5
+    },
+    "1x Zoomen+Drehen": {
+      "fenster": 5,
+      "dauer_ms": 15999,
+      "aufrufe": 461,
+      "abstand_p50_ms": 33.3,
+      "abstand_p95_ms": 50.1,
+      "ueber_17_pct": 76,
+      "ueber_33_pct": 17,
+      "gezeichnet_s": null,
+      "befehle_je_bild": null,
+      "befehle_auswahl_je_bild": null,
+      "lange_aufgaben": 29,
+      "js_p50_ms": 5.3,
+      "js_p95_ms": 12.1,
+      "uebergabe_p50_ms": 22.4
+    },
+    "4x Ruhe": {
+      "fenster": 5,
+      "dauer_ms": 20448,
+      "aufrufe": 86,
+      "abstand_p50_ms": 233.4,
+      "abstand_p95_ms": 300,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 100,
+      "gezeichnet_s": null,
+      "befehle_je_bild": null,
+      "befehle_auswahl_je_bild": null,
+      "lange_aufgaben": 85,
+      "js_p50_ms": 31.6,
+      "js_p95_ms": 51.1,
+      "uebergabe_p50_ms": 196.8
+    },
+    "4x Verschieben": {
+      "fenster": 5,
+      "dauer_ms": 20071,
+      "aufrufe": 84,
+      "abstand_p50_ms": 233.4,
+      "abstand_p95_ms": 300,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 100,
+      "gezeichnet_s": null,
+      "befehle_je_bild": null,
+      "befehle_auswahl_je_bild": null,
+      "lange_aufgaben": 81,
+      "js_p50_ms": 31.6,
+      "js_p95_ms": 47.1,
+      "uebergabe_p50_ms": 197.4
+    },
+    "4x Zoomen+Drehen": {
+      "fenster": 5,
+      "dauer_ms": 18700,
+      "aufrufe": 89,
+      "abstand_p50_ms": 200,
+      "abstand_p95_ms": 299.9,
+      "ueber_17_pct": 100,
+      "ueber_33_pct": 100,
+      "gezeichnet_s": null,
+      "befehle_je_bild": null,
+      "befehle_auswahl_je_bild": null,
+      "lange_aufgaben": 90,
+      "js_p50_ms": 28.1,
+      "js_p95_ms": 45.5,
+      "uebergabe_p50_ms": 166
+    }
+  },
+  "z6": {
+    "bilder_verdeckt": 41,
+    "weitere_bilder": 40,
+    "animationen_nach_1s": [
+      "vs-blatt",
+      "vs-dampf",
+      "vs-drehen",
+      "vs-fluss",
+      "vs-laden",
+      "vs-wippen",
+      "vs-wolke"
+    ],
+    "animationen_gemessen_ms": 1162
+  },
+  "leinwand": {
+    "spar": {
+      "leinwand_px": [
+        1688,
+        780
+      ],
+      "offenes_blatt": null
+    },
+    "weniger": {
+      "leinwand_px": [
+        1688,
+        780
+      ],
+      "offenes_blatt": null
+    },
+    "handy_1x": {
+      "leinwand_px": [
+        1688,
+        780
+      ],
+      "offenes_blatt": null
+    },
+    "handy_4x": {
+      "leinwand_px": [
+        1688,
+        780
+      ],
+      "offenes_blatt": null
+    },
+    "laptop": {
+      "leinwand_px": [
+        3840,
+        2000
+      ],
+      "offenes_blatt": null
+    }
+  }
+}

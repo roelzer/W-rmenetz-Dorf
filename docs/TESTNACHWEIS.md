@@ -1,6 +1,63 @@
 # Testnachweis
 
-Automatisch von der Test-Schranke geschrieben.
+Automatisch von der Test-Schranke geschrieben (Tabelle „Läufe der Test-Schranke“ unten; neue Zeilen kommen ans Dateiende).
+
+## NR12 Messung
+
+Werkzeug: `werkzeuge/messe-bildrate.cjs` (A90, Zielwerte Z1–Z10 aus `docs/bauplaene/NR12-fluessig.md`, Abschnitt 6). Ablauf: `npm run build`, `npx vite preview --port 4317`, dann `node werkzeuge/messe-bildrate.cjs` (Vorher-Lauf: `--vorher-speichern --nur-bericht`). Nicht Teil von `npm test`; Laufzeit etwa 4–5 Minuten.
+
+**Messaufbau:** Playwright-Chromium kopflos, 844×390, Touch, Faktor 3, Service Worker gesperrt; Laptop-Fall 1920×1000, Faktor 2, ohne Touch. Großer Spielstand vom Werkzeug erzeugt (229 Objekte, 164 Leitungen d40 auf allen freien Straßenfeldern, 42 Häuser mit passender Station, 6× Gaskessel Stufe 3, Namensfrage erledigt). Zählfälle (Z1–Z3, Z6, Z10) zählen alle Methoden von `CanvasRenderingContext2D` und `OffscreenCanvasRenderingContext2D`; Zeitfälle (Z4, Z5, Z8, Z9) laufen ohne Zählung (die Zählung kostet selbst Zeit) in 5 frischen Seiten, die Werte werden zusammengelegt. JS/Bild = `FireAnimationFrame` > 0,3 ms auf dem Hauptthread (CDP-Ablaufverfolgung). Z10 läuft mit „Weniger Bewegung“, weil dort ohne Eingabe kein Pixel wechselt (Leerprobe) – sonst würde jede Animation den Tipp-Vergleich grün machen.
+
+**Grenzen der Messung:** Der Messrechner hat keine Grafikkarte (Software-Rasterung) – absolute Bildraten sind schlechter als auf einem Handy; übertragbar sind Befehle je Bild, JS-Zeit, Pixelzahl und vorher/nachher. **WebKit (Safari) nicht geprüft:** startet auf dem Messrechner nicht (Systembibliotheken fehlen: libgtk-4, libgraphene, libevent, gstreamer-gl). Messrauschen: Zwischen zwei Läufen desselben Stands schwankten einzelne p95-Werte mit 3 Seiten je Fall um bis zu 35 % (JS 10,2 ↔ 13,8 ms; Bildabstand 66,7 ↔ 83,3 ms, weil die Abstände in 16,7-ms-Stufen liegen); mit 5 Seiten lagen zwei Folgeläufe innerhalb der 10 %, einer knapp (13,2 bei Grenze 13,3 ms).
+
+### Vorher – Basis-Commit bc612e8 (2026-11-05, gespeichert in `werkzeuge/nr12-vorher.json`)
+
+`node werkzeuge/messe-bildrate.cjs --vorher-speichern --nur-bericht` → Exit 0
+
+| Fall | Fenster × s | Bildaufrufe | Bildabstand p50 / p95 ms | > 17,5 / > 34 ms % | gezeichnet/s | Befehle/Bild alle (Auswahl Abschn. 1) | JS/Bild p50 / p95 ms | Übergabe p50 ms | Long Tasks |
+|---|---|---|---|---|---|---|---|---|---|
+| 1x Ruhe normal (Zählung) | 1 × 4,1 | 71 | 50 / 83,4 | 100 / 94 | 17,2 | 29495 (17006) | – / – | – | 37 |
+| 1x Ruhe Sparmodus (Zählung) | 1 × 4 | 84 | 50 / 66,6 | 100 / 82 | 20,5 | 29495 (17006) | – / – | – | 14 |
+| 1x Ruhe Weniger Bewegung (Zählung) | 1 × 4 | 82 | 50 / 66,6 | 100 / 84 | 20,1 | 29493 (17005) | – / – | – | 18 |
+| 1x Ruhe | 5 × 4 | 376 | 50 / 83,3 | 100 / 91 | – | – | 7 / 12,4 | 41,3 | 178 |
+| 1x Verschieben | 5 × 3,2 | 315 | 50 / 66,7 | 100 / 84 | – | – | 6,4 / 11,9 | 40,5 | 119 |
+| 1x Zoomen+Drehen | 5 × 3,2 | 461 | 33,3 / 50,1 | 76 / 17 | – | – | 5,3 / 12,1 | 22,4 | 29 |
+| 4x Ruhe | 5 × 4,1 | 86 | 233,4 / 300 | 100 / 100 | – | – | 31,6 / 51,1 | 196,8 | 85 |
+| 4x Verschieben | 5 × 4 | 84 | 233,4 / 300 | 100 / 100 | – | – | 31,6 / 47,1 | 197,4 | 81 |
+| 4x Zoomen+Drehen | 5 × 3,7 | 89 | 200 / 299,9 | 100 / 100 | – | – | 28,1 / 45,5 | 166 | 90 |
+
+Leinwand: Handy 1688×780 · Laptop 3840×2000 · Sparmodus 1688×780. Vorspann: 41 gezeichnete Bilder unter dem Vorspann; laufende Animationen nach 1,16 s: vs-blatt, vs-dampf, vs-drehen, vs-fluss, vs-laden, vs-wippen, vs-wolke.
+
+### Prüflauf auf demselben Stand gegen die gespeicherten Vorher-Werte
+
+`node werkzeuge/messe-bildrate.cjs` → Exit 1 (erwartet: die absoluten Ziele sind vor dem Umbau nicht erfüllt; die Relativziele Z8/Z9 sind gegen sich selbst erfüllt)
+
+| Ziel | Fall | Grenze | gemessen | Ergebnis |
+|---|---|---|---|---|
+| Z1 | Ruhe, Sparmodus, 1× | ≤ 3 gezeichnete Bilder/s | 17,1 gezeichnete Bilder/s | NICHT ERFÜLLT |
+| Z2 | Ruhe, Weniger Bewegung, 1× | ≤ 5 gezeichnete Bilder/s | 16 gezeichnete Bilder/s | NICHT ERFÜLLT |
+| Z3 | Ruhe, normal, 1× | ≤ 31 gezeichnete Bilder/s | 19 gezeichnete Bilder/s | erfüllt (nur, weil der Messrechner ohne Grafikkarte keine 60 schafft) |
+| Z3 | Ruhe, normal, 1× | ≤ 9000 Befehle je gezeichnetem Bild | 29495 Befehle je gezeichnetem Bild | NICHT ERFÜLLT |
+| Z4 | Ruhe, normal, 4× | ≤ 32 ms JS je Bild p95 | 46,8 ms JS je Bild p95 | NICHT ERFÜLLT |
+| Z5 | Verschieben, normal, 4× | ≤ 36 ms JS je Bild p95 | 41,8 ms JS je Bild p95 | NICHT ERFÜLLT |
+| Z6 | Vorspann, 1× | ≤ 0 weitere Bilder unter dem Vorspann | 49 weitere Bilder unter dem Vorspann | NICHT ERFÜLLT |
+| Z6 | Vorspann, 1×, 1063 ms nach Start | ≤ 2 laufende Animationen, nur vs-laden/vs-plopp | 8: vs-blatt, vs-dampf, vs-drehen, vs-fluss, vs-laden, vs-plopp, vs-wippen, vs-wolke | NICHT ERFÜLLT |
+| Z7 | Leinwand 844×390 @3 | ≤ 1500000 Pixel | 1316640 Pixel | erfüllt |
+| Z7 | Leinwand 1920×1000 @2 | ≤ 2000000 Pixel | 7680000 Pixel | NICHT ERFÜLLT |
+| Z7 | Leinwand Sparmodus 844×390 @3 | ≤ 550000 Pixel | 1316640 Pixel | NICHT ERFÜLLT |
+| Z8 | Zoomen+Drehen, 1× (vorher 12,1) | ≤ 13,3 ms JS je Bild p95 | 13,2 ms JS je Bild p95 | erfüllt |
+| Z8 | Zoomen+Drehen, 1× (vorher 50,1) | ≤ 55,1 ms Bildabstand p95 | 50,1 ms Bildabstand p95 | erfüllt |
+| Z8 | Zoomen+Drehen, 4× (vorher 45,5) | ≤ 50,1 ms JS je Bild p95 | 45,3 ms JS je Bild p95 | erfüllt |
+| Z8 | Zoomen+Drehen, 4× (vorher 299,9) | ≤ 329,9 ms Bildabstand p95 | 283,3 ms Bildabstand p95 | erfüllt |
+| Z9 | Ruhe, 1× (vorher 83,3) | ≤ 91,6 ms Bildabstand p95 | 83,2 ms Bildabstand p95 | erfüllt |
+| Z9 | Verschieben, 1× (vorher 66,7) | ≤ 73,4 ms Bildabstand p95 | 66,7 ms Bildabstand p95 | erfüllt |
+| Z10 | Gebäude antippen (422\|225), Weniger Bewegung, 1× | Stichprobe 40×40 ändert sich in 2 Bildaufrufen | 6374 von 6400 Pixeln anders, Blatt „Einfamilienhaus“ (ohne Tipp: 0 anders) | erfüllt |
+
+Ein zweiter Prüflauf ergab bei Z8/Z9 ebenfalls „erfüllt“ (JS 1× 10,2 ms, 4× 45,5 ms; Bildabstand 50 / 283,4 / 66,7 / 66,7 ms).
+
+**Auffälligkeiten für die Folgepakete:** (1) „Befehle“ zählt wie im Bauplan (Technik P4) **alle** Methoden: heute 29 495 je Bild. Die Grenze 9 000 in Z3 ist aus der Zählung in Abschnitt 1 abgeleitet, die nur 11 Zeichenbefehle zählte (heute 17 006, in Klammern). (2) Im großen Stand sind alle 164 Leitungen überlastet und kein Kunde warm (d40 trägt die 42 Häuser nicht) – Überlast-Blinken läuft dauernd. (3) Z1 (≤ 3 Bilder/s im Sparmodus) passt nicht zur Takt-Regel 7 aus P1, wenn ein Fluss oder eine Überlast sichtbar ist (dann 4 Bilder/s).
+
+## Läufe der Test-Schranke
 
 | Zeit | Stand | Rolle | Ergebnis | bestanden | Fehler | Freigabe |
 |---|---|---|---|---|---|---|
