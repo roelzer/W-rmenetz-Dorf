@@ -170,3 +170,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 16:56 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Paket „Designer-Kann 1“ (Basis c20ec80 bis ad33a86, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-afe58d124cfa3cf27)  ([Bericht](docs/pruefberichte/20261105-165619-reviewer-ad5795e7620662ba1.md)) |
 | 2026-11-05 16:58 | ■ 🟢 | tester | 🟢 Die A90-Abnahmetests stehen und sind grün, die Schranke ist „OK“, die Lastenheft-Zeile heißt jetzt A90. Committet, nicht gepusht.  ([Bericht](docs/pruefberichte/20261105-165820-tester-a03a884ac86603f2d.md)) |
 | 2026-11-05 17:03 | ■ 🟡 | produktpruefer | AMPEL: GELB. Kurzfassung: NR16 liess sich so, wie Simon es beschreibt, auf dem Stand origin/main (c20ec80) NICHT als "es geht gar nichts mehr" nachstellen. Der  ([Bericht](docs/pruefberichte/20261105-170318-produktpruefer-acc1cb51cb125b2fb.md)) |
+| 2026-11-05 17:03 | ▶ | entwickler | NR16-A Anschlussweg klarer |
+| 2026-11-05 17:04 | ▶ | designer | NR16-B Designvorgabe Reiter/Toast |
