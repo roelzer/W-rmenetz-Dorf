@@ -55,3 +55,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 11:16 | ▶ | reviewer | Nachprüfung A83 W1 + A85 |
 | 2026-11-05 11:17 | ▶ | designer | Designer-Treueprüfung Menü-Stil v2 |
 | 2026-11-05 11:18 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten** (Modus nachpruefung, Commits ded00d6 und 3349c96, Basis 85b4ca7)  ([Bericht](docs/pruefberichte/20261105-111844-reviewer-ad0b817183ed58e75.md)) |
+| 2026-11-05 11:19 | ▶ | reviewer | Review A84 Menü-Stil v2 |
