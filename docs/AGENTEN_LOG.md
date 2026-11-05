@@ -83,3 +83,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 13:26 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Der Kontext ist voll, und die Test-Schranke meldet „NICHT OK“. Den Grund dafür habe ich nicht selbst verursacht, konnte ihn aber au ([Bericht](docs/pruefberichte/20261105-132621-entwickler-ac37b6299e90624a5.md)) |
 | 2026-11-05 13:27 | ▶ | reviewer | Review A88 P2 Paket |
 | 2026-11-05 13:34 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten. Vor main muss der Projektleiter eine Sache entscheiden (W1).**  ([Bericht](docs/pruefberichte/20261105-133428-reviewer-ae3ad6ecc454a3591.md)) |
+| 2026-11-05 13:35 | ▶ | entwickler | A89 Hausanschluss-Fix bauen |
+| 2026-11-05 13:35 | ▶ | designer | Designer-Fotos A88 P2 |
