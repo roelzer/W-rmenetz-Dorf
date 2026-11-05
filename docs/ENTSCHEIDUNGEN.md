@@ -23,3 +23,4 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 2026-11-04 – Vorführ-Tempo (×1/×10/×60) liegt außerhalb des Spielkerns (src/tempo.ts) und gilt nicht bei verborgenem Fenster.
 - 2026-11-05 – Spielstart immer mit Hackschnitzelkessel, keine Quellenwahl (A3 geändert) – Simon: „man startet immer mit nem Hackschnitzelkessel“
 - 2026-11-05 – Leitungskarte: Hauptleitung bis zum letzten Abzweig, Hausanschluss ab dem Abknick zum einzelnen Haus (dort darf das Rohr dünner sein; Regel „dünner in Fließrichtung ok“ gilt schon) – Simon
+- 2026-11-05 – Starthäuser: am Netz angeschlossene haben eine Übergabestation, nicht angeschlossene keine (Regel statt feste Reihenfolge) – Simon
