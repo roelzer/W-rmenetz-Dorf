@@ -96,3 +96,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 13:54 | ▶ | architekt | NR12-Bauplan überarbeiten (frisch) |
 | 2026-11-05 13:56 | ■ 🟢 | tester | 🟢 Grün: Die Tests für A89 stehen. Am Stand 01c80ec sind sie rot, und zwar genau wegen der gemeldeten kalten Häuser. Mit dem Patch des Entwicklers ist die  ([Bericht](docs/pruefberichte/20261105-135654-tester-a44993ef35dad96a5.md)) |
 | 2026-11-05 13:57 | ▶ | entwickler | A89 Patch einbauen |
+| 2026-11-05 13:59 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-05 13:59 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Ich habe nur einen Teil gebaut. Gebaut und grün sind die Punkte 3, 4 und 5. Die Punkte 1, 2 und 6 sind **blockiert**: Wie ([Bericht](docs/pruefberichte/20261105-135955-entwickler-ad98e4b61d187ca3c.md)) |
