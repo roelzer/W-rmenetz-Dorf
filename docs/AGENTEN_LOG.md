@@ -149,3 +149,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:58 | ■ 🟢 | reviewer | 🟢 **Nachprüfung P4: freigegeben.** Beide Befunde sind behoben, die Nachbesserung hat keine neuen Schäden gebracht. Geprüft habe ich Commit ae7bc6b gegen 1 ([Bericht](docs/pruefberichte/20261105-145851-reviewer-a744174efe3495787.md)) |
 | 2026-11-05 15:05 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN** 🟡 (das Bedenken ist klein, siehe Punkt 8)  ([Bericht](docs/pruefberichte/20261105-150553-entwickler-abe9f701add709bcf.md)) |
 | 2026-11-05 15:06 | ▶ | reviewer | Review NR12 P5 Verdrahtung |
+| 2026-11-05 15:09 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Paket NR12/A90 P5, Stand 0c32379 gegen Basis 6e3c57f, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-abe9f701add709bcf  ([Bericht](docs/pruefberichte/20261105-150948-reviewer-a29ab7d0d2d75454a.md)) |
