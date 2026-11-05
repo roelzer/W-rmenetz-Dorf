@@ -225,3 +225,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:04 | ■ 🟢 | tester | 🟢 Fix erledigt. Der Test für den höchsten Wärmepreis setzt jetzt wirklich die oberste Preisstufe.  ([Bericht](docs/pruefberichte/20261105-190420-tester-a4f0a0705a6db633e.md)) |
 | 2026-11-05 19:04 | ▶ | reviewer | Review NR16-B2a |
 | 2026-11-05 19:07 | ■ 🟡 | reviewer | **Ampel: 🟡 freigegeben mit kleinen Punkten (NR15-P1, Commit bdfb632)**  ([Bericht](docs/pruefberichte/20261105-190725-reviewer-a0445d80c676f8cb2.md)) |
+| 2026-11-05 19:09 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** Paket NR16-B2a (A92), Commit e46e2f4, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/pl-b2a  ([Bericht](docs/pruefberichte/20261105-190933-reviewer-ae6b3416944cfc8cd.md)) |
+| 2026-11-05 19:09 | ▶ | entwickler | Baue NR15-P2 |
