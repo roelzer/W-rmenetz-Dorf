@@ -67,3 +67,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 11:47 | ■ 🟡 | architekt | 🟡 GELB – Der Bauplan ist fertig. Der Vorschlag aus NR1 lässt sich aber nicht wörtlich bauen: Wird „Gestattung erst ab Stufe 2“ als Verbot umgesetzt,  ([Bericht](docs/pruefberichte/20261105-114745-architekt-a69297d3dfbdf29b9.md)) |
 | 2026-11-05 12:13 | ▶ | architekt | Bauplan A88 nachtragen |
 | 2026-11-05 12:23 | ■ 🟢 | architekt | 🟢 **Simons Antworten F1–F3 stehen jetzt im Bauplan A88, und alle Tests sind grün.** `npx vitest run`: 11 Dateien, 296 von 296 grün; `npx tsc --noEmit` oh ([Bericht](docs/pruefberichte/20261105-122335-architekt-aa82074d94115d818.md)) |
+| 2026-11-05 12:24 | ▶ | tester | A88 Vorarbeit V1 (Tester) |
