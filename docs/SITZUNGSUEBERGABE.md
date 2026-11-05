@@ -7,7 +7,7 @@
 - **Arbeitsbranch:** claude/keen-mccarthy-f4p5us · **Letzter Commit:** 7b93494 + Doku-Commit (gepusht: ja)
 - **Letzter grüner Stand:** 7b93494, 268 Tests, Schranke projektleiter OK
 - **main:** d27798e (Review-Chat-Doku) – noch NICHT auf unserem Stand. main darf nach Prüfung bekommen: Merge-Stand inkl. A71–A83, sobald A83 vom Reviewer freigegeben ist (`git push origin claude/keen-mccarthy-f4p5us:main`, vorher `git fetch origin main` und prüfen, dass main ein Vorfahr ist).
-- Artefakt (Einzeldatei-Vorschau): https://claude.ai/artifact/WiLVUTFj9uMdA9MXr9ZqQS, zuletzt Version 35 (Stand A81, vor Review-Fixes/A83). Bauen: `npm run build && node werkzeuge/artefakt-einzeldatei.cjs <scratchpad>/waermedorf.html`, dann gleiche Datei veröffentlichen.
+- Artefakt (Einzeldatei-Vorschau): https://claude.ai/artifact/WiLVUTFj9uMdA9MXr9ZqQS, zuletzt Version 37 (Stand A84–A87). Bauen: `npm run build && node werkzeuge/artefakt-einzeldatei.cjs <scratchpad>/waermedorf.html`, dann gleiche Datei veröffentlichen.
 
 ## Nächster Schritt
 Ergebnis des Entwicklers „Menü-Stil v2 (A84)“ abwarten, seinen Worktree-Branch prüfen (Fotos in scratchpad/v2bau/, Schranke), in den Arbeitsbranch mergen, Designer-Treueprüfung (DESIGN.md 12.13) beauftragen; parallel Reviewer-Ergebnis zu A83 abarbeiten.
