@@ -153,3 +153,37 @@ describe('A91 Laufzeit', () => {
     expect(ms).toBeLessThanOrEqual(100);
   }, 120_000);
 });
+
+/** Dicht verlegtes Netz ohne Häuser (Review P2, W2): Heizzentrale Stufe 3 bei (10|10), Leitung auf jedem Feld, für das
+ *  `typ` einen Typ liefert. Wechseln die Typen, erreicht die Breitensuche viele Felder über ein dünneres Feld (viele Umhängungen). */
+function dichtesNetz(typ: (x: number, y: number) => TypId | null): Objekt[] {
+  const objekte: Objekt[] = [{ id: 1, typ: 'hz', x: 10, y: 10, stufe: 3, bau: null, kasse_eur: 0 }];
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      if (x >= 10 && x <= 12 && y >= 10 && y <= 12) continue;
+      const t = typ(x, y);
+      if (t) objekte.push({ id: objekte.length + 1, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0 });
+    }
+  }
+  return objekte;
+}
+
+describe('A91 Laufzeit – viele Umhängungen', () => {
+  // Grenze wie M3 (eine Netzrechnung im Extremnetz). M6b/M6c: die beiden weiteren Muster aus dem Review.
+  const muster: Array<[string, (x: number, y: number) => TypId | null]> = [
+    ['M6 Zeilen abwechselnd d32/d63', (_x, y) => (y % 2 === 0 ? 'd32' : 'd63')],
+    ['M6b nur obere Hälfte (y < 12) so belegt', (_x, y) => (y >= 12 ? null : y % 2 === 0 ? 'd32' : 'd63')],
+    ['M6c Diagonalmuster d32/d63', (x, y) => (Math.floor((x + y) / 2) % 2 === 0 ? 'd32' : 'd63')],
+  ];
+  for (const [name, typ] of muster) {
+    it(`${name}: berechneNetz ≤ 8 ms`, () => {
+      const objekte = dichtesNetz(typ);
+      const neu = berechneNetz(objekte, KESSEL_5, 2), alt = berechneNetzAlt(objekte, KESSEL_5, 2);
+      const umgehaengt = [...neu.eltern].filter(([k, p]) => alt.eltern.get(k) !== p).length;
+      const msAlt = miss(50, () => null, () => { berechneNetzAlt(objekte, KESSEL_5, 2); });
+      const ms = miss(50, () => null, () => { berechneNetz(objekte, KESSEL_5, 2); });
+      bericht(name, ms, 8, `, ${objekte.length} Objekte, ${umgehaengt} umgehängte Felder, alte Rechnung ${msAlt.toFixed(2)} ms`);
+      expect(ms).toBeLessThanOrEqual(8);
+    }, 120_000);
+  }
+});

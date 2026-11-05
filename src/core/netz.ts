@@ -239,13 +239,44 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       const k = reihenfolge[i], p = eltern.get(k) as number;
       if (p >= 0 && mitQuelle.has(k)) mitQuelle.add(p);
     }
+    // Schrittweise Prüfung statt voller Endprüfung je Umhängen (dicht verlegte Netze mit Hunderten Umhängungen rechneten sonst
+    // ein Vielfaches): Ein Umhängen ändert die Last nur auf den Wegen über p und q zur Heizzentrale.
+    // Diese Felder werden genau so neu summiert wie in der Endprüfung (eigene Kunden, dann Kinder von hinten nach vorn in
+    // `reihenfolge`), damit Rest und Tragfähigkeit Bit für Bit dieselben sind wie bei einer vollen Endprüfung.
+    const platz = new Map(reihenfolge.map((k, i) => [k, i]));
+    const eigen = new Map<number, number>();
+    for (const k of reihenfolge) eigen.set(k, 0);
+    for (const o of kunden) {
+      const fa = (anschluss.get(o.id) as { feld: number }).feld;
+      if (fa >= 0) eigen.set(fa, (eigen.get(fa) as number) + bedarfKw(o));
+    }
+    const last = new Map(stand.last_kw);
+    const nachSummieren = (wege: number[]): void => {
+      const felder = new Set<number>();
+      for (const start of wege) for (let g = start; g >= 0; g = eltern.get(g) as number) felder.add(g);
+      for (const g of [...felder].sort((a, b) => (platz.get(b) as number) - (platz.get(a) as number))) {
+        let s = eigen.get(g) as number;
+        for (const c of [...(baum.kinder.get(g) ?? [])].sort((a, b) => (platz.get(b) as number) - (platz.get(a) as number))) s += last.get(c) as number;
+        last.set(g, s);
+      }
+    };
+    const restWeg = (q: number): number => {
+      let m = Infinity;
+      for (let g = q; g >= 0; g = eltern.get(g) as number) m = Math.min(m, kap_kw(g) - (last.get(g) as number));
+      return m;
+    };
+    const traegtWeg = (q: number): boolean => {
+      for (let g = q; g >= 0; g = eltern.get(g) as number) if ((last.get(g) as number) > kap_kw(g)) return false;
+      return true;
+    };
+    let umgehaengt = false;
     for (const k of reihenfolge) {
       const p = eltern.get(k) as number;
       if (p < 0 || rang(p) >= rang(k) || mitQuelle.has(k)) continue;
       // Ohne k wäre p kein Abzweig mehr, und ein verbleibendes Kind ist dünner → neue A67-Warnung an p.
       const ohneK = (baum.kinder.get(p) as number[]).filter((c) => c !== k);
       if (!istAbzweig(p, ohneK.length, baum.angebunden.get(p) ?? 0) && ohneK.some((c) => rang(c) < rang(p))) continue;
-      const tk = tiefe.get(k) as number, lastK = stand.last_kw.get(k) as number, x = k % N, y = (k - x) / N;
+      const tk = tiefe.get(k) as number, lastK = last.get(k) as number, x = k % N, y = (k - x) / N;
       let neu = -1, beste = -Infinity;
       for (const [dx, dy] of NACHBARN) {
         const nx = x + dx, ny = y + dy;
@@ -258,18 +289,27 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
         // k so dick wie q und q hat schon einen so dicken Abgang → k käme in eine A76-Warnung an q.
         if (rang(k) === rang(q) && kinderQ.some((c) => rang(c) >= rang(q))) continue;
         // Rest über q auf dem aktuellen Baum, die Last hinter k zählt noch über p mit (vorsichtig gerechnet).
-        const r = stand.rest_kw.get(q) as number;
+        const r = restWeg(q);
         if (r >= lastK && r > beste) { beste = r; neu = q; }
       }
       if (neu < 0) continue;
-      // Probehalber umhängen; behalten nur, wenn die Endprüfung selbst den neuen Weg trägt.
+      // Probehalber umhängen; behalten nur, wenn der neue Weg die Last trägt.
+      const mitP = baum.kinder.get(p) as number[], mitNeu = baum.kinder.get(neu) ?? [];
       eltern.set(k, neu);
-      const probe = endpruefung(anschluss, eltern);
-      if (!probe.ok.get(neu)) { eltern.set(k, p); continue; }
-      stand = probe; geaendert = true;
       baum.kinder.set(p, ohneK);
-      baum.kinder.set(neu, [...(baum.kinder.get(neu) ?? []), k]);
+      baum.kinder.set(neu, [...mitNeu, k]);
+      nachSummieren([p, neu]);
+      if (!traegtWeg(neu)) {
+        eltern.set(k, p);
+        baum.kinder.set(p, mitP);
+        baum.kinder.set(neu, mitNeu);
+        nachSummieren([p, neu]);
+        continue;
+      }
+      umgehaengt = true;
     }
+    // Schlussprüfung über das ganze Netz: Sie liefert das Ergebnis, die schrittweise Rechnung nur die Entscheidungen.
+    if (umgehaengt) { stand = endpruefung(anschluss, eltern); geaendert = true; }
   }
 
   // Last in den Leitungen (Baum von der Heizzentrale aus)
