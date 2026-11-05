@@ -182,3 +182,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:26 | ▶ | architekt | NR15-Bauplan überarbeiten |
 | 2026-11-05 17:26 | ■ 🟢 | tester | 🟢 **Vorarbeit erledigt.** Vier Tests sind jetzt absichtlich rot, und zwar genau aus den gewünschten Gründen. Ich habe keine Zeile Programmcode geändert, n ([Bericht](docs/pruefberichte/20261105-172644-tester-a4145f69451376c4e.md)) |
 | 2026-11-05 17:27 | ▶ | entwickler | NR16-B bauen |
+| 2026-11-05 17:29 | ■ 🔴 | entwickler | 🔴 Status: BRAUCHT_KONTEXT. Ich habe nichts gebaut, weil sich zwei bestehende Testdateien widersprechen und ich keine davon ändern darf.  ([Bericht](docs/pruefberichte/20261105-172956-entwickler-a1d6e21cc008e6638.md)) |
