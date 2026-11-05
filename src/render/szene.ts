@@ -24,6 +24,8 @@ export interface Szene {
   verschiebe_id: number | null;
   stempel: { x: number; y: number; ok: boolean } | null;
   jetzt_ms: number;
+  /** Straßenfelder des Ortes (nur Optik) */
+  strassen?: ReadonlyArray<readonly [number, number]>;
 }
 
 interface Gras { n: Punkt[]; blume: number; hell: number }
@@ -65,6 +67,28 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
           if (g.blume >= 0) m.kreis(cx + g.n[0][0] * tw * 0.4, cy + g.n[0][1] * th * 0.4, Math.max(1.2, tw * 0.022), KARTE.blumen[g.blume]);
         }
       } else { X.fillStyle = (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b; X.fill(); }
+    }
+  }
+  // Straßen (A44): helle Bänder mit feinem Rand und gestrichelter Mitte; Leitungen liegen darüber
+  if (s.strassen?.length) {
+    const feld = new Set(s.strassen.map(([sx, sy]) => sy * N + sx));
+    for (const [sx, sy] of s.strassen) {
+      const [cx, cy] = k.mitte(sx, sy);
+      if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
+      m.raute(cx, cy, 1.03); X.fillStyle = KARTE.strasse; X.fill();
+    }
+    X.strokeStyle = KARTE.strasse_rand; X.lineWidth = 1;
+    for (const [sx, sy] of s.strassen) {
+      const [cx, cy] = k.mitte(sx, sy);
+      if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
+      // Randlinie nur dort, wo kein Straßenfeld anschließt
+      const ecken: Array<[number, number, [number, number], [number, number]]> = [
+        [0, -1, [0, -th / 2], [tw / 2, 0]], [1, 0, [tw / 2, 0], [0, th / 2]], [0, 1, [0, th / 2], [-tw / 2, 0]], [-1, 0, [-tw / 2, 0], [0, -th / 2]],
+      ];
+      for (const [dx, dy, a, b] of ecken) {
+        if (feld.has((sy + dy) * N + sx + dx)) continue;
+        X.beginPath(); X.moveTo(cx + a[0], cy + a[1]); X.lineTo(cx + b[0], cy + b[1]); X.stroke();
+      }
     }
   }
   // Waldrand

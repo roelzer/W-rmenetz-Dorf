@@ -42,10 +42,12 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
     add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true, ...(start ? { station: passendeStation(bedarf).id } : { ohne_station: true }) });
   });
   for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt', ohne_station: true });
+  const strassenFelder = new Set(ort.strassen.map(([sx, sy]) => sy * N + sx));
   const r = zufall(9 + ortId.length);
   for (let i = 0; i < 46; i++) {
     const x = Math.floor(r() * N), y = Math.floor(r() * N);
     if (x > 5 && x < 17 && y > 5 && y < 17) continue;
+    if (strassenFelder.has(y * N + x)) continue;
     { const typ = r() < 0.45 ? 'stein' : r() < 0.55 ? 'busch' : 'baum'; add(typ, x, y, typ === 'baum' ? { landschaft: true } : {}); }
   }
   const behalten: Objekt[] = [];
@@ -329,14 +331,6 @@ export class Spiel {
     const k: InnenQuelle = { typ: t, stufe: 1, bau: gratis ? null : this.neuerBau('neu', (D.bauzeit_s as number[])[0]) };
     if (!gratis && this.foerderungNutzen(t)) k.foerderung_eur = (D.kosten_eur as number[])[0];
     this.stand.innen.push(k);
-    this.neuBerechnen();
-    return ok();
-  }
-
-  /** Vor dem Spielstart: anderen Ort wählen, das Dorf beginnt neu (A21). */
-  ortWechseln(ortId: string): Ergebnis {
-    if (this.stand.quelle_gewaehlt) return { ok: false };
-    this.stand = neuerSpielstand(this.uhr(), ortId);
     this.neuBerechnen();
     return ok();
   }

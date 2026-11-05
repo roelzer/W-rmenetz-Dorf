@@ -45,7 +45,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ---------- HUD ---------- */
 .hud-links{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));width:calc(100% - 150px - 2 * var(--groesse-px-rand-bildschirm) - var(--abstand-px-1) - 17px);max-width:260px;display:flex;flex-direction:column;gap:var(--abstand-px-1)}
-.dorfschild{border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:linear-gradient(var(--farbe-ui-dorfschild-oben),var(--farbe-ui-dorfschild-unten));box-shadow:var(--schatten-schild);padding:var(--abstand-px-1) var(--abstand-px-2);min-height:var(--groesse-px-tippflaeche-min);text-align:left;width:100%}
+.dorfschild{border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:linear-gradient(var(--farbe-ui-dorfschild-oben),var(--farbe-ui-dorfschild-unten));box-shadow:var(--schatten-schild);padding:var(--abstand-px-1) var(--abstand-px-2);text-align:left;width:100%}
 .dorfschild .name{color:var(--farbe-ui-tinte);display:block;font-size:var(--schrift-groesse-px-dorfname);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dorfschild .unter{display:block;font-size:var(--schrift-groesse-px-mini);color:var(--farbe-ui-dorfschild-untertext);font-weight:700;margin-top:1px}
 .auftrag{display:flex;align-items:center;gap:var(--abstand-px-1);text-align:left;width:100%;min-height:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-2);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:var(--farbe-ui-pergament);box-shadow:var(--schatten-schild)}
@@ -53,8 +53,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .auftrag .text{flex:1;font-size:var(--schrift-groesse-px-klein);line-height:1.2;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .auftrag .lohn{flex:none;font-family:var(--schrift-anzeige);font-weight:700;color:#7a3fd6;font-size:var(--schrift-groesse-px-text)}
 .pillen{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));right:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right));width:150px;display:flex;flex-direction:column;gap:var(--abstand-px-1)}
-.pille{position:relative;display:flex;align-items:center;justify-content:flex-end;height:var(--groesse-px-hud-pille-hoehe);min-height:var(--groesse-px-tippflaeche-min);margin-left:17px;padding:0 var(--abstand-px-2) 0 22px;border-radius:var(--radius-px-pille);background:var(--farbe-ui-hud-pille);border:2px solid var(--farbe-ui-hud-pille-rand);overflow:visible;color:var(--farbe-ui-tinte);border-width:1px;box-shadow:0 1px 6px rgba(20,28,31,.12);width:calc(100% - 17px);text-align:right}
-.pille .sym{position:absolute;left:-17px;top:50%;margin-top:-17px;width:var(--groesse-px-hud-symbol);height:var(--groesse-px-hud-symbol);border-radius:50%;background:var(--farbe-ui-pergament);border:1px solid var(--farbe-ui-pergament-rand);padding:5px;box-shadow:0 1px 4px rgba(20,28,31,.18)}
+.pille{position:relative;display:flex;align-items:center;justify-content:flex-end;height:var(--groesse-px-hud-pille-hoehe);margin-left:17px;padding:0 var(--abstand-px-2) 0 22px;border-radius:var(--radius-px-pille);background:var(--farbe-ui-hud-pille);border:2px solid var(--farbe-ui-hud-pille-rand);overflow:visible;color:var(--farbe-ui-tinte);border-width:1px;box-shadow:0 1px 6px rgba(20,28,31,.12);width:calc(100% - 17px);text-align:right}
+.pille .sym{position:absolute;left:-17px;top:50%;margin-top:-13px;width:var(--groesse-px-hud-symbol);height:var(--groesse-px-hud-symbol);border-radius:50%;background:var(--farbe-ui-pergament);border:1px solid var(--farbe-ui-pergament-rand);padding:5px;box-shadow:0 1px 4px rgba(20,28,31,.18)}
 .pille .fuell{position:absolute;left:22px;right:6px;bottom:3px;height:4px;border-radius:2px;background:#0003;overflow:hidden}
 .pille .fuell i{display:block;height:100%;width:0;border-radius:2px;background:var(--farbe-hud-fuellung-geld-0);transition:width var(--zeit-ms-uebergang)}
 .pille.waerme .fuell i{background:var(--farbe-hud-fuellung-waerme-0)}
@@ -157,7 +157,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 @media (orientation:landscape) and (max-height:600px){
   /* Anzeigen in einer Reihe oben, Blätter als Seitenfläche rechts */
   .pillen{flex-direction:row;width:auto;gap:var(--abstand-px-2);top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top))}
-  .pille{width:auto;min-width:88px;padding-left:20px;margin-left:15px}
+  .pille{width:auto;min-width:76px;padding-left:20px;margin-left:15px}
   .pille .etikett{display:none}
   .pille .wert{font-size:var(--schrift-groesse-px-text)}
   .hud-links{width:210px}

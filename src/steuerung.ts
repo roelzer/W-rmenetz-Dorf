@@ -12,10 +12,10 @@ import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { h } from './ui/dom';
 import { einstellungenLesen, einstellungenOeffnen } from './ui/einstellungen';
 import { Hud } from './ui/hud';
+import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
 import { Kontext } from './ui/kontext';
 import type { Ui } from './ui/schnittstelle';
-import { ortswahl } from './ui/ortswahl';
 import { startwahl } from './ui/start';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
@@ -63,7 +63,7 @@ export class Steuerung implements Ui {
     document.getElementById('app')!.append(this.hud.wurzel, h('div', { id: 'ebene' }));
     this.eingabe();
     this.bewegungAnwenden();
-    if (!spiel.stand.quelle_gewaehlt) { this.hud.sichtbar({ alles: false }); ortswahl(this, () => { this.zentrieren(); startwahl(this, () => { this.hud.sichtbar({ alles: true }); this.zentrieren(); }); }); }
+    if (!spiel.stand.quelle_gewaehlt) { this.hud.sichtbar({ alles: false }); this.zentrieren(); startwahl(this, () => { this.hud.sichtbar({ alles: true }); this.zentrieren(); }); }
   }
 
   private bewegungAnwenden(): void {
@@ -288,6 +288,7 @@ export class Steuerung implements Ui {
       objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
+      strassen: ortHolen(this.spiel.stand.ort).strassen,
     };
   }
 

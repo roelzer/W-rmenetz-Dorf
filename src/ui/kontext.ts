@@ -1,5 +1,5 @@
 import { istLeitung, DACH_PV, UPGRADES, VORLAUF, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
-import { bedarfKw, groesse, istAktiv, nutzungsfaktor } from '../core/netz';
+import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -199,6 +199,12 @@ export class Kontext {
   private leitung(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, n = sp.netz, D = KATALOG[o.typ], key = o.y * KONSTANTEN.feldanzahl + o.x;
     const last = n.last_kw.get(key) ?? 0, kap = D.kapazitaet_kw ?? 0;
+    const anHaus = sp.stand.objekte.some((k) => {
+      if (!istKunde(k)) return false;
+      const g = groesse(k);
+      return o.x >= k.x - 1 && o.x <= k.x + g && o.y >= k.y - 1 && o.y <= k.y + g && !(o.x >= k.x && o.x < k.x + g && o.y >= k.y && o.y < k.y + g);
+    });
+    c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: führt von der Straße zum Haus, meist dünn.' : 'Hauptleitung: transportiert die Wärme zu mehreren Häusern, deshalb dicker.'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
     else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));

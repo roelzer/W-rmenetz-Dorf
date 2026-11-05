@@ -6,9 +6,8 @@ import { KATALOG, KONSTANTEN } from '../src/core/katalog';
 const T0 = 1_000_000_000_000;
 
 describe('A21 Orte', () => {
-  it('A21: Hilpoltstein, Dornhausen und Obermässing sind wählbar', () => {
-    expect(ORTE.map((o) => o.name)).toEqual(['Hilpoltstein', 'Dornhausen', 'Obermässing']);
-    expect(ortHolen('dornhausen').name).toBe('Dornhausen');
+  it('A21/A44: Es gibt genau einen Ort (Hilpoltstein), die Ortswahl entfällt', () => {
+    expect(ORTE.map((o) => o.name)).toEqual(['Hilpoltstein']);
     expect(ortHolen('gibtesnicht').id).toBe('hilpoltstein');
   });
   it('A21: jeder Ort hat Häuser und ein Hallenbad, alles liegt auf der Karte, nichts überlappt', () => {
@@ -30,13 +29,15 @@ describe('A21 Orte', () => {
     const s = new Spiel(neuerSpielstand(T0, 'hilpoltstein'), () => T0);
     expect(s.anzahl('efh')).toBe(0);
   });
-  it('A21: Ort wechseln geht nur vor der Quellenwahl', () => {
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
-    expect(s.ortWechseln('dornhausen').ok).toBe(true);
-    expect(s.stand.name).toBe('Dornhausen');
-    s.ersteQuelleWaehlen('kessel');
-    expect(s.ortWechseln('obermaessing').ok).toBe(false);
-    expect(s.stand.name).toBe('Dornhausen');
+  it('A44: Häuser stehen an Straßen, nicht auf ihnen, und der Ort hat ein Straßennetz', () => {
+    const ort = ORTE[0], strasse = new Set(ort.strassen.map(([x, y]) => y * 24 + x));
+    expect(ort.strassen.length).toBeGreaterThan(60);
+    for (const h of ort.haeuser) {
+      const k = KATALOG[h.typ].groesse ?? 1;
+      for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) expect(strasse.has((h.y + dy) * 24 + h.x + dx)).toBe(false);
+    }
+    const nah = ort.haeuser.filter((h) => { const k = KATALOG[h.typ].groesse ?? 1; for (let i = 0; i < k; i++) for (const [fx, fy] of [[h.x + i, h.y - 1], [h.x + i, h.y + k], [h.x - 1, h.y + i], [h.x + k, h.y + i]]) if (strasse.has(fy * 24 + fx)) return true; return false; });
+    expect(nah.length).toBeGreaterThanOrEqual(Math.floor(ort.haeuser.length * 0.9));
   });
   it('A21/A25: Haustyp (und damit der geschätzte Verbrauch) folgt der Grundfläche', () => {
     expect(typAusGrundflaeche(20)).toBeNull();

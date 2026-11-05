@@ -68,7 +68,7 @@ export class Hud {
   aktualisieren(auftrag: Auftrag | null): void {
     const sp = this.spiel(), s = sp.stand, n = sp.netz;
     this.name.textContent = s.name;
-    this.unter.textContent = `Heizzentrale Stufe ${sp.hzStufe} · Dorfwert ${zahl(sp.dorfwert())}`;
+    this.unter.textContent = `Stufe ${sp.hzStufe} · Wert ${zahl(sp.dorfwert())}`;
     if (auftrag) {
       this.auftragKarte.classList.remove('versteckt');
       this.auftragText.textContent = auftrag.text;
