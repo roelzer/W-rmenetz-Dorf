@@ -36,7 +36,7 @@ export function blattOeffnen(opt: BlattOptionen): Blatt {
   const inhalt = h('div', { class: 'inhalt' });
   const zuKnopf = h('button', { type: 'button', class: 'schliessen', 'aria-label': 'Schließen', onclick: () => b.zu() }, symbol('schliessen'));
   const kopf = h('div', { class: 'kopf' }, h('span', { class: 'umriss', style: 'display:contents' }, titel), stufe, opt.schliessbar === false ? null : zuKnopf);
-  titel.classList.add('umriss'); titel.style.fontSize = 'var(--schrift-groesse-px-titel)';
+  titel.classList.add('umriss');
   const wurzel = h('section', { class: `blatt ${art === 'hoch' ? 'hoch' : art === 'popup' ? 'popup' : ''}`.trim(), role: 'dialog', 'aria-modal': art === 'popup' ? 'true' : null, 'aria-labelledby': 'blatt-titel', tabindex: -1 }, kopf, inhalt);
   const abdunkeln = art === 'popup' ? h('div', { class: 'abdunkeln' }) : null;
   const tasten = (e: KeyboardEvent): void => {

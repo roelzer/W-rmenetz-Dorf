@@ -1,5 +1,5 @@
 import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
-import { chip, knopf } from './bausteine';
+import { chip, knopf, symbol } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
 import { eur, h, zahl } from './dom';
@@ -50,10 +50,10 @@ export class Katalog {
     const sp = this.ui.spiel, a = sp.abschnitt, k = h('div', { class: 'kasten' });
     const neu = (): void => { this.ui.geaendert(); this.aufbauen(); };
     const rest = (): string => zeitText(Math.ceil(Math.max(0, (a?.bau?.ende_ms ?? 0) - this.ui.jetzt_ms()) / 1000));
-    k.append(h('strong', {}, 'Bauabschnitt'));
+    k.append(h('h3', {}, 'Bauabschnitt')); // Mini-Kopfband wie jeder Kasten (DESIGN.md 12.7)
     if (!a) {
       k.append(h('p', { class: 'gedaempft' }, `Leitungen werden abschnittsweise gebaut: ${ABSCHNITT_HELFER.planung} plant, du zeichnest die Leitungen ein, ${ABSCHNITT_HELFER.material} bestellt das Material, danach dauert der Bau.`),
-        h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'los', { unter: eur(KONSTANTEN.abschnitt_planung_eur), aus: sp.stand.geld_eur < KONSTANTEN.abschnitt_planung_eur })));
+        h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'geld', { unter: eur(KONSTANTEN.abschnitt_planung_eur), aus: sp.stand.geld_eur < KONSTANTEN.abschnitt_planung_eur })));
     } else if (a.phase === 'planung') {
       k.append(h('p', {}, `${ABSCHNITT_HELFER.planung} plant den Abschnitt … noch ${rest()}`));
     } else if (a.phase === 'offen') {
@@ -66,7 +66,7 @@ export class Katalog {
       const kost = sp.abschnittKosten_eur();
       k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
         h('div', { class: 'knopfreihe' },
-          knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'los', { unter: eur(kost), aus: sp.stand.geld_eur < kost }),
+          knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), aus: sp.stand.geld_eur < kost }),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
     } else {
@@ -74,8 +74,8 @@ export class Katalog {
       const ex = sp.expresskosten_eur();
       k.append(h('p', {}, `Der Bauabschnitt wird gebaut … noch ${rest()}${a.express ? ' (Expresslieferung)' : ''}`),
         h('div', { class: 'knopfreihe' },
-          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'los', { klein: true, unter: eur(ex), aus: sp.stand.geld_eur < ex }),
-          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'heiss', { klein: true, unter: `${c} Taler`, aus: sp.stand.taler < c })));
+          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), aus: sp.stand.geld_eur < ex }),
+          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, aus: sp.stand.taler < c })));
     }
     return k;
   }
@@ -96,9 +96,9 @@ export class Katalog {
       katalogBild(t),
       h('span', { class: 'titel' }, D.name),
       h('span', { class: 'werte' }, werte(t)),
-      gesperrt ? h('span', { class: 'grund' }, `ab Heizzentrale Stufe ${innen ? abStufe : abStufe + 1}`)
+      gesperrt ? h('span', { class: 'grund' }, symbol('schloss'), `ab Heizzentrale Stufe ${innen ? abStufe : abStufe + 1}`)
         : voll ? h('span', { class: 'grund' }, `${gesamtLeitungen}/${grenze} · mehr ab nächster Stufe`)
-          : h('span', { class: `preis ${zuTeuer ? 'zuteuer' : ''}` }, kostetText, !innen && D.kategorie !== 'netz' ? h('span', { class: 'gedaempft' }, ` · ${gesamtLeitungen}/${grenze}`) : null),
+          : h('span', { class: `preis ${zuTeuer ? 'zuteuer' : ''}` }, symbol(c.taler != null ? 'taler' : 'geld'), kostetText, !innen && D.kategorie !== 'netz' ? h('span', { class: 'gedaempft' }, ` · ${gesamtLeitungen}/${grenze}`) : null),
       antrag?.stand === 'bewilligt' ? h('span', { class: 'abzeichen' }, chip('−40 % Förderung', 'gruen')) : antrag ? h('span', { class: 'abzeichen' }, chip('Antrag in Prüfung', 'blau')) : null);
     return kind;
   }

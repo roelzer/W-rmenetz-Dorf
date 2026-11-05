@@ -1,7 +1,7 @@
 import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
 import type { Objekt } from '../core/typen';
-import { balken, chip, knopf, kasten, zeile } from './bausteine';
+import { balken, chip, knopf, kasten, stepper, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -74,7 +74,7 @@ export class Kontext {
     else if (kat === 'gross') this.gross(c, o);
     else if (kat === 'waerme') this.aussenquelle(c, o);
     else if (kat === 'hindernis') {
-      c.append(h('div', { class: 'knopfreihe' }, knopf(`Wegräumen · ${eur(D.raeumen_eur ?? 0)} + ${D.raeumen_taler ?? 0} Taler`, () => { if (sp.hindernisRaeumen(o.id).ok) { this.ui.geaendert(); this.schliessen(); } }, 'heiss')));
+      c.append(h('div', { class: 'knopfreihe' }, knopf(`Wegräumen · ${eur(D.raeumen_eur ?? 0)} + ${D.raeumen_taler ?? 0} Taler`, () => { if (sp.hindernisRaeumen(o.id).ok) { this.ui.geaendert(); this.schliessen(); } }, 'geld')));
     } else if (kat === 'deko') {
       c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id)), knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); })));
     }
@@ -103,7 +103,7 @@ export class Kontext {
     }
     const k = D.kosten_eur[o.stufe], zeit = D.bauzeit_s[o.stufe];
     const ziel = o.typ === 'hz' ? sp.hzZiele().some((z) => !z.erreicht) : false;
-    c.append(h('div', { class: 'knopfreihe' }, knopf(`Ausbauen auf Stufe ${o.stufe + 1}`, () => { sp.ausbauen(o.id); this.ui.geaendert(); }, 'heiss', { unter: ziel ? 'Ziele noch offen' : `${eur(k)} · ${zeitText(zeit)}`, aus: sp.stand.geld_eur < k || ziel })));
+    c.append(h('div', { class: 'knopfreihe' }, knopf(`Ausbauen auf Stufe ${o.stufe + 1}`, () => { sp.ausbauen(o.id); this.ui.geaendert(); }, 'geld', { unter: ziel ? 'Ziele noch offen' : `${eur(k)} · ${zeitText(zeit)}`, aus: sp.stand.geld_eur < k || ziel })));
   }
 
   private haus(c: HTMLElement, o: Objekt): void {
@@ -129,7 +129,7 @@ export class Kontext {
     c.append(zeile('Zufriedenheit', `${zahl(z)} %`), balken(z / 100));
     if (o.gekuendigt) {
       c.append(h('p', {}, 'Der Kunde ist wieder bei seinem Öl-Kessel. Mit einem fairen Preis und guter Wärme kommt er zurück.'),
-        h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'los', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
+        h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'geld', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
       return;
     }
     if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), h('div', { class: 'knopfreihe' }, knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: sp.abschnitt?.phase === 'offen' ? 'zur nächsten Leitung' : 'braucht offenen Bauabschnitt', aus: sp.abschnitt?.phase !== 'offen' }), knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true })));
@@ -149,7 +149,7 @@ export class Kontext {
     if (o.hauspuffer) { k.append(h('p', { class: 'gedaempft' }, `Eingebaut. Der Puffer fängt die Spitzen ab: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} Volllaststunden = ${kw(bedarfKw(o))} kW Anschlussleistung.`)); c.append(k); return; }
     const mit_kw = bedarfKw(o) * VOLLLASTSTUNDEN.ohne_puffer_h / VOLLLASTSTUNDEN.mit_puffer_h;
     k.append(h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)} h = ${kw(bedarfKw(o))} kW. Mit Puffer reichen ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} h: ${kw(mit_kw)} kW – kleinere Station und dünnere Leitung genügen.`),
-      h('div', { class: 'knopfreihe' }, knopf('Puffer einbauen', () => { sp.hauspufferEinbauen(o.id); this.ui.geaendert(); }, '', { klein: true, unter: eur(KONSTANTEN.hauspuffer_eur), aus: sp.stand.geld_eur < KONSTANTEN.hauspuffer_eur })));
+      h('div', { class: 'knopfreihe' }, knopf('Puffer einbauen', () => { sp.hauspufferEinbauen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.hauspuffer_eur), aus: sp.stand.geld_eur < KONSTANTEN.hauspuffer_eur })));
     c.append(k);
   }
 
@@ -177,7 +177,7 @@ export class Kontext {
       // Fachprüfung A73: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
       const gewinn = Math.round(spreizungHaus_k({ ...o, upgrade: n + 1 }, sp.vorlauf_c) - spreizungHaus_k(o, sp.vorlauf_c));
       if (gewinn < u.senkung_k) k.append(h('p', { class: 'gedaempft' }, gewinn > 0 ? `Bei ${sp.vorlauf_c} °C Vorlauf bringt das nur +${gewinn} K Spreizung: Der Rücklauf fällt nicht unter ${MIN_RUECKLAUF_C} °C. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.` : `Der Rücklauf liegt bei ${sp.vorlauf_c} °C Vorlauf schon bei ${MIN_RUECKLAUF_C} °C – mehr Spreizung geht nicht. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.`));
-      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, aus: !!o.ohne_station || !frei })));
+      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, aus: !!o.ohne_station || !frei })));
     } else k.append(h('p', { class: 'gedaempft' }, 'Alle Upgrades erledigt.'));
     c.append(k);
   }
@@ -194,7 +194,7 @@ export class Kontext {
     const reihe = h('div', { class: 'knopfreihe' });
     for (const st of STATIONEN.filter((x) => x.leistung_kw >= bedarf && (!alt || x.leistung_kw > alt.leistung_kw)).slice(0, 3)) {
       const preis = sp.stationspreis_eur(o, st);
-      reihe.append(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'los' : '', { klein: true, unter: eur(preis) }));
+      reihe.append(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis) }));
     }
     k.append(reihe);
     c.append(k);
@@ -276,8 +276,10 @@ export class Kontext {
       const D = KATALOG[q.typ];
       const leistung = D.leistung_kw![q.stufe - 1];
       const rechts = q.bau ? h('span', {}, 'wird gebaut …') :
-        q.stufe >= sp.hzStufe || q.stufe >= KONSTANTEN.hoechststufe ? h('span', { class: 'gedaempft' }, q.stufe >= KONSTANTEN.hoechststufe ? 'Höchste Stufe' : 'Heizzentrale ausbauen') :
-          knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'heiss', { klein: true, unter: eur(D.kosten_eur![q.stufe]), aus: s.geld_eur < D.kosten_eur![q.stufe] });
+        q.stufe >= KONSTANTEN.hoechststufe ? h('span', { class: 'gedaempft' }, 'Höchste Stufe') :
+          // Grauer Text an Knopfstelle sah aus wie ein Knopf ohne Rahmen (DESIGN.md 12.12): deshalb ein deaktivierter Knopf mit Grund
+          q.stufe >= sp.hzStufe ? knopf(`Stufe ${q.stufe + 1}`, () => undefined, '', { klein: true, aus: true, unter: 'Erst Heizzentrale ausbauen' }) :
+            knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(D.kosten_eur![q.stufe]), aus: s.geld_eur < D.kosten_eur![q.stufe] });
       const verkauf = s.innen.length > 1 && !q.bau ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(q.typ, q.stufe))}` }) : null;
       k.append(zeile(h('span', {}, `${D.name} · Stufe ${q.stufe}`, h('br'), h('small', { class: 'gedaempft' }, `${leistung} kW`)), h('span', { class: 'rechts' }, rechts, verkauf)));
     });
@@ -285,20 +287,20 @@ export class Kontext {
     else k.append(h('p', { class: 'gedaempft' }, 'Kein Platz mehr im Heizhaus – baue erst die Heizzentrale aus.'));
     const vl = kasten(`Vorlauftemperatur · ${sp.vorlauf_c} °C`);
     vl.append(h('div', { class: 'knopfreihe' },
-      knopf('−', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, '', { klein: true, aus: sp.vorlauf_c <= VORLAUF.min_c }),
+      stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, sp.vorlauf_c <= VORLAUF.min_c),
       h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
-      knopf('+', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, '', { klein: true, aus: sp.vorlauf_c >= VORLAUF.max_c })),
+      stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, sp.vorlauf_c >= VORLAUF.max_c)),
       h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
     const pvk = kasten('Solarstrom');
     const pvKw = sp.dachPvLeistung_kw();
     if (hzObj.dach_pv) pvk.append(h('p', {}, `PV-Anlage auf dem Heizhaus-Dach: ${pvKw} kWp. Sie senkt die Stromkosten von Wärmepumpe und Power-to-Heat-Kessel, Überschuss wird ins Stromnetz eingespeist.`));
-    else pvk.append(h('p', { class: 'gedaempft' }, 'PV auf dem Dach der Heizzentrale liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet. Die Anlage wächst mit der Heizzentrale.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${pvKw} kWp`, () => { sp.dachPvKaufen(); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(pvKw * DACH_PV.eur_je_kw), aus: s.geld_eur < pvKw * DACH_PV.eur_je_kw })));
+    else pvk.append(h('p', { class: 'gedaempft' }, 'PV auf dem Dach der Heizzentrale liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet. Die Anlage wächst mit der Heizzentrale.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${pvKw} kWp`, () => { sp.dachPvKaufen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(pvKw * DACH_PV.eur_je_kw), aus: s.geld_eur < pvKw * DACH_PV.eur_je_kw })));
     const bg = kasten('Baugebiet');
     const bb = sp.baugebietBedingungen();
     if (sp.stand.baugebiet) bg.append(h('p', { class: 'gedaempft' }, 'Das Baugebiet ist erschlossen. Verbinde die neuen Häuser mit einem Bauabschnitt.'));
     else bg.append(h('p', { class: 'gedaempft' }, 'Ein zweiter Strang in die Gegenrichtung mit neuen Grundstücken. Der Wärmeerzeuger muss dafür mitwachsen.'),
       ...(bb.ok ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
-      h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'los', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), aus: !bb.ok || s.geld_eur < KONSTANTEN.baugebiet_eur })));
+      h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), aus: !bb.ok || s.geld_eur < KONSTANTEN.baugebiet_eur })));
     const ziele = sp.hzZiele();
     const zk = kasten('Ziele für die nächste Stufe');
     if (ziele.length) {
@@ -321,16 +323,16 @@ export class Kontext {
     const P = PREISSTUFEN[s.preisstufe];
     const preis = kasten(`Wärmepreis · ${P.ct_je_kwh} ct/kWh`);
     preis.append(h('div', { class: 'knopfreihe' },
-      knopf('−', () => { sp.preisSetzen(s.preisstufe - 1); this.ui.geaendert(); }, '', { klein: true, aus: s.preisstufe <= 0 }),
+      stepper('minus', 'Wärmepreis senken', () => { sp.preisSetzen(s.preisstufe - 1); this.ui.geaendert(); }, s.preisstufe <= 0),
       h('span', { class: 'preiswert' }, `${P.ct_je_kwh} ct`),
-      knopf('+', () => { sp.preisSetzen(s.preisstufe + 1); this.ui.geaendert(); }, '', { klein: true, aus: s.preisstufe >= PREISSTUFEN.length - 1 })));
+      stepper('plus', 'Wärmepreis erhöhen', () => { sp.preisSetzen(s.preisstufe + 1); this.ui.geaendert(); }, s.preisstufe >= PREISSTUFEN.length - 1)));
     preis.append(h('p', { class: 'gedaempft' }, `Du bekommst die Vergütung für jede Kilowattstunde, die ein Abnehmer verbraucht (zwischen ${PREISSTUFEN[0].ct_je_kwh} und ${PREISSTUFEN.at(-1)!.ct_je_kwh} ct). Je höher der Preis, desto mehr Einnahmen – aber desto unzufriedener werden die Kunden (${P.name}).`));
     // A81: Grundgebühr je Anschluss und Monat
     const g = sp.grundgebuehr_eur;
     preis.append(zeile('Grundgebühr', `${eur(g)} im Monat je Anschluss`), h('div', { class: 'knopfreihe' },
-      knopf('−', () => { sp.grundgebuehrSetzen(g - 1); this.ui.geaendert(); }, '', { klein: true, aus: g <= GRUNDGEBUEHR.min_eur }),
+      stepper('minus', 'Grundgebühr senken', () => { sp.grundgebuehrSetzen(g - 1); this.ui.geaendert(); }, g <= GRUNDGEBUEHR.min_eur),
       h('span', { class: 'preiswert' }, `${zahl(g)} €`),
-      knopf('+', () => { sp.grundgebuehrSetzen(g + 1); this.ui.geaendert(); }, '', { klein: true, aus: g >= GRUNDGEBUEHR.max_eur })));
+      stepper('plus', 'Grundgebühr erhöhen', () => { sp.grundgebuehrSetzen(g + 1); this.ui.geaendert(); }, g >= GRUNDGEBUEHR.max_eur)));
     const m = sp.monat(), a = s.letzte_abrechnung;
     preis.append(h('p', { class: 'gedaempft' }, `Abgerechnet wird am Monatsende automatisch: verbrauchte kWh × Wärmepreis + Grundgebühr. Nächste Abrechnung (${sp.monatsname(m.nr)}) in ${zeitText(Math.ceil(m.rest_ms / 1000))}.`));
     if (a) preis.append(zeile(`Letzte Abrechnung (${sp.monatsname(a.monat)})`, `${zahl(a.waerme_kwh)} kWh · ${eur(a.summe_eur)}`));

@@ -11,112 +11,210 @@ button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:3px solid var(--farbe-ui-fokus);outline-offset:2px}
 .pergament :focus-visible,.blatt :focus-visible{outline-color:var(--farbe-ui-fokus-auf-hell)}
 
-/* Schrift mit Umriss (weiße Schrift auf farbigem Grund nur so) */
-.umriss{color:var(--farbe-ui-tinte);font-family:var(--schrift-anzeige);font-weight:700}
+/* Schrift mit Umriss (Titel und HUD-Werte tragen die Klasse; Aussehen nach Menü-Stil v2, DESIGN.md 12) */
+.umriss{color:var(--farbe-ui-tinte);font-family:var(--menue-schrift-anzeige);font-weight:400}
 
-/* ---------- Knöpfe ---------- */
-.knopf{min-height:var(--groesse-px-tippflaeche-min);min-width:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-3);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-knopf);background:var(--farbe-knopf-standard-0);box-shadow:var(--schatten-knopf);font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-knopf);color:var(--farbe-ui-tinte);transition:transform var(--zeit-ms-knopf-druck),box-shadow var(--zeit-ms-knopf-druck)}
-.knopf:active:not(:disabled){transform:translateY(2px);box-shadow:var(--schatten-knopf-gedrueckt)}
-.knopf:disabled{opacity:.55;cursor:not-allowed}
-.knopf.los,.knopf.heiss,.knopf.taler,.knopf.blau,.knopf.schliessen{color:#fff;}
-.knopf.los{background:var(--farbe-knopf-los-0)}
-.knopf.heiss{background:var(--farbe-knopf-heiss-0)}
-.knopf.taler{background:var(--farbe-knopf-taler-0)}
-.knopf.blau{background:var(--farbe-knopf-blau-0)}
-.knopf.gewaehlt{background:var(--farbe-knopf-gewaehlt-0)}
-.knopf.klein{font-size:var(--schrift-groesse-px-text)}
-.knopf small{display:block;font-size:var(--schrift-groesse-px-klein);font-weight:700;opacity:.95}
-.knopfreihe{display:flex;flex-wrap:wrap;gap:var(--abstand-px-1);margin-top:var(--abstand-px-2)}
+/* ---------- Knöpfe (Lage und Größe; Aussehen im Block „Menü-Stil v2“ unten) ---------- */
+.knopf{min-width:var(--groesse-px-tippflaeche-min)}
+.knopfreihe{display:flex;flex-wrap:wrap}
 .knopfreihe>.knopf{flex:1 1 130px}
-.schliessen{width:var(--groesse-px-schliessen-x);height:var(--groesse-px-schliessen-x);padding:0;border-radius:var(--radius-px-rund);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);background:var(--farbe-knopf-schliessen-0);box-shadow:var(--schatten-knopf);display:grid;place-items:center;flex:none}
-.schliessen .sym{width:22px;height:22px}
+.schliessen{display:grid;place-items:center;flex:none}
+.sym{display:inline-block}
+.knopf small .preis-sym{width:14px;height:14px;margin-right:4px;vertical-align:-2px}
 
 /* ---------- Rundbuttons / Zoom ---------- */
 .runde{position:absolute;right:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right));bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:var(--abstand-px-2)}
 .rund{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:0}
-.rund .kreis{display:grid;place-items:center;border-radius:var(--radius-px-rund);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);box-shadow:var(--schatten-rund)}
-.rund.bauen .kreis{width:var(--groesse-px-rundknopf-bauen);height:var(--groesse-px-rundknopf-bauen);background:radial-gradient(circle at 50% 30%,var(--farbe-knopf-rund-bauen-0),var(--farbe-knopf-rund-bauen-1))}
-.rund.besuch .kreis{width:var(--groesse-px-rundknopf-besuch);height:var(--groesse-px-rundknopf-besuch);background:radial-gradient(circle at 50% 30%,var(--farbe-knopf-rund-besuch-0),var(--farbe-knopf-rund-besuch-1))}
+.rund .kreis{display:grid;place-items:center;border-radius:var(--radius-px-rund)}
+.rund.bauen .kreis{width:var(--groesse-px-rundknopf-bauen);height:var(--groesse-px-rundknopf-bauen)}
+.rund.besuch .kreis{width:var(--groesse-px-rundknopf-besuch);height:var(--groesse-px-rundknopf-besuch)}
 .rund .kreis .sym{width:55%;height:55%;filter:var(--schatten-symbol)}
 .rund:active .kreis{transform:translateY(3px)}
-.rund .etikett{font-size:var(--schrift-groesse-px-klein);font-family:var(--schrift-anzeige)}
 .zoom{position:absolute;left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:var(--abstand-px-1)}
-.zoomknopf{width:var(--groesse-px-zoomknopf);height:var(--groesse-px-zoomknopf);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-knopf);background:var(--farbe-ui-pergament);box-shadow:var(--schatten-knopf);font-family:var(--schrift-anzeige);font-weight:700;font-size:26px;line-height:1;padding:0}
+.zoomknopf{width:var(--groesse-px-zoomknopf);height:var(--groesse-px-zoomknopf);font-size:26px;line-height:1;padding:0}
 
 /* ---------- HUD ---------- */
 .hud-links{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));width:calc(100% - 150px - 2 * var(--groesse-px-rand-bildschirm) - var(--abstand-px-1) - 17px);max-width:260px;display:flex;flex-direction:column;gap:var(--abstand-px-1)}
-.dorfschild{border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:linear-gradient(var(--farbe-ui-dorfschild-oben),var(--farbe-ui-dorfschild-unten));box-shadow:var(--schatten-schild);padding:var(--abstand-px-1) var(--abstand-px-2);text-align:left;width:100%}
-.dorfschild .name{color:var(--farbe-ui-tinte);display:block;font-size:var(--schrift-groesse-px-dorfname);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dorfschild .unter{display:block;font-size:var(--schrift-groesse-px-mini);color:var(--farbe-ui-dorfschild-untertext);font-weight:700;margin-top:1px}
-.auftrag{display:flex;align-items:center;gap:var(--abstand-px-1);text-align:left;width:100%;min-height:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-2);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:var(--farbe-ui-pergament);box-shadow:var(--schatten-schild)}
-.auftrag .marker{flex:none;width:26px;height:26px;border-radius:50%;background:var(--farbe-rolle-geld);border:2px solid var(--farbe-ui-pergament-rand);display:grid;place-items:center;font-family:var(--schrift-anzeige);font-weight:700}
+.dorfschild{border-radius:var(--radius-px-karte);padding:var(--abstand-px-1) var(--abstand-px-2);text-align:left;width:100%}
+.dorfschild .name{display:block;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dorfschild .unter{display:block;font-size:var(--schrift-groesse-px-mini);font-weight:700;margin-top:1px}
+.auftrag{display:flex;align-items:center;gap:var(--abstand-px-1);text-align:left;width:100%;min-height:var(--groesse-px-tippflaeche-min);padding:var(--abstand-px-1) var(--abstand-px-2);border-radius:var(--radius-px-karte)}
+.auftrag .marker{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
 .auftrag .text{flex:1;font-size:var(--schrift-groesse-px-klein);line-height:1.2;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.auftrag .lohn{flex:none;font-family:var(--schrift-anzeige);font-weight:700;color:#7a3fd6;font-size:var(--schrift-groesse-px-text)}
+.auftrag .lohn{flex:none}
 .pillen{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));right:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right));width:150px;display:flex;flex-direction:column;gap:var(--abstand-px-1)}
-.pille{position:relative;display:flex;align-items:center;justify-content:flex-end;height:var(--groesse-px-hud-pille-hoehe);margin-left:17px;padding:0 var(--abstand-px-2) 0 22px;border-radius:var(--radius-px-pille);background:var(--farbe-ui-hud-pille);border:2px solid var(--farbe-ui-hud-pille-rand);overflow:visible;color:var(--farbe-ui-tinte);border-width:1px;box-shadow:0 1px 6px rgba(20,28,31,.12);width:calc(100% - 17px);text-align:right}
-.pille .sym{position:absolute;left:-17px;top:50%;margin-top:-13px;width:var(--groesse-px-hud-symbol);height:var(--groesse-px-hud-symbol);border-radius:50%;background:var(--farbe-ui-pergament);border:1px solid var(--farbe-ui-pergament-rand);padding:5px;box-shadow:0 1px 4px rgba(20,28,31,.18)}
-.pille .fuell{position:absolute;left:22px;right:6px;bottom:3px;height:4px;border-radius:2px;background:#0003;overflow:hidden}
+.pille{position:relative;display:flex;align-items:center;justify-content:flex-end;height:var(--groesse-px-hud-pille-hoehe);margin-left:17px;padding:0 var(--abstand-px-2) 0 22px;border-radius:var(--radius-px-pille);overflow:visible;width:calc(100% - 17px);text-align:right}
+.pille .sym{position:absolute;top:50%;border-radius:50%}
+.pille .fuell{position:absolute;left:22px;right:6px;border-radius:2px;overflow:hidden}
 .pille .fuell i{display:block;height:100%;width:0;border-radius:2px;background:var(--farbe-hud-fuellung-geld-0);transition:width var(--zeit-ms-uebergang)}
 .pille.waerme .fuell i{background:var(--farbe-hud-fuellung-waerme-0)}
 .pille.mangel .fuell i{background:var(--farbe-hud-fuellung-waerme-mangel-0)}
 .pille.ruf .fuell i{background:var(--farbe-hud-fuellung-ruf-gut-0)}
 .pille.ruf.schlecht .fuell i{background:var(--farbe-hud-fuellung-ruf-schlecht-0)}
-.pille .wert{font-size:var(--schrift-groesse-px-zahl-hud);margin-bottom:3px;white-space:nowrap}
+.pille .wert{margin-bottom:3px;white-space:nowrap}
 .pille .etikett{position:absolute;right:var(--abstand-px-2);top:-1px;font-size:var(--schrift-groesse-px-mini);color:var(--farbe-ui-hud-etikett-text);display:none}
 
 /* ---------- Blatt / Popup ---------- */
 #ebene{display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
 #ebene.mitte{justify-content:center}
-.abdunkeln{position:absolute;inset:0;background:var(--farbe-ui-abdunkeln)}
-.blatt{position:relative;width:100%;max-width:580px;max-height:50%;display:flex;flex-direction:column;background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-popup) var(--radius-px-popup) 0 0;box-shadow:var(--schatten-popup);overflow:hidden;margin-bottom:calc(-1 * max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)));padding-bottom:env(safe-area-inset-bottom)}
+.abdunkeln{position:absolute;inset:0}
+.blatt{position:relative;width:100%;max-width:580px;max-height:50%;display:flex;flex-direction:column;border-radius:var(--radius-px-popup) var(--radius-px-popup) 0 0;overflow:hidden;margin-bottom:calc(-1 * max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)));padding-bottom:env(safe-area-inset-bottom)}
 .blatt.hoch{max-height:80%}
 .blatt.popup{border-radius:var(--radius-px-popup);max-height:90%;margin:0}
-.blatt .kopf{display:flex;align-items:center;gap:var(--abstand-px-2);padding:var(--abstand-px-1) var(--abstand-px-2);background:linear-gradient(var(--farbe-ui-kopf-oben),var(--farbe-ui-kopf-unten));border-bottom:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand)}
-.blatt .kopf h2{flex:1;margin:0;font-size:var(--schrift-groesse-px-titel);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.blatt .kopf .stufe{font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-klein);color:var(--farbe-ui-stufe-text);}
-.blatt .inhalt{padding:var(--abstand-px-2);overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
-.blatt p{margin:0 0 var(--abstand-px-1);font-size:var(--schrift-groesse-px-absatz);color:var(--farbe-ui-text-absatz);line-height:1.35}
+.blatt .kopf{display:flex;align-items:center;gap:var(--abstand-px-2);flex:none}
+.blatt .kopf h2{flex:1;margin:0;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blatt .inhalt{overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.blatt p{margin:0 0 var(--abstand-px-1);font-size:var(--schrift-groesse-px-absatz);line-height:1.35}
 .gedaempft{color:var(--farbe-ui-text-gedaempft)}
 .chips{display:flex;flex-wrap:wrap;gap:var(--abstand-px-1);margin:var(--abstand-px-1) 0}
-.chip{display:inline-block;padding:2px var(--abstand-px-1);border-radius:var(--radius-px-chip);border:var(--umriss-px-chip) solid var(--farbe-chip-neutral-rand);background:var(--farbe-chip-neutral-grund);color:var(--farbe-chip-neutral-text);font-size:var(--schrift-groesse-px-chip);font-weight:700}
-.chip.rot{border-color:var(--farbe-chip-rot-rand);background:var(--farbe-chip-rot-grund);color:var(--farbe-chip-rot-text)}
-.chip.gruen{border-color:var(--farbe-chip-gruen-rand);background:var(--farbe-chip-gruen-grund);color:var(--farbe-chip-gruen-text)}
-.chip.blau{border-color:var(--farbe-chip-blau-rand);background:var(--farbe-chip-blau-grund);color:var(--farbe-chip-blau-text)}
-.kasten{background:var(--farbe-ui-pergament-hell);border:2px solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);padding:var(--abstand-px-1) var(--abstand-px-2);margin:var(--abstand-px-1) 0}
-.kasten h3{margin:0 0 var(--abstand-px-1);font-size:var(--schrift-groesse-px-karte-titel);font-family:var(--schrift-anzeige)}
-.zeile{display:flex;align-items:center;justify-content:space-between;gap:var(--abstand-px-1);min-height:var(--groesse-px-tippflaeche-min);font-size:var(--schrift-groesse-px-text)}
-.zeile+.zeile{border-top:1px solid var(--farbe-ui-pergament-rand)}
-.balken{height:var(--groesse-px-fortschritt-hoehe);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-chip);background:var(--farbe-hud-fuellung-fortschritt-grund);overflow:hidden;margin:var(--abstand-px-1) 0}
+.zeile{display:flex;align-items:center;justify-content:space-between;gap:var(--abstand-px-1)}
+.balken{overflow:hidden;margin:var(--abstand-px-1) 0}
 .balken i{display:block;height:100%;background:var(--farbe-hud-fuellung-fortschritt-0)}
 
 /* ---------- Reiter + Katalog ---------- */
-.reiter{display:flex;gap:var(--abstand-px-1);overflow-x:auto;padding:var(--abstand-px-1) var(--abstand-px-2);touch-action:pan-x;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);flex:none}
-.reiter .knopf{flex:none;padding:0 var(--abstand-px-2)}
+.reiter{display:flex;overflow-x:auto;touch-action:pan-x;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);flex:none}
+.reiter .knopf{flex:none}
 .raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--groesse-px-katalog-karte-min-breite),46%),1fr));gap:var(--abstand-px-1)}
-.bkarte{display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;padding:var(--abstand-px-1);border:2px solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);background:var(--farbe-ui-pergament-hell);min-height:var(--groesse-px-tippflaeche-min)}
-.bkarte:active{transform:translateY(2px)}
-.bkarte canvas,.bkarte .bild{width:100%;height:var(--groesse-px-katalog-bild-hoehe);object-fit:cover;border-radius:var(--radius-px-chip);background:var(--farbe-karte-wiese-a);display:block}
+.bkarte{display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;min-height:var(--groesse-px-tippflaeche-min)}
+.bkarte canvas,.bkarte .bild{width:100%;height:var(--groesse-px-katalog-bild-hoehe);object-fit:cover;background:var(--farbe-karte-wiese-a);display:block}
 .bkarte.gesperrt canvas,.bkarte.gesperrt .bild{opacity:.45}
-.bkarte .titel{font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-karte-titel);line-height:1.15}
+.bkarte .titel{line-height:1.15}
 .bkarte .werte{font-size:var(--schrift-groesse-px-klein);color:var(--farbe-ui-text-gedaempft);font-weight:700}
-.bkarte .preis{font-family:var(--schrift-anzeige);font-weight:700;font-size:var(--schrift-groesse-px-text)}
-.bkarte .preis.zuteuer{color:var(--farbe-rolle-fehler)}
-.bkarte .grund{font-size:var(--schrift-groesse-px-klein);font-weight:700}
+.bkarte .grund{display:flex;align-items:center;gap:4px;font-size:var(--schrift-groesse-px-klein);font-weight:700}
+.bkarte .preis .sym,.bkarte .grund .sym{flex:none;width:14px;height:14px}
 .bkarte .abzeichen{align-self:flex-start}
 
 /* ---------- Toast / Banner ---------- */
 #toast{position:absolute;left:0;right:0;top:30%;display:flex;justify-content:center;pointer-events:none;padding:0 var(--groesse-px-rand-bildschirm)}
-#toast .toast{max-width:min(92%,420px);text-align:center;font-size:var(--schrift-groesse-px-toast);line-height:1.2;opacity:0;transition:opacity var(--zeit-ms-toast-blende)}
+#toast .toast{max-width:min(92%,420px);text-align:center;font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-toast);line-height:1.2;opacity:0;transition:opacity var(--zeit-ms-toast-blende)}
 #toast .toast.sichtbar{opacity:1}
-#toast .toast.lang{background:var(--farbe-ui-pergament);color:var(--farbe-ui-tinte);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);padding:var(--abstand-px-1) var(--abstand-px-2);font-size:var(--schrift-groesse-px-knopf)}
 .banner{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92%,420px);display:flex;align-items:center;gap:var(--abstand-px-1);flex-wrap:wrap;padding:var(--abstand-px-1) var(--abstand-px-2);background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);box-shadow:var(--schatten-schild)}
 .banner .wer{flex:1 1 140px;font-family:var(--schrift-anzeige);font-weight:700}
 .banner .wer small{display:block;font-family:var(--schrift-text);font-weight:700;color:var(--farbe-ui-text-gedaempft)}
 
 /* ---------- Eingabe ---------- */
-.feld{width:100%;min-height:var(--groesse-px-tippflaeche-min);padding:0 var(--abstand-px-2);border:2px solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-knopf);background:#fff;font:inherit;font-weight:700;color:var(--farbe-ui-tinte);-webkit-user-select:text;user-select:text}
+.feld{width:100%;padding:0 var(--abstand-px-2);font:inherit;-webkit-user-select:text;user-select:text}
 .schalter{display:flex;align-items:center;gap:var(--abstand-px-2);min-height:var(--groesse-px-tippflaeche-min);font-weight:700}
-.schalter input{width:24px;height:24px}
+
+/* ========== Menü-Stil v2 „Spielzeugkiste mit Rohrnaht“ (DESIGN.md 12, Regeln aus design/menue-v2-referenz.md) ========== */
+:root{--k:var(--menue-farbe-kontur);--kb:var(--menue-mass-px-kontur)}
+
+/* ---------- Knopf: eine Grundregel, Varianten setzen nur --f (Fläche), --u (Unterkante), --t (Schrift) ---------- */
+.knopf{--f:var(--menue-knopf-neutral-0);--u:var(--menue-knopf-neutral-1);--t:var(--menue-farbe-text);
+  min-height:var(--menue-mass-px-knopf-hoehe);padding:6px 14px 8px;border:var(--kb) solid var(--k);border-radius:var(--menue-mass-px-radius-knopf);
+  background:var(--f);color:var(--t);font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-knopf);letter-spacing:.02em;line-height:1.1;
+  box-shadow:inset 0 calc(-1 * var(--menue-mass-px-sockel)) 0 var(--u),inset 0 3px 0 var(--menue-farbe-glanz),0 3px 0 var(--k);
+  transition:transform var(--menue-zeit-ms-loslassen) var(--menue-kurve-plopp),box-shadow var(--menue-zeit-ms-loslassen)}
+.knopf:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 -1px 0 var(--u),inset 0 2px 0 rgba(0,0,0,.12),0 0 0 var(--k);transition-duration:var(--menue-zeit-ms-druck)}
+/* weiße Schrift mit Kontur (Fläche erreicht auch ohne Kontur >= 4,5:1) */
+.knopf.los,.knopf.taler,.knopf.blau,.knopf.gefahr{--t:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-knopf) var(--k);paint-order:stroke fill;text-shadow:0 2px 0 var(--k)}
+.knopf.los{--f:var(--menue-knopf-haupt-0);--u:var(--menue-knopf-haupt-1)}
+.knopf.geld,.knopf.heiss{--f:var(--menue-knopf-geld-0);--u:var(--menue-knopf-geld-1);--t:var(--k);text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.knopf.gefahr{--f:var(--menue-knopf-gefahr-0);--u:var(--menue-knopf-gefahr-1)}
+.knopf.taler{--f:var(--menue-knopf-taler-0);--u:var(--menue-knopf-taler-1)}
+.knopf.blau{--f:var(--menue-knopf-info-0);--u:var(--menue-knopf-info-1)}
+/* gewählt = eingedrückt (kein Sockel) + helles Gold: nie nur Farbe */
+.knopf.gewaehlt{--f:var(--menue-knopf-gewaehlt-0);--u:var(--menue-knopf-gewaehlt-1);transform:translateY(3px);box-shadow:inset 0 3px 0 rgba(59,29,10,.18),0 0 0 var(--k)}
+.knopf:disabled{--f:var(--menue-knopf-aus-0);--u:var(--menue-knopf-aus-1);--t:var(--menue-knopf-aus-text);opacity:1;cursor:not-allowed;border-color:var(--menue-knopf-aus-rand);-webkit-text-stroke:0;text-shadow:none;box-shadow:inset 0 -3px 0 var(--u),0 3px 0 var(--menue-knopf-aus-rand);transform:none}
+.knopf.klein{min-height:var(--menue-mass-px-knopf-hoehe-klein);font-size:var(--menue-schrift-groesse-px-knopf-klein);padding:4px 10px 6px}
+.knopf small{display:block;margin-top:2px;font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-knopf-unter);letter-spacing:0;-webkit-text-stroke:0;text-shadow:none;opacity:1;font-variant-numeric:tabular-nums}
+.knopf.los small,.knopf.taler small,.knopf.blau small,.knopf.gefahr small{text-shadow:0 1px 0 var(--k)}
+.knopf.stepper{width:48px;min-width:48px;flex:none;padding:0}
+.knopf.stepper .sym{width:22px;height:22px}
+.knopfreihe{gap:10px;margin-top:12px}
+
+/* ---------- Schließen: rotes Quadrat mit weißem X ---------- */
+.schliessen{width:var(--menue-mass-px-schliessen);height:var(--menue-mass-px-schliessen);padding:0;border:var(--kb) solid var(--k);border-radius:var(--menue-mass-px-radius-knopf);background:var(--menue-knopf-gefahr-0);color:#fff;
+  box-shadow:inset 0 -4px 0 var(--menue-knopf-gefahr-1),inset 0 3px 0 var(--menue-farbe-glanz),0 3px 0 var(--k)}
+.schliessen .sym{width:24px;height:24px;color:#fff;filter:drop-shadow(0 2px 0 var(--k))}
+.schliessen:active{transform:translateY(3px);box-shadow:inset 0 -1px 0 var(--menue-knopf-gefahr-1),0 0 0 var(--k)}
+
+/* ---------- Tafel = Seitenfläche und Popup ---------- */
+.blatt{background:var(--menue-farbe-tafel);border:var(--kb) solid var(--k);box-shadow:-4px 0 0 rgba(59,29,10,.25),0 12px 32px rgba(20,10,4,.3);animation:tafel-ein var(--menue-zeit-ms-tafel-ein) var(--menue-kurve-weich) both}
+.blatt.popup{box-shadow:0 6px 0 var(--k),0 18px 40px rgba(20,10,4,.4);animation:popup-ein var(--menue-zeit-ms-popup-ein) var(--menue-kurve-plopp) both}
+@keyframes tafel-ein{from{transform:translateX(24px);opacity:0}}
+@keyframes popup-ein{from{transform:scale(.9);opacity:0}}
+.blatt .kopf{position:relative;min-height:var(--menue-mass-px-kopfband-hoehe);padding:6px 8px 10px 16px;background:var(--menue-farbe-kopfband);border-bottom:var(--kb) solid var(--k);box-shadow:inset 0 3px 0 rgba(255,255,255,.22)}
+/* Erkennungsmerkmal: Vorlauf/Rücklauf-Naht (Farben des Schriftzugs Heat|net) */
+.blatt .kopf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--menue-mass-px-naht);background:linear-gradient(90deg,var(--menue-farbe-naht-vorlauf) 0 50%,var(--menue-farbe-naht-ruecklauf) 50% 100%)}
+.blatt .kopf h2{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-titel);letter-spacing:.02em;color:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-titel) var(--k);paint-order:stroke fill;text-shadow:0 3px 0 var(--k)}
+.blatt.popup .kopf h2{font-size:var(--menue-schrift-groesse-px-popup-titel)}
+.blatt .kopf .stufe:empty{display:none}
+.blatt .kopf .stufe{display:inline-flex;align-items:center;height:30px;padding:0 10px;border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:999px;background:var(--menue-knopf-geld-0);color:var(--k);font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-abzeichen);box-shadow:inset 0 -3px 0 var(--menue-knopf-geld-1),0 2px 0 var(--k)}
+.blatt .kopf :focus-visible{outline-color:#fff}
+.blatt .inhalt{padding:12px}
+.blatt p{color:var(--menue-farbe-text);font-weight:500}
+.blatt .gedaempft{color:var(--menue-farbe-text-gedaempft);font-weight:600}
+.abdunkeln{background:var(--menue-farbe-abdunkeln)}
+
+/* ---------- Kasten mit Mini-Kopfband ---------- */
+.kasten{background:var(--menue-farbe-tafel-innen);border:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie);border-radius:var(--menue-mass-px-radius-kasten);box-shadow:0 3px 0 var(--menue-farbe-tafel-linie);padding:0 12px 8px;margin:12px 0;overflow:hidden}
+.kasten h3{margin:0 -12px 4px;padding:8px 12px 6px;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie);font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-kasten-titel);letter-spacing:.02em;color:var(--k)}
+
+/* ---------- Zeile ---------- */
+.zeile{min-height:44px;font-size:var(--menue-schrift-groesse-px-zeile)}
+.zeile>span:first-child{color:var(--menue-farbe-text-gedaempft);font-weight:600}
+.zeile>span:last-child:not(:first-child){color:var(--k);font-weight:800;font-size:var(--menue-schrift-groesse-px-zeile-wert);font-variant-numeric:tabular-nums;text-align:right}
+.zeile+.zeile{border-top:2px dotted var(--menue-farbe-tafel-linie)}
+
+/* ---------- Chip (nur Anzeige) ---------- */
+.chip{display:inline-flex;align-items:center;gap:4px;height:var(--menue-mass-px-chip-hoehe);padding:0 10px;border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:999px;background:var(--menue-chip-neutral-0);color:var(--menue-chip-neutral-1);font-weight:800;font-size:var(--menue-schrift-groesse-px-chip);box-shadow:0 2px 0 rgba(59,29,10,.35)}
+.chip.gruen{background:var(--menue-chip-gruen-0);color:var(--menue-chip-gruen-1)}
+.chip.rot{background:var(--menue-chip-rot-0);color:var(--menue-chip-rot-1)}
+.chip.blau{background:var(--menue-chip-blau-0);color:var(--menue-chip-blau-1)}
+.chip.gold{background:var(--menue-chip-gold-0);color:var(--menue-chip-gold-1)}
+
+/* ---------- Balken ---------- */
+.balken{height:var(--menue-mass-px-balken-hoehe);border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:999px;background:var(--menue-farbe-balken-spur);box-shadow:inset 0 2px 0 rgba(59,29,10,.2)}
+.balken i{border-radius:999px;box-shadow:inset 0 3px 0 rgba(255,255,255,.4)}
+
+/* ---------- Reiter ---------- */
+.reiter{gap:8px;padding:10px 12px 8px;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
+.reiter .knopf{padding:2px 12px 6px}
+.reiter .knopf.gewaehlt{--f:var(--menue-farbe-kopfband);--u:var(--menue-knopf-info-1);--t:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-klein) var(--k);paint-order:stroke fill;text-shadow:0 2px 0 var(--k)}
+
+/* ---------- Bau-Katalog-Karte (tippbar wie ein Knopf) ---------- */
+.bkarte{background:var(--menue-farbe-tafel-innen);border:var(--kb) solid var(--k);border-radius:var(--menue-mass-px-radius-kasten);box-shadow:inset 0 -4px 0 var(--menue-farbe-tafel-linie),0 3px 0 var(--k);padding:6px 6px 10px}
+.bkarte:active{transform:translateY(3px);box-shadow:inset 0 -1px 0 var(--menue-farbe-tafel-linie),0 0 0 var(--k)}
+.bkarte canvas,.bkarte .bild{border-radius:8px;border:var(--menue-mass-px-kontur-fein) solid rgba(59,29,10,.35)}
+.bkarte .titel{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:16px;letter-spacing:.02em;color:var(--k)}
+.bkarte .preis{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 10px;border:2px solid var(--k);border-radius:999px;background:var(--menue-knopf-geld-0);font-family:var(--schrift-text);font-weight:800;font-size:13px;color:var(--k)}
+.bkarte .preis.zuteuer{background:var(--menue-chip-rot-0);color:var(--menue-chip-rot-1)}
+
+/* ---------- Feld und Schalter ---------- */
+.feld{min-height:48px;border:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-feld-rand);border-radius:var(--menue-mass-px-radius-knopf);background:#fff;box-shadow:inset 0 3px 0 rgba(59,29,10,.08);font-weight:700;color:var(--k)}
+.feld:focus-visible{outline:none;border-color:var(--k);box-shadow:0 0 0 3px var(--menue-farbe-naht-ruecklauf)}
+.schalter input{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:var(--menue-mass-px-schalter-breite);height:var(--menue-mass-px-schalter-hoehe);margin:7px 0;border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:999px;background:var(--menue-farbe-schalter-aus);box-shadow:inset 0 3px 0 rgba(59,29,10,.15);transition:background var(--menue-zeit-ms-loslassen)}
+.schalter input::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;box-sizing:border-box;border-radius:50%;background:#fff;border:2px solid var(--k);transition:transform var(--menue-zeit-ms-loslassen) var(--menue-kurve-plopp)}
+.schalter input:checked{background:var(--menue-farbe-schalter-an)}
+.schalter input:checked::after{transform:translateX(22px)}
+
+/* ---------- HUD ---------- */
+.pille{background:var(--menue-farbe-hud-grund);border:var(--menue-mass-px-kontur-fein) solid var(--k);box-shadow:0 3px 0 rgba(59,29,10,.45)}
+.pille .wert{color:var(--menue-farbe-hud-text);font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-hud-wert);text-shadow:0 2px 0 var(--k);font-variant-numeric:tabular-nums}
+.pille .sym{left:-18px;width:var(--menue-mass-px-hud-symbol);height:var(--menue-mass-px-hud-symbol);margin-top:-16px;padding:5px;border:var(--menue-mass-px-kontur-fein) solid var(--k);box-shadow:0 2px 0 var(--k);color:var(--k)}
+.pille.geld .sym{background:var(--menue-hud-symbol-geld)}
+.pille.waerme .sym{background:var(--menue-hud-symbol-waerme)}
+.pille.ruf .sym{background:var(--menue-hud-symbol-ruf)}
+.pille.taler .sym{background:var(--menue-hud-symbol-taler);color:#fff}
+.pille.monteure .sym{background:var(--menue-hud-symbol-monteur);color:#fff}
+.pille .fuell{background:var(--menue-farbe-hud-spur);height:5px;bottom:4px}
+.pille.mangel .wert,.pille.ruf.schlecht .wert{color:var(--menue-farbe-hud-text-mangel)}
+#hud :focus-visible{outline:3px solid var(--menue-farbe-fokus-auf-dunkel);outline-offset:2px}
+.dorfschild,.auftrag{background:var(--menue-farbe-tafel);border:var(--kb) solid var(--k);box-shadow:inset 0 -4px 0 var(--menue-farbe-tafel-linie),0 3px 0 var(--k)}
+.dorfschild .name{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-dorfname);letter-spacing:.02em;color:var(--k)}
+.dorfschild .unter{color:var(--menue-farbe-text-gedaempft)}
+.auftrag .marker{background:var(--menue-knopf-geld-0);border:2px solid var(--k);font-family:var(--menue-schrift-anzeige);font-weight:400;color:var(--k)}
+.auftrag .lohn{display:inline-flex;align-items:center;height:24px;padding:0 6px;border:2px solid var(--k);border-radius:999px;background:var(--menue-knopf-taler-0);color:#fff;font-family:var(--schrift-text);font-weight:800;font-size:12px}
+.rund .kreis{border:var(--kb) solid var(--k);box-shadow:inset 0 -4px 0 rgba(0,0,0,.2),0 3px 0 var(--k);background:var(--menue-knopf-haupt-0)}
+.rund.besuch .kreis{background:var(--menue-farbe-tafel)}
+.rund .etikett{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:15px;letter-spacing:.02em;color:#fff;-webkit-text-stroke:3px var(--k);paint-order:stroke fill;background:none;box-shadow:none}
+.zoomknopf{background:var(--menue-farbe-tafel);border:var(--kb) solid var(--k);border-radius:var(--menue-mass-px-radius-knopf);box-shadow:inset 0 -4px 0 var(--menue-farbe-tafel-linie),0 3px 0 var(--k);font-family:var(--menue-schrift-anzeige);font-weight:400;color:var(--k)}
+#toast .toast,#toast .toast.lang{background:var(--menue-farbe-hud-grund);color:#fff;border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:16px;box-shadow:0 3px 0 var(--k);font-weight:700;padding:8px 16px}
+
+/* ---------- Fokus ---------- */
+.blatt :focus-visible,.knopf:focus-visible{outline:3px solid var(--menue-farbe-fokus);outline-offset:3px}
+
 .preisstufen{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--abstand-px-1)}
 .preisstufen .knopf{padding:0 2px;font-size:var(--schrift-groesse-px-klein);min-width:0}
 
@@ -138,10 +236,19 @@ button{font:inherit;color:inherit;cursor:pointer}
   .blatt{border-radius:var(--radius-px-popup);margin-bottom:var(--groesse-px-rand-bildschirm)}
 }
 @media (prefers-reduced-motion:reduce){
-  .knopf,.pille .fuell i,#toast .toast{transition:none}
+  .pille .fuell i,#toast .toast{transition:none}
   #laden .bahn i{animation:none}
 }
-.weniger-bewegung .knopf,.weniger-bewegung .pille .fuell i,.weniger-bewegung #toast .toast{transition:none}
+.weniger-bewegung .pille .fuell i,.weniger-bewegung #toast .toast{transition:none}
+/* ---------- Weniger Bewegung (Systemeinstellung und Spiel-Schalter) ---------- */
+@media (prefers-reduced-motion:reduce){
+  .blatt,.blatt.popup{animation:none}
+  .knopf,.bkarte,.schliessen,.schalter input::after{transition:none}
+  .knopf:active:not(:disabled),.bkarte:active,.schliessen:active,.rund:active .kreis{transform:none;background:var(--u)}
+}
+.weniger-bewegung .blatt,.weniger-bewegung .blatt.popup{animation:none}
+.weniger-bewegung .knopf,.weniger-bewegung .bkarte,.weniger-bewegung .schliessen,.weniger-bewegung .schalter input::after{transition:none}
+.weniger-bewegung .knopf:active:not(:disabled),.weniger-bewegung .bkarte:active,.weniger-bewegung .schliessen:active,.weniger-bewegung .rund:active .kreis{transform:none;background:var(--u)}
 
 /* Solange ein Blatt offen ist, treten Rundbuttons und Zoom zurück (M3) */
 .blatt-offen .runde,.blatt-offen .zoom{display:none}
@@ -167,9 +274,11 @@ button{font:inherit;color:inherit;cursor:pointer}
   #ebene>.blatt{align-self:flex-end}
   .banner{top:auto;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom))}
 }
+/* Menü-Stil v2: Die Querformat-Regel oben gibt dem Popup rechts den alten hellen Rand zurück; hier bekommt es wieder die Kontur */
+@media (orientation:landscape) and (max-height:600px){.blatt.popup{border-right:var(--kb) solid var(--k)}}
 
 /* Wärmepreis-Regler und Verkaufsknöpfe (A29/A31) */
-.preiswert{flex:1;white-space:nowrap;padding:0 6px;text-align:center;font-weight:700;font-size:1.05rem}
+.preiswert{flex:1;align-self:center;white-space:nowrap;padding:0 6px;text-align:center;font-weight:700;font-size:1.05rem}
 .rechts{display:flex;gap:var(--abstand-px-1);align-items:center;flex-wrap:wrap;justify-content:flex-end}
 
 /* Querformat am Handy: Das Seitenblatt deckt die rechte Hälfte; dann bleibt nur die Geld-Anzeige stehen (Designer-Mangel 3) */
@@ -199,7 +308,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.sprecher-karte{transition:none}}
 .blatt-offen #sprecher{left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));transform:none;width:min(52%,380px)}
 .dorfschild{position:relative}
-.dorfschild .zahnrad{position:absolute;right:8px;top:6px;font-size:16px;line-height:1;color:var(--farbe-ui-dorfschild-untertext);opacity:.8}
+.dorfschild .zahnrad{position:absolute;right:8px;top:6px;width:20px;height:20px;line-height:0}
 .kwknopf{font-size:15px;font-weight:800}
 .kwknopf.aus{opacity:.55;text-decoration:line-through}
 /* A63/A64: Logo, Schriftzug und Ladebildschirm */
@@ -247,5 +356,6 @@ span.schriftzug>span.heat{color:#ff8a1f}span.schriftzug>span.net{color:#3a92ea}
 .einst-logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}.einst-logo .logo-bild{border-radius:24%}.einst-logo .schriftzug{font-size:30px}
 
 /* A83: Hinweis auf eine neue Version */
-.update-hinweis{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--farbe-ui-pergament);color:var(--farbe-ui-tinte);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);padding:6px 8px 6px 14px;z-index:50;max-width:calc(100% - 32px);font-weight:600}
+/* Menü-Stil v2: dunkle Kapsel wie die Meldung (DESIGN.md 12.8) */
+.update-hinweis{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--menue-farbe-hud-grund);color:var(--menue-farbe-hud-text);border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:16px;box-shadow:0 3px 0 var(--k);padding:6px 8px 6px 14px;z-index:50;max-width:calc(100% - 32px);font-weight:700}
 .update-hinweis .knopf{min-height:44px}
