@@ -178,3 +178,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* Wärmepreis-Regler und Verkaufsknöpfe (A29/A31) */
 .preiswert{flex:1;text-align:center;font-weight:700;font-size:1.05rem}
 .rechts{display:flex;gap:var(--abstand-px-1);align-items:center;flex-wrap:wrap;justify-content:flex-end}
+
+/* Querformat am Handy: Das Seitenblatt deckt die rechte Hälfte; dann bleibt nur die Geld-Anzeige stehen (Designer-Mangel 3) */
+@media (orientation:landscape) and (max-height:520px){
+  .blatt-offen .pillen .pille+.pille{display:none}
+}
+
+.durchmesser{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.durchmesser .knopf{min-width:0;padding-left:4px;padding-right:4px}

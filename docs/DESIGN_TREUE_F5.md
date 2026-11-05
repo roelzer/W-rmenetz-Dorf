@@ -57,3 +57,6 @@ Schwere: **hoch** = sichtbar kaputt oder Daten-/Bedienverlust · **mittel** = we
 
 ## Reihenfolge für die Umsetzung
 1, 2, 3, 4, 5 (hoch) → 6, 7, 9, 10, 11, 12 (spürbar beim Spielen) → 8, 13, 14 → Rest.
+
+## Nachtrag 2026-11-05 (Projektleiter, Solo)
+Erledigt: Mangel 14 teilweise (Wiese, Hintergrund, Blumen, Halme jetzt aus design/tokens.json; Gebäude und Bäume noch mit festen Farben), Lesbarkeit der Anzeigen (weiße Schrift auf hellen Pillen behoben), Mangel 3 (Querformat: Seitenblatt zeigt nur die Geld-Anzeige), Mangel 10 (Durchmesser direkt im Zeichenmodus wählbar), Mangel 13 (Willkommen zurück). Offen: 4–9, 11, 12, 15–22 (Bildschirmfotos zeigen Besserung, nicht einzeln neu geprüft).

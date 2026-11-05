@@ -1,5 +1,5 @@
 import { pruefeAuftraege, type Auftrag } from './core/auftraege';
-import { KATALOG, KONSTANTEN, type TypId } from './core/katalog';
+import { KATALOG, KONSTANTEN, LEITUNGEN, type TypId } from './core/katalog';
 import { groesse } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
@@ -118,7 +118,10 @@ export class Steuerung implements Ui {
   stempeln(typ: TypId): void {
     this.katalogUi.schliessen(); this.kontextUi.schliessen();
     this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null;
-    this.modusBlattOeffnen(`${KATALOG[typ].name} legen`, 'Tippe auf ein Feld oder zieh mit dem Finger eine Leitung von der Heizzentrale zum Haus. Zum Verschieben der Karte nimm zwei Finger.', 'Fertig', () => this.abbrechen());
+    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Tippe Felder an oder zieh die Leitung mit dem Finger. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); });
+    // Durchmesser direkt wählen (Designer-Mangel 10)
+    const wahl = h('div', { class: 'durchmesser' }, ...LEITUNGEN.filter((t) => this.spiel.grenze(t) > 0).map((t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'los' : '', { klein: true })));
+    this.modusBlatt?.inhalt.append(wahl);
   }
 
   private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void): void {
