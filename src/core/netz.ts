@@ -157,7 +157,8 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // Endprüfung (Kapazität): Last je Feld = eigene Kunden plus alles dahinter im Baum; ok, wenn das Feld und alle Felder
   // davor bis zur Heizzentrale die Last tragen. rest_kw = kleinste freie Kapazität von diesem Feld bis zur Heizzentrale.
   // A91: Dieselbe Funktion entscheidet über Wechsel und Endergebnis – eine Summierreihenfolge, kein Gleitkomma-Widerspruch.
-  const endpruefung = (an: Map<number, { feld: number }>): { ok: Map<number, boolean>; last_kw: Map<number, number>; rest_kw: Map<number, number> } => {
+  // Der Baum `el` muss Elternfelder vor ihren Kindern in `reihenfolge` haben (gilt, weil nur zu kleinerer Tiefe umgehängt wird).
+  const endpruefung = (an: ReadonlyMap<number, { feld: number }>, el: ReadonlyMap<number, number>): { ok: Map<number, boolean>; last_kw: Map<number, number>; rest_kw: Map<number, number> } => {
     const last = new Map<number, number>();
     for (const k of reihenfolge) last.set(k, 0);
     for (const o of kunden) {
@@ -165,12 +166,12 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       if (f >= 0) last.set(f, (last.get(f) as number) + bedarfKw(o));
     }
     for (let i = reihenfolge.length - 1; i >= 0; i--) {
-      const k = reihenfolge[i], p = eltern.get(k) as number;
+      const k = reihenfolge[i], p = el.get(k) as number;
       if (p >= 0) last.set(p, (last.get(p) as number) + (last.get(k) as number));
     }
     const ok = new Map<number, boolean>(), rest = new Map<number, number>();
     for (const k of reihenfolge) {
-      const p = eltern.get(k) as number, kap = kap_kw(k), lk = last.get(k) as number;
+      const p = el.get(k) as number, kap = kap_kw(k), lk = last.get(k) as number;
       ok.set(k, (p < 0 || (ok.get(p) as boolean)) && lk <= kap);
       rest.set(k, p < 0 ? kap - lk : Math.min(rest.get(p) as number, kap - lk));
     }
@@ -181,21 +182,21 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // hängt an einer anderen angrenzenden Leitung, die ihn mit der übrigen Last noch trägt. Wer ein eigenes Leitungsende hat,
   // bleibt daran, auch wenn es zu dünn ist (Spielregel: ein Haus wird über seinen Hausanschluss versorgt).
   const anschlussAlt = new Map(anschluss);
-  const pruefungAlt = endpruefung(anschluss);
-  let stand = pruefungAlt, gewechselt = false;
+  const pruefungAlt = endpruefung(anschluss, eltern);
+  let stand = pruefungAlt, geaendert = false;
+  const rang = (k: number): number => LEITUNGSRANG[(leitungAn(k) as Objekt).typ];
+  // A67: Ein Feld ist ein Abzweig, wenn mehrere Leitungen dahinter liegen, ein Gebäude dort anschließt oder es eine Vorsehung hat (A69).
+  const istAbzweig = (k: number, kinderzahl: number, gebaeude: number): boolean =>
+    kinderzahl >= 2 || gebaeude > 0 || !!(leitungAn(k) as Objekt).vorsehung;
+  // Aktueller Baum für die Warnprüfung bei Wechsel und Umhängen; wird nach jeder behaltenen Änderung nachgeführt.
+  const baum = baumKennzahlen(eltern, anschluss);
   if (kandidaten.size && [...pruefungAlt.ok.values()].includes(false)) {
-    const kinderVon = new Map<number, number[]>();
-    for (const k of reihenfolge) { const p = eltern.get(k) as number; if (p >= 0) kinderVon.set(p, [...(kinderVon.get(p) ?? []), k]); }
-    const anzahlAn = new Map<number, number>();
-    for (const a of anschluss.values()) if (a.feld >= 0) anzahlAn.set(a.feld, (anzahlAn.get(a.feld) ?? 0) + 1);
-    const rang = (k: number): number => LEITUNGSRANG[(leitungAn(k) as Objekt).typ];
     for (const id of [...kandidaten.keys()].sort((a, b) => a - b)) {
       const alt = (anschluss.get(id) as { feld: number }).feld;
       if (stand.ok.get(alt)) continue;
       // Kein Wechsel, wenn das alte Feld danach eine neue A67-Warnung bekäme (kein Abzweig mehr, ein Kind ist dünner).
-      const kinder = kinderVon.get(alt) ?? [];
-      if ((anzahlAn.get(alt) as number) <= 1 && kinder.length < 2 && !(leitungAn(alt) as Objekt).vorsehung &&
-        kinder.some((k) => rang(k) < rang(alt))) continue;
+      const kinder = baum.kinder.get(alt) ?? [];
+      if (!istAbzweig(alt, kinder.length, (baum.angebunden.get(alt) as number) - 1) && kinder.some((k) => rang(k) < rang(alt))) continue;
       const n = bedarfKw(nachId.get(id) as Objekt);
       const altWeg = new Set<number>();
       for (let f = alt; f >= 0; f = eltern.get(f) as number) altWeg.add(f);
@@ -215,12 +216,100 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       if (neu < 0) continue;
       // Probehalber umhängen; behalten nur, wenn die Endprüfung selbst das neue Feld trägt.
       anschluss.set(id, { feld: neu, tiefe: tiefe.get(neu) as number });
-      const probe = endpruefung(anschluss);
+      const probe = endpruefung(anschluss, eltern);
       if (!probe.ok.get(neu)) { anschluss.set(id, anschlussAlt.get(id) as { feld: number; tiefe: number }); continue; }
-      stand = probe; gewechselt = true;
-      anzahlAn.set(alt, (anzahlAn.get(alt) as number) - 1);
-      anzahlAn.set(neu, (anzahlAn.get(neu) ?? 0) + 1);
+      stand = probe; geaendert = true;
+      baum.angebunden.set(alt, (baum.angebunden.get(alt) as number) - 1);
+      baum.angebunden.set(neu, (baum.angebunden.get(neu) ?? 0) + 1);
     }
+  }
+
+  // A91 Netzbaum: Hat die Breitensuche ein Feld über ein dünneres Feld erreicht, hängt es an einem gleich nahen, mindestens
+  // so dicken Nachbarn, wenn dessen Weg die Last dahinter noch trägt. Die Fließrichtung ist eine Modellannahme des Spiels;
+  // Kapazität, Planungsfehler und Einspeisung werden entlang dieses Baums geprüft. Tiefe und Reihenfolge bleiben.
+  if (reihenfolge.some((k) => { const p = eltern.get(k) as number; return p >= 0 && rang(p) < rang(k); })) {
+    // Teilbäume, an denen eine Wärmequelle, ein Puffer oder ein Gewerbe hängt, bleiben, wo sie sind: Sonst änderte sich die
+    // Einspeisung (V1); schon mehr Wärme kann in der Verteilung ein bisher warmes Haus verdrängen (Bauplan NR15, AE-A91-4).
+    const mitQuelle = new Set<number>();
+    for (const o of objekte) {
+      const a = anschluss.get(o.id);
+      if (a && a.feld >= 0 && (KATALOG[o.typ].kategorie === 'waerme' || o.typ === 'gewerbe')) mitQuelle.add(a.feld);
+    }
+    for (let i = reihenfolge.length - 1; i >= 0; i--) {
+      const k = reihenfolge[i], p = eltern.get(k) as number;
+      if (p >= 0 && mitQuelle.has(k)) mitQuelle.add(p);
+    }
+    // Schrittweise Prüfung statt voller Endprüfung je Umhängen (dicht verlegte Netze mit Hunderten Umhängungen rechneten sonst
+    // ein Vielfaches): Ein Umhängen ändert die Last nur auf den Wegen über p und q zur Heizzentrale.
+    // Diese Felder werden genau so neu summiert wie in der Endprüfung (eigene Kunden, dann Kinder von hinten nach vorn in
+    // `reihenfolge`), damit Rest und Tragfähigkeit Bit für Bit dieselben sind wie bei einer vollen Endprüfung.
+    const platz = new Map(reihenfolge.map((k, i) => [k, i]));
+    const eigen = new Map<number, number>();
+    for (const k of reihenfolge) eigen.set(k, 0);
+    for (const o of kunden) {
+      const fa = (anschluss.get(o.id) as { feld: number }).feld;
+      if (fa >= 0) eigen.set(fa, (eigen.get(fa) as number) + bedarfKw(o));
+    }
+    const last = new Map(stand.last_kw);
+    const nachSummieren = (wege: number[]): void => {
+      const felder = new Set<number>();
+      for (const start of wege) for (let g = start; g >= 0; g = eltern.get(g) as number) felder.add(g);
+      for (const g of [...felder].sort((a, b) => (platz.get(b) as number) - (platz.get(a) as number))) {
+        let s = eigen.get(g) as number;
+        for (const c of [...(baum.kinder.get(g) ?? [])].sort((a, b) => (platz.get(b) as number) - (platz.get(a) as number))) s += last.get(c) as number;
+        last.set(g, s);
+      }
+    };
+    const restWeg = (q: number): number => {
+      let m = Infinity;
+      for (let g = q; g >= 0; g = eltern.get(g) as number) m = Math.min(m, kap_kw(g) - (last.get(g) as number));
+      return m;
+    };
+    const traegtWeg = (q: number): boolean => {
+      for (let g = q; g >= 0; g = eltern.get(g) as number) if ((last.get(g) as number) > kap_kw(g)) return false;
+      return true;
+    };
+    let umgehaengt = false;
+    for (const k of reihenfolge) {
+      const p = eltern.get(k) as number;
+      if (p < 0 || rang(p) >= rang(k) || mitQuelle.has(k)) continue;
+      // Ohne k wäre p kein Abzweig mehr, und ein verbleibendes Kind ist dünner → neue A67-Warnung an p.
+      const ohneK = (baum.kinder.get(p) as number[]).filter((c) => c !== k);
+      if (!istAbzweig(p, ohneK.length, baum.angebunden.get(p) ?? 0) && ohneK.some((c) => rang(c) < rang(p))) continue;
+      const tk = tiefe.get(k) as number, lastK = last.get(k) as number, x = k % N, y = (k - x) / N;
+      let neu = -1, beste = -Infinity;
+      for (const [dx, dy] of NACHBARN) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+        const q = ny * N + nx;
+        if (q === p || tiefe.get(q) !== tk - 1 || rang(q) < rang(k)) continue;
+        const kinderQ = baum.kinder.get(q) ?? [];
+        // k dünner als q und q auch mit k kein Abzweig → neue A67-Warnung an q.
+        if (rang(k) < rang(q) && !istAbzweig(q, kinderQ.length + 1, baum.angebunden.get(q) ?? 0)) continue;
+        // k so dick wie q und q hat schon einen so dicken Abgang → k käme in eine A76-Warnung an q.
+        if (rang(k) === rang(q) && kinderQ.some((c) => rang(c) >= rang(q))) continue;
+        // Rest über q auf dem aktuellen Baum, die Last hinter k zählt noch über p mit (vorsichtig gerechnet).
+        const r = restWeg(q);
+        if (r >= lastK && r > beste) { beste = r; neu = q; }
+      }
+      if (neu < 0) continue;
+      // Probehalber umhängen; behalten nur, wenn der neue Weg die Last trägt.
+      const mitP = baum.kinder.get(p) as number[], mitNeu = baum.kinder.get(neu) ?? [];
+      eltern.set(k, neu);
+      baum.kinder.set(p, ohneK);
+      baum.kinder.set(neu, [...mitNeu, k]);
+      nachSummieren([p, neu]);
+      if (!traegtWeg(neu)) {
+        eltern.set(k, p);
+        baum.kinder.set(p, mitP);
+        baum.kinder.set(neu, mitNeu);
+        nachSummieren([p, neu]);
+        continue;
+      }
+      umgehaengt = true;
+    }
+    // Schlussprüfung über das ganze Netz: Sie liefert das Ergebnis, die schrittweise Rechnung nur die Entscheidungen.
+    if (umgehaengt) { stand = endpruefung(anschluss, eltern); geaendert = true; }
   }
 
   // Last in den Leitungen (Baum von der Heizzentrale aus)
@@ -236,15 +325,12 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   }
   // A67 (Simon): Kleiner wird eine Leitung nur an einem Abzweig (T-Stück), nie mitten auf der Strecke.
   // Abzweig = das Feld davor hat mehrere Leitungen dahinter oder ein Gebäude schließt dort seitlich an.
-  const kinderzahl = new Map<number, number>();
-  for (const k of reihenfolge) { const p = eltern.get(k) as number; if (p >= 0) kinderzahl.set(p, (kinderzahl.get(p) ?? 0) + 1); }
-  const angebunden = new Set<number>();
-  for (const a of anschluss.values()) if (a.feld >= 0) angebunden.add(a.feld);
+  const endbaum = baumKennzahlen(eltern, anschluss);
   const reduzierung = new Set<number>();
   for (const k of reihenfolge) {
     const p = eltern.get(k) as number;
     if (p < 0 || LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) continue;
-    if ((kinderzahl.get(p) ?? 0) >= 2 || angebunden.has(p) || (leitungAn(p) as Objekt).vorsehung) continue; // A69: T-Stück mit Vorsehung ist ein Abzweig
+    if (istAbzweig(p, endbaum.kinder.get(p)?.length ?? 0, endbaum.angebunden.get(p) ?? 0)) continue; // A69: T-Stück mit Vorsehung ist ein Abzweig
     reduzierung.add(k); reduzierung.add(p);
   }
   // A76 (Simon): Teilt sich eine Leitung an einem T-Stück, laufen nicht beide Abgänge so dick weiter wie die Zuleitung –
@@ -289,10 +375,11 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   if (ohneSpeicher_kw > 0) aussen_kw += speicher_kw;
   const verfuegbar_kw = aussen_kw + abwaerme_kw + innen_kw;
 
-  // Wärme verteilen: nah zuerst, nur wenn die Leitungen reichen. A91 (Variante a): Wer erst durch den Anschlusswechsel
-  // warm werden kann (begünstigt), kommt zuletzt – so nimmt er keinem bisher warmen Haus die Wärme weg.
+  // Wärme verteilen: nah zuerst, nur wenn die Leitungen reichen. A91 (Variante a): Wer erst durch Anschlusswechsel oder
+  // Umhängen warm werden kann (begünstigt), kommt zuletzt – so nimmt er keinem bisher warmen Haus die Wärme weg.
+  // Alt geprüft wird auf dem Baum der Breitensuche (pruefungAlt), neu auf dem Endbaum.
   const beguenstigt = new Set<number>();
-  if (gewechselt) {
+  if (geaendert) {
     for (const o of kunden) {
       const fa = (anschlussAlt.get(o.id) as { feld: number }).feld, fn = (anschluss.get(o.id) as { feld: number }).feld;
       if (fa >= 0 && !pruefungAlt.ok.get(fa) && fn >= 0 && kapazitaet_ok.get(fn)) beguenstigt.add(o.id);
@@ -389,14 +476,24 @@ export function eigenerAnschlussZuDuenn(netz: Netz, o: Objekt): boolean {
   if (netz.kalt.get(o.id) !== 'leitung' || f === undefined || f < 0) return false;
   const istLeitungsfeld = (k: number): boolean => { const l = netz.nachId.get(netz.belegung[k]); return !!l && istLeitung(l.typ); };
   if (leitungsNachbarn(f % N, Math.floor(f / N), istLeitungsfeld) > 1) return false;
-  const kinderzahl = new Map<number, number>();
-  for (const p of netz.eltern.values()) if (p >= 0) kinderzahl.set(p, (kinderzahl.get(p) ?? 0) + 1);
-  const angebunden = new Set<number>();
-  for (const a of netz.anschluss.values()) angebunden.add(a.feld);
+  const { kinder, angebunden } = baumKennzahlen(netz.eltern, netz.anschluss);
   let t = f;
-  for (let p = netz.eltern.get(t) as number; p >= 0 && kinderzahl.get(p) === 1 && !angebunden.has(p); p = netz.eltern.get(t) as number) t = p;
+  for (let p = netz.eltern.get(t) as number; p >= 0 && kinder.get(p)?.length === 1 && !angebunden.has(p); p = netz.eltern.get(t) as number) t = p;
   const s = netz.eltern.get(t) as number;
   return s < 0 || netz.kapazitaet_ok.get(s) === true;
+}
+
+/** Grundlage der Abzweig-Regel A67: Kinder je Leitungsfeld im Baum `eltern` und Zahl der Gebäude, die an einem Feld anschließen. */
+function baumKennzahlen(eltern: ReadonlyMap<number, number>, anschluss: ReadonlyMap<number, { feld: number }>): { kinder: Map<number, number[]>; angebunden: Map<number, number> } {
+  const kinder = new Map<number, number[]>();
+  for (const [k, p] of eltern) {
+    if (p < 0) continue;
+    const liste = kinder.get(p);
+    if (liste) liste.push(k); else kinder.set(p, [k]);
+  }
+  const angebunden = new Map<number, number>();
+  for (const a of anschluss.values()) if (a.feld >= 0) angebunden.set(a.feld, (angebunden.get(a.feld) ?? 0) + 1);
+  return { kinder, angebunden };
 }
 
 export type { TypId };

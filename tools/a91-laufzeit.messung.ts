@@ -3,6 +3,7 @@ import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { berechneNetz, bedarfKw } from '../src/core/netz';
 import { passendeStation, type TypId } from '../src/core/katalog';
 import type { InnenQuelle, Objekt } from '../src/core/typen';
+import { berechneNetzAlt } from '../tests/hilfen/netz-alt-a91';
 
 // A91 Laufzeitmessung M1–M5 (Bauplan docs/bauplaene/NR15-netzmodell.md, Paket P1). Je 20 Aufwärmläufe, dann Median.
 // Die Grenzen sind hart: Reißt eine, ist das ein Fall für den Projektleiter, nicht für eine größere Grenze.
@@ -78,18 +79,29 @@ describe('A91 Laufzeit', () => {
     s.stand.geld_eur = 1e8;
     s.hz.stufe = 3;
     s.stand.abschnitt = { phase: 'offen', bau: null };
+    // Volles Startdorf (Review P1, K2): Das Startnetz hat an der Heizzentrale nur d40 und ist nach 2–3 Häusern voll, und
+    // mit Kessel Stufe 1 lehnt die Planung weitere Häuser wegen Wärmemangel ab. Deshalb d63 statt d40 und Kessel 5 schon
+    // beim Planen. Ein Haus, an dem eine schon geplante Leitung vorbeiführt, braucht nur seine Station.
+    for (const o of s.stand.objekte) if (o.typ === 'd40') o.typ = 'd63';
+    s.stand.innen = KESSEL_5.map((q) => ({ ...q }));
     s.neuBerechnen();
     let angeschlossen = 0;
     for (const h of s.stand.objekte.filter((o) => ['efh', 'rh', 'baeck', 'mfh'].includes(o.typ) && o.ohne_station)) {
-      if (!s.hausanschlussPlanen(h.id).ok) continue;
+      const e = s.hausanschlussPlanen(h.id);
+      if (!e.ok && e.hinweis !== 'Das Haus liegt schon an einer Leitung') continue;
       expect(s.stationKaufen(h.id, passendeStation(bedarfKw(h)).id).ok).toBe(true);
       angeschlossen++;
     }
     for (const o of s.stand.objekte) delete o.geplant;
     const objekte = s.stand.objekte;
-    expect([...berechneNetz(objekte, KESSEL_5, 2).kalt.values()]).not.toContain('station');
+    const neu = berechneNetz(objekte, KESSEL_5, 2), alt = berechneNetzAlt(objekte, KESSEL_5, 2);
+    expect([...neu.kalt.values()]).not.toContain('station');
+    // Wirkt die neue Regel hier? Gezählt gegen die eingefrorene alte Rechnung, nur berichtet: Die geplanten Hausanschlüsse
+    // sind eigene Leitungsenden und das Netz trägt, also gibt es im Startdorf nichts zu wechseln (den schweren Fall misst M3).
+    const wechsel = objekte.filter((o) => alt.anschluss.get(o.id)?.feld !== neu.anschluss.get(o.id)?.feld).length;
+    const umgehaengt = [...neu.eltern].filter(([k, p]) => alt.eltern.get(k) !== p).length;
     const ms = miss(50, () => null, () => { berechneNetz(objekte, KESSEL_5, 2); });
-    bericht('M1', ms, 2, `, ${angeschlossen} Anschlüsse, ${objekte.length} Objekte`);
+    bericht('M1', ms, 2, `, ${angeschlossen} Anschlüsse, ${objekte.length} Objekte, ${wechsel} Anschlusswechsel, ${umgehaengt} umgehängte Felder`);
     expect(ms).toBeLessThanOrEqual(2);
   }, 120_000);
 
@@ -140,4 +152,38 @@ describe('A91 Laufzeit', () => {
     bericht('M5', ms, 100, `, ${rechnungen} Netzrechnungen`);
     expect(ms).toBeLessThanOrEqual(100);
   }, 120_000);
+});
+
+/** Dicht verlegtes Netz ohne Häuser (Review P2, W2): Heizzentrale Stufe 3 bei (10|10), Leitung auf jedem Feld, für das
+ *  `typ` einen Typ liefert. Wechseln die Typen, erreicht die Breitensuche viele Felder über ein dünneres Feld (viele Umhängungen). */
+function dichtesNetz(typ: (x: number, y: number) => TypId | null): Objekt[] {
+  const objekte: Objekt[] = [{ id: 1, typ: 'hz', x: 10, y: 10, stufe: 3, bau: null, kasse_eur: 0 }];
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      if (x >= 10 && x <= 12 && y >= 10 && y <= 12) continue;
+      const t = typ(x, y);
+      if (t) objekte.push({ id: objekte.length + 1, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0 });
+    }
+  }
+  return objekte;
+}
+
+describe('A91 Laufzeit – viele Umhängungen', () => {
+  // Grenze wie M3 (eine Netzrechnung im Extremnetz). M6b/M6c: die beiden weiteren Muster aus dem Review.
+  const muster: Array<[string, (x: number, y: number) => TypId | null]> = [
+    ['M6 Zeilen abwechselnd d32/d63', (_x, y) => (y % 2 === 0 ? 'd32' : 'd63')],
+    ['M6b nur obere Hälfte (y < 12) so belegt', (_x, y) => (y >= 12 ? null : y % 2 === 0 ? 'd32' : 'd63')],
+    ['M6c Diagonalmuster d32/d63', (x, y) => (Math.floor((x + y) / 2) % 2 === 0 ? 'd32' : 'd63')],
+  ];
+  for (const [name, typ] of muster) {
+    it(`${name}: berechneNetz ≤ 8 ms`, () => {
+      const objekte = dichtesNetz(typ);
+      const neu = berechneNetz(objekte, KESSEL_5, 2), alt = berechneNetzAlt(objekte, KESSEL_5, 2);
+      const umgehaengt = [...neu.eltern].filter(([k, p]) => alt.eltern.get(k) !== p).length;
+      const msAlt = miss(50, () => null, () => { berechneNetzAlt(objekte, KESSEL_5, 2); });
+      const ms = miss(50, () => null, () => { berechneNetz(objekte, KESSEL_5, 2); });
+      bericht(name, ms, 8, `, ${objekte.length} Objekte, ${umgehaengt} umgehängte Felder, alte Rechnung ${msAlt.toFixed(2)} ms`);
+      expect(ms).toBeLessThanOrEqual(8);
+    }, 120_000);
+  }
 });
