@@ -159,3 +159,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 15:42 | ▶ | tester | A90 Abnahmetest schreiben |
 | 2026-11-05 15:43 | ▶ | entwickler | Designer-Kann 1+2 nachziehen |
 | 2026-11-05 15:43 | ▶ | architekt | NR15 Netzmodell planen |
+| 2026-11-05 16:45 | ▶ | produktpruefer | NR16 reproduzieren + Knopf-Durchgang |
