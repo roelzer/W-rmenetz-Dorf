@@ -119,12 +119,18 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const hzFelder = new Set<number>();
   { const s = groesse(hz); for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) hzFelder.add((hz.y + dy) * N + hz.x + dx); }
 
-  // Anschlusspunkt je Gebäude: nächstes erreichtes Leitungsfeld (oder direkt an der Heizzentrale)
+  // A49: Eine Leitung transportiert bei größerer Spreizung mehr Wärme (Q = m·c·ΔT): Kapazität × Spreizung / Basisspreizung
+  const spreizung_faktor = mittlereSpreizung_k(objekte, undefined, vorlauf_c) / SPREIZUNG_BASIS_K;
+  const kap_kw = (k: number): number => (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor;
+
+  // Anschlusspunkt je Gebäude, Durchgang 1: nächstes erreichtes Leitungsfeld (oder direkt an der Heizzentrale)
   const anschluss = new Map<number, { feld: number; tiefe: number }>();
+  const kandidaten = new Map<number, number[]>(); // A91: angrenzende erreichte Felder je Kunde ohne eigenes Leitungsende
   for (const o of objekte) {
     const kat = KATALOG[o.typ].kategorie;
     if (!(kat === 'haus' || kat === 'waerme' || kat === 'gross')) continue;
-    let best: number | null = null, bd = 1e9;
+    let best: number | null = null, bd = 1e9, eigenesEnde = false;
+    const felder: number[] = [];
     for (const [x, y] of rund(o)) {
       const k = y * N + x;
       if (hzFelder.has(k)) { best = -1; bd = 0; break; }
@@ -134,36 +140,92 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       // das am Haus endet (Hausanschluss); nur wenn es keins gibt, zählt die vorbeilaufende Leitung.
       const px = k % N, py = (k - px) / N;
       const nb = leitungsNachbarn(px, py, (f) => !!leitungAn(f));
+      if (nb <= 1) eigenesEnde = true;
+      felder.push(k);
       const wert = (nb <= 1 ? 0 : 1000) + t;
       if (wert < bd) { bd = wert; best = k; }
     }
-    if (best !== null) anschluss.set(o.id, { feld: best, tiefe: best === -1 ? 0 : (tiefe.get(best) as number) });
+    if (best !== null) {
+      anschluss.set(o.id, { feld: best, tiefe: best === -1 ? 0 : (tiefe.get(best) as number) });
+      if (best >= 0 && !eigenesEnde && felder.length >= 2 && istKunde(o)) kandidaten.set(o.id, felder);
+    }
     // A24: Ein Pufferspeicher außen ist ohne eigene Leitung mit der Heizzentrale verbunden.
     else if (o.typ === 'puffer') anschluss.set(o.id, { feld: -1, tiefe: 0 });
   }
+  const kunden = objekte.filter((o) => istKunde(o) && anschluss.has(o.id));
+
+  // Endprüfung (Kapazität): Last je Feld = eigene Kunden plus alles dahinter im Baum; ok, wenn das Feld und alle Felder
+  // davor bis zur Heizzentrale die Last tragen. rest_kw = kleinste freie Kapazität von diesem Feld bis zur Heizzentrale.
+  // A91: Dieselbe Funktion entscheidet über Wechsel und Endergebnis – eine Summierreihenfolge, kein Gleitkomma-Widerspruch.
+  const endpruefung = (an: Map<number, { feld: number }>): { ok: Map<number, boolean>; last_kw: Map<number, number>; rest_kw: Map<number, number> } => {
+    const last = new Map<number, number>();
+    for (const k of reihenfolge) last.set(k, 0);
+    for (const o of kunden) {
+      const f = (an.get(o.id) as { feld: number }).feld;
+      if (f >= 0) last.set(f, (last.get(f) as number) + bedarfKw(o));
+    }
+    for (let i = reihenfolge.length - 1; i >= 0; i--) {
+      const k = reihenfolge[i], p = eltern.get(k) as number;
+      if (p >= 0) last.set(p, (last.get(p) as number) + (last.get(k) as number));
+    }
+    const ok = new Map<number, boolean>(), rest = new Map<number, number>();
+    for (const k of reihenfolge) {
+      const p = eltern.get(k) as number, kap = kap_kw(k), lk = last.get(k) as number;
+      ok.set(k, (p < 0 || (ok.get(p) as boolean)) && lk <= kap);
+      rest.set(k, p < 0 ? kap - lk : Math.min(rest.get(p) as number, kap - lk));
+    }
+    return { ok, last_kw: last, rest_kw: rest };
+  };
+
+  // A91 Durchgang 2: Ein Kunde ohne eigenes Leitungsende, der an der zuerst gefundenen Leitung wegen Überlast kalt wäre,
+  // hängt an einer anderen angrenzenden Leitung, die ihn mit der übrigen Last noch trägt. Wer ein eigenes Leitungsende hat,
+  // bleibt daran, auch wenn es zu dünn ist (Spielregel: ein Haus wird über seinen Hausanschluss versorgt).
+  const anschlussAlt = new Map(anschluss);
+  const pruefungAlt = endpruefung(anschluss);
+  let stand = pruefungAlt, gewechselt = false;
+  if (kandidaten.size && [...pruefungAlt.ok.values()].includes(false)) {
+    const kinderVon = new Map<number, number[]>();
+    for (const k of reihenfolge) { const p = eltern.get(k) as number; if (p >= 0) kinderVon.set(p, [...(kinderVon.get(p) ?? []), k]); }
+    const anzahlAn = new Map<number, number>();
+    for (const a of anschluss.values()) if (a.feld >= 0) anzahlAn.set(a.feld, (anzahlAn.get(a.feld) ?? 0) + 1);
+    const rang = (k: number): number => LEITUNGSRANG[(leitungAn(k) as Objekt).typ];
+    for (const id of [...kandidaten.keys()].sort((a, b) => a - b)) {
+      const alt = (anschluss.get(id) as { feld: number }).feld;
+      if (stand.ok.get(alt)) continue;
+      // Kein Wechsel, wenn das alte Feld danach eine neue A67-Warnung bekäme (kein Abzweig mehr, ein Kind ist dünner).
+      const kinder = kinderVon.get(alt) ?? [];
+      if ((anzahlAn.get(alt) as number) <= 1 && kinder.length < 2 && !(leitungAn(alt) as Objekt).vorsehung &&
+        kinder.some((k) => rang(k) < rang(alt))) continue;
+      const n = bedarfKw(nachId.get(id) as Objekt);
+      const altWeg = new Set<number>();
+      for (let f = alt; f >= 0; f = eltern.get(f) as number) altWeg.add(f);
+      // Freie Kapazität auf dem Weg des Kandidaten, ohne die eigene Last: Auf dem Stück, das er mit dem alten Weg teilt,
+      // ist die eigene Last schon enthalten und wandert nur mit (sonst zählte sie doppelt).
+      const restOhne = (k: number): number => {
+        let m = Infinity, f = k;
+        for (; f >= 0 && !altWeg.has(f); f = eltern.get(f) as number) m = Math.min(m, kap_kw(f) - (stand.last_kw.get(f) as number));
+        return f >= 0 ? Math.min(m, (stand.rest_kw.get(f) as number) + n) : m;
+      };
+      let neu = -1, beste = -Infinity;
+      for (const k of kandidaten.get(id) as number[]) {
+        if (k === alt) continue;
+        const r = restOhne(k);
+        if (r >= n && r > beste) { beste = r; neu = k; }
+      }
+      if (neu < 0) continue;
+      // Probehalber umhängen; behalten nur, wenn die Endprüfung selbst das neue Feld trägt.
+      anschluss.set(id, { feld: neu, tiefe: tiefe.get(neu) as number });
+      const probe = endpruefung(anschluss);
+      if (!probe.ok.get(neu)) { anschluss.set(id, anschlussAlt.get(id) as { feld: number; tiefe: number }); continue; }
+      stand = probe; gewechselt = true;
+      anzahlAn.set(alt, (anzahlAn.get(alt) as number) - 1);
+      anzahlAn.set(neu, (anzahlAn.get(neu) ?? 0) + 1);
+    }
+  }
 
   // Last in den Leitungen (Baum von der Heizzentrale aus)
-  const last_kw = new Map<number, number>();
-  const eigen = new Map<number, number>();
-  for (const k of reihenfolge) { last_kw.set(k, 0); eigen.set(k, 0); }
-  const kunden = objekte.filter((o) => istKunde(o) && anschluss.has(o.id));
-  for (const o of kunden) {
-    const a = anschluss.get(o.id) as { feld: number };
-    if (a.feld >= 0) eigen.set(a.feld, (eigen.get(a.feld) as number) + bedarfKw(o));
-  }
-  for (const k of reihenfolge) last_kw.set(k, eigen.get(k) as number);
-  for (let i = reihenfolge.length - 1; i >= 0; i--) {
-    const k = reihenfolge[i], p = eltern.get(k) as number;
-    if (p >= 0) last_kw.set(p, (last_kw.get(p) as number) + (last_kw.get(k) as number));
-  }
-  // A49: Eine Leitung transportiert bei größerer Spreizung mehr Wärme (Q = m·c·ΔT): Kapazität × Spreizung / Basisspreizung
-  const spreizung_faktor = mittlereSpreizung_k(objekte, undefined, vorlauf_c) / SPREIZUNG_BASIS_K;
-  const kapazitaet_ok = new Map<number, boolean>();
-  for (const k of reihenfolge) {
-    const p = eltern.get(k) as number;
-    const kap = (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor;
-    kapazitaet_ok.set(k, (p < 0 || (kapazitaet_ok.get(p) as boolean)) && (last_kw.get(k) as number) <= kap);
-  }
+  const last_kw = stand.last_kw;
+  const kapazitaet_ok = stand.ok;
   // Fachregel: Dimension in Fließrichtung nur gleich oder kleiner
   const engpass = new Set<number>();
   for (const k of reihenfolge) {
@@ -227,12 +289,21 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   if (ohneSpeicher_kw > 0) aussen_kw += speicher_kw;
   const verfuegbar_kw = aussen_kw + abwaerme_kw + innen_kw;
 
-  // Wärme verteilen: nah zuerst, nur wenn die Leitungen reichen
+  // Wärme verteilen: nah zuerst, nur wenn die Leitungen reichen. A91 (Variante a): Wer erst durch den Anschlusswechsel
+  // warm werden kann (begünstigt), kommt zuletzt – so nimmt er keinem bisher warmen Haus die Wärme weg.
+  const beguenstigt = new Set<number>();
+  if (gewechselt) {
+    for (const o of kunden) {
+      const fa = (anschlussAlt.get(o.id) as { feld: number }).feld, fn = (anschluss.get(o.id) as { feld: number }).feld;
+      if (fa >= 0 && !pruefungAlt.ok.get(fa) && fn >= 0 && kapazitaet_ok.get(fn)) beguenstigt.add(o.id);
+    }
+  }
   const warm = new Set<number>();
   const kalt = new Map<number, 'leitung' | 'waerme' | 'station'>();
   let genutzt_kw = 0, bedarf_kw = 0;
   const geordnet = [...kunden].sort(
-    (a, b) => (anschluss.get(a.id) as { tiefe: number }).tiefe - (anschluss.get(b.id) as { tiefe: number }).tiefe || a.id - b.id,
+    (a, b) => Number(beguenstigt.has(a.id)) - Number(beguenstigt.has(b.id)) ||
+      (anschluss.get(a.id) as { tiefe: number }).tiefe - (anschluss.get(b.id) as { tiefe: number }).tiefe || a.id - b.id,
   );
   for (const o of geordnet) {
     const n = bedarfKw(o);
@@ -306,6 +377,26 @@ export function dorfwert(objekte: Objekt[], innen: InnenQuelle[]): number {
     else if (D.kategorie === 'gross' && o.zustand === 'vertrag') v += 40;
   }
   return v;
+}
+
+/**
+ * A91: Liegt die Überlast eines kalten Hauses ganz in seinem eigenen Hausanschluss? Dann hilft nur ein dickerer
+ * Hausanschluss (das Haus wechselt nicht auf eine andere Leitung). Endstück = Anschlussfeld und die Felder davor,
+ * solange dort weder ein Abzweig noch ein weiteres Gebäude ist; davor muss die Leitung die Last tragen.
+ */
+export function eigenerAnschlussZuDuenn(netz: Netz, o: Objekt): boolean {
+  const f = netz.anschluss.get(o.id)?.feld;
+  if (netz.kalt.get(o.id) !== 'leitung' || f === undefined || f < 0) return false;
+  const istLeitungsfeld = (k: number): boolean => { const l = netz.nachId.get(netz.belegung[k]); return !!l && istLeitung(l.typ); };
+  if (leitungsNachbarn(f % N, Math.floor(f / N), istLeitungsfeld) > 1) return false;
+  const kinderzahl = new Map<number, number>();
+  for (const p of netz.eltern.values()) if (p >= 0) kinderzahl.set(p, (kinderzahl.get(p) ?? 0) + 1);
+  const angebunden = new Set<number>();
+  for (const a of netz.anschluss.values()) angebunden.add(a.feld);
+  let t = f;
+  for (let p = netz.eltern.get(t) as number; p >= 0 && kinderzahl.get(p) === 1 && !angebunden.has(p); p = netz.eltern.get(t) as number) t = p;
+  const s = netz.eltern.get(t) as number;
+  return s < 0 || netz.kapazitaet_ok.get(s) === true;
 }
 
 export type { TypId };
