@@ -3,7 +3,7 @@
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** warten auf Simons Antworten Q2–Q5, F2–F3 · **Zuletzt fertig:** A67 Reduzierung nur am Abzweig, A68 Fachprüfungs-Befunde, A69 T-Stück mit Vorsehung/Anbohrung, A70 Kartenoptik; Reviewer-Befunde 1–9 · **Als Nächstes:** Designer-Reste O2, O5, O6, O8, O9, V1/V2; kleine Reviewer-Punkte K4, K5 · **Fortschritt:** 237 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us (main = gleicher Stand)
+> **Jetzt:** warten auf Simons Antworten Q2–Q5, F2–F3 · **Zuletzt fertig:** A67 Reduzierung nur am Abzweig, A68 Fachprüfungs-Befunde, A69 T-Stück mit Vorsehung/Anbohrung, A70 Kartenoptik; Reviewer-Befunde 1–9 · **Als Nächstes:** neue Richtung A71–A80 (lastenheft, Abschnitt „Neue Richtung und Review“), danach Designer-Reste O2, O5, O6, O8, O9, V1/V2; kleine Reviewer-Punkte K4, K5 · **Fortschritt:** 237 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us (main = gleicher Stand)
 
 ## Ampel
 🟢 läuft

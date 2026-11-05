@@ -34,7 +34,9 @@ S1 Spielst nur du oder später auch Laien? S2 Spielzeit: 1 Spieljahr ≈ 2–3 W
 ## Stationen „HP 1000 / ÜP 1000 / HP 800 / ÜP 800“ (2026-11-05)
 Recherche (docs/recherche/stationen-hp-up.md, Sicherheit gelb): Die Bezeichnungen sind im Netz nicht eindeutig belegt, kein Hersteller-Treffer. Frage an Simon: Von welchem Hersteller/Projekt stammen die Namen, und was bedeuten HP/ÜP und 800/1000 (Liter? l/h? kW passt nicht zu „ab 40 kW“)? Gefunden: Wandstationen gibt es real etwa von 10 bis 50–80 kW (indirekt, mit Wärmeübertrager). Bis zur Antwort bleibt der Stationskatalog unverändert (Wandstationen 15–80 kW). Umsetzung „Wandstation erst ab 40 kW, darunter HP/ÜP“ wartet auf Simons Antwort.
 
-## Nur Simon: Fotos der Mitarbeiter (2026-11-05)
+## Nur Simon: Fotos der Mitarbeiter (2026-11-05) – ✅ beantwortet
+✅ Simon 2026-11-05: Die Bilder stammen aus dem Internet, für ihn kein Problem – bleibt so, nicht erneut fragen.
+
 Die Fotos in public/figuren/ zeigen echte Personen und werden mit dem Spiel öffentlich bei Cloudflare ausgeliefert. Bitte vor der Veröffentlichung das Einverständnis aller fünf einholen (Recht am eigenen Bild, DSGVO). Zum Entfernen: Dateien löschen, dann erscheinen automatisch die gezeichneten Gesichter.
 
 ## Fragen an Simon (2026-11-05, nach Prüfrunde A45–A66)
