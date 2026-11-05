@@ -6,8 +6,10 @@ import { describe, expect, it } from 'vitest';
  * A88 Freischalt-Leiter – Architekturregel (Bauplan docs/bauplaene/A88-freischalt-leiter.md, AE-A88-1):
  * Ob etwas freigeschaltet ist, entscheidet genau eine Stelle im Kern (src/core/freischaltung.ts).
  * Oberfläche, Darstellung und Steuerung fragen nur `freigeschaltet()` / `sperrgrund()` ab und rechnen nie selbst.
- * Die Regeln greifen, sobald src/core/freischaltung.ts existiert (vorher gilt der alte Stand ohne Leiter).
- * Liest nur Dateien, führt keinen Spielcode aus.
+ * Seit Simons F3 (2026-11-05) gilt die Leiter für alle Spielstände: kein Merker `freischalt_leiter`, kein Schalter im Produktivcode.
+ * Die Tabelle wird nur in freischaltung.ts gelesen, damit Tests mit den Stufen von vor A88 das Modul per vi.mock tauschen können
+ * (tests/ohne-leiter.ts, Bauplan Abschnitt 11) – ein direkter Tabellenzugriff in spiel.ts würde daran vorbeilaufen.
+ * Die Regeln greifen, sobald src/core/freischaltung.ts existiert. Liest nur Dateien, führt keinen Spielcode aus.
  */
 
 function dateien(dir: string): string[] {
@@ -56,7 +58,15 @@ describe('A88 Freischaltung: eine Regel im Kern, die Oberfläche fragt nur ab', 
     it(`${f} nutzt keine abgelösten Stufen-Felder (min_hz_stufe, baugebiet_hz_stufe)`, () => {
       expect(text).not.toMatch(/\b(min_hz_stufe|baugebiet_hz_stufe)\b/);
     });
+    it(`${f} kennt keinen Merker freischalt_leiter (F3: alle Spielstände bekommen die Leiter)`, () => {
+      expect(text).not.toMatch(/\bfreischalt_leiter\b/);
+    });
   }
+
+  it('die Freischalt-Tabelle wird nur in src/core/freischaltung.ts gelesen (auch nicht in spiel.ts)', () => {
+    const mitZugriff = alle.filter((f) => /\bFREISCHALTUNGEN\b/.test(ohneKommentare(readFileSync(f, 'utf8'))));
+    expect(mitZugriff).toEqual([KERN_MODUL]);
+  });
 
   it('die Freischalt-Tabelle steht nur in src/core/freischaltung.ts', () => {
     const mitTabelle = alle.filter((f) => /\bFREISCHALTUNGEN\s*[:=]/.test(ohneKommentare(readFileSync(f, 'utf8'))));
