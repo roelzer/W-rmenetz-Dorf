@@ -743,3 +743,12 @@ describe('A59 Startleitungen in der Straße', () => {
     expect(s.stand.objekte.filter((o) => o.station && s.netz.warm.has(o.id))).toHaveLength(2);
   });
 });
+
+describe('A60 kein Rauch aus Hauskaminen', () => {
+  it('A60: Häuser und Großabnehmer zeichnen keine Rauchwolke mehr, nur die Heizzentrale', async () => {
+    const { readFileSync } = await import('node:fs');
+    const q = readFileSync(new URL('../src/render/gebaeude.ts', import.meta.url), 'utf8');
+    expect(q).not.toMatch(/st\.oel\)\s*m\.wolke/);
+    expect((q.match(/m\.wolke\(/g) ?? []).length).toBeLessThanOrEqual(2); // Heizzentrale + eigenes Sägewerk
+  });
+});

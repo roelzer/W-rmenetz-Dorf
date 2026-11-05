@@ -159,7 +159,7 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   const r = m.dach(tp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, DACHFARBEN[Math.min(lv, 5)]);
   const chx = r.P1[0] + (r.P2[0] - r.P1[0]) * 0.3, chy = r.P1[1] + (r.P2[1] - r.P1[1]) * 0.3;
   m.quader(chx, chy + tw * 0.02, 0.12, tw * 0.1, '#9c5a3c');
-  if (st.oel) m.wolke(chx, chy - tw * 0.1, m.zeit_s + o.id * 0.3, tw * 0.04, '#5b544c');
+  // A60: kein Rauch aus den Hauskaminen (spart Rechenleistung; Simon 2026-11-05)
   if (lv >= 2 && !zwei) {
     X.strokeStyle = '#fff'; X.lineWidth = Math.max(1, tw * 0.02); X.beginPath();
     X.moveTo(tp.bL[0] - tw * 0.05, tp.bL[1] + th * 0.05); X.lineTo(tp.bB[0], tp.bB[1] + th * 0.3); X.stroke();
@@ -198,7 +198,6 @@ function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   }
   if (!mein && t !== 'gewerbe') {
     m.quader(cx + tw * 0.45, cy - th * 0.2, 0.15, tw * 0.12, '#7d6a5a');
-    m.wolke(cx + tw * 0.45, cy - th * 0.2 - tw * 0.12, m.zeit_s + o.id, tw * 0.05, '#5b544c');
   }
   void st;
 }
