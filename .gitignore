@@ -44,3 +44,6 @@ CLAUDE.local.md
 # Dev-Team: Kopien der Agenten und Skills (Cloud-Sitzungen)
 .claude/agents/dev-team-*.md
 .claude/skills/dev-team-*/
+
+# Python-Pakete (Werkzeuge) – nie ins Repo
+*.whl
