@@ -6,6 +6,7 @@ import type { Nachbardorf } from '../src/core/nachbarn';
 import type { Objekt } from '../src/core/typen';
 import { SYMBOLE } from '../src/ui/symbole';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
+import { echteSteuerung } from './hilfen/echte-steuerung';
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
 
 // Tester-Vorarbeit NR16-B2a (A92): Sperrtexte nach DESIGN.md 12.20 und Hausanschluss-Erklärsätze (ENTSCHEIDUNGEN 2026-11-05).
@@ -556,15 +557,17 @@ describe('A92 / 12.20 D1 – „Gefällt dir“', () => {
     let gemocht = 0;
     const echt = s.moegen.bind(s);
     s.moegen = (name: string) => { gemocht++; return echt(name); };
-    await mitAttrappe(uhr, async (b) => {
-      const { Steuerung } = await import('../src/steuerung');
-      const dorf: Nachbardorf = { name: 'Wiesental', besitzer: 'Ana', stufe: 2, objekte: [hz(s)], innen: [], netz: s.netz, dorfwert: 1 };
-      const st = Object.assign(Object.create(Steuerung.prototype), { spiel: s, hud: { sichtbar: () => {} }, kamera: { zentrieren: () => {} } });
-      (st as unknown as { besuchStarten: (v: Nachbardorf) => void }).besuchStarten(dorf);
-      const k = b.einer('Gefällt dir');
-      expect(gesperrtMitHinweis(k)).toBe(true);
-      expect(b.tippe(k)).toBe('Du hast Wiesental schon ein Gefällt mir gegeben.');
-    }, s);
+    // Echte Steuerung (tests/hilfen/echte-steuerung.ts) statt Object.create(Steuerung.prototype), Tester-Vorarbeit NR16-B2b.
+    const dorf: Nachbardorf = { name: 'Wiesental', besitzer: 'Ana', stufe: 2, objekte: [hz(s)], innen: [], netz: s.netz, dorfwert: 1 };
+    await echteSteuerung(s, (u) => {
+      (u.st as unknown as { besuchStarten: (v: Nachbardorf) => void }).besuchStarten(dorf);
+      const k = u.knoepfe().filter((e) => e.isConnected && e.textContent.trim() === 'Gefällt dir');
+      expect(k, 'genau ein Knopf „Gefällt dir“').toHaveLength(1);
+      expect(gesperrtMitHinweis(k[0])).toBe(true);
+      u.meldungen.splice(0);
+      k[0].click();
+      expect(u.meldungen).toEqual(['Du hast Wiesental schon ein Gefällt mir gegeben.']);
+    }, { uhr: () => uhr.t });
     expect(gemocht).toBe(0);
   });
 });

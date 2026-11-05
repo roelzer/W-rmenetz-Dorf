@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import type { TypId } from '../src/core/katalog';
+import { echteSteuerung } from './hilfen/echte-steuerung';
 import { attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 
 // Tester-Nachzug NR15-P1 / NR16-B2a (A91, Bauplan docs/bauplaene/NR15-netzmodell.md „test_a91_alter_hausanschluss_satz_ist_weg“,
@@ -99,13 +100,13 @@ describe('A91 – alter Hausanschluss-Satz ist weg (Bauplan NR15 P1, ENTSCHEIDUN
   });
 
   it('A91: Zeichenleiste (Leitung einzeichnen) zeigt den neuen kurzen Satz, keinen alten', async () => {
-    await mitAttrappe(async (a, blatt) => {
-      const { Steuerung } = await import('../src/steuerung');
-      const s = neu(1);
-      s.stand.abschnitt = { phase: 'offen', bau: null };
-      const st = Object.assign(Object.create(Steuerung.prototype), { spiel: s, katalogUi: { schliessen: () => {} }, kontextUi: { schliessen: () => {} }, modusBlatt: null, vorsehen: false });
-      (st as { stempeln: (t: TypId) => void }).stempeln('d25');
-      const t = norm(a.text(blatt.inhalt));
+    // Echte Steuerung (tests/hilfen/echte-steuerung.ts) statt Object.create(Steuerung.prototype), Tester-Vorarbeit NR16-B2b.
+    // Ab B2b steht der Erklärtext hinter [?]; beim ersten Öffnen je Spielstand ist er offen (DESIGN 12.18 „Erste Nutzung“).
+    const s = neu(1);
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    await echteSteuerung(s, (u) => {
+      u.st.stempeln('d25');
+      const t = norm(u.dom.html.textContent);
       expect(t).toContain(NEU_KURZ);
       expect(t).not.toMatch(ALT);
     });
