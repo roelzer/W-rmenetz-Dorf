@@ -81,3 +81,5 @@ Automatisch von der Test-Schranke geschrieben.
 | 2026-11-05 11:34 | 47c60b5 | projektleiter | 🟢 | 295 | 0 | – |
 | 2026-11-05 11:48 | bf75230 | projektleiter | 🟢 | 296 | 0 | – |
 | 2026-11-05 12:23 | 9e3d8a7 | projektleiter | 🟢 | 296 | 0 | – |
+| 2026-11-05 12:29 | d522ef7 | tester | 🔴 | 294 | 1 | – |
+| 2026-11-05 12:31 | 11e648d | projektleiter | 🔴 | 294 | 1 | – |
