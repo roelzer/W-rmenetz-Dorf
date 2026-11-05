@@ -17,7 +17,7 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
-import { Kontext } from './ui/kontext';
+import { Kontext, leitungsKnoepfe } from './ui/kontext';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
@@ -146,10 +146,12 @@ export class Steuerung implements Ui {
     this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
     this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); });
     // Durchmesser direkt wählen (Designer-Mangel 10)
-    const wahl = h('div', { class: 'durchmesser' }, ...LEITUNGEN.filter((t) => this.spiel.grenze(t) > 0).map((t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true })));
+    // A88: nur freigeschaltete Durchmesser plus ein deaktivierter Knopf für die dickeren – der Kern entscheidet
+    const wahl = h('div', { class: 'durchmesser' }, ...leitungsKnoepfe(this.spiel, null, (t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true })));
+    const sperreTStueck = this.spiel.sperrgrund('vorsehung');
     const werkzeug = h('div', { class: 'knopfreihe' },
       knopf(radieren ? 'Radierer an – tippe Leitungen weg' : 'Radierer', () => this.stempeln(typ, !radieren), radieren ? 'gewaehlt' : '', { klein: true }),
-      knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, unter: eur(KONSTANTEN.vorsehung_eur) }),
+      knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, unter: sperreTStueck ?? eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null }),
       knopf('Letzte zurück', () => { this.spiel.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); }, '', { klein: true }));
     this.modusBlatt?.inhalt.append(wahl, werkzeug);
   }

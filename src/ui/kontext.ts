@@ -1,5 +1,6 @@
 import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
 import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
+import { merkmalName } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, stepper, zeile } from './bausteine';
@@ -25,6 +26,16 @@ export function anfrageKasten(sp: Spiel, o: Objekt, nachAktion: () => void): HTM
     knopf('Annehmen', () => { sp.anfrageAnnehmen(o.id); nachAktion(); }, 'los', { klein: true, unter: `+${kw(nachher_kw - vorher_kw)} kW Bedarf` }),
     knopf('Später', () => { sp.anfrageAblehnen(o.id); nachAktion(); }, '', { klein: true, unter: 'fragt später wieder' })));
   return k;
+}
+
+/** A88: freigeschaltete Leitungen als Knöpfe (ohne `ohne`) plus höchstens ein deaktivierter Knopf „Dickere“ mit dem Grund –
+ *  für Zeichenleiste und Leitungskarte. LEITUNGEN ist dünn → dick sortiert, die erste gesperrte ist also die nächste Freischaltung. */
+export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement): HTMLButtonElement[] {
+  const knoepfe = LEITUNGEN.filter((t) => t !== ohne && sp.freigeschaltet(t)).map(knopfFuer);
+  const naechste = LEITUNGEN.find((t) => !sp.freigeschaltet(t));
+  const grund = naechste ? sp.sperrgrund(naechste) : null;
+  if (grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, unter: grund }));
+  return knoepfe;
 }
 
 function signatur(c: HTMLElement): string {
@@ -169,8 +180,9 @@ export class Kontext {
     const k = kasten('Pufferspeicher im Haus');
     if (o.hauspuffer) { k.append(h('p', { class: 'gedaempft' }, `Eingebaut. Der Puffer fängt die Spitzen ab: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} Volllaststunden = ${kw(bedarfKw(o))} kW Anschlussleistung.`)); c.append(k); return; }
     const mit_kw = bedarfKw(o) * VOLLLASTSTUNDEN.ohne_puffer_h / VOLLLASTSTUNDEN.mit_puffer_h;
-    k.append(h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)} h = ${kw(bedarfKw(o))} kW. Mit Puffer reichen ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} h: ${kw(mit_kw)} kW – kleinere Station und dünnere Leitung genügen.`),
-      h('div', { class: 'knopfreihe' }, knopf('Puffer einbauen', () => { sp.hauspufferEinbauen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.hauspuffer_eur), aus: sp.stand.geld_eur < KONSTANTEN.hauspuffer_eur })));
+    const sperre = sp.sperrgrund('hauspuffer'); // A88: gesperrt = Kastentitel und deaktivierter Knopf mit Grund, kein Erklärtext
+    if (!sperre) k.append(h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)} h = ${kw(bedarfKw(o))} kW. Mit Puffer reichen ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} h: ${kw(mit_kw)} kW – kleinere Station und dünnere Leitung genügen.`));
+    k.append(h('div', { class: 'knopfreihe' }, knopf('Puffer einbauen', () => { sp.hauspufferEinbauen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: sperre ?? eur(KONSTANTEN.hauspuffer_eur), aus: sperre !== null || sp.stand.geld_eur < KONSTANTEN.hauspuffer_eur })));
     c.append(k);
   }
 
@@ -189,6 +201,13 @@ export class Kontext {
   private upgradeBereich(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, n = o.upgrade ?? 0, mind = sp.mindestVorlauf_c(o);
     const k = kasten('Rücklauf und Heizflächen');
+    // A88: Ein laufender Auftrag läuft zu Ende und wird gezeigt; sonst gesperrt = deaktivierter Knopf mit Grund, kein Erklärtext
+    const sperre = sp.sperrgrund('ruecklauf_helfer');
+    if (sperre && !o.upgrade_auftrag && n < UPGRADES.length) {
+      k.append(h('div', { class: 'knopfreihe' }, knopf('Helfer beauftragen', () => undefined, '', { klein: true, aus: true, unter: sperre })));
+      c.append(k);
+      return;
+    }
     k.append(zeile('Braucht mindestens', `${mind} °C Vorlauf`), h('p', { class: 'gedaempft' }, `Die Heizzentrale fährt gerade ${sp.vorlauf_c} °C.${mind > sp.vorlauf_c ? ' Das ist diesem Haus zu kalt – die Zufriedenheit sinkt.' : ''}`));
     if (o.upgrade_auftrag) {
       const u = UPGRADES[n], rest = Math.max(0, o.upgrade_auftrag.ende_ms - this.ui.jetzt_ms());
@@ -207,13 +226,19 @@ export class Kontext {
   private stationswahl(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, bedarf = bedarfKw(o);
     const empfohlen = passendeStation(bedarf).id, alt = stationHolen(o.station);
+    const frei = sp.freigeschaltet('stationstypen');
     const k = kasten(alt ? 'Übergabestation tauschen' : 'Übergabestation wählen');
     k.append(h('p', { class: 'gedaempft' }, alt
       ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${bedarf} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
-      : `Das Gebäude braucht ${bedarf} kW. Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.`));
+      : `Das Gebäude braucht ${bedarf} kW.${frei ? ' Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.' : ''}`));
     if (alt && alt.leistung_kw < bedarf) k.append(chip('Station zu klein', 'rot'));
     const reihe = h('div', { class: 'knopfreihe' });
-    for (const st of STATIONEN.filter((x) => x.leistung_kw >= bedarf && (!alt || x.leistung_kw > alt.leistung_kw)).slice(0, 3)) {
+    // A88: Ohne freie Stationswahl gibt es nur die kleinste passende Station – so bleibt jedes Haus versorgbar.
+    if (!frei && (!alt || alt.leistung_kw < bedarf)) {
+      const st = passendeStation(bedarf);
+      reihe.append(knopf(`${alt ? 'Größere Station einbauen' : 'Übergabestation einbauen'} · ${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(sp.stationspreis_eur(o, st)) }));
+    }
+    if (frei) for (const st of STATIONEN.filter((x) => x.leistung_kw >= bedarf && (!alt || x.leistung_kw > alt.leistung_kw)).slice(0, 3)) {
       const preis = sp.stationspreis_eur(o, st);
       reihe.append(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis) }));
     }
@@ -229,7 +254,9 @@ export class Kontext {
       if (b.ok) kasten_.append(h('p', {}, 'Alles erfüllt – du kannst unterschreiben.'));
       else for (const f of b.fehlt) kasten_.append(zeile(chip('fehlt', 'rot'), f));
       c.append(kasten_);
-      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), h('div', { class: 'knopfreihe' }, knopf('110er-Leitung legen', () => this.ui.stempeln('d110'), 'los')));
+      // A88: kleinste freigeschaltete Leitung, die den Bedarf (beim Sägewerk die Abwärme) trägt – der Kern entscheidet
+      const leitung = sp.passendeLeitung(Math.max(bedarfKw(o), D.abwaerme_kw ?? 0));
+      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los')) : '');
       c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { aus: !b.ok })));
       return;
     }
@@ -246,7 +273,8 @@ export class Kontext {
     if (D.leistung_kw) c.append(zeile('Wärmeleistung', `${D.leistung_kw[o.stufe - 1]} kW`));
     if (D.strom_kw) c.append(zeile('Spitzenleistung Strom', `${D.strom_kw[o.stufe - 1]} kW`));
     const stromQuelle = !!D.strom_kw && !D.leistung_kw;
-    if (!n.anschluss.has(o.id)) c.append(h('p', {}, stromQuelle ? 'Der Sonnenstrom muss über eine Verbindung zur Heizzentrale gelangen, sonst spart er dort nichts.' : 'Ohne Leitung zur Heizzentrale fließt keine Wärme ins Netz.'), h('div', { class: 'knopfreihe' }, knopf(stromQuelle ? 'Verbindung legen' : 'Leitung legen', () => this.ui.stempeln('d50'), 'los')));
+    const leitung = sp.passendeLeitung(D.leistung_kw?.[o.stufe - 1] ?? 0); // A88: freigeschaltet und passend zur Leistung
+    if (!n.anschluss.has(o.id)) c.append(h('p', {}, stromQuelle ? 'Der Sonnenstrom muss über eine Verbindung zur Heizzentrale gelangen, sonst spart er dort nichts.' : 'Ohne Leitung zur Heizzentrale fließt keine Wärme ins Netz.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(stromQuelle ? 'Verbindung legen' : 'Leitung legen', () => this.ui.stempeln(leitung), 'los')) : '');
     this.ausbauKnopf(c, o);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id), '', { klein: true }),
       knopf('Verkaufen', () => { sp.verkaufen(o.id); this.ui.geaendert(); this.ui.kontext(null); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(o.typ, o.stufe))}`, aus: !!o.bau })));
@@ -276,16 +304,18 @@ export class Kontext {
     else if (n.aufteilung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier teilt sich die Leitung in zwei Abgänge, die beide so dick sind wie die Zuleitung. So plant das niemand: Nimm eine dickere Zuleitung (z. B. eine 90er aus der Heizzentrale), führe zwei eigene Abgänge aus der Heizzentrale oder lass mindestens einen Abgang dünner weiterlaufen.')));
     else if (n.reduzierung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier wird die Leitung mitten auf der Strecke dünner. Wie in echt wechselt der Durchmesser nur an einem Abzweig (T-Stück). Tausche den dünneren Abschnitt auf die Größe davor oder lass die Leitung erst am Abzweig dünner werden.')));
     else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
-    else if (o.geplant) c.append(h('p', {}, 'Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung (abseits der Straße samt Gestattung). Zählt noch nicht fürs Netz.'));
+    else if (o.geplant) c.append(h('p', {}, `Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung${sp.freigeschaltet('gestattung') ? ' (abseits der Straße samt Gestattung)' : ''}. Zählt noch nicht fürs Netz.`));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
     // A69: T-Stück mit Vorsehung (verschlossener Abgang für einen späteren Anschluss)
     if (o.vorsehung) c.append(h('p', {}, o.geplant
       ? `T-Stück mit Vorsehung geplant (${eur(KONSTANTEN.vorsehung_eur)}): Hier kann später ein Anschluss andocken, ohne die laufende Leitung anzubohren. Die Leitung darf hier auch dünner werden.`
       : 'T-Stück mit Vorsehung: Ein späterer Anschluss dockt hier ohne Anbohrung an – die Leitung läuft dabei weiter.'));
-    else if (!o.geplant && n.tiefe.has(key)) c.append(h('p', { class: 'gedaempft' }, `Ohne Vorsehung muss für einen neuen Abzweig die laufende Leitung angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}). Am Leitungsende geht es ohne.`));
-    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, unter: o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}` })));
-    const tausch = o.geplant ? [] : LEITUNGEN.filter((t) => t !== o.typ && sp.grenze(t) > 0);
-    if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch.map((t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }))));
+    else if (!o.geplant && n.tiefe.has(key) && sp.freigeschaltet('vorsehung')) c.append(h('p', { class: 'gedaempft' }, `Ohne Vorsehung muss für einen neuen Abzweig die laufende Leitung angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}). Am Leitungsende geht es ohne.`));
+    // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
+    const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
+    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, aus: sperreVorsehung !== null, unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
+    const tausch = o.geplant ? [] : leitungsKnoepfe(sp, o.typ, (t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }));
+    if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch));
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
   }
 
@@ -306,22 +336,23 @@ export class Kontext {
     });
     if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Quelle einbauen', () => this.ui.katalog('innen'), 'los')));
     else k.append(h('p', { class: 'gedaempft' }, 'Kein Platz mehr im Heizhaus – baue erst die Heizzentrale aus.'));
+    const sperreVorlauf = sp.sperrgrund('vorlauf'); // A88: gesperrt = Stepper deaktiviert, Grund darunter
     const vl = kasten(`Vorlauftemperatur · ${sp.vorlauf_c} °C`);
     vl.append(h('div', { class: 'knopfreihe' },
-      stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, sp.vorlauf_c <= VORLAUF.min_c),
+      stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c); this.ui.geaendert(); }, sperreVorlauf !== null || sp.vorlauf_c <= VORLAUF.min_c),
       h('span', { class: 'preiswert' }, `${sp.vorlauf_c} °C`),
-      stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, sp.vorlauf_c >= VORLAUF.max_c)),
-      h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
+      stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c); this.ui.geaendert(); }, sperreVorlauf !== null || sp.vorlauf_c >= VORLAUF.max_c)),
+      sperreVorlauf ? h('p', {}, `${merkmalName('vorlauf')} ${sperreVorlauf}`) : h('p', { class: 'gedaempft' }, 'Niedrigere Vorlauftemperatur spart Strom und Verluste. Schlecht gedämmte Häuser werden dann aber nicht mehr richtig warm und unzufrieden. Mit Hausupgrades kommen sie mit weniger aus.'));
     const pvk = kasten('Solarstrom');
-    const pvKw = sp.dachPvLeistung_kw();
+    const pvKw = sp.dachPvLeistung_kw(), sperrePv = sp.sperrgrund('dach_pv');
     if (hzObj.dach_pv) pvk.append(h('p', {}, `PV-Anlage auf dem Heizhaus-Dach: ${pvKw} kWp. Sie senkt die Stromkosten von Wärmepumpe und Power-to-Heat-Kessel, Überschuss wird ins Stromnetz eingespeist.`));
-    else pvk.append(h('p', { class: 'gedaempft' }, 'PV auf dem Dach der Heizzentrale liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet. Die Anlage wächst mit der Heizzentrale.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${pvKw} kWp`, () => { sp.dachPvKaufen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(pvKw * DACH_PV.eur_je_kw), aus: s.geld_eur < pvKw * DACH_PV.eur_je_kw })));
+    else pvk.append(h('p', { class: 'gedaempft' }, 'PV auf dem Dach der Heizzentrale liefert Strom für Wärmepumpe und Power-to-Heat. Überschuss wird vergütet. Die Anlage wächst mit der Heizzentrale.'), h('div', { class: 'knopfreihe' }, knopf(`PV aufs Dach · ${pvKw} kWp`, () => { sp.dachPvKaufen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: sperrePv ?? eur(pvKw * DACH_PV.eur_je_kw), aus: sperrePv !== null || s.geld_eur < pvKw * DACH_PV.eur_je_kw })));
     const bg = kasten('Baugebiet');
-    const bb = sp.baugebietBedingungen();
+    const bb = sp.baugebietBedingungen(), sperreBg = sp.sperrgrund('baugebiet');
     if (sp.stand.baugebiet) bg.append(h('p', { class: 'gedaempft' }, 'Das Baugebiet ist erschlossen. Verbinde die neuen Häuser mit einem Bauabschnitt.'));
     else bg.append(h('p', { class: 'gedaempft' }, 'Ein zweiter Strang in die Gegenrichtung mit neuen Grundstücken. Der Wärmeerzeuger muss dafür mitwachsen.'),
-      ...(bb.ok ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
-      h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), aus: !bb.ok || s.geld_eur < KONSTANTEN.baugebiet_eur })));
+      ...(bb.ok || sperreBg ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
+      h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: sperreBg ?? eur(KONSTANTEN.baugebiet_eur), aus: !bb.ok || s.geld_eur < KONSTANTEN.baugebiet_eur })));
     const ziele = sp.hzZiele();
     const zk = kasten('Ziele für die nächste Stufe');
     if (ziele.length) {
@@ -329,7 +360,10 @@ export class Kontext {
       zk.append(h('p', { class: 'gedaempft' }, `Spreizung = Vorlauf minus mittlerer Rücklauf. Aktuell ${Math.round(sp.spreizung_k())} K.`));
     } else zk.append(h('p', { class: 'gedaempft' }, 'Höchste Stufe erreicht.'));
     const hk = kasten('Helfer');
-    for (const name of HELFER) {
+    const sperreHelfer = sp.sperrgrund('ruecklauf_helfer');
+    // A88: gesperrt = eine Zeile mit Grund; laufende Aufträge aus einem alten Stand werden trotzdem gezeigt
+    if (sperreHelfer && !HELFER.some((name) => sp.helferAuftrag(name))) hk.append(h('p', { class: 'gedaempft' }, `${merkmalName('ruecklauf_helfer')} ${sperreHelfer}`));
+    else for (const name of HELFER) {
       const a = sp.helferAuftrag(name);
       hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
     }
@@ -368,7 +402,8 @@ export class Kontext {
     f.append(h('p', { class: 'gedaempft' }, `Bewilligte Förderung: ${Math.round(KONSTANTEN.foerderquote * 100)} % der Baukosten fließen zurück – nur, wenn du erst nach dem Bescheid baust.`));
     for (const t of QUELLEN) {
       const a = s.antraege[t];
-      const rechts = a ? chip(a.stand === 'wartet' ? 'in Prüfung' : 'bewilligt', a.stand === 'wartet' ? 'blau' : 'gruen') : knopf('Antrag stellen', () => { sp.foerderungBeantragen(t); this.ui.geaendert(); }, 'blau', { klein: true });
+      const sperre = sp.sperrgrund(t); // A88: gesperrte Quelle = deaktivierter Knopf mit Grund; ein gestellter Antrag bleibt sichtbar
+      const rechts = a ? chip(a.stand === 'wartet' ? 'in Prüfung' : 'bewilligt', a.stand === 'wartet' ? 'blau' : 'gruen') : knopf('Antrag stellen', () => { sp.foerderungBeantragen(t); this.ui.geaendert(); }, 'blau', { klein: true, aus: sperre !== null, unter: sperre ?? undefined });
       f.append(zeile(KATALOG[t].name, rechts));
     }
     c.append(f);

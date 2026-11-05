@@ -56,8 +56,7 @@ export interface Definition {
   verbrauch_kwh_a?: number;
   /** Abwärme-Einspeisung in kW (Sägewerk) */
   abwaerme_kw?: number;
-  /** Großabnehmer: nötige Heizzentralen-Stufe und nötiger Ruf */
-  min_hz_stufe?: number;
+  /** Großabnehmer: nötiger Ruf (die nötige Heizzentralen-Stufe steht in freischaltung.ts) */
   min_ruf_pct?: number;
   /** Kassenspeicher des Abrechnungsbüros je Stufe in € */
   kassenspeicher_eur?: number[];
@@ -147,7 +146,6 @@ export const KATALOG: Record<TypId, Definition> = {
     kosten_eur: [2500, 4000, 7000, 12000, 20000],
     bauzeit_s: [15, 40, 90, 200, 400],
     betriebskosten_eur_je_kw_min: 0.3,
-    min_hz_stufe: 2,
     grenze: [9, 9, 9, 9, 9],
     vorteil: 'macht Strom und Wärme zugleich',
     nachteil: 'teuer in der Anschaffung',
@@ -254,16 +252,16 @@ export const KATALOG: Record<TypId, Definition> = {
     beschreibung: 'Viele Wohnungen, viel Wärmebedarf.',
   },
   bad: {
-    name: 'Hallenbad', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 67500, min_hz_stufe: 2, min_ruf_pct: 55,
+    name: 'Hallenbad', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 67500, min_ruf_pct: 55,
     beschreibung: 'Großabnehmer. Braucht dauerhaft viel Wärme und zahlt entsprechend.',
   },
   gewerbe: {
-    name: 'Sägewerk', groesse: 2, kategorie: 'gross', abwaerme_kw: 60, min_hz_stufe: 2, min_ruf_pct: 0,
+    name: 'Sägewerk', groesse: 2, kategorie: 'gross', abwaerme_kw: 60, min_ruf_pct: 0,
     beschreibung:
       'Hat Abwärme übrig. Angeschlossen liefert es dir günstige Wärme ins Netz – solange der Betrieb läuft.',
   },
   klinik: {
-    name: 'Klinik', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 105000, min_hz_stufe: 3, min_ruf_pct: 65,
+    name: 'Klinik', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 105000, min_ruf_pct: 65,
     beschreibung: 'Großabnehmer mit strengem Vertrag: Wird sie kalt, sinkt dein Ruf stark.',
   },
   buero: {
@@ -366,8 +364,8 @@ export const KONSTANTEN = {
   aufstockung_faktor: 1.4,
   /** A36: Vergütung für eingespeisten PV-Strom in € je kW und Minute (Spielwert) */
   einspeisung_eur_je_kw_min: 0.2,
-  /** A43: Baugebiet: Mindestanschlüsse, Mindest-Stufe und Erschließungskosten */
-  baugebiet_anschluesse: 6, baugebiet_hz_stufe: 3, baugebiet_eur: 40000,
+  /** A43: Baugebiet: Mindestanschlüsse und Erschließungskosten (die Mindest-Stufe steht in freischaltung.ts) */
+  baugebiet_anschluesse: 6, baugebiet_eur: 40000,
   /** A45: Gestattung (Leitungsrecht) je Feld abseits der öffentlichen Straße; Spielwert, keine Norm */
   gestattung_eur_je_feld: 1500,
   /** A50: Nach so vielen Sekunden zufriedener Kunden möchte ein weiteres Haus anschließen (Spielwert) */

@@ -6,6 +6,7 @@ import {
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen, STANDARD_ORT } from './orte';
+import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import { zufall } from './zufall';
 
 const N = KONSTANTEN.feldanzahl;
@@ -88,10 +89,24 @@ export class Spiel {
   private flussSet?: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
     this.stand = stand;
+    this.anfragenPruefen();
     this.neuBerechnen();
   }
 
   // ---------- Abfragen ----------
+  /** A88: Ist das Merkmal bei der jetzigen Heizzentralen-Stufe frei? Die Oberfläche fragt nur hier, sie rechnet nie selbst. */
+  freigeschaltet(m: Merkmal): boolean { return freigeschaltet(this.stand, m); }
+  sperrgrund(m: Merkmal): string | null { return sperrgrund(this.stand, m); }
+  /** A88: Lehnt eine Aktion mit einem gesperrten Merkmal ab (AE-A88-2: der Kern setzt die Sperre selbst durch); frei = null. */
+  private gesperrt(m: Merkmal): Ergebnis | null {
+    const grund = sperrgrund(this.stand, m);
+    return grund ? this.nein(`${merkmalName(m)} ${grund}`) : null;
+  }
+  /** A88: kleinste freigeschaltete Leitung, die den Bedarf trägt, sonst die dickste freigeschaltete. */
+  passendeLeitung(bedarf_kw: number): TypId | undefined {
+    const frei = LEITUNGEN.filter((l) => freigeschaltet(this.stand, l));
+    return frei.find((l) => (KATALOG[l].kapazitaet_kw as number) >= bedarf_kw) ?? frei[frei.length - 1];
+  }
   get vorlauf_c(): number { return this.stand.vorlauf_c ?? VORLAUF.start_c; }
   /** A81: monatliche Grundgebühr je Anschluss in € */
   get grundgebuehr_eur(): number { return this.stand.grundgebuehr_eur ?? GRUNDGEBUEHR.start_eur; }
@@ -114,9 +129,12 @@ export class Spiel {
     return this.jahresverbrauch_kwh(o) * (MONATSANTEIL_PROMILLE[((nr % 12) + 12) % 12] / 1000) * PREISSTUFEN[this.stand.preisstufe].ct_je_kwh / 100 + this.grundgebuehr_eur;
   }
   /** Vorlauftemperatur in 5-K-Schritten setzen (A33). */
-  vorlaufSetzen(c: number): void {
+  vorlaufSetzen(c: number): Ergebnis {
+    const sperre = this.gesperrt('vorlauf');
+    if (sperre) return sperre;
     const w = Math.max(VORLAUF.min_c, Math.min(VORLAUF.max_c, Math.round(c / VORLAUF.schritt_c) * VORLAUF.schritt_c));
     this.stand.vorlauf_c = w; this.neuBerechnen();
+    return ok();
   }
   /** Vorlauftemperatur, die dieses Haus für ausreichend Wärme braucht (sinkt mit Upgrades). */
   mindestVorlauf_c(o: Objekt): number {
@@ -128,6 +146,8 @@ export class Spiel {
   dachPvKaufen(): Ergebnis {
     const hz = this.hz;
     if (hz.dach_pv) return { ok: false };
+    const sperre = this.gesperrt('dach_pv');
+    if (sperre) return sperre;
     const kw = this.dachPvLeistung_kw();
     const b = this.bezahlen({ eur: kw * DACH_PV.eur_je_kw });
     if (!b.ok) return b;
@@ -142,7 +162,7 @@ export class Spiel {
   baugebietBedingungen(): { ok: boolean; fehlt: string[] } {
     const fehlt: string[] = [];
     if (this.stand.baugebiet) fehlt.push('Baugebiet ist schon erschlossen');
-    if (this.hzStufe < KONSTANTEN.baugebiet_hz_stufe) fehlt.push(`Heizzentrale Stufe ${KONSTANTEN.baugebiet_hz_stufe}`);
+    if (!freigeschaltet(this.stand, 'baugebiet')) fehlt.push(`Heizzentrale Stufe ${abStufe('baugebiet')}`);
     const n = this.stand.objekte.filter((o) => this.netz.warm.has(o.id) && KATALOG[o.typ].kategorie === 'haus').length;
     if (n < KONSTANTEN.baugebiet_anschluesse) fehlt.push(`${KONSTANTEN.baugebiet_anschluesse} angeschlossene Häuser (jetzt ${n})`);
     return { ok: fehlt.length === 0, fehlt };
@@ -188,6 +208,8 @@ export class Spiel {
   upgradeKaufen(id: number, helfer?: string): Ergebnis {
     const o = this.objekt(id), n = o?.upgrade ?? 0;
     if (!o || !(KATALOG[o.typ].kategorie === 'haus' || KATALOG[o.typ].kategorie === 'gross') || n >= UPGRADES.length) return { ok: false };
+    const sperre = this.gesperrt('ruecklauf_helfer');
+    if (sperre) return sperre;
     if (o.ohne_station) return this.nein('Erst eine Übergabestation einbauen');
     if (o.upgrade_auftrag) return this.nein('Hier arbeitet schon ein Helfer');
     const wer = helfer ?? this.freierHelfer();
@@ -304,7 +326,10 @@ export class Spiel {
   // ---------- Aktionen ----------
   platzieren(t: TypId, x: number, y: number): Ergebnis {
     const D = KATALOG[t];
+    const sperre = this.gesperrt(t);
+    if (sperre) return sperre;
     if (!this.kannPlatzieren(t, x, y)) return this.nein('Hier ist kein Platz');
+    if (istLeitung(t) && this.istFluss(x, y) && !freigeschaltet(this.stand, 'spuelbohrung')) return this.nein(this.flussGesperrt());
     if (istLeitung(t)) {
       if (this.leitungsanzahl() >= this.grenze(t))
         return this.nein(this.grenze(t) ? 'Mehr Leitungen ab der nächsten Heizzentralen-Stufe' : `${D.name} ab Heizzentrale Stufe 2`);
@@ -357,7 +382,7 @@ export class Spiel {
     const D = KATALOG[t];
     if (this.stand.innen.length >= (KATALOG.hz.plaetze as number[])[this.hzStufe - 1])
       return this.nein('Kein Platz mehr im Heizhaus – erst die Heizzentrale ausbauen');
-    if (!gratis && D.min_hz_stufe && this.hzStufe < D.min_hz_stufe) return this.nein(`${D.name} passt erst in die Heizzentrale Stufe ${D.min_hz_stufe}`);
+    if (!gratis) { const sperre = this.gesperrt(t); if (sperre) return sperre; }
     if (!gratis) {
       if (!this.braucheMonteur()) return { ok: false };
       const b = this.bezahlen({ eur: (D.kosten_eur as number[])[0] });
@@ -482,6 +507,8 @@ export class Spiel {
     const o = this.objekt(id), st = stationHolen(stationId);
     if (!o || !st || !(o.ohne_station || o.station) || o.bau) return { ok: false };
     const bedarf = bedarfKw(o);
+    // A88: Ohne freie Stationswahl gibt es nur die kleinste passende Station (so bleibt jedes Haus versorgbar, Bauplan Abschnitt 5).
+    if (st.id !== passendeStation(bedarf).id) { const sperre = this.gesperrt('stationstypen'); if (sperre) return sperre; }
     if (st.leistung_kw < bedarf) return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${Math.round(bedarf * 10) / 10} kW`);
     const alt = stationHolen(o.station);
     if (alt && alt.leistung_kw >= st.leistung_kw) return this.nein('Es steht schon eine gleich große oder größere Station');
@@ -547,6 +574,7 @@ export class Spiel {
   }
   /** A45: Geplante Leitungen abseits der Straße, für die noch keine Gestattung geklärt ist (Flussfelder zählen zur Spülbohrung). */
   gestattungsFelder(): number[] {
+    if (!freigeschaltet(this.stand, 'gestattung')) return []; // A88/F1: vor der Freischaltung kostenlos
     const geklaert = new Set(this.stand.gestattungen ?? []);
     return this.stand.objekte.filter((o) => o.geplant && !this.istStrasse(o.x, o.y) && !this.istFluss(o.x, o.y) && !geklaert.has(o.y * N + o.x)).map((o) => o.y * N + o.x);
   }
@@ -569,6 +597,11 @@ export class Spiel {
   }
   /** A69: Muss hier an eine laufende Leitung angebohrt werden? Ja, wenn sie durchläuft (kein Leitungsende) und keine Vorsehung hat. */
   private brauchtAnbohrung(o: Objekt): boolean {
+    // A88/F1: vor der Freischaltung der Vorsehung kostet Andocken nichts
+    return freigeschaltet(this.stand, 'vorsehung') && this.laeuftDurch(o);
+  }
+  /** Gebaute Leitung, die hier durchläuft (kein Leitungsende) und keine Vorsehung hat. */
+  private laeuftDurch(o: Objekt): boolean {
     return istLeitung(o.typ) && !o.geplant && !o.vorsehung && this.gebauteNachbarn(o.y * N + o.x) >= 2;
   }
   /** A69: Gebaute, durchlaufende Leitungen ohne Vorsehung, an die eine geplante Leitung des Abschnitts andockt. */
@@ -589,6 +622,8 @@ export class Spiel {
   hauspufferEinbauen(id: number): Ergebnis {
     const o = this.objekt(id);
     if (!o || KATALOG[o.typ].kategorie !== 'haus' || o.hauspuffer || o.gekuendigt) return { ok: false };
+    const sperre = this.gesperrt('hauspuffer');
+    if (sperre) return sperre;
     const b = this.bezahlen({ eur: KONSTANTEN.hauspuffer_eur });
     if (!b.ok) return b;
     o.hauspuffer = true; o._pop = this.uhr();
@@ -601,12 +636,14 @@ export class Spiel {
     const o = this.objekt(id);
     if (!o || !istLeitung(o.typ)) return { ok: false };
     if (!o.geplant || this.stand.abschnitt?.phase !== 'offen') return this.nein('Eine Vorsehung kommt beim Bau der Leitung mit hinein – zeichne die Leitung im offenen Bauabschnitt');
-    if (o.vorsehung) delete o.vorsehung; else o.vorsehung = true;
+    if (o.vorsehung) delete o.vorsehung;
+    else { const sperre = this.gesperrt('vorsehung'); if (sperre) return sperre; o.vorsehung = true; } // Ausschalten bleibt immer erlaubt
     o._pop = this.uhr();
     return ok();
   }
   abschnittLeitungen(): number { return this.stand.objekte.filter((o) => o.geplant).length; }
-  /** A47: Kosten, eine Leitung auf dieses Feld zu legen (Material, Gestattung, Spülbohrung); Grundlage der automatischen Wegsuche. */
+  /** A47: Kosten, eine Leitung auf dieses Feld zu legen (Material, Gestattung, Spülbohrung); Grundlage der automatischen Wegsuche.
+   *  A88: reines Gewicht der Wegsuche, unabhängig von der Freischaltung – der Spielerpreis kommt aus abschnittKosten_eur(). */
   private feldKosten_eur(t: TypId, x: number, y: number): number {
     const mat = (KATALOG[t].kosten_eur as number[])[0];
     if (this.istFluss(x, y)) return mat + KONSTANTEN.bohrung_eur_je_feld;
@@ -618,9 +655,7 @@ export class Spiel {
     const haus = this.objekt(hausId);
     if (!haus || !['haus', 'gross'].includes(KATALOG[haus.typ].kategorie)) return { ok: false };
     if (this.stand.abschnitt?.phase !== 'offen') return this.nein('Erst einen Bauabschnitt planen lassen und öffnen');
-    const bedarf = bedarfKw(haus);
-    const verfuegbar = LEITUNGEN.filter((l) => this.grenze(l) > 0);
-    const typ = verfuegbar.find((l) => (KATALOG[l].kapazitaet_kw as number) >= bedarf) ?? verfuegbar[verfuegbar.length - 1];
+    const typ = this.passendeLeitung(bedarfKw(haus));
     if (!typ) return this.nein('Noch keine Leitung freigeschaltet');
     const belegung = belegungskarte(this.stand.objekte);
     const leit = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
@@ -630,54 +665,63 @@ export class Spiel {
       return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => a >= 0 && b >= 0 && a < N && b < N).map(([a, b]) => b * N + a);
     };
     const imHaus = (f: number): boolean => { const x = f % N, y = Math.floor(f / N); return x >= haus.x && x < haus.x + g && y >= haus.y && y < haus.y + g; };
-    const frei = (f: number): boolean => !belegung[f] && !leit.has(f);
+    const frei = (f: number, flussOk: boolean): boolean => !belegung[f] && !leit.has(f) && (flussOk || !this.istFluss(f % N, Math.floor(f / N)));
     // Schon angeschlossen? (Haus grenzt an eine Leitung)
     for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) if (nachbarn((haus.y + dy) * N + haus.x + dx).some((n) => leit.has(n))) return this.nein('Das Haus liegt schon an einer Leitung');
     // Dijkstra über freie Felder (Zustand = Feld + Richtung). Jede Biegung kostet einen Aufschlag, damit der Anschluss gerade läuft.
     const BIEGUNG_EUR = 900;
     const richtungen: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-    const zustand = (f: number, r: number): number => f * 4 + r;
-    const dist = new Map<number, number>(), von = new Map<number, number>();
-    const offen: Array<[number, number]> = [];
-    for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) {
-      const feld = (haus.y + dy) * N + haus.x + dx;
-      richtungen.forEach(([rx, ry], r) => {
-        const nx = feld % N + rx, ny = Math.floor(feld / N) + ry;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
-        const n = ny * N + nx;
-        if (imHaus(n) || !frei(n)) return;
-        const c = this.feldKosten_eur(typ, nx, ny), z = zustand(n, r);
-        if (c < (dist.get(z) ?? Infinity)) { dist.set(z, c); von.set(z, -1); offen.push([c, z]); }
-      });
-    }
-    let ziel = -1;
-    // A69: Andocken an eine durchlaufende Leitung ohne Vorsehung kostet eine Anbohrung – die Wegsuche bevorzugt Vorsehungen und Leitungsenden.
-    const bel = belegungskarte(this.stand.objekte);
-    // Summe wie in anbohrungsFelder(): jede berührte durchlaufende Leitung ohne Vorsehung wird angebohrt.
-    const andockKosten = (f: number): number => nachbarn(f).filter((n) => leit.has(n)).reduce((summe, n) => {
-      const o = this.objekt(bel[n]);
-      return summe + (o && this.brauchtAnbohrung(o) ? KONSTANTEN.anbohrung_eur : 0);
-    }, 0);
-    const erledigt = new Set<number>();
-    while (offen.length) {
-      offen.sort((a, b) => a[0] - b[0]);
-      const [c, z] = offen.shift() as [number, number];
-      if (z < 0) { ziel = -z - 1; break; } // günstigstes Ziel samt Andockkosten
-      if (c > (dist.get(z) as number)) continue;
-      const f = Math.floor(z / 4), r = z % 4;
-      if (nachbarn(f).some((n) => leit.has(n))) {
-        if (!erledigt.has(z)) { erledigt.add(z); offen.push([c + andockKosten(f), -z - 1]); }
-        continue;
+    // A88: Ohne Spülbohrung sind Flussfelder unpassierbar; gibt es nur den Weg über den Fluss, sagt der Hinweis das (kein stilles „kein Weg“).
+    const suche = (flussOk: boolean): { ziel: number; von: Map<number, number> } => {
+      const zustand = (f: number, r: number): number => f * 4 + r;
+      const dist = new Map<number, number>(), von = new Map<number, number>();
+      const offen: Array<[number, number]> = [];
+      for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) {
+        const feld = (haus.y + dy) * N + haus.x + dx;
+        richtungen.forEach(([rx, ry], r) => {
+          const nx = feld % N + rx, ny = Math.floor(feld / N) + ry;
+          if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
+          const n = ny * N + nx;
+          if (imHaus(n) || !frei(n, flussOk)) return;
+          const c = this.feldKosten_eur(typ, nx, ny), z = zustand(n, r);
+          if (c < (dist.get(z) ?? Infinity)) { dist.set(z, c); von.set(z, -1); offen.push([c, z]); }
+        });
       }
-      richtungen.forEach(([rx, ry], r2) => {
-        const nx = f % N + rx, ny = Math.floor(f / N) + ry;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
-        const n = ny * N + nx;
-        if (imHaus(n) || !frei(n)) return;
-        const nc = c + this.feldKosten_eur(typ, nx, ny) + (r2 === r ? 0 : BIEGUNG_EUR), nz = zustand(n, r2);
-        if (nc < (dist.get(nz) ?? Infinity)) { dist.set(nz, nc); von.set(nz, z); offen.push([nc, nz]); }
-      });
-    }
+      let ziel = -1;
+      // A69: Andocken an eine durchlaufende Leitung ohne Vorsehung kostet eine Anbohrung – die Wegsuche bevorzugt Vorsehungen und Leitungsenden.
+      const bel = belegungskarte(this.stand.objekte);
+      // Summe wie in anbohrungsFelder(): jede berührte durchlaufende Leitung ohne Vorsehung wird angebohrt.
+      const andockKosten = (f: number): number => nachbarn(f).filter((n) => leit.has(n)).reduce((summe, n) => {
+        const o = this.objekt(bel[n]);
+        // A88: Die Anbohrung zählt hier als Gewicht der Wegsuche, auch solange sie den Spieler nichts kostet –
+        // so nimmt der Hausanschluss denselben Weg wie vor A88 (tests/a88-wegsuche.test.ts).
+        return summe + (o && this.laeuftDurch(o) ? KONSTANTEN.anbohrung_eur : 0);
+      }, 0);
+      const erledigt = new Set<number>();
+      while (offen.length) {
+        offen.sort((a, b) => a[0] - b[0]);
+        const [c, z] = offen.shift() as [number, number];
+        if (z < 0) { ziel = -z - 1; break; } // günstigstes Ziel samt Andockkosten
+        if (c > (dist.get(z) as number)) continue;
+        const f = Math.floor(z / 4), r = z % 4;
+        if (nachbarn(f).some((n) => leit.has(n))) {
+          if (!erledigt.has(z)) { erledigt.add(z); offen.push([c + andockKosten(f), -z - 1]); }
+          continue;
+        }
+        richtungen.forEach(([rx, ry], r2) => {
+          const nx = f % N + rx, ny = Math.floor(f / N) + ry;
+          if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
+          const n = ny * N + nx;
+          if (imHaus(n) || !frei(n, flussOk)) return;
+          const nc = c + this.feldKosten_eur(typ, nx, ny) + (r2 === r ? 0 : BIEGUNG_EUR), nz = zustand(n, r2);
+          if (nc < (dist.get(nz) ?? Infinity)) { dist.set(nz, nc); von.set(nz, z); offen.push([nc, nz]); }
+        });
+      }
+      return { ziel, von };
+    };
+    const spuel = freigeschaltet(this.stand, 'spuelbohrung');
+    const { ziel, von } = suche(spuel);
+    if (ziel < 0 && !spuel && suche(true).ziel >= 0) return this.nein(this.flussGesperrt());
     if (ziel < 0) return this.nein('Kein Weg zu einer Leitung gefunden');
     const weg: number[] = [];
     for (let z = ziel; z >= 0; z = von.get(z) as number) weg.push(Math.floor(z / 4));
@@ -757,6 +801,8 @@ export class Spiel {
   expressLiefern(): Ergebnis {
     const a = this.stand.abschnitt;
     if (a?.phase !== 'bau' || !a.bau) return { ok: false };
+    const sperre = this.gesperrt('express');
+    if (sperre) return sperre;
     if (a.express) return this.nein('Express ist schon bestellt');
     if (a.bau.ende_ms - this.uhr() < SPIELTAG_MS) return this.nein('Das Material kommt sowieso in weniger als einem Tag – Express lohnt sich nicht mehr');
     const b = this.bezahlen({ eur: this.expresskosten_eur() });
@@ -770,7 +816,10 @@ export class Spiel {
 
   leitungTauschen(id: number, neu: TypId): Ergebnis {
     const o = this.objekt(id);
-    if (!o || o.geplant || !istLeitung(o.typ) || !istLeitung(neu) || o.typ === neu || !this.grenze(neu)) return { ok: false };
+    if (!o || o.geplant || !istLeitung(o.typ) || !istLeitung(neu) || o.typ === neu) return { ok: false };
+    // A88: nur der neue Typ zählt, nie das Feld – eine Bestandsleitung im Fluss bleibt tauschbar (Bauplan Abschnitt 5)
+    const sperre = this.gesperrt(neu);
+    if (sperre) return sperre;
     // A30: Die alte Leitung wird zu 50 % des Preises zurückgekauft, die neue kostet den vollen Preis.
     const rueck = Math.round((KATALOG[o.typ].kosten_eur as number[])[0] * KONSTANTEN.rueckkauf_anteil);
     const b = this.bezahlen({ eur: (KATALOG[neu].kosten_eur as number[])[0] - rueck });
@@ -785,7 +834,7 @@ export class Spiel {
     const D = KATALOG[o.typ];
     const ruf = this.ruf_pct(), reserve = this.netz.verfuegbar_kw - this.netz.genutzt_kw;
     const fehlt: string[] = [];
-    if (this.hzStufe < (D.min_hz_stufe as number)) fehlt.push(`Heizzentrale Stufe ${D.min_hz_stufe}`);
+    if (!freigeschaltet(this.stand, o.typ)) fehlt.push(`Heizzentrale Stufe ${abStufe(o.typ)}`);
     if (ruf < (D.min_ruf_pct as number)) fehlt.push(`Ruf ${D.min_ruf_pct} % (jetzt ${Math.round(ruf)} %)`);
     if (D.bedarf_kw && reserve < D.bedarf_kw) fehlt.push(`${D.bedarf_kw} kW freie Leistung (frei: ${Math.max(0, reserve)} kW)`);
     return { ok: fehlt.length === 0, fehlt };
@@ -822,6 +871,16 @@ export class Spiel {
     this.hinweis(art === 'vollversorgung' ? `${name} fragt an: Kamin abschalten und ganz mit Fernwärme heizen? Bedarf dann ${kw} kW` : `${name} baut ein Stockwerk auf und fragt nach mehr Wärme: Bedarf dann ${kw} kW`);
     this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'fragt an', farbe: '#ffd166' });
   }
+  /** A88 (Review P1): Ein unbekannter anfrage-Wert (z. B. aus einem veränderten Spielstand) wird gelöscht, damit Blase und Chip nichts Ungültiges zeigen. */
+  private anfragenPruefen(): void {
+    for (const o of this.stand.objekte) if (o.anfrage !== undefined && o.anfrage !== 'vollversorgung' && o.anfrage !== 'aufstockung') delete o.anfrage;
+  }
+  /** A88: Meldung, was mit der neuen Heizzentralen-Stufe frei wird (höchstens vier Namen). */
+  private neuFreigeschaltetMelden(stufe: number): void {
+    const namen = neuBeiStufe(stufe).map(merkmalName);
+    if (namen.length) this.hinweis(`Neu ab Stufe ${stufe}: ${namen.slice(0, 4).join(', ')}${namen.length > 4 ? ' …' : ''}`);
+  }
+  private flussGesperrt(): string { return `Über den Fluss geht es erst mit Spülbohrung – ${sperrgrund(this.stand, 'spuelbohrung')}`; }
   /** A88/F2: Haus mit gültiger offener Anfrage; ein unbekannter Wert (z. B. aus einem veränderten Spielstand) wird dabei gelöscht. */
   private offeneAnfrage(id: number): Objekt | null {
     const o = this.objekt(id);
@@ -865,6 +924,8 @@ export class Spiel {
 
   foerderungBeantragen(t: TypId): Ergebnis {
     if (this.stand.antraege[t]) return { ok: false };
+    const sperre = this.gesperrt(t);
+    if (sperre) return sperre;
     this.stand.antraege[t] = { stand: 'wartet', bewilligt_ms: this.uhr() + KONSTANTEN.foerderdauer_s * 1000 };
     this.stand.erledigt.grant = true;
     this.hinweis('Förderantrag eingereicht');
@@ -881,6 +942,7 @@ export class Spiel {
   /** Rechnet den Spielstand bis zum Zeitpunkt jetzt_ms fort (auch lange Offline-Zeit, höchstens 7 Tage). */
   bis(jetzt_ms: number): void {
     const s = this.stand;
+    this.anfragenPruefen();
     if (jetzt_ms <= s.zuletzt_ms) { this.fertigstellen(jetzt_ms); return; }
     if (jetzt_ms - s.zuletzt_ms > MAX_OFFLINE_S * 1000) s.zuletzt_ms = jetzt_ms - MAX_OFFLINE_S * 1000;
     // A38/A81: Bei längerer Abwesenheit gibt es statt vieler Einzelmeldungen eine Sammelmeldung.
@@ -930,6 +992,7 @@ export class Spiel {
         this.hinweis(`${name} fertig · Förderung ausgezahlt: +${zurueck.toLocaleString('de-DE')} €`);
         delete e.foerderung_eur; s.erledigt.funded = true;
       } else this.hinweis(`${name}${hatStufen(e.typ) ? ' Stufe ' + e.stufe : ''} fertig!`);
+      if (istObjekt && e.typ === 'hz') this.neuFreigeschaltetMelden(e.stufe);
       const ziel = istObjekt ? (e as Objekt) : this.hz;
       ziel._pop = t;
       this.ereignisse.push({ art: 'funken', objekt_id: istObjekt ? (e as Objekt).id : 'heizzentrale' });
