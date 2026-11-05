@@ -242,3 +242,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 20:03 | ▶ | entwickler | Baue NR16-B2b |
 | 2026-11-05 20:16 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT, Grund „Kontext voll“ (der Kontext-Wächter hat den Abbruch verlangt). Das Paket ist ungefähr zur Hälfte fertig. Alles Gebaute ist  ([Bericht](docs/pruefberichte/20261105-201649-entwickler-a076576a83997f8c5.md)) |
 | 2026-11-05 20:17 | ▶ | entwickler | Baue NR16-B2b Teil 2 |
+| 2026-11-05 20:23 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-05 20:23 | ■ 🟡 | entwickler | 🟡 **FERTIG_MIT_BEDENKEN** – NR15-P2 Fix-Runde 1 (A91 Netzbaum)  ([Bericht](docs/pruefberichte/20261105-202310-entwickler-a1b4c5e390b088fc6.md)) |
+| 2026-11-05 20:23 | ▶ | reviewer | Nachprüfung NR15-P2 Fix 1 |

@@ -4,3 +4,5 @@
 - 2026-11-05 [Werkzeuge] Vitest zeigt console.log aus bestandenen Tests nicht an – Messskripte mit --silent=false aufrufen (NR15-P1).
 - 2026-11-05 [Tests] Indizes von Spieltabellen im Test aus der Tabelle ableiten (LISTE.length - 1), nicht als feste Zahl – Setter, die ungültige Werte still ignorieren, verbergen sonst falsche Indizes (B2a R3).
 - [Tests] Für Regeln mit eingebauter Absicherung (Probe mit Rücknahme) zeigen Fehlerproben am Vorfilter oft nichts – Gegenproben über Wegwerf-Varianten im Generator suchen (alter gegen neuer Stand). (NR15-P2, 2026-11-05)
+- [Tests] Für schrittweise Rechnungen eine Wegwerf-Gleichheitsprüfung gegen den alten Stand fahren und Wegwerf-Varianten (je eine Nachführung weglassen) über den Generator suchen lassen – liefert gezielte Testfälle. (NR15-P2 Fix 1, 2026-11-05)
+- [Prozess] Fix-Runden und Fortsetzungen: Agenten können nicht im Worktree eines anderen Agenten arbeiten (Wächter). Immer isolation: worktree und im Auftrag `git checkout -B <neu> <letzter Commit>` vorgeben. (NR15-P2/NR16-B2b, 2026-11-05)
