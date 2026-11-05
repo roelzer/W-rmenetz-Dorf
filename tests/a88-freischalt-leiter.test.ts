@@ -8,6 +8,7 @@ import { abStufe, FREISCHALTUNGEN, FUNKTION_NAME, freigeschaltet, neuBeiStufe, s
 import { blase } from '../src/render/szene';
 import type { Objekt } from '../src/core/typen';
 import { SYMBOLE } from '../src/ui/symbole';
+import { gesperrt, gesperrtMitHinweis, htmlDisabled } from './hilfen/gesperrt';
 
 // A88 Freischalt-Leiter (Bauplan docs/bauplaene/A88-freischalt-leiter.md, Abschnitt 4, 6a, 9 T1–T10, 10).
 // Nutzt das echte Kernmodul (kein vi.mock). Erwartete Stufen von Hand aus der Tabelle in Abschnitt 4.
@@ -391,7 +392,7 @@ describe('A88 Oberfläche fragt nur ab (T10, ohne Browser)', () => {
       k.oeffnen('netz');
       const inhalt = (k as unknown as { blatt: { inhalt: InstanceType<typeof a.El> } }).blatt.inhalt;
       const kasten = a.alle(inhalt).find((e) => e.className === 'kasten')!;
-      return { text: a.text(kasten), knoepfe: a.alle(kasten).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: e.attrs.disabled !== undefined })) };
+      return { text: a.text(kasten), knoepfe: a.alle(kasten).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: gesperrt(e) })) };
     } finally { vi.unstubAllGlobals(); vi.doUnmock('../src/ui/bild'); vi.doUnmock('../src/ui/blatt'); }
   };
   it('A88: Bauabschnitt auf Stufe 1 erwähnt Gestattung, Spülbohrung, Anbohrung und Vorsehung nicht, auf Stufe 4 schon', async () => {
@@ -414,7 +415,7 @@ describe('A88 Oberfläche fragt nur ab (T10, ohne Browser)', () => {
 });
 
 describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne Browser)', () => {
-  type Knopf = { text: string; aus: boolean; klick?: () => void; label?: string };
+  type Knopf = { text: string; aus: boolean; hinweisSperre?: boolean; klick?: () => void; label?: string };
   /** Attrappe einrichten, Oberflächen-Module frisch laden, danach aufräumen. */
   const mitAttrappe = async <E>(arbeit: (a: ReturnType<typeof attrappe>, blatt: { inhalt: unknown; zu: () => void }) => Promise<E>): Promise<E> => {
     const a = attrappe();
@@ -433,7 +434,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);
-    const knoepfe: Knopf[] = a.alle(c).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: e.attrs.disabled !== undefined, klick: e.on.click, label: e.attrs['aria-label'] }));
+    const knoepfe: Knopf[] = a.alle(c).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: gesperrt(e), hinweisSperre: gesperrtMitHinweis(e), klick: e.on.click, label: e.attrs['aria-label'] }));
     return { text: a.text(c), knoepfe, gestempelt, elemente: a.alle(c), a };
   });
   const mit = (k: Knopf[], anfang: string) => k.filter((x) => x.text.startsWith(anfang));
@@ -443,21 +444,24 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
       const { leitungsKnoepfe } = await import('../src/ui/kontext');
       const { knopf } = await import('../src/ui/bausteine');
       const liste = (stufe: number, ohne: TypId | null) => leitungsKnoepfe(neu(stufe).s, ohne, (t) => knopf(t, () => {}))
-        .map((e) => { const el = e as unknown as InstanceType<typeof a.El>; return { text: a.text(el), aus: el.attrs.disabled !== undefined }; });
+        .map((e) => { const el = e as unknown as InstanceType<typeof a.El>; return { text: a.text(el), aus: gesperrt(el) }; });
       expect(liste(1, null)).toEqual([{ text: 'd25', aus: false }, { text: 'd32', aus: false }, { text: 'd40', aus: false }, { text: 'Dickereab Heizzentrale Stufe 2', aus: true }]);
       expect(liste(2, 'd40').map((k) => k.text)).toEqual(['d25', 'd32', 'd50', 'd63', 'Dickereab Heizzentrale Stufe 3']);
       expect(liste(3, null).map((k) => k.text)).toEqual(['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110']);
     });
   });
 
-  it('A88: Zeichenleiste – Durchmesser über den Kern, „Dickere“ mit kurzem Grund „ab Stufe X“, T-Stück-Werkzeug vor Stufe 4 deaktiviert mit langem Grund', async () => {
-    // DESIGN.md 12.15: In der engen Zeichenleiste steht der kurze Grund „ab Stufe X“ (ohne „Heizzentrale“).
+  it('A88: Zeichenleiste – Durchmesser über den Kern, „Dickere“ und T-Stück-Werkzeug vor Stufe 4 gesperrt mit kurzem Grund „ab Stufe X“ (geschütztes Leerzeichen)', async () => {
+    // DESIGN.md 12.15: In der engen Zeichenleiste steht der kurze Grund „ab Stufe X“ (ohne „Heizzentrale“), auch am T-Stück
+    // (Designer-Prüfung 2026-11-05, Kann 2b). Zwischen „Stufe“ und Zahl steht ein geschütztes Leerzeichen U+00A0 (Kann 2a),
+    // damit die Zahl bei 667 px nicht allein in eine Zeile rutscht.
     // Die Leitungskarte und der direkte Aufruf von leitungsKnoepfe behalten den langen Grund (Tests oben/unten).
+    // DESIGN.md 12.19: das gesperrte T-Stück trägt aria-disabled="true" und KEIN disabled (Tippen zeigt einen Hinweis).
     await mitAttrappe(async (a, blatt) => {
       const { Steuerung } = await import('../src/steuerung');
       for (const [stufe, tstueckAus, texte] of [
-        [1, true, ['25er', '32er', '40er', 'Dickereab Stufe 2']],
-        [2, true, ['25er', '32er', '40er', '50er', '63er', 'Dickereab Stufe 3']],
+        [1, true, ['25er', '32er', '40er', 'Dickereab Stufe\u00a02']],
+        [2, true, ['25er', '32er', '40er', '50er', '63er', 'Dickereab Stufe\u00a03']],
         [4, false, ['25er', '32er', '40er', '50er', '63er', '75er', '90er', '110er']],
       ] as Array<[number, boolean, string[]]>) {
         blatt.inhalt = new a.El('div');
@@ -468,10 +472,14 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
         const dknoepfe = a.alle(durchmesser).filter((e) => e.tag === 'button');
         expect(dknoepfe.map((e) => a.text(e)), `Stufe ${stufe}`).toEqual(texte);
         // nur der Knopf „Dickere“ ist deaktiviert, alle Durchmesser-Knöpfe sind tippbar
-        expect(dknoepfe.map((e) => e.attrs.disabled !== undefined), `Stufe ${stufe}`).toEqual(texte.map((t) => t.startsWith('Dickere')));
+        expect(dknoepfe.map((e) => gesperrt(e)), `Stufe ${stufe}`).toEqual(texte.map((t) => t.startsWith('Dickere')));
         const tstueck = alle.find((e) => e.tag === 'button' && a.text(e).startsWith('T-Stück mit Vorsehung'))!;
-        expect(tstueck.attrs.disabled !== undefined, `Stufe ${stufe}`).toBe(tstueckAus);
-        expect(a.text(tstueck).includes('ab Heizzentrale Stufe 4'), `Stufe ${stufe}`).toBe(tstueckAus);
+        expect(gesperrtMitHinweis(tstueck), `Stufe ${stufe}: T-Stück aria-disabled="true" ohne disabled`).toBe(tstueckAus);
+        expect(htmlDisabled(tstueck), `Stufe ${stufe}: T-Stück nie mit HTML-disabled (12.19)`).toBe(false);
+        expect(gesperrt(tstueck), `Stufe ${stufe}: T-Stück gesperrt`).toBe(tstueckAus);
+        if (tstueckAus) expect(a.text(tstueck), `Stufe ${stufe}`).toBe('T-Stück mit Vorsehungab Stufe\u00a04');
+        else expect(a.text(tstueck), `Stufe ${stufe}`).not.toContain('ab Stufe');
+        expect(a.text(tstueck), `Stufe ${stufe}: kurzer Grund ohne „Heizzentrale“`).not.toContain('Heizzentrale');
       }
     });
   });
@@ -493,14 +501,15 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     const { s } = neu(1); offenerAbschnitt(s);
     const l = lege(s, 'd25', 3, 3, { geplant: true });
     const k1 = await karte(s, l);
-    expect(mit(k1.knoepfe, 'T-Stück mit Vorsehung setzen')).toEqual([expect.objectContaining({ aus: true, text: 'T-Stück mit Vorsehung setzenab Heizzentrale Stufe 4' })]);
+    // DESIGN.md 12.19: gesperrt per aria-disabled="true" ohne disabled; breite Karte behält den langen Grund.
+    expect(mit(k1.knoepfe, 'T-Stück mit Vorsehung setzen')).toEqual([expect.objectContaining({ aus: true, hinweisSperre: true, text: 'T-Stück mit Vorsehung setzenab Heizzentrale Stufe 4' })]);
     expect(k1.text).not.toContain('Gestattung');
     l.vorsehung = true;
     expect(mit((await karte(s, l)).knoepfe, 'Vorsehung entfernen')).toEqual([expect.objectContaining({ aus: false })]);
     const zwei = neu(2).s; offenerAbschnitt(zwei);
     expect((await karte(zwei, lege(zwei, 'd25', 3, 3, { geplant: true }))).text).toContain('Gestattung');
     const vier = neu(4).s; offenerAbschnitt(vier);
-    expect(mit((await karte(vier, lege(vier, 'd25', 3, 3, { geplant: true }))).knoepfe, 'T-Stück mit Vorsehung setzen')[0].aus).toBe(false);
+    expect(mit((await karte(vier, lege(vier, 'd25', 3, 3, { geplant: true }))).knoepfe, 'T-Stück mit Vorsehung setzen')).toEqual([expect.objectContaining({ aus: false, hinweisSperre: false })]);
   });
 
   it('A88: Hauskarte – ohne freie Stationswahl genau ein Knopf mit der passenden Station', async () => {
@@ -517,7 +526,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
       .map((e) => {
         const kinder = (e as unknown as El).kinder;
         const istSmall = (n: unknown) => !!n && typeof n === 'object' && (n as El).tag === 'small';
-        return { z1: kinder.filter((n) => !istSmall(n)).map(k.a.text).join(''), z2: kinder.filter(istSmall).map(k.a.text).join(''), aus: (e as unknown as { attrs: Record<string, string> }).attrs.disabled !== undefined };
+        return { z1: kinder.filter((n) => !istSmall(n)).map(k.a.text).join(''), z2: kinder.filter(istSmall).map(k.a.text).join(''), aus: gesperrt(e as unknown as { attrs: Record<string, string> }) };
       });
 
     const eins = neu(1).s, neuesHaus = haus(eins);
@@ -637,7 +646,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
           name: k.a.text(z.kinder[0]),
           sperr: sperr.map((c) => ({ text: k.a.text(c).trim(), tag: c.tag, klick: Object.keys(c.on).length > 0, schloss: (k.a.alle(c) as unknown as El[]).some((x) => x.attrs.quelle === SYMBOLE.schloss) })),
           chips: chips.map((c) => k.a.text(c)),
-          knoepfe: knoepfe.map((b) => ({ text: k.a.text(b), aus: b.attrs.disabled !== undefined, klick: b.on.click })),
+          knoepfe: knoepfe.map((b) => ({ text: k.a.text(b), aus: gesperrt(b), klick: b.on.click })),
         };
       });
     };
@@ -654,7 +663,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
         expect(sortiert(gruppe.map((x) => x.name)), `Stufe ${stufe}: Gruppe ab Stufe ${st}`).toEqual(sortiert(QUELLEN_JE_STUFE[st].map(name)));
         for (const x of gruppe) {
           expect(x.knoepfe, `${x.name}: kein Knopf`).toEqual([]);
-          expect(x.sperr, `${x.name}: Sperr-Chip`).toEqual([{ text: `ab Stufe ${st}`, tag: expect.not.stringMatching(/^button$/), klick: false, schloss: true }]);
+          expect(x.sperr, `${x.name}: Sperr-Chip`).toEqual([{ text: `ab Stufe\u00a0${st}`, tag: expect.not.stringMatching(/^button$/), klick: false, schloss: true }]);
         }
       }
       const freiNamen = [1, 2, 3, 4].filter((st) => st <= stufe).flatMap((st) => QUELLEN_JE_STUFE[st].map(name));
