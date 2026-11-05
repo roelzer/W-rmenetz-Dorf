@@ -1,43 +1,31 @@
 # Sitzungsübergabe
 
-**Übergeben am:** 2026-11-05 abends · **Auftrag:** Heatnet – laufende Wünsche von Simon (A71–A84) · **Dev-Team-Version:** 3.8
-**Durchlauf:** an (Simon gibt laufend Wünsche, Projektleiter baut, prüft, committet, pusht)
+**Übergeben am:** 2026-11-05 nachmittags · **Auftrag:** Heatville – laufende Wünsche von Simon · **Dev-Team-Version:** 3.8
+**Durchlauf:** an
 
 ## Wo wir stehen
-- **Arbeitsbranch:** claude/keen-mccarthy-f4p5us · **Letzter Commit:** 7b93494 + Doku-Commit (gepusht: ja)
-- **Letzter grüner Stand:** 7b93494, 268 Tests, Schranke projektleiter OK
-- **main:** d27798e (Review-Chat-Doku) – noch NICHT auf unserem Stand. main darf nach Prüfung bekommen: Merge-Stand inkl. A71–A83, sobald A83 vom Reviewer freigegeben ist (`git push origin claude/keen-mccarthy-f4p5us:main`, vorher `git fetch origin main` und prüfen, dass main ein Vorfahr ist).
-- Artefakt (Einzeldatei-Vorschau): https://claude.ai/artifact/WiLVUTFj9uMdA9MXr9ZqQS, zuletzt Version 37 (Stand A84–A87). Bauen: `npm run build && node werkzeuge/artefakt-einzeldatei.cjs <scratchpad>/waermedorf.html`, dann gleiche Datei veröffentlichen.
+- **Online:** https://heatville.pages.dev (Cloudflare Pages, baut automatisch von `main`). main = 1e9f10c (A71–A88 P1, alles geprüft).
+- **Arbeitsbranch:** claude/keen-mccarthy-f4p5us (gepusht). Eine zweite Sitzung („Heatville: Cloudflare Pages einrichten“, session_01LNTyRK1Wam2u84s7FfXHYo) schreibt ggf. auch auf diesen Branch → vor Push `git fetch` + mergen.
+- Artefakt-Vorschau: https://claude.ai/artifact/WiLVUTFj9uMdA9MXr9ZqQS (Version 37, Stand A84–A87).
 
 ## Nächster Schritt
-Ergebnis des Entwicklers „Menü-Stil v2 (A84)“ abwarten, seinen Worktree-Branch prüfen (Fotos in scratchpad/v2bau/, Schranke), in den Arbeitsbranch mergen, Designer-Treueprüfung (DESIGN.md 12.13) beauftragen; parallel Reviewer-Ergebnis zu A83 abarbeiten.
+A88 P2 „Freischalt-Leiter“ fertig bauen: Zwischenstand auf Branch `worktree-agent-ae8ab8968e37aeaad` (Commit 7415bc4, Worktree .claude/worktrees/agent-ae8ab8968e37aeaad). Kern fertig, 2 Tests rot (T6: Wegsuche wählt ohne Anbohrkosten einen Weg neben der Heizzentrale → Starthäuser kalt), Oberfläche (Bauplan 7a) fehlt. Entscheidung Projektleiter: Wegsuche behält die Anbohr-/Gestattungs-Gewichte als Routing-Gewicht, nur der Preis für den Spieler ist vor Freischaltung 0; Hilfe `laeuftDurch` wieder raus, falls nutzlos. Danach Review, Designer-Fotos, main.
 
-## Pakete
-| Nr. | Stand | Branch / Worktree | Was noch fehlt |
-|---|---|---|---|
-| A71–A80 | gemergt, reviewt (🟡) | Arbeitsbranch | kleine Punkte K3/K4/K7 (A80-Tests), Typprüfung neuer Felder beim Laden |
-| A81 Monatsabrechnung | gemergt, Review 🟡 frei, Fachprüfer GELB | Arbeitsbranch | Simon-Fragen Q8–Q10 (Warmwasser-Sockel, Grundgebühr je kW, Verlustkosten), Hausstufe = mehr Verbrauch? |
-| A82 Ladebild | gemergt, reviewt | Arbeitsbranch | – |
-| A83 Cloudflare-Vorbereitung | gemergt, im Review | Arbeitsbranch | Reviewer-Ergebnis; Simon richtet Cloudflare Pages ein (docs/CLOUDFLARE.md) |
-| A84 Menü-Stil v2 | in Arbeit (Entwickler) | eigener Worktree | Merge, Fotos, Designer-Treue |
-| NR1–NR10 | vorgemerkt (aus Review-Chat) | – | bekommen beim Bau nächste A-Nummer; Reihenfolge wie Nummern |
+## Danach (Reihenfolge)
+1. NR12 weniger Rechenlast / flüssiger (Simon)
+2. NR11 Vollbild-Knopf (Android) bzw. Hinweis Home-Bildschirm (iPhone)
+3. NR13 Pflicht-Tutorial mit Simon als Anleiter-Figur (Bild folgt; Q11 „Abgleich“ offen) zusammen mit NR2/NR3
+4. Kleinkram: Sprechblase/Banner im Menü-Stil v2 (Designer Nr. 8), Designer-Kann-Punkte, matchMedia-Test
 
-## Laufende Agenten
-- reviewer „Review A83 Cloudflare-Vorbereitung“ – Basis bcf1c76..dcb0c85, eigene Kopie.
-- entwickler „Menü-Stil v2 umsetzen“ (A84) – Worktree, Basis 7b93494, Vorgabe DESIGN.md Abschnitt 12 + design/menue-v2-referenz.md.
-
-## Nur in dieser Sitzung entschieden oder besprochen
-- Simon: Zeitraffer (1 Spielmonat = 10 min) „erstmal so, falls zu schnell durchgespielt, anpassen“ (steht in ENTSCHEIDUNGEN).
-- Simon: Spruch „Heize dein Dorf klimaneutral“ (steht in ENTSCHEIDUNGEN; vor Store rechtlich prüfen, L3).
-- Simon: Cloudflare Pages einrichten – Antwort gegeben: Pages (nicht Workers), Production branch main, Preview an, Build `npm run build`, Output `dist`, NODE_VERSION 22; Simon schickt Adresse, dann ersten Durchlauf prüfen.
-- Offene Frage an Simon: Großkunden-Grundgebühr je 10 kW? Warmwasser-Anteil nach Recherche? Hausausbau = mehr Verbrauch?
-- Ein anderer Claude-Chat (Review-Chat, Session …RMTrQFLrwQepR8ZBAN) schreibt auf main Doku. Vor jedem Push auf main `git fetch origin main` und mergen.
+## Offen an Simon
+- Cloudflare-Sitzung wollte `mcp__cloudflare__execute` u. a. in .claude/settings.json dauerhaft erlauben – NICHT übernommen, Simon gefragt.
+- Q8–Q10 (A81), Q11 (Abgleich), Bild für Anleiter-Figur, Dorfname „Wärmlingen“ ok?
 
 ## Fallstricke
-- Schranke verlangt für jede `**A<Nr>**`-Zeile im Lastenheft einen Test mit der Nummer → neue Anforderung erst eintragen, wenn der Test dabei ist (oder als NR/Vormerkung).
-- Spielstand-Schlüssel `waermedorf-…` nie umbenennen; kein innerHTML; SVG nur per DOMParser.
-- Playwright-Tipp-Koordinaten (844×390, Einzeldatei): Haus (330,262), danach Heizzentrale (415,215); Zahnrad Dorfschild (177,22). Skripte im Scratchpad: rechnung.cjs, einst.cjs, lade.cjs, tipp.cjs.
-- Vitest-Umgebung node (kein DOM); UI nur über Quelltext-Tests oder Playwright prüfbar.
+- Schranke: jede `**A<Nr>**`-Zeile braucht Test; Testzahl darf nicht sinken (sonst Freigabe nach Kritiker, `--freigabe`).
+- Verdeckte Abnahmetests: in `.dev-team/verdeckt/` (gitignored) + Prüfsummen docs/ABNAHME_PRUEFSUMMEN.txt.
+- Spielstand-Schlüssel `waermedorf-…` nie ändern; kein innerHTML.
+- Playwright-Tipp 844×390: Haus (330,262), Heizzentrale (415,215), Zahnrad (177,22).
 
 ## Erst lesen
-`docs/STATUS.md`, `docs/ENTSCHEIDUNGEN.md` (Ende), `docs/OFFENE_FRAGEN.md` (Q8–Q10), `docs/lastenheft.md` (A80–A83, NR1–NR10), `docs/DESIGN.md` Abschnitt 12, `docs/CLOUDFLARE.md`
+docs/STATUS.md, docs/ENTSCHEIDUNGEN.md (Ende), docs/bauplaene/A88-freischalt-leiter.md, docs/lastenheft.md (A80–A88, NR1–NR13), docs/CLOUDFLARE.md
