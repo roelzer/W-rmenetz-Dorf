@@ -1311,10 +1311,11 @@ describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
     const billig = spiel(), umgestellt = spiel();
     billig.s.preisSetzen(0); umgestellt.s.preisSetzen(0);
     for (const g of [billig, umgestellt]) { g.z.t = JAN + 10 * 60 * 1000 - 30_000; g.s.bis(g.z.t); }
-    umgestellt.s.preisSetzen(PREISSTUFEN.length - 1);
+    umgestellt.s.preisSetzen(PREISSTUFEN.length - 1); umgestellt.s.grundgebuehrSetzen(40);
     for (const g of [billig, umgestellt]) { g.z.t = JAN + 10 * 60 * 1000 + 1000; g.s.bis(g.z.t); }
     const a = billig.s.stand.letzte_abrechnung!, b = umgestellt.s.stand.letzte_abrechnung!;
     expect(b.waerme_eur).toBeLessThan(a.waerme_eur * 1.15); // nur die letzten 30 s zum hohen Preis
+    expect(b.grund_eur).toBeLessThan(b.kunden * 33); // Grundgebühr 40 € nur für die letzten 30 s (sonst kunden × 40)
   });
   it('A81 (Review W4): Die Sammelmeldung nennt, was wirklich eingegangen ist, und warnt bei voller Kasse', () => {
     const lauf = (start_eur: number) => {

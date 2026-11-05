@@ -15,7 +15,6 @@ export interface Objekt {
   y: number;
   stufe: number;
   bau: Bau | null;
-  /** aufgelaufene, noch nicht abgeholte Einnahmen in € */
   /** Altlast vor A81 (Münzen an den Häusern); bleibt für alte Spielstände, wird bei der nächsten Abrechnung überwiesen und ist danach 0 */
   kasse_eur: number;
   /** Zufriedenheit 0..100 (Häuser und Großabnehmer) */
