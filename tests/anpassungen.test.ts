@@ -1168,3 +1168,28 @@ describe('Simon 2026-11-05: Bedienung und Start', () => {
     expect(steuerung).toContain('if (spiel.stand.namen_gefragt === false) this.namenFragen();');
   });
 });
+
+describe('A80 Antippen trifft beim ersten Mal', () => {
+  it('A80: Tippen auf Dach/Wand eines Hauses trifft das Haus, nicht das Feld dahinter – in jedem Drehwinkel', async () => {
+    const { objektAmPunkt } = await import('../src/render/treffer');
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const k = new Kamera(); k.groesseSetzen(844, 390, 1); k.zoom = 3;
+    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 12 && o.y === 14)!;
+    for (const w of [0, 0.4, Math.PI / 2, 2.5]) {
+      k.winkel_rad = w; k.zentrieren(haus.x, haus.y, 1);
+      const [cx, cy] = k.mitte(haus.x, haus.y);
+      expect(objektAmPunkt(k, s.stand.objekte, cx, cy - k.tw * 0.45)?.id).toBe(haus.id); // oben am Dach
+      expect(objektAmPunkt(k, s.stand.objekte, cx, cy)?.id).toBe(haus.id); // Mitte
+    }
+    k.winkel_rad = 0;
+    const leitung = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 12)!;
+    const [lx, ly] = k.mitte(leitung.x, leitung.y);
+    const t = objektAmPunkt(k, s.stand.objekte, lx, ly);
+    expect(t?.id === leitung.id || KATALOG[t!.typ].kategorie !== 'netz').toBe(true);
+  });
+  it('A80: Ein zweites Haus antippen, während ein Fenster offen ist, zeigt dessen Inhalt (kein leeres Fenster)', () => {
+    const src = readFileSync(new URL('../src/ui/kontext.ts', import.meta.url), 'utf8');
+    expect(src).toContain('if (this.blatt !== b) return;');
+    expect(src.indexOf('this.blatt = b; this.id = id;')).toBeGreaterThan(src.indexOf('blattOeffnen({ titel: D.name'));
+  });
+});

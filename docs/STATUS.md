@@ -3,7 +3,7 @@
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** A71–A79 fertig, Reviewer-Prüfung steht an · **Als Nächstes:** Reviewer + Fachprüfer über A71–A79, Antworten Q6/Q7 · **Fortschritt:** 248 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us
+> **Jetzt:** A80 (Antippen/leeres Fenster/Ladebild) fertig, Fachprüfer-Befunde 1–3 und A81 Abrechnung als Nächstes · **Fortschritt:** 250 Tests · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us
 
 ## Ampel
 🟢 läuft

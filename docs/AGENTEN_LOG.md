@@ -38,3 +38,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 09:52 | ■ 🔴 | reviewer | 🔴 **Ampel ROT: Nachbesserung nötig.** Modi: Nachprüfung und Paket. Geprüft habe ich den Bereich cbfd8d1..fbc4682 im eingecheckten Stand.  ([Bericht](docs/pruefberichte/20261105-095200-reviewer-a76907dcbef88e162.md)) |
 | 2026-11-05 10:18 | ▶ | reviewer | Review A71–A79 |
 | 2026-11-05 10:19 | ▶ | fachpruefer | Fachprüfung A71–A76 |
+| 2026-11-05 10:23 | ■ 🟡 | fachpruefer | 🟡 **Gelb.** Simons neue Regeln A71 bis A76 sind richtig umgesetzt, und die Tests sichern die wichtigsten Rechenstellen ab. Gegen eine bestätigte Fachregel v ([Bericht](docs/pruefberichte/20261105-102349-fachpruefer-af3ff03e9453287a2.md)) |

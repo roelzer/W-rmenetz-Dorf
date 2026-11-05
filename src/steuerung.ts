@@ -6,6 +6,7 @@ import type { Spiel } from './core/spiel';
 import { Effekte } from './render/effekte';
 import { Kamera } from './render/kamera';
 import { drehFrei } from './render/anschluss';
+import { objektAmPunkt } from './render/treffer';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
 import { chip, knopf } from './ui/bausteine';
@@ -349,7 +350,7 @@ export class Steuerung implements Ui {
       if (f) toast(`${KATALOG[f.typ].name}${KATALOG[f.typ].bauzeit_s ? ' · Stufe ' + f.stufe : ''}`);
       return;
     }
-    const o = this.spiel.stand.objekte.find((a) => { const k = groesse(a); return x >= a.x && x < a.x + k && y >= a.y && y < a.y + k; });
+    const o = objektAmPunkt(this.kamera, this.spiel.stand.objekte, mx, my); // A80: gezeichnete Form zählt, nicht nur das Bodenfeld
     if (!o) { this.kontextUi.schliessen(); return; }
     const D = KATALOG[o.typ];
     const muenze = (D.kategorie === 'haus' || (D.kategorie === 'gross' && o.zustand === 'vertrag')) && !o.bau && o.kasse_eur >= this.spiel.kassenCap_eur(o) * 0.08 && o.kasse_eur >= 1;

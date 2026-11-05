@@ -30,9 +30,11 @@ export class Kontext {
   oeffnen(id: number): void {
     const o = this.ui.spiel.objekt(id);
     if (!o) return;
-    this.id = id;
     const D = KATALOG[o.typ];
-    this.blatt = blattOeffnen({ titel: D.name, stufe: hatStufen(o.typ) ? `Stufe ${o.stufe}` : '', beiZu: () => { this.blatt = null; this.id = null; this.beiZu(); } });
+    // A80: Das alte Blatt wird beim Öffnen des neuen geschlossen – sein Schließen darf das neue nicht leeren (früher: weißes Fenster).
+    this.blatt = null;
+    const b: Blatt = blattOeffnen({ titel: D.name, stufe: hatStufen(o.typ) ? `Stufe ${o.stufe}` : '', beiZu: () => { if (this.blatt !== b) return; this.blatt = null; this.id = null; this.beiZu(); } });
+    this.blatt = b; this.id = id;
     this.sig = '';
     this.aktualisieren();
   }
