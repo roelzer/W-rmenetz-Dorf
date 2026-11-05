@@ -9,16 +9,16 @@ import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
-import { chip, knopf, sperren } from './ui/bausteine';
-import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
+import { chip, knopf, sperren, symbol } from './ui/bausteine';
+import { blattBreite_px, blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { eur, h } from './ui/dom';
 import { sprecherZeigen } from './ui/sprecher';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
-import { Kontext, kurzGrund, leitungsKnoepfe, tStueckHinweis } from './ui/kontext';
-import { HAUSANSCHLUSS_KURZ, OHNE_ABSCHNITT, OHNE_ABSCHNITT_HINWEIS, schonGemocht } from './ui/sperrtexte';
+import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
+import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
@@ -42,6 +42,10 @@ export class Steuerung implements Ui {
   /** A69: Werkzeug „T-Stück mit Vorsehung“: Tippen auf eine geplante Leitung setzt/entfernt die Vorsehung */
   private vorsehen = false;
   private modusBlatt: Blatt | null = null;
+  /** Offene Zeichenleiste (DESIGN.md 12.18): [?] im Kopf, Aktionsleiste unter dem scrollenden Inhalt */
+  private leiste: { blatt: Blatt; frage: HTMLButtonElement; aktion: HTMLElement } | null = null;
+  /** Erklärtext statt Werkzeug im Mittelteil der Zeichenleiste */
+  private hilfeOffen = false;
   private katalogUi: Katalog;
   private kontextUi: Kontext;
   private auftrag: Auftrag | null = null;
@@ -114,6 +118,8 @@ export class Steuerung implements Ui {
     this.spiel.neuBerechnen();
     this.hudJetzt();
     this.kontextUi.aktualisieren();
+    // 12.21 Punkt 1: Abschließen und Zurück sofort frei bzw. gesperrt, ohne die Leiste neu zu öffnen
+    this.leisteAufbauen();
   }
   toast(text: string): void { toast(text); }
   katalog(kategorie?: string): void { this.abbrechen(); this.kontextUi.schliessen(); this.katalogUi.oeffnen(kategorie); }
@@ -125,8 +131,9 @@ export class Steuerung implements Ui {
     const o = this.spiel.objekt(id);
     if (o) {
       // Querformat: Blatt liegt rechts, das Objekt wandert in die freie linke Fläche
-      const k = this.kamera, blattBreite = Math.min(k.breite * 0.46, 400);
-      k.zentrierenBei(o.x, o.y, groesse(o), (k.breite - blattBreite) / 2, k.hoehe * 0.58);
+      // Breite aus dem tatsächlichen Blatt-Rechteck (DESIGN.md 12.21 Punkt 4), y nach ENTSCHEIDUNGEN 2026-11-05 (Hausblatt 0,58)
+      const k = this.kamera;
+      k.zentrierenBei(o.x, o.y, groesse(o), (k.breite - blattBreite_px()) / 2, k.hoehe * 0.58);
     }
   }
 
@@ -145,29 +152,105 @@ export class Steuerung implements Ui {
     this.geist = { typ: o.typ, x: o.x, y: o.y, kante }; this.verschiebeId = id; this.modus = 'verschieben';
     this.modusBlattOeffnen(`${KATALOG[o.typ].name} verschieben`, 'Tippe auf die Wiese oder zieh das Gebäude an seinen neuen Platz.', 'Hier hin', () => this.bestaetigen());
   }
+  /** Zeichenmodus mit der schmalen Zeichenleiste (DESIGN.md 12.18/12.21). Ist die Leiste schon offen, wechselt nur das
+   *  Werkzeug (Farbknopf, Radierer, T-Stück) – ein neues Blatt würde den Zeichenmodus beenden. */
   stempeln(typ: TypId, radieren = false, vorsehen = false): void {
-    this.katalogUi.schliessen(); this.kontextUi.schliessen();
-    this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
-    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. ' + HAUSANSCHLUSS_KURZ + ' Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); }, this.spiel.abschnitt?.phase === 'offen' ? null : { grund: OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS });
-    // Durchmesser direkt wählen (Designer-Mangel 10)
-    // A88: nur freigeschaltete Durchmesser plus ein deaktivierter Knopf für die dickeren – der Kern entscheidet; kurzer Grund, weil die Leiste eng ist
-    const wahl = h('div', { class: 'durchmesser' }, ...leitungsKnoepfe(this.spiel, null, (t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true }), true));
-    const sperreTStueck = this.spiel.sperrgrund('vorsehung');
-    const werkzeug = h('div', { class: 'knopfreihe' },
-      knopf(radieren ? 'Radierer an – tippe Leitungen weg' : 'Radierer', () => this.stempeln(typ, !radieren), radieren ? 'gewaehlt' : '', { klein: true }),
-      // enge Leiste: kurzer Grund „ab Stufe X“ (DESIGN.md 12.15); der Hinweis beim Antippen erklärt ausführlich
-      knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, hinweis: tStueckHinweis() }),
-      knopf('Letzte zurück', () => { this.spiel.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); }, '', { klein: true }));
-    this.modusBlatt?.inhalt.append(wahl, werkzeug);
+    if (!this.leiste) {
+      const herkunft = this.kontextUi.offenFuer;
+      this.katalogUi.schliessen(); this.kontextUi.schliessen(); this.modusBlatt?.zu();
+      this.leisteOeffnen();
+      this.werkzeugSetzen(typ, radieren, vorsehen);
+      this.leisteAufbauen();
+      this.kameraFuerLeiste(herkunft);
+      return;
+    }
+    this.werkzeugSetzen(typ, radieren, vorsehen);
+    this.leisteAufbauen();
+  }
+  private werkzeugSetzen(typ: TypId, radieren: boolean, vorsehen: boolean): void {
+    this.modus = 'stempel'; this.geist = null; this.verschiebeId = null;
+    this.stempelTyp = typ; this.stempelLetzte = null; this.stempelAchse = null;
+    this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
+  }
+  private leisteOeffnen(): void {
+    // Erste Nutzung je Spielstand (12.18): die Merke steht im Spielstand, damit sie Neuladen und Gerätewechsel übersteht
+    this.hilfeOffen = !this.spiel.stand.zeichenhilfe_gesehen;
+    this.spiel.stand.zeichenhilfe_gesehen = true;
+    const frage = h('button', { type: 'button', class: 'knopf frage', 'aria-label': 'Hilfe zum Zeichnen', 'aria-expanded': 'false', onclick: () => this.hilfeZeigen(!this.hilfeOffen) }, symbol('frage'));
+    const blatt = blattOeffnen({ titel: 'Zeichnen', klasse: 'zeichenleiste', kopfKnopf: frage, beiZu: () => { this.leiste = null; this.modusBlatt = null; this.modusZuruecksetzen(); } });
+    // Außerhalb des scrollenden Inhalts: „Abschnitt abschließen“ bleibt immer im Bild (12.18 Aktionsleiste)
+    const aktion = h('div', { class: 'aktionsleiste' });
+    blatt.wurzel.append(aktion);
+    this.modusBlatt = blatt;
+    this.leiste = { blatt, frage, aktion };
+  }
+  private hilfeZeigen(offen: boolean): void {
+    this.hilfeOffen = offen;
+    this.leisteAufbauen();
+    // [Verstanden] verschwindet mit der Hilfe – der Fokus geht an [?] zurück (12.21 Punkt 4)
+    if (!offen) this.leiste?.frage.focus();
+  }
+  /** Baut Mittelteil und Aktionsleiste neu (nach jeder Änderung). Kopf und Blatt bleiben, der Fokus bleibt auf demselben Knopf. */
+  private leisteAufbauen(): void {
+    const l = this.leiste, typ = this.stempelTyp;
+    if (!l || !typ) return;
+    const sp = this.spiel, D = KATALOG[typ];
+    const fokus = document.activeElement instanceof HTMLElement && l.blatt.wurzel.contains(document.activeElement) ? document.activeElement.getAttribute('data-id') : null;
+    const neuAufbau = (): void => this.leisteAufbauen();
+    l.frage.setAttribute('aria-expanded', String(this.hilfeOffen));
+    const umschalter = (k: HTMLButtonElement, an: boolean): HTMLButtonElement => { k.setAttribute('aria-pressed', String(an)); return k; };
+    const farben = LEITUNGEN.filter((t) => sp.freigeschaltet(t)).map((t) => {
+      const L = KATALOG[t];
+      const k = umschalter(knopf(String(L.durchmesser_mm), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { id: `farbe-${t}` }), t === typ);
+      k.classList.add('farbknopf');
+      k.setAttribute('aria-label', `${L.name}, bis ${L.kapazitaet_kw} kW`);
+      k.style.setProperty('--streifen', L.farbe ?? '');
+      return k;
+    });
+    const dicker = dickereFarbknopf(sp);
+    const kennzeile = this.radieren ? 'Leitung antippen = löschen' : this.vorsehen ? 'Geplante Leitung antippen' : `bis ${D.kapazitaet_kw} kW · ${eur(D.kosten_eur![0])}/Feld`;
+    const zurueck = knopf(h('span', { class: 'mit-sym' }, symbol('zurueck'), 'Zurück'), () => { sp.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); }, '', { klein: true, id: 'zurueck', sperre: () => (sp.abschnittLeitungen() ? null : NICHTS_ZURUECK), neuAufbau });
+    zurueck.setAttribute('aria-label', 'Letzte Leitung zurück');
+    const sperreTStueck = sp.sperrgrund('vorsehung');
+    // enge Leiste: kurzer Grund „ab Stufe X“ (DESIGN.md 12.15); der Hinweis beim Antippen erklärt ausführlich
+    const tStueck = umschalter(knopf('T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, id: 'tstueck', unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, hinweis: tStueckHinweis() }), this.vorsehen);
+    tStueck.classList.add('t-stueck');
+    const werkzeug = h('div', { class: 'zeichen-werkzeug', hidden: this.hilfeOffen },
+      h('div', { class: 'farbknoepfe' }, ...farben, dicker),
+      h('p', { class: 'kennzeile' }, kennzeile),
+      h('div', { class: 'zeichen-reihe' },
+        umschalter(knopf('Radierer', () => this.stempeln(typ, !this.radieren), this.radieren ? 'gewaehlt' : '', { klein: true, id: 'radierer' }), this.radieren),
+        zurueck),
+      tStueck);
+    const hilfe = h('div', { class: 'zeichen-hilfe', hidden: !this.hilfeOffen },
+      h('p', {}, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. ' + HAUSANSCHLUSS_KURZ + ' Bezahlt wird erst, wenn Laura das Material bestellt.'),
+      knopf('Verstanden', () => this.hilfeZeigen(false), '', { id: 'verstanden' }));
+    l.blatt.inhalt.replaceChildren(werkzeug, hilfe);
+    // B1–B4 vor B6 (12.21 Punkt 1); beim Tippen werden alle Gründe neu gelesen (Punkt 3)
+    l.aktion.replaceChildren(knopf('Abschnitt abschließen', () => this.leisteAbschliessen(), 'los', { id: 'abschliessen', sperre: () => ersteSperre(abschnittSperreKurz(sp, this.uhr), sp.abschnittLeitungen() ? null : NICHTS_GEZEICHNET_KURZ), neuAufbau }));
+    if (fokus) [...l.blatt.wurzel.querySelectorAll<HTMLElement>('button')].find((b) => b.getAttribute('data-id') === fokus)?.focus();
+  }
+  private leisteAbschliessen(): void {
+    const r = this.spiel.abschnittAbschliessen();
+    if (r.ok) { this.abbrechen(); this.geaendert(); this.katalog('netz'); return; }
+    // Fehler beim Abschließen: Meldung, die Leiste bleibt offen (12.18)
+    this.geaendert(); this.hinweiseZeigen();
+  }
+  /** Kamera beim Öffnen der Leiste (12.21 Punkt 4): aus einem Objektblatt das Objekt, sonst die zuletzt geplante Leitung
+   *  in die Mitte der freien Fläche links der Leiste; gibt es keine, bleibt die Kamera stehen. Zoom bleibt. */
+  private kameraFuerLeiste(herkunft: number | null): void {
+    const geplant = this.spiel.stand.objekte.filter((o) => o.geplant);
+    const o = herkunft != null ? this.spiel.objekt(herkunft) : geplant[geplant.length - 1];
+    if (!o) return;
+    const k = this.kamera;
+    k.zentrierenBei(o.x, o.y, groesse(o), (k.breite - blattBreite_px()) / 2, k.hoehe * 0.5);
   }
 
-  /** `sperre`: warum der Bestätigen-Knopf gerade nichts tun kann – Grund in Zeile 2, Hinweis beim Antippen (DESIGN.md 12.19). */
-  private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void, sperre: { grund: string; hinweis: string } | null = null): void {
+  /** Blatt für Platzieren und Verschieben: Erklärtext, Bestätigen und Abbrechen. */
+  private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void): void {
     this.modusBlatt?.zu();
     this.modusBlatt = blattOeffnen({ titel, beiZu: () => { this.modusBlatt = null; this.modusZuruecksetzen(); } });
-    const reihe = h('div', { class: 'knopfreihe' }, knopf(ja, bei, 'los', sperre ? { aus: true, unter: sperre.grund, hinweis: sperre.hinweis } : {}));
-    if (this.modus !== 'stempel') reihe.append(knopf('Abbrechen', () => this.abbrechen()));
-    this.modusBlatt.inhalt.append(h('p', {}, text), reihe);
+    this.modusBlatt.inhalt.append(h('p', {}, text), h('div', { class: 'knopfreihe' }, knopf(ja, bei, 'los'), knopf('Abbrechen', () => this.abbrechen())));
   }
   private modusZuruecksetzen(): void { this.modus = 'normal'; this.geist = null; this.verschiebeId = null; this.stempelTyp = null; this.stempelLetzte = null; this.stempelAchse = null; this.radieren = false; this.vorsehen = false; }
   private abbrechen(): void { if (this.modusBlatt) { const b = this.modusBlatt; this.modusBlatt = null; b.zu(); } this.modusZuruecksetzen(); }

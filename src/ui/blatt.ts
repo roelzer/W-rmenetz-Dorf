@@ -9,6 +9,8 @@ export interface BlattOptionen {
   schliessbar?: boolean;
   /** zusätzliche Klasse am Blatt (z. B. 'zeichenleiste', DESIGN.md 12.18) */
   klasse?: string;
+  /** zusätzlicher Knopf im Kopf vor [X] (Zeichenleiste: [?], DESIGN.md 12.18) – steht so auch in der Tab-Reihenfolge davor */
+  kopfKnopf?: HTMLElement;
   beiZu?: () => void;
 }
 
@@ -39,7 +41,7 @@ export function blattOeffnen(opt: BlattOptionen): Blatt {
   const stufe = h('span', { class: 'stufe' }, opt.stufe ?? '');
   const inhalt = h('div', { class: 'inhalt' });
   const zuKnopf = h('button', { type: 'button', class: 'schliessen', 'aria-label': 'Schließen', onclick: () => b.zu() }, symbol('schliessen'));
-  const kopf = h('div', { class: 'kopf' }, h('span', { class: 'umriss', style: 'display:contents' }, titel), stufe, opt.schliessbar === false ? null : zuKnopf);
+  const kopf = h('div', { class: 'kopf' }, h('span', { class: 'umriss', style: 'display:contents' }, titel), stufe, opt.kopfKnopf ?? null, opt.schliessbar === false ? null : zuKnopf);
   titel.classList.add('umriss');
   const wurzel = h('section', { class: `blatt ${art === 'hoch' ? 'hoch' : art === 'popup' ? 'popup' : ''} ${opt.klasse ?? ''}`.trim(), role: 'dialog', 'aria-modal': art === 'popup' ? 'true' : null, 'aria-labelledby': 'blatt-titel', tabindex: -1 }, kopf, inhalt);
   const abdunkeln = art === 'popup' ? h('div', { class: 'abdunkeln' }) : null;
