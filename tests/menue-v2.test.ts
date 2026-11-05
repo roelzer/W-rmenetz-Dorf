@@ -190,6 +190,8 @@ describe('A84 Designer-Treueprüfung (Nr. 1–7)', () => {
     expect(css).toMatch(/\.blatt-offen \.update-hinweis\{left:/);
     expect(css).toContain('#ebene.mitte>.blatt.popup{align-self:center}');
     expect(css).toMatch(/@media \(orientation:landscape\) and \(max-width:799px\)\{\.hud-links\{width:170px\}/);
+    expect(css).toMatch(/@media \(orientation:landscape\) and \(max-width:699px\)\{\.hud-links\{width:160px\}/);
+    expect(lies('src/ui/hud.ts')).toContain("matchMedia('(max-width:699px)')");
   });
   it('A84: Plus/Minus einfarbig kräftig, gesperrte Knöpfe ohne Münze, Hausausbau gesperrt als Knopf mit Grund', async () => {
     expect(SYMBOLE.plus).not.toContain('#fff6e2'); expect(SYMBOLE.minus).not.toContain('#fff6e2');

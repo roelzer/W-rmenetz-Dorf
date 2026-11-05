@@ -96,7 +96,9 @@ export class Hud {
     this.ruf.wurzel.classList.toggle('schlecht', ruf < 45);
     this.setze(this.taler, zahl(s.taler), 0, `${zahl(s.taler)} Dorftaler`);
     const frei = Math.max(0, sp.monteure() - sp.beschaeftigt());
-    this.setze(this.monteure, `${frei}/${sp.monteure()} frei`, sp.monteure() ? (sp.monteure() - frei) / sp.monteure() : 0, `Monteure: ${frei} von ${sp.monteure()} frei`);
+    // A84 Treue Nr. 3: auf schmalen Handys (unter 700 px) ohne „frei“, damit die Kapseln das Zahnrad nicht verdecken
+    const kurz = typeof matchMedia === 'function' && matchMedia('(max-width:699px)').matches;
+    this.setze(this.monteure, `${frei}/${sp.monteure()}${kurz ? '' : ' frei'}`, sp.monteure() ? (sp.monteure() - frei) / sp.monteure() : 0, `Monteure: ${frei} von ${sp.monteure()} frei`);
     this.monteure.wurzel.classList.toggle('mangel', frei === 0);
     this.monteure.wurzel.classList.add('waerme');
   }

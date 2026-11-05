@@ -368,3 +368,4 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 #ebene.mitte>.blatt.popup{align-self:center}
 /* A84 Treue Nr. 3: schmalere Handys quer (bis 667 px) – HUD-Kapseln dürfen Dorfschild und Zahnrad nicht überdecken */
 @media (orientation:landscape) and (max-width:799px){.hud-links{width:170px}.pille{min-width:0}.pillen{gap:var(--abstand-px-1)}}
+@media (orientation:landscape) and (max-width:699px){.hud-links{width:160px}.pille{padding-left:18px;padding-right:var(--abstand-px-1)}}
