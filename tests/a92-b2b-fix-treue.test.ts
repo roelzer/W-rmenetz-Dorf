@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
 import type { El } from './hilfen/dom-attrappe';
+import { SYMBOLE } from '../src/ui/symbole';
 
 // A92 / NR16-B2b, Nachbesserung nach der Designer-Fotoprüfung (docs/pruefberichte/20261105-205825-designer-treue-b2b.md):
 // Mängel, die sich ohne Browser prüfen lassen – Münze am T-Stück-Preis (12.18) und die Meldung, die Leitungsnamen
@@ -39,6 +40,9 @@ describe('A92 / DESIGN 12.18 – T-Stück zeigt den Preis mit Münze', () => {
       u.st.stempeln('d25');
       // 300 € = KONSTANTEN.vorsehung_eur (katalog.ts), von Hand aus dem Katalog abgelesen
       expect(zeile2(tStueck(u))).toEqual({ sym: 'sym preis-sym', text: '300 €' });
+      // dieselbe Münze wie an den Geld-Knöpfen, nicht der Dorftaler
+      const muenze = tStueck(u).nachfahren.find((e) => e.tagName === 'SMALL')!.children[0].children[0];
+      expect(muenze.attrs.quelle === SYMBOLE.geld, 'Münze (SYMBOLE.geld)').toBe(true);
       tStueck(u).click();
       expect(tStueck(u).attrs['aria-pressed']).toBe('true');
       expect(zeile2(tStueck(u))).toEqual({ sym: 'sym preis-sym', text: '300 €' });
