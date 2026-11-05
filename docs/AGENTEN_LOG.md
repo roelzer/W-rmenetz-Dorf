@@ -263,3 +263,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 21:03 | ▶ | architekt | Bauplan NR17 Engstelle |
 | 2026-11-05 21:12 | ▶ | entwickler | NR16-B2b Fix Designer (neu) |
 | 2026-11-05 21:12 | ▶ | architekt | Bauplan NR17 Engstelle (neu) |
+| 2026-11-05 21:25 | ■ 🔴 | entwickler | 🔴 **Status: BRAUCHT_KONTEXT.** Drei von vier Punkten sind gebaut, getestet und committet. Der Muss-Punkt 1 (Hausblatt bei 667×375) ist **nicht** gebaut: Die ([Bericht](docs/pruefberichte/20261105-212524-entwickler-ab32fc87d97b67afe.md)) |
+| 2026-11-05 21:25 | ▶ | tester | Vorarbeit Kurzform Hausblatt |

@@ -8,3 +8,4 @@
 - [Prozess] Fix-Runden und Fortsetzungen: Agenten können nicht im Worktree eines anderen Agenten arbeiten (Wächter). Immer isolation: worktree und im Auftrag `git checkout -B <neu> <letzter Commit>` vorgeben. (NR15-P2/NR16-B2b, 2026-11-05)
 - [Tests] Erwartete Preise im Spiel immer nach dem Kostenfaktor (KONSTANTEN.kosten_faktor) von Hand rechnen, nicht den Rohwert aus katalog.ts nehmen; gilt auch für Beispiele in DESIGN.md. (NR16-B2b, 2026-11-05)
 - [Bauplan/Projektleiter] Tester-Vorarbeit aus dem Bauplan immer vor dem Entwickler beauftragen; vor dem Entfernen einer Sperre alle Tests suchen, die sie voraussetzen (nicht nur nach Stichwort im Namen). (NR15-P3, 2026-11-05)
+- [Prozess] Verlangt eine Design-Nachbesserung einen anderen sichtbaren Text, der in bestehenden Tests wörtlich steht, vor dem Entwickler-Auftrag eine Tester-Vorarbeit einplanen. (NR16-B2b, 2026-11-05)
