@@ -165,3 +165,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 16:51 | ▶ | fachpruefer | Fachprüfung NR15-Regeln |
 | 2026-11-05 16:53 | ■ 🟡 | kritiker | **Ampel: 🟡** – Die Ursachenanalyse ist gut und mit Messungen belegt. Die neue Anschlussregel kann aber alte Spielstände verschlechtern, und genau dafür f ([Bericht](docs/pruefberichte/20261105-165336-kritiker-a99142be428465094.md)) |
 | 2026-11-05 16:53 | ■ 🟡 | fachpruefer | 🟡 **Fachprüfung Bauplan NR15 (Modus plan): Die drei Vereinfachungen behaupten im Spiel nichts fachlich Falsches. Zwei Dinge sollten trotzdem angepasst werde ([Bericht](docs/pruefberichte/20261105-165342-fachpruefer-a1361f478c619bd17.md)) |
+| 2026-11-05 16:54 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN 🟡**. Kann 1 ist fertig, getestet und committet. Kann 2 habe ich nicht gebaut: Bestehende Tests schreiben genau den heutigen Tex ([Bericht](docs/pruefberichte/20261105-165444-entwickler-afe58d124cfa3cf27.md)) |
+| 2026-11-05 16:54 | ▶ | reviewer | Review Designer-Kann 1 |
