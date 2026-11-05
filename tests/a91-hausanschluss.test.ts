@@ -108,6 +108,51 @@ describe('A91 P3 – Hausanschluss ohne Sperre neben der Heizzentrale', () => {
     expect(s.stand.objekte.filter((o) => o.geplant).map(feld)).toEqual(['12|11']);
   });
 
+  it('A91: test_a91_keine_neue_aufteilung_mitten_auf_gleich_dicker_leitung', () => {
+    // 25er-Strang (12|10)…(17|10) rechts an der Heizzentrale (10|10, 2×2), dahinter kein Haus; (15|10) hat eine Vorsehung (A69),
+    // dort kostet das Andocken keine Anbohrung. Das Ziel-EFH (15|12) braucht eine 25er (10 kW ≤ 15 kW). Der billigste Weg (15|11)
+    // dockt an der Vorsehung an: (15|10) hätte dann zwei gleich dicke Abgänge (16|10) und (15|11) → neue A76-Warnung „Aufteilung“
+    // (kein Engpass, keine Reduzierung, kein Haus kalt). Ohne Warnung geht es nur am Strangende (17|10).
+    const d25 = (x: number, y: number) => ({ typ: 'd25' as TypId, x, y });
+    const s = spielMit([
+      { typ: 'hz', x: 10, y: 10 },
+      d25(12, 10), d25(13, 10), d25(14, 10), { ...d25(15, 10), vorsehung: true }, d25(16, 10), d25(17, 10),
+      { typ: 'efh', x: 15, y: 12, ohne_station: true },
+    ]);
+    const ziel = s.stand.objekte.find((o) => o.x === 15 && o.y === 12) as Objekt;
+    expect(s.hausanschlussPlanen(ziel.id).ok).toBe(true);
+    const geplant = s.stand.objekte.filter((o) => o.geplant);
+    expect(geplant.map(feld)).not.toContain('15|11');
+    expect(geplant.map(feld).sort()).toEqual(['16|12', '17|11', '17|12']);
+    expect(s.stationKaufen(ziel.id, passendeStation(bedarfKw(ziel)).id).ok).toBe(true);
+    for (const o of s.stand.objekte) delete o.geplant;
+    s.neuBerechnen();
+    expect(warnungen(s.netz)).toEqual(new Set());
+    expect(s.netz.warm.has(ziel.id)).toBe(true);
+  });
+
+  it('A91: test_a91_keine_neue_reduzierung_am_ende_einer_dickeren_leitung', () => {
+    // 32er-Strang (12|10)…(15|10) rechts an der Heizzentrale (10|10, 2×2), dahinter kein Haus. Das Ziel-EFH (17|10) braucht eine
+    // 25er. Der billigste Weg (16|10) dockt am Strangende (15|10) an: dort wird die Leitung dünner, ohne dass (15|10) ein Abzweig
+    // ist → neue A67-Warnung „Reduzierung“ (kein Engpass, keine Aufteilung, kein Haus kalt). Ohne Warnung geht es nur mitten am
+    // Strang (T-Stück, dort darf die Leitung dünner werden).
+    const d32 = (x: number, y: number) => ({ typ: 'd32' as TypId, x, y });
+    const s = spielMit([
+      { typ: 'hz', x: 10, y: 10 },
+      d32(12, 10), d32(13, 10), d32(14, 10), d32(15, 10),
+      { typ: 'efh', x: 17, y: 10, ohne_station: true },
+    ]);
+    const ziel = s.stand.objekte.find((o) => o.x === 17 && o.y === 10) as Objekt;
+    expect(s.hausanschlussPlanen(ziel.id).ok).toBe(true);
+    const geplant = s.stand.objekte.filter((o) => o.geplant);
+    expect(geplant.map(feld)).not.toContain('16|10');
+    expect(s.stationKaufen(ziel.id, passendeStation(bedarfKw(ziel)).id).ok).toBe(true);
+    for (const o of s.stand.objekte) delete o.geplant;
+    s.neuBerechnen();
+    expect(warnungen(s.netz)).toEqual(new Set());
+    expect(s.netz.warm.has(ziel.id)).toBe(true);
+  });
+
   it('A91: test_a91_kein_hinweis_auf_heizzentrale_mehr', () => {
     const quelle = readFileSync(new URL('../src/core/spiel.ts', import.meta.url), 'utf8');
     expect(quelle).not.toContain('darf der Hausanschluss nicht liegen');
