@@ -378,9 +378,9 @@ export const KONSTANTEN = {
   interessent_nachlass: 0.2,
   /** A46: Spülbohrung unter dem Fluss je Feld; teuer, Spielwert */
   bohrung_eur_je_feld: 8000,
-  /** A69: T-Stück mit verschlossenem Abgang (Vorsehung), beim Bau der Leitung eingesetzt; Spielwert, Recherche R7 offen */
+  /** A69: T-Stück mit verschlossenem Abgang (Vorsehung), beim Bau der Leitung eingesetzt; Spielwert (Recherche fand keine Baukosten, siehe docs/recherche/vorsehung_anbohrung.md) */
   vorsehung_eur: 300,
-  /** A69: Abzweig nachträglich an eine laufende Leitung ohne Vorsehung (Absperren/Anbohren); Spielwert, Recherche R7 offen */
+  /** A69: Abzweig nachträglich an eine laufende Leitung ohne Vorsehung (Absperren/Anbohren); Spielwert (Recherche fand keine Baukosten, siehe docs/recherche/vorsehung_anbohrung.md) */
   anbohrung_eur: 2500,
   starttaler: 100,
   hoechststufe: 5,
@@ -410,7 +410,7 @@ export const passendeStation = (bedarf_kw: number): Station => STATIONEN.find((s
 /** Vorlauftemperatur der Heizzentrale (A33). Niedriger spart Verlustkosten, ist aber für schlecht gedämmte Häuser zu kalt. Spielwerte. */
 export const VORLAUF = { min_c: 55, max_c: 85, start_c: 75, schritt_c: 5, ersparnis_je_k: 0.012 } as const;
 /** Mindest-Vorlauftemperatur, die ein Haus für warme Räume braucht, bevor Upgrades die Rücklauf-/Heizflächen verbessern (Spielwerte). */
-export const MIN_VORLAUF_C: Record<string, number> = { efh: 75, rh: 75, baeck: 75, mfh: 70, bad: 70, klinik: 70 };
+export const MIN_VORLAUF_C: Partial<Record<TypId, number>> = { efh: 75, rh: 75, baeck: 75, mfh: 70, bad: 70, klinik: 70 };
 /** Hausupgrades (A33): senken die nötige Vorlauftemperatur (Rücklauf sinkt). Kosten = Arbeiter und Material, Spielwerte. */
 export const UPGRADES: ReadonlyArray<{ name: string; kosten_eur: number; senkung_k: number; dauer_s: number; beschreibung: string }> = [
   { name: 'Hydraulischer Abgleich', dauer_s: 60, kosten_eur: 1500, senkung_k: 5, beschreibung: 'Ein Monteur stellt alle Heizkörper aufeinander ab. Der Rücklauf wird kälter.' },

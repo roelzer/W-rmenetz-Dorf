@@ -4,7 +4,7 @@ import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { bedarfKw } from '../src/core/netz';
 import { ortHolen } from '../src/core/orte';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
-import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation, LEITUNGEN } from '../src/core/katalog';
+import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation, LEITUNGEN, MIN_VORLAUF_C } from '../src/core/katalog';
 
 const T0 = 1_000_000_000_000;
 const neuesSpiel = (): Spiel => new Spiel(neuerSpielstand(T0), () => T0);
@@ -634,7 +634,7 @@ describe('A51 Helfer sprechen den Spieler an', () => {
 });
 
 describe('A52 Wärmepreis in der Heizzentrale', () => {
-  it('A52: Der Preis lässt sich über preisSetzen ändern und die Stufe bleibt zwischen 7 und 15 ct', () => {
+  it('A52: preisSetzen begrenzt den Wärmepreis auf 7–15 ct', () => {
     const s = new Spiel(neuerSpielstand(0), () => 0);
     s.preisSetzen(0); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7);
     s.preisSetzen(99); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7); // außerhalb wird ignoriert
@@ -898,7 +898,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(s.anbohrungsFelder()).toEqual([ziel.y * N + ziel.x]);
     expect(s.abschnittKosten_eur()).toBe((KATALOG.d25.kosten_eur as number[])[0] + s.gestattung_eur() + s.bohrung_eur() + KONSTANTEN.anbohrung_eur);
   });
-  it('A69: An einer Vorsehung entfällt die Anbohrung; mit der Bestellung ist die Vorsehung belegt', () => {
+  it('A69: An einer Vorsehung entfällt die Anbohrung; nach dem Bau ist die Vorsehung belegt', () => {
     const s = offen();
     const { ziel, frei } = andock(s, 10, 12);
     ziel.vorsehung = true;
@@ -906,6 +906,9 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(s.anbohrungsFelder()).toEqual([]);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
+    expect(ziel.vorsehung).toBe(true); // während der Bauzeit noch Abzweig (A67)
+    s.bis(s.stand.abschnitt!.bau!.ende_ms);
+    expect(s.stand.abschnitt).toBeUndefined();
     expect(ziel.vorsehung).toBeUndefined();
   });
   it('A69: Am Leitungsende weiterbauen braucht keine Anbohrung', () => {
@@ -916,17 +919,61 @@ describe('A69 Vorsehung und Anbohrung', () => {
     s.platzieren('d25', frei![0], frei![1]);
     expect(s.anbohrungsFelder()).toEqual([]);
   });
-  it('A69: Der automatische Hausanschluss rechnet die Anbohrung ein und nutzt eine Vorsehung, wenn eine nah liegt', () => {
-    const kosten = (mitVorsehung: boolean) => {
+  it('A69: Der automatische Hausanschluss rechnet die Anbohrung ein und weicht zu einer nahen Vorsehung aus', () => {
+    const plane = (vorsehungBei?: [number, number]) => {
       const s = offen();
-      if (mitVorsehung) for (const o of s.stand.objekte) if (istLeitung(o.typ)) o.vorsehung = true;
-      const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 15)!;
+      if (vorsehungBei) s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === vorsehungBei[0] && o.y === vorsehungBei[1])!.vorsehung = true;
+      const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 6 && o.y === 15)!;
       expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
-      return { anbohrungen: s.anbohrungsFelder().length, eur: s.abschnittKosten_eur() };
+      return { s, plan: s.stand.objekte.filter((o) => o.geplant).map((o) => [o.x, o.y] as const) };
     };
-    const ohne = kosten(false), mit = kosten(true);
-    expect(mit.anbohrungen).toBe(0);
-    expect(mit.eur).toBeLessThanOrEqual(ohne.eur);
+    const ohne = plane();
+    expect(ohne.s.anbohrungsFelder()).toEqual([14 * N + 10]); // ohne Vorsehung: Weg unten herum, Anbohrung an (10|14)
+    const mit = plane([10, 12]);
+    expect(mit.s.anbohrungsFelder()).toEqual([]);
+    expect(mit.plan).toContainEqual([9, 12]); // endet an der Vorsehung (10|12)
+    expect(mit.s.abschnittKosten_eur()).toBeLessThan(ohne.s.abschnittKosten_eur());
+  });
+  it('A69: Neben der Heizzentrale ist die erste Leitung durchlaufend – Andocken kostet eine Anbohrung', () => {
+    const s = offen();
+    const { frei } = andock(s, 10, 10);
+    s.platzieren('d25', frei[0], frei[1]);
+    expect(s.anbohrungsFelder()).toContain(10 * N + 10);
+  });
+  it('A69/A67: Während der Bauzeit zählt eine genutzte Vorsehung weiter als Abzweig (kein falsches Warnzeichen)', () => {
+    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000;
+    const d = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 13)!; d.typ = 'd25';
+    const v = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 12)!; v.vorsehung = true;
+    s.neuBerechnen();
+    expect(s.netz.reduzierung.size).toBe(0);
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    expect(s.platzieren('d25', 9, 12).ok).toBe(true); // links andocken; rechts (11|12) läge an der Heizzentrale
+    s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
+    for (const anteil of [0.1, 0.5, 0.9]) { t = s.stand.abschnitt!.bau!.ende_ms * anteil; s.bis(t); s.neuBerechnen(); expect(s.netz.reduzierung.size).toBe(0); }
+    t = s.stand.abschnitt!.bau!.ende_ms; s.bis(t); s.neuBerechnen();
+    expect(s.stand.abschnitt).toBeUndefined();
+    expect(v.vorsehung).toBeUndefined(); // jetzt echter Abzweig
+    expect(s.netz.reduzierung.size).toBe(0);
+  });
+  it('A69: Ein verlängertes Leitungsende verbraucht die Vorsehung nicht; eine Vorsehung auf neuer Leitung mit Abzweig ist nach dem Bau belegt', () => {
+    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000;
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    const ende = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 11 && o.y === 14)!; ende.vorsehung = true;
+    // Leitungsende nach unten verlängern: (11|15), (11|16); auf (11|15) Vorsehung, daran nach rechts ein Abzweig (12|15)
+    for (const [x, y] of [[11, 15], [11, 16], [12, 15]] as const) expect(s.platzieren('d25', x, y).ok).toBe(true);
+    const mitte = s.stand.objekte.find((o) => o.geplant && o.x === 11 && o.y === 15)!;
+    expect(s.vorsehungUmschalten(mitte.id).ok).toBe(true);
+    s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
+    t = s.stand.abschnitt!.bau!.ende_ms; s.bis(t);
+    expect(ende.vorsehung).toBe(true);
+    expect(mitte.vorsehung).toBeUndefined();
+  });
+  it('A68/K1: Die Bäckerei braucht 75 °C Vorlauf und stockt wie Wohnhäuser auf (Schlüssel „baeck“)', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const b = { ...s.stand.objekte.find((o) => o.typ === 'efh')!, typ: 'baeck' as const, upgrade: 0 };
+    expect(s.mindestVorlauf_c(b)).toBe(75);
+    s.neuBerechnen();
+    expect(MIN_VORLAUF_C.baeck).toBe(75);
   });
 });
 

@@ -298,7 +298,7 @@ export class Steuerung implements Ui {
     if (x < 0 || y < 0 || x >= N || y >= N) return;
     if (this.radieren) { if (this.spiel.geplanteLeitungEntfernen(x, y).ok) this.geaendert(); return; }
     if (this.vorsehen) {
-      if (this.stempelLetzte?.[0] === x && this.stempelLetzte?.[1] === y) return; // beim Ziehen nicht mehrfach umschalten
+      if (this.stempelLetzte) return; // nur beim Antippen umschalten, nicht beim Wischen über weitere Felder
       this.stempelLetzte = [x, y];
       const o = this.spiel.stand.objekte.find((a) => a.geplant && a.x === x && a.y === y);
       if (o && this.spiel.vorsehungUmschalten(o.id).ok) this.geaendert(); else this.hinweiseZeigen();

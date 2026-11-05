@@ -624,10 +624,11 @@ export class Spiel {
     let ziel = -1;
     // A69: Andocken an eine durchlaufende Leitung ohne Vorsehung kostet eine Anbohrung – die Wegsuche bevorzugt Vorsehungen und Leitungsenden.
     const bel = belegungskarte(this.stand.objekte);
-    const andockKosten = (f: number): number => Math.min(...nachbarn(f).filter((n) => leit.has(n)).map((n) => {
+    // Summe wie in anbohrungsFelder(): jede berührte durchlaufende Leitung ohne Vorsehung wird angebohrt.
+    const andockKosten = (f: number): number => nachbarn(f).filter((n) => leit.has(n)).reduce((summe, n) => {
       const o = this.objekt(bel[n]);
-      return o && this.brauchtAnbohrung(o) ? KONSTANTEN.anbohrung_eur : 0;
-    }));
+      return summe + (o && this.brauchtAnbohrung(o) ? KONSTANTEN.anbohrung_eur : 0);
+    }, 0);
     const erledigt = new Set<number>();
     while (offen.length) {
       offen.sort((a, b) => a[0] - b[0]);
@@ -699,7 +700,6 @@ export class Spiel {
     const b = this.bezahlen({ eur: kost });
     if (!b.ok) return b;
     a.material_eur = kost;
-    this.vorsehungenVerbrauchen();
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
     a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
     const t = this.liefertage();
@@ -707,13 +707,10 @@ export class Spiel {
     return ok();
   }
 
-  /** A69: Gebaute Vorsehungen, an die dieser Abschnitt andockt, sind ab jetzt belegt (normaler Abzweig). */
+  /** A69: Nach dem Bau ist eine Vorsehung belegt, wenn an ihr ein Abzweig hängt (drei oder mehr Leitungsnachbarn, Heizzentrale zählt mit).
+   *  Erst bei Bauende, damit sie während der Bauzeit weiter als Abzweig zählt (A67); ein bloß verlängertes Leitungsende verbraucht sie nicht. */
   private vorsehungenVerbrauchen(): void {
-    const plan = new Set(this.stand.objekte.filter((o) => o.geplant).map((o) => o.y * N + o.x));
-    for (const o of this.stand.objekte) {
-      if (!o.vorsehung || o.geplant) continue;
-      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => plan.has((o.y + dy) * N + o.x + dx))) delete o.vorsehung;
-    }
+    for (const o of this.stand.objekte) if (o.vorsehung && !o.geplant && istLeitung(o.typ) && this.gebauteNachbarn(o.y * N + o.x) >= 3) delete o.vorsehung;
   }
   /** A62: Aufpreis für die Expresslieferung des laufenden Bauabschnitts. */
   expresskosten_eur(): number {
@@ -852,6 +849,7 @@ export class Spiel {
       if (ab.phase === 'planung') { ab.phase = 'offen'; ab.bau = null; this.hinweis(`${ABSCHNITT_HELFER.planung} ist fertig: Zeichne jetzt die Leitungen ein`); }
       else {
         for (const o of s.objekte) if (o.geplant) { delete o.geplant; delete o.gruppe; o._pop = t; }
+        this.vorsehungenVerbrauchen();
         delete s.abschnitt; this.hinweis('Bauabschnitt fertig – die Leitungen liegen'); this.ereignisse.push({ art: 'funken', objekt_id: 'heizzentrale' });
       }
       geaendert = true;
@@ -897,7 +895,7 @@ export class Spiel {
           this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Kamin aus', farbe: '#7bd88f' });
         }
         // Aufstockung: Nach einiger Zeit baut ein Wohnhaus ein Stockwerk auf, der Bedarf steigt
-        if (!o.aufgestockt && ['efh', 'rh', 'baeck'].includes(o.typ) && o.warm_s >= KONSTANTEN.aufstockung_nach_s + (o.id % 4) * 300) {
+        if (!o.aufgestockt && (['efh', 'rh', 'baeck'] as TypId[]).includes(o.typ) && o.warm_s >= KONSTANTEN.aufstockung_nach_s + (o.id % 4) * 300) {
           o.aufgestockt = true; geaendert = true;
           this.hinweis(`${KATALOG[o.typ].name} stockt auf: Bedarf ${bedarfKw(o).toFixed(0)} kW – reicht die Übergabestation noch?`);
           this.ereignisse.push({ art: 'schwebtext', x: o.x, y: o.y, text: 'Aufstockung', farbe: '#ffd166' });
