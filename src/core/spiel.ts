@@ -832,10 +832,11 @@ export class Spiel {
     const s = this.stand;
     if (jetzt_ms <= s.zuletzt_ms) { this.fertigstellen(jetzt_ms); return; }
     if (jetzt_ms - s.zuletzt_ms > MAX_OFFLINE_S * 1000) s.zuletzt_ms = jetzt_ms - MAX_OFFLINE_S * 1000;
-    // A38: Bei längerer Abwesenheit kommen die Einnahmen direkt aufs Konto (die Hauskassen würden sonst überlaufen, die Kosten liefen aber weiter).
+    // A38/A81: Bei längerer Abwesenheit gibt es statt vieler Einzelmeldungen eine Sammelmeldung.
     this.abwesend = jetzt_ms - s.zuletzt_ms > OFFLINE_SCHWELLE_S * 1000;
-    if (s.abrechnung_monat == null) s.abrechnung_monat = Math.floor(s.zuletzt_ms / SPIELMONAT_MS);
-    const offline = { monate: 0, eur: 0 };
+    // Review A81 W2: Monate vor der gekürzten Abwesenheit werden nicht nachträglich abgerechnet
+    s.abrechnung_monat = Math.max(s.abrechnung_monat ?? 0, Math.floor(s.zuletzt_ms / SPIELMONAT_MS));
+    const offline = { monate: 0, eur: 0, voll: false };
     while (s.zuletzt_ms < jetzt_ms) {
       // A81: Schritte enden an der Monatsgrenze, damit jeder Monat mit seinem eigenen Verbrauchsanteil gezählt wird
       let ziel = Math.min(jetzt_ms, s.zuletzt_ms + SCHRITT_S * 1000, (Math.floor(s.zuletzt_ms / SPIELMONAT_MS) + 1) * SPIELMONAT_MS);
@@ -846,13 +847,13 @@ export class Spiel {
       while (Math.floor(ziel / SPIELMONAT_MS) > (s.abrechnung_monat as number)) {
         const a = this.abrechnen(s.abrechnung_monat as number);
         s.abrechnung_monat = (s.abrechnung_monat as number) + 1;
-        offline.monate++; offline.eur += a.summe_eur;
+        offline.monate++; offline.eur += a.eingang_eur; offline.voll ||= a.eingang_eur < a.summe_eur - 0.5;
       }
       this.fertigstellen(ziel);
     }
     if (this.abwesend && offline.monate === 1 && this.offline_text) this.hinweis(this.offline_text);
     this.offline_text = '';
-    if (this.abwesend && offline.monate > 1) this.hinweis(`Während du weg warst: ${offline.monate} Monatsabrechnungen, zusammen +${Math.round(offline.eur).toLocaleString('de-DE')} € eingegangen`);
+    if (this.abwesend && offline.monate > 1) this.hinweis(`Während du weg warst: ${offline.monate} Monatsabrechnungen, zusammen +${Math.round(offline.eur).toLocaleString('de-DE')} € eingegangen${offline.voll ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`);
     this.abwesend = false;
   }
   private naechstesEreignis_ms(): number | null {
@@ -908,34 +909,48 @@ export class Spiel {
     if (geaendert) this.neuBerechnen();
   }
   /** A81: Monatsabrechnung – jeder angeschlossene Kunde zahlt gelieferte kWh × Wärmepreis + Grundgebühr; das Geld wird automatisch überwiesen. */
-  private abrechnen(nr: number): Abrechnung {
-    const s = this.stand, ct = PREISSTUFEN[s.preisstufe].ct_je_kwh;
-    let kunden = 0, kwh = 0, rest_kasse = 0;
+  private abrechnen(nr: number): Abrechnung & { eingang_eur: number } {
+    const s = this.stand;
+    let kunden = 0, kwh = 0, waerme_eur = 0, grund_eur = 0, rest_kasse = 0;
     for (const o of s.objekte) {
       rest_kasse += o.kasse_eur; o.kasse_eur = 0; // Münzen aus Spielständen vor A81 werden mit überwiesen
-      if (istKunde(o) && this.netz.anschluss.has(o.id)) { kunden++; kwh += o.zaehler_kwh ?? 0; }
-      delete o.zaehler_kwh;
+      if ((o.zaehler_grund_eur ?? 0) > 0 || (o.zaehler_eur ?? 0) > 0) kunden++;
+      kwh += o.zaehler_kwh ?? 0; waerme_eur += o.zaehler_eur ?? 0; grund_eur += o.zaehler_grund_eur ?? 0;
+      delete o.zaehler_kwh; delete o.zaehler_eur; delete o.zaehler_grund_eur;
     }
-    const waerme_eur = kwh * ct / 100, grund_eur = kunden * this.grundgebuehr_eur, summe_eur = waerme_eur + grund_eur;
+    const summe_eur = waerme_eur + grund_eur;
     const vorher = s.geld_eur, grenze = this.kassengrenze_eur();
     s.geld_eur = Math.min(Math.max(s.geld_eur, grenze), s.geld_eur + summe_eur + rest_kasse);
+    const eingang_eur = s.geld_eur - vorher;
     const a: Abrechnung = { monat: nr, kunden, waerme_kwh: Math.round(kwh), waerme_eur: Math.round(waerme_eur), grund_eur: Math.round(grund_eur), summe_eur: Math.round(summe_eur) };
     s.letzte_abrechnung = a;
     if (kunden > 0) {
-      const eingang = Math.round(s.geld_eur - vorher);
+      s.erledigt.collect = true; // Auftrag „erste Monatsabrechnung“
+      const eingang = Math.round(eingang_eur);
       const text = `Abrechnung ${this.monatsname(nr)}: ${kunden} Kunden · ${Math.round(kwh).toLocaleString('de-DE')} kWh · +${eingang.toLocaleString('de-DE')} € eingegangen${eingang < Math.round(summe_eur) ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`;
-      if (this.abwesend) this.offline_text = text; else this.hinweis(text);
-      const hz = this.hz;
-      if (!this.abwesend) this.ereignisse.push({ art: 'schwebtext', x: hz.x, y: hz.y, text: `+${eingang.toLocaleString('de-DE')} €`, farbe: '#ffd166' });
+      if (this.abwesend) this.offline_text = text;
+      else {
+        this.hinweis(text);
+        const hz = this.hz;
+        this.ereignisse.push({ art: 'schwebtext', x: hz.x, y: hz.y, text: `+${eingang.toLocaleString('de-DE')} €`, farbe: '#ffd166' });
+        if (eingang > 0) this.ereignisse.push({ art: 'muenzen', objekt_id: hz.id, betrag_eur: eingang });
+      }
     }
-    return a;
+    return { ...a, eingang_eur };
   }
   private einnahmen(dt_s: number): void {
     const s = this.stand, P = PREISSTUFEN[s.preisstufe];
     // A81: Der Wärmezähler jedes warmen Kunden läuft mit dem Verbrauchsanteil des laufenden Monats
     const anteil = MONATSANTEIL_PROMILLE[Math.floor(s.zuletzt_ms / SPIELMONAT_MS) % 12] / 1000;
+    // Review A81 W3: Wärme kostet den Preis, der beim Liefern gilt; die Grundgebühr läuft anteilig je Zeit mit
+    const ct = P.ct_je_kwh, monatsteil = dt_s * 1000 / SPIELMONAT_MS;
     for (const o of s.objekte) {
-      if (this.netz.warm.has(o.id) && istKunde(o)) o.zaehler_kwh = (o.zaehler_kwh ?? 0) + this.jahresverbrauch_kwh(o) * anteil * (dt_s * 1000 / SPIELMONAT_MS);
+      if (!istKunde(o) || !this.netz.anschluss.has(o.id)) continue;
+      o.zaehler_grund_eur = (o.zaehler_grund_eur ?? 0) + this.grundgebuehr_eur * monatsteil;
+      if (!this.netz.warm.has(o.id)) continue;
+      const kwh = this.jahresverbrauch_kwh(o) * anteil * monatsteil;
+      o.zaehler_kwh = (o.zaehler_kwh ?? 0) + kwh;
+      o.zaehler_eur = (o.zaehler_eur ?? 0) + kwh * ct / 100;
     }
     // A81: Erzeugungskosten folgen der im Monat gelieferten Wärme (Monatsanteil × 12; übers Jahr gemittelt 1)
     s.geld_eur = Math.max(0, s.geld_eur - (this.netz.betriebskosten_eur_min * anteil * 12 / 60) * dt_s + (this.netz.einspeisung_kw * KONSTANTEN.einspeisung_eur_je_kw_min / 60) * dt_s);

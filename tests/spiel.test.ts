@@ -168,6 +168,7 @@ describe('A10/A11 Einnahmen, Abholen, Kasse, Zufriedenheit', () => {
     const { s: s2, zeit: z2 } = start(); // keine Quelle: alle kalt
     z2.t += SPIELMONAT_MS; s2.bis(z2.t);
     expect(s2.stand.letzte_abrechnung?.waerme_kwh ?? 0).toBe(0);
+    expect(s2.stand.letzte_abrechnung!.grund_eur).toBeGreaterThan(0); // kalte, angeschlossene Kunden zahlen die Grundgebühr
   });
   it('A81: Die Überweisung landet ohne Antippen auf dem Konto', () => {
     const { s, zeit } = mitHaus();

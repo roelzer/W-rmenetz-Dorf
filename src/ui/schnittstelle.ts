@@ -16,5 +16,4 @@ export interface Ui {
   verschieben(id: number): void;
   katalog(kategorie?: string): void;
   kontext(id: number | null): void;
-  /** Münzflug zum Geld-Symbol und Funken */
 }

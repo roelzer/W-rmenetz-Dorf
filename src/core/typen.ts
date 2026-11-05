@@ -16,6 +16,7 @@ export interface Objekt {
   stufe: number;
   bau: Bau | null;
   /** aufgelaufene, noch nicht abgeholte Einnahmen in € */
+  /** Altlast vor A81 (Münzen an den Häusern); bleibt für alte Spielstände, wird bei der nächsten Abrechnung überwiesen und ist danach 0 */
   kasse_eur: number;
   /** Zufriedenheit 0..100 (Häuser und Großabnehmer) */
   zufriedenheit_pct?: number;
@@ -53,6 +54,10 @@ export interface Objekt {
   hauspuffer?: boolean;
   /** A81: im laufenden Monat gelieferte Wärme in kWh (Zähler, wird bei der Monatsabrechnung zurückgesetzt) */
   zaehler_kwh?: number;
+  /** A81: im laufenden Monat aufgelaufener Wärmebetrag in € (zum jeweils geltenden Preis) */
+  zaehler_eur?: number;
+  /** A81: im laufenden Monat anteilig aufgelaufene Grundgebühr in € */
+  zaehler_grund_eur?: number;
   /** A50: Nachbarhaus, das gern ans Netz möchte (leuchtet gelb) */
   interessent?: boolean;
   /** A36: PV-Anlage auf dem Dach */

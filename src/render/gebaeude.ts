@@ -210,7 +210,7 @@ function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   void st;
 }
 
-export type Blase = 'muenze' | 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot';
+export type Blase = 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot';
 
 export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase): void {
   const { X } = m, r = m.tw * 0.17;
@@ -219,12 +219,6 @@ export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase): void 
   X.beginPath(); X.arc(cx, y, r, 0, ALLES); X.fill(); X.stroke();
   X.beginPath(); X.moveTo(cx - r * 0.4, y + r * 0.82); X.lineTo(cx, y + r * 1.5); X.lineTo(cx + r * 0.4, y + r * 0.82); X.closePath(); X.fill(); X.stroke();
   X.beginPath(); X.arc(cx, y, r - 1.5, 0, ALLES); X.fill();
-  if (art === 'muenze') {
-    const g = X.createRadialGradient(cx - r * 0.2, y - r * 0.3, 1, cx, y, r * 0.7);
-    g.addColorStop(0, '#fff3a8'); g.addColorStop(1, '#e2a312'); m.kreis(cx, y, r * 0.66, g); X.strokeStyle = '#9a6a08'; X.lineWidth = 1.5; X.stroke();
-    m.text('€', cx, y + r * 0.32, r * 0.9, '#fff');
-    return;
-  }
   const farbe = { stecker: '#8d99a5', kalt: '#3b86d1', wuetend: '#d8392f', weg: '#4a4038', leitung: '#e2582b', angebot: '#4caf3e' }[art];
   m.kreis(cx, y, r * 0.7, farbe);
   const sym = { stecker: 'ausruf', kalt: 'flocke', wuetend: 'ausruf', weg: 'kreuz', leitung: 'ausruf', angebot: 'frage' } as const;

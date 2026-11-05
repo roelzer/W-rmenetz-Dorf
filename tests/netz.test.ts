@@ -41,7 +41,7 @@ describe('A7 Leitungskapazität: Last über Nennleistung macht Kunden dahinter k
     expect(ID(n, a)).toBe(false);
     expect(ID(n, b)).toBe(false);
     expect(n.kalt.get(a.id)).toBe('leitung');
-    expect(n.einnahmen_eur_min).toBe(0);
+    expect(n.einnahmen_eur_min).toBeCloseTo(2 * 12 * 32 / 120, 6); // A81: kalte Kunden zahlen nur die Grundgebühr
   });
   it('dieselbe Last über eine Verteilleitung (50 kW) funktioniert', () => {
     const a = neu('efh', 13, 10), b = neu('efh', 12, 9);
@@ -150,10 +150,10 @@ describe('A10 Wirtschaft: Einnahmen nur für gelieferte Wärme, Kosten nur für 
       expect(n.einnahmen_eur_min).toBeCloseTo((15000 * p.ct_je_kwh / 100 + 12 * 32) / 120, 6);
     });
   });
-  it('kalter Kunde zahlt nichts', () => {
+  it('A81: kalter Kunde zahlt keine Wärme, nur die Grundgebühr', () => {
     const { objekte } = eines();
     const n = berechneNetz(objekte, [], 2);
-    expect(n.einnahmen_eur_min).toBe(0);
+    expect(n.einnahmen_eur_min).toBeCloseTo(12 * 32 / 120, 6);
   });
   it('Betriebskosten: keine Last → keine Kosten', () => {
     expect(berechneNetz(dorf(), [quelle('kessel')], 2).betriebskosten_eur_min).toBe(0);

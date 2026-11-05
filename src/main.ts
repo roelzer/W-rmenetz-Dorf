@@ -49,7 +49,7 @@ else if (weg && uhr() - weg.seit_ms > 5 * 60_000) {
   // A38: Willkommen zurück – was ist während der Abwesenheit passiert?
   const min = Math.round((uhr() - weg.seit_ms) / 60_000), dauer = min >= 120 ? `${Math.round(min / 60)} Std.` : `${min} Min.`;
   const diff = Math.round(spiel.stand.geld_eur - weg.geld_eur);
-  steuerung.toast(`Willkommen zurück! Du warst ${dauer} weg: ${diff >= 0 ? '+' : '−'}${Math.abs(diff).toLocaleString('de-DE')} € auf dem Konto${weg.bau && !spiel.stand.objekte.some((o) => o.bau) ? ', der Bau ist fertig' : ''}. Vergiss die Münzen über den Häusern nicht.`);
+  steuerung.toast(`Willkommen zurück! Du warst ${dauer} weg: ${diff >= 0 ? '+' : '−'}${Math.abs(diff).toLocaleString('de-DE')} € auf dem Konto${weg.bau && !spiel.stand.objekte.some((o) => o.bau) ? ', der Bau ist fertig' : ''}. Deine Kunden haben ihre Monatsrechnungen automatisch bezahlt.`);
 }
 
 function groesseAnpassen(): void {

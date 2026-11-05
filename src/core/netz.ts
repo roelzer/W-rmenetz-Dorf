@@ -271,7 +271,9 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // A81: mittlere Einnahmen je Minute aus der Monatsabrechnung (Jahresverbrauch × Wärmepreis + 12 Grundgebühren, verteilt aufs Spieljahr)
   let einnahmen_eur_a = 0;
   for (const o of objekte) {
-    if (warm.has(o.id) && istKunde(o)) einnahmen_eur_a += (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o) * P.ct_je_kwh / 100 + 12 * grundgebuehr_eur;
+    if (!istKunde(o) || !anschluss.has(o.id)) continue;
+    einnahmen_eur_a += 12 * grundgebuehr_eur; // Grundgebühr zahlen alle angeschlossenen Kunden mit Station (Review A81 K6)
+    if (warm.has(o.id)) einnahmen_eur_a += (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o) * P.ct_je_kwh / 100;
   }
   const einnahmen_eur_min = einnahmen_eur_a / (SPIELJAHR_MS / 60_000);
   return {

@@ -1,9 +1,9 @@
-<!-- Stand 2026-11-05 nachmittags: A71–A79 gebaut (kWh/Volllaststunden, Leitungen, Rücklauf 40 °C, Startnetz, freies Drehen, Aufteilung, Knöpfe weg, Ladebild, Namensfrage), 248 Tests grün -->
+<!-- Stand 2026-11-05 abends: A80–A82 gebaut (Antippen, Monatsabrechnung, Ladebild), Review-Befunde W1–W4 behoben, 265 Tests grün -->
 # Status
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** A80 (Antippen/leeres Fenster/Ladebild) fertig, Fachprüfer-Befunde 1–3 und A81 Abrechnung als Nächstes · **Fortschritt:** 250 Tests · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us
+> **Jetzt:** A81 Review-Befunde W1–W4 behoben → Nachprüfung; danach A83 (Cloudflare-Vorbereitung: Speicher dauerhaft, Update-Hinweis, Spielstand sichern/laden, Version) und Menü-Stil v2 (Designer arbeitet) · Offene Simon-Fragen: Q8–Q10, Hausstufe = mehr Verbrauch? · **Fortschritt:** 265 Tests · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us
 
 ## Ampel
 🟢 läuft

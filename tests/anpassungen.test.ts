@@ -1299,6 +1299,60 @@ describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
     expect(jan).toBeGreaterThan(0);
     expect(jul * 5).toBeLessThan(jan);
   });
+  it('A81 (Review W2): Nach 30 Tagen Pause werden höchstens 7 Tage (1.008 Monate) abgerechnet', () => {
+    const { s, z } = spiel();
+    z.t += 1000; s.bis(z.t); // Spiel lief schon: Abrechnungsmonat ist gesetzt
+    s.ereignisse.length = 0;
+    z.t = JAN + 30 * 24 * 3600 * 1000; s.bis(z.t);
+    const t = s.ereignisse.map((e) => ('text' in e ? e.text : '')).find((x) => x.includes('Monatsabrechnungen'))!;
+    expect(Number(t.match(/(\d+) Monatsabrechnungen/)![1])).toBeLessThanOrEqual(7 * 24 * 6);
+  });
+  it('A81 (Review W3): Ein Preis kurz vor Monatsende gilt nicht rückwirkend für den ganzen Monat', () => {
+    const billig = spiel(), umgestellt = spiel();
+    billig.s.preisSetzen(0); umgestellt.s.preisSetzen(0);
+    for (const g of [billig, umgestellt]) { g.z.t = JAN + 10 * 60 * 1000 - 30_000; g.s.bis(g.z.t); }
+    umgestellt.s.preisSetzen(PREISSTUFEN.length - 1);
+    for (const g of [billig, umgestellt]) { g.z.t = JAN + 10 * 60 * 1000 + 1000; g.s.bis(g.z.t); }
+    const a = billig.s.stand.letzte_abrechnung!, b = umgestellt.s.stand.letzte_abrechnung!;
+    expect(b.waerme_eur).toBeLessThan(a.waerme_eur * 1.15); // nur die letzten 30 s zum hohen Preis
+  });
+  it('A81 (Review W4): Die Sammelmeldung nennt, was wirklich eingegangen ist, und warnt bei voller Kasse', () => {
+    const lauf = (start_eur: number) => {
+      const { s, z } = spiel(); s.stand.geld_eur = start_eur; const vorher = s.stand.geld_eur;
+      s.ereignisse.length = 0; z.t = JAN + 5 * 10 * 60 * 1000 + 1000; s.bis(z.t);
+      const t = s.ereignisse.map((e) => ('text' in e ? e.text : '')).find((x) => x.includes('Monatsabrechnungen'))!;
+      return { t, gemeldet: Number(t.match(/\+([\d.]+) €/)![1].replace(/\./g, '')), zuwachs: s.stand.geld_eur - vorher, grenze: s.kassengrenze_eur() };
+    };
+    const frei = lauf(0), voll = lauf(lauf(0).grenze - 1000);
+    expect(frei.t).not.toContain('Kasse voll');
+    expect(voll.t).toContain('Kasse voll');
+    expect(voll.gemeldet).toBeLessThan(frei.gemeldet); // nicht der Rechnungsbetrag, sondern der echte Eingang
+    expect(voll.gemeldet).toBeGreaterThanOrEqual(voll.zuwachs - 1);
+  });
+  it('A81 (Review K1/K2): Altkassen werden überwiesen; Häuser ohne Station zahlen keine Grundgebühr', () => {
+    const { s, z } = spiel();
+    const ohne = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
+    expect(ohne).toBeDefined();
+    const kunden = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && !o.ohne_station && s.netz.anschluss.has(o.id)).length;
+    ohne.kasse_eur = 500;
+    s.stand.geld_eur = 0;
+    z.t = JAN + 10 * 60 * 1000 + 1; s.bis(z.t);
+    const a = s.stand.letzte_abrechnung!;
+    expect(a.kunden).toBe(kunden);
+    expect(a.grund_eur).toBe(kunden * 32);
+    expect(ohne.kasse_eur).toBe(0);
+    expect(s.stand.geld_eur).toBeGreaterThan(a.summe_eur + 500 - 400); // Altkasse kam an (abzüglich Betriebskosten)
+  });
+  it('A81 (Review W1): Der Auftrag statt „Münze antippen“ ist mit der ersten Monatsabrechnung erfüllt, kein Text nennt Münzen', async () => {
+    const { AUFTRAEGE } = await import('../src/core/auftraege');
+    const col = AUFTRAEGE.find((x) => x.id === 'col')!;
+    expect(col.text).not.toMatch(/Münze/);
+    const { s, z } = spiel();
+    expect(col.erfuellt(s)).toBe(false);
+    z.t = JAN + 10 * 60 * 1000 + 1; s.bis(z.t);
+    expect(col.erfuellt(s)).toBe(true);
+    for (const f of ['../src/main.ts', '../src/ui/katalog.ts', '../src/core/auftraege.ts']) expect(readFileSync(new URL(f, import.meta.url), 'utf8')).not.toMatch(/Münze/);
+  });
   it('A81: keine Münzen mehr – die Häuser haben keine Kasse zum Abholen', () => {
     const q = readFileSync(new URL('../src/ui/kontext.ts', import.meta.url), 'utf8') + readFileSync(new URL('../src/steuerung.ts', import.meta.url), 'utf8');
     expect(q).not.toContain('einsammeln');

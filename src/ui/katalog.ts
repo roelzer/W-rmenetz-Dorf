@@ -107,7 +107,7 @@ export class Katalog {
     const { spiel: sp } = this.ui, D = KATALOG[t], s = sp.stand;
     if (gesperrt) { this.ui.toast(`${D.name} gibt es erst mit einer größeren Heizzentrale`); return; }
     const c = sp.kosten(t, 1);
-    if (c.eur != null && !istLeitung(t) && s.geld_eur < c.eur) { this.ui.toast(`Es fehlen ${zahl(c.eur - s.geld_eur)} €. Sammle Münzen ein oder warte auf Einnahmen.`); return; }
+    if (c.eur != null && !istLeitung(t) && s.geld_eur < c.eur) { this.ui.toast(`Es fehlen ${zahl(c.eur - s.geld_eur)} €. Am Monatsende zahlen deine Kunden ihre Wärmerechnung.`); return; }
     if (c.taler != null && s.taler < c.taler) { this.ui.toast(`Es fehlen ${c.taler - s.taler} Dorftaler.`); return; }
     if (D.kategorie === 'innen') {
       const r = sp.innenEinbauen(t);
