@@ -202,3 +202,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:13 | ■ 🟡 | reviewer | 🟡 **GELB: Freigabe mit Bedingungen.** Die Nachbesserung ist sauber. 3 von 4 Befunden sind behoben. Der Befund W1a ist nur zur Hälfte behoben, weil ein beste ([Bericht](docs/pruefberichte/20261105-181356-reviewer-a6a96f78d8367431d.md)) |
 | 2026-11-05 18:15 | ▶ | designer | Designer: Sperrtexte für B2 |
 | 2026-11-05 18:19 | ■ 🟡 | architekt | 🟡 **Fassung 3 des NR15-Bauplans ist geschrieben und vollständig. Ein Prototyp hat Variante (a) bestätigt. Gelb, weil zwei neue Pflichttests nicht im Protot ([Bericht](docs/pruefberichte/20261105-181947-architekt-a1a37efbabfda0d6d.md)) |
+| 2026-11-05 18:20 | ▶ | tester | Tester baut NR15-P0 |
+| 2026-11-05 18:20 | ▶ | kritiker | Kritiker NR15 Fassung 3 |
+| 2026-11-05 18:20 | ▶ | fachpruefer | Fachprüfer: dünner Hausanschluss |
+| 2026-11-05 18:20 | ■ 🟢 | designer | 🟢 **Grün.** Die Vorgabe für NR16-B2 steht in `docs/DESIGN.md`: der neue Abschnitt 12.20 plus Nachbesserungen in 12.18 und 12.19. Ich habe nichts committet  ([Bericht](docs/pruefberichte/20261105-182037-designer-a7681d3b5658a09b4.md)) |

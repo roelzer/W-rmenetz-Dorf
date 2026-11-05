@@ -393,7 +393,7 @@ Anlass: Im Zeichenmodus ist die Leiste so breit wie ein normales Blatt (388 px b
 │                                                  │ bis 12 kW · 10 €/Feld    │ Kennzeile Manrope 600 12, gedämpft
 │                                                  │ [Radierer] [↶ Zurück]    │ 2 Spalten, je 94 breit, Höhe 44
 │                                                  │ [ T-Stück mit Vorsehung ]│ volle Breite, 2 Zeilen, Höhe 52
-│                                                  │ [ Schloss ab Heizzentrale Stufe 4 ]
+│                                                  │ [ Schloss ab Stufe 4 ]   │ (Stand 12.20: kurzer Grund)
 │          (Meldung unten mittig)                  ├──────────────────────────┤
 │                                                  │ [Abschnitt abschließen]  │ Aktionsleiste fest, Knopf 48
 └──────────────────────────────────────────────────┴──────────────────────────┘
@@ -407,7 +407,7 @@ Anlass: Im Zeichenmodus ist die Leiste so breit wie ein normales Blatt (388 px b
 | Farbknöpfe (Durchmesser) | 44×44, Lücke 6, 4 je Reihe. Zahl „25“ Lilita 16 in `kontur`, unten ein 6 px Streifen in `leitung.dNN`. Gewählt: eingedrückt, Fläche `gewaehlt`. Gesperrte dickere Leitungen: **ein** grauer Knopf mit Schloss 14 px und „St. 2“ (Manrope 800 11), Vorleser-Text „Dickere Leitungen ab Heizzentrale Stufe 2“, Tippen zeigt Hinweis nach 12.19 | 4×44 + 3×6 = 194 ≤ 197 |
 | Kennzeile | eine Zeile Manrope 600 12 `text_gedaempft`: Werte der gewählten Leitung („bis 12 kW · 10 €/Feld“, Zahlen aus dem Katalog). Im Radierer-Modus: „Leitung antippen = löschen“. Im T-Stück-Modus: „Geplante Leitung antippen“ | 111 / 157 / 152 px ≤ 197 |
 | Radierer · Zurück | 2 Spalten, Höhe 44, Schrift Lilita 16, Innenabstand seitlich 8. Radierer an = `gewaehlt` (Wort bleibt „Radierer“, die Kennzeile erklärt). „Zurück“ mit Pfeil-Symbol 18 px davor, Vorleser-Text „Letzte Leitung zurück“ | Radierer 59 + 22 = 81 ≤ 94 · Zurück 48 + 22 + 22 = 92 ≤ 94 |
-| T-Stück | volle Breite, Höhe 52, zwei Zeilen: „T-Stück mit Vorsehung“ (Lilita 16) und darunter Preis mit Münze oder Sperrgrund mit Schloss (Manrope 800 12). An = `gewaehlt`, Kennzeile wechselt | 157 + 22 = 179 ≤ 197; Grund „ab Heizzentrale Stufe 4“ 137 + 18 ≤ 197 |
+| T-Stück | volle Breite, Höhe 52, zwei Zeilen: „T-Stück mit Vorsehung“ (Lilita 16) und darunter Preis mit Münze oder Sperrgrund mit Schloss (Manrope 800 12). An = `gewaehlt`, Kennzeile wechselt | 157 + 22 = 179 ≤ 197; Grund „ab Stufe 4“ (geschütztes Leerzeichen vor der Zahl, Kann 2b / ENTSCHEIDUNGEN 2026-11-05) rund 70 + 18 ≤ 197 |
 | Aktionsleiste | fest unten, 2 px Linie oben, Innenabstand 6/8, ein Knopf **„Abschnitt abschließen“** (`los`, Höhe 48, Schrift 16 statt 18) über die volle Breite | 151 + 34 = 185 ≤ 197 (bei 18 px wären es 204, zu breit) |
 | Erklärtext | der heutige Absatz („Zieh die Leitung mit dem Finger …“) steht **nicht** mehr fest in der Leiste. [?] tauscht den Mittelteil (Farbknöpfe bis T-Stück) gegen den Text (Manrope 500 14, scrollt) und einen Knopf [Verstanden] (neutral). Kopf und Aktionsleiste bleiben | – |
 
@@ -433,18 +433,79 @@ Anlass: „T-Stück mit Vorsehung“ ist grau, Antippen tut nichts (Foto 40, 43)
 
 **Aussehen** (wie 12.5, ergänzt):
 - Fläche `knopf.aus`, Rand `aus_rand`, Text `aus_text`, Sockel bleibt sichtbar (der Knopf wirkt antippbar, nicht durchsichtig), keine Deckkraft-Absenkung.
-- Zeile 1: Name wie im freien Zustand. Zeile 2: **Schloss-Symbol 14 px** (`schloss`, vorhanden) + 4 px + kurzer Grund (Manrope 800 12), z. B. „ab Heizzentrale Stufe 4“. In sehr kleinen Knöpfen (Farbknopf 44×44) Schloss über „St. 2“ (11 px).
+- Zeile 1: Name wie im freien Zustand. Zeile 2: **Schloss-Symbol 14 px** (`schloss`, vorhanden) + 4 px + kurzer Grund (Manrope 800 12): im Seitenblatt „ab Heizzentrale Stufe 4“, in engen Leisten (Zeichenleiste) „ab Stufe 4“ mit geschütztem Leerzeichen vor der Zahl (12.15, 12.20). In sehr kleinen Knöpfen (Farbknopf 44×44) Schloss über „St. 2“ (11 px).
 - Gleiche Größe wie der freie Knopf, Tippfläche ≥ 44.
 
 **Antippen** (Maus, Finger, Enter, Leertaste):
 1. Der Knopf drückt sich **nicht** ein. Stattdessen wackelt er waagrecht ±3 px, zwei Mal, 240 ms – das Zeichen für „geht gerade nicht“.
 2. Gleichzeitig erscheint eine Meldung nach 12.17 mit **Grund + was man tun kann**. Für das T-Stück (Textvorschlag aus der Produktprüfung; ob die Aussage fachlich so stimmt, prüft der Projektleiter bzw. Fachprüfer):
-   „T-Stück mit Vorsehung gibt es ab Heizzentrale Stufe 4. Für Hausanschlüsse brauchst du es nicht – die schließen von selbst an die Leitung an.“
-   Weitere: Dickere Leitungen: „Dickere Leitungen gibt es ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.“ · Leitung selbst legen: „Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.“ · Zurück: „Noch nichts gezeichnet.“
+   *Überholt durch den fachgeprüften Text in `docs/ENTSCHEIDUNGEN.md` (2026-11-05, T-Stück-Hinweistext); Kürzungsvorschlag siehe 12.20.* Alle übrigen Hinweistexte stehen vollständig in **12.20**.
 3. Mehrmaliges Tippen: dieselbe Meldung startet nur die Zeit neu (12.17), kein Stapeln.
 - *Weniger Bewegung:* kein Wackeln, nur die Meldung.
-- *Technik-Hinweis:* **nicht** das HTML-Attribut `disabled` verwenden (dann kommt kein Tippen an und Tastatur-Nutzer erreichen den Knopf nicht), sondern `aria-disabled="true"` plus Klasse für das Aussehen; der Klick führt die Aktion nicht aus, sondern zeigt den Hinweis. Der Grund steht zusätzlich per `aria-describedby` am Knopf. Fokus bleibt sichtbar (12.10).
+- *Technik-Hinweis:* **nicht** das HTML-Attribut `disabled` verwenden (dann kommt kein Tippen an und Tastatur-Nutzer erreichen den Knopf nicht), sondern `aria-disabled="true"` plus Klasse für das Aussehen; der Klick führt die Aktion nicht aus, sondern zeigt den Hinweis. Kein zusätzliches `aria-describedby` – der Grund steht in Zeile 2 und ist damit Teil des Knopfnamens (Begründung 12.20). Fokus bleibt sichtbar (12.10).
 
 Tokens: `menue.mass_px.schloss_klein` 14, `wackeln_weg` 3; `menue.zeit_ms.wackeln` 240.
 
-**Prüfkriterium (Foto):** 844×390, Zeichenleiste in Stufe 1: Foto des grauen T-Stück-Knopfs (Schloss + „ab Heizzentrale Stufe 4“ in Zeile 2) und Foto direkt nach dem Antippen (Meldung in der freien Kartenfläche, nicht über der Leiste). Per Skript: Knopf hat `aria-disabled="true"` und kein `disabled`; nach `click()` erscheint `#toast` mit dem Grund; Tab erreicht den Knopf, Enter zeigt dieselbe Meldung.
+**Prüfkriterium (Foto):** 844×390, Zeichenleiste in Stufe 1: Foto des grauen T-Stück-Knopfs (Schloss + „ab Stufe 4“ in Zeile 2, geschütztes Leerzeichen – „4“ steht nie allein in einer Zeile) und Foto direkt nach dem Antippen (Meldung in der freien Kartenfläche, nicht über der Leiste). Per Skript: Knopf hat `aria-disabled="true"` und kein `disabled`; nach `click()` erscheint `#toast` mit dem Grund; Tab erreicht den Knopf, Enter zeigt dieselbe Meldung.
+
+### 12.20 Sperrgründe und Hinweise für alle gesperrten Knöpfe (Vorgabe NR16-B2, 2026-11-05)
+Anlass: Seit NR16-B1 wackeln alle gesperrten Knöpfe, aber nur T-Stück, „Dickere“, Stufe +1 im Heizhaus und die Bauabschnitt-Knöpfe sagen auch, warum. Alle anderen wackeln stumm – für Spieler sieht das aus wie „kaputt“. **Ergänzt** 12.19; dort stehen Aussehen und Verhalten, hier stehen die Texte. Grundlage: Suche nach `aus:` (alle Stellen, auch `aus: <Bedingung>`), `sperren(` und `stepper(` in `src/`, Stand d214666.
+
+**Regeln**
+1. **Zeile 2 = Grund**, klein geschrieben wie die vorhandenen („ab …“, „braucht …“). Seitenblatt: höchstens 28 Zeichen. Enge Stellen (Zeichenleiste, zwei Knöpfe nebeneinander, Knopf rechts in einer Zeile): höchstens 18 Zeichen, sonst die Kurzform aus der Tabelle. Umbruch nur an Wortgrenzen, höchstens 2 Zeilen; Zahl und Wort davor mit geschütztem Leerzeichen verbinden (`\u00a0`, z. B. „Stufe 4“, „noch 3“).
+2. **Schloss ja** = die Sperre fällt erst durch Fortschritt (Stufe der Heizzentrale, Bauabschnitt, Bedingungen, Ziele). **Schloss nein** = vorübergehend oder schon erledigt (Geld, Taler, Helfer beschäftigt, Bau läuft, schon geplant, schon gemocht, Rand eines Reglers, nichts gezeichnet). So bedeutet das Schloss überall dasselbe: „Hier musst du erst etwas anderes schaffen.“
+3. **Hinweis (Meldung beim Antippen)** = was los ist + was man tun kann, Du-Form, höchstens 90 Zeichen. Das sind nach 12.17 höchstens 6 s Anzeige und höchstens 3 Zeilen auch bei 667×375 mit offenem Seitenblatt (freie Breite 667 − 306 = 361 px, Meldung 337 px, rund 42 Zeichen je Zeile). `{…}` = Wert aus dem Spiel, zum Zeitpunkt des **Antippens** berechnet (Geld und Restzeiten ändern sich, während das Blatt offen ist).
+4. **Mehrere Gründe zugleich:** Es zählt nur der oberste nach dieser Reihenfolge – Stufe › Bauabschnitt › Bedingung/Ziel › beschäftigt/Bau läuft › Geld/Taler. Zeile 2 und Hinweis nennen **denselben** Grund. (Beispiel Puffer auf Stufe 1 ohne Geld: „ab Heizzentrale Stufe 3“, nicht der Fehlbetrag.)
+5. **Geld- und Taler-Regel (für jeden Knopf mit Preis):** Fehlt nur Geld, bleibt in Zeile 2 der **Preis** stehen (mit Münze bzw. Taler, in `aus_text`), kein Schloss – der Spieler sieht so, wie viel er braucht. Hinweis: **„Dir fehlen noch {Fehlbetrag}. Am Monatsende zahlen deine Kunden ihre Wärmerechnung.“** Fehlbetrag = Preis − Geld, auf ganze Euro **aufgerundet** (die Geldanzeige rundet ab; aufrunden heißt: mit diesem Betrag reicht es sicher), mit Tausenderpunkt und €. Taler: **„Dir fehlen noch {n} Dorftaler. Du bekommst sie für Aufträge und beim Wegräumen.“** Derselbe Wortlaut gilt auch für die Katalogkarte (`katalog.ts` ~131, heute „Es fehlen …“), damit das Spiel überall gleich spricht.
+6. **Stufen-Regel:** Hinweis „{Name} gibt es ab Heizzentrale Stufe {n}. Baue die Heizzentrale aus.“ – `{Name}` aus `merkmalName`, `{n}` aus `abStufe`, nie fest im Text.
+7. Texte, die etwas über echte Wärmenetze sagen könnten, sind unten mit **[F]** markiert (Fachprüfer). Spielgrenzen sind ausdrücklich als „im Spiel“ gekennzeichnet.
+
+**Tabelle Knopf → Grund (Zeile 2) → Hinweis → Schloss**
+| Nr | Knopf (Stelle) | gesperrt, wenn | Zeile 2 | Hinweis beim Antippen | Schloss |
+|---|---|---|---|---|---|
+| S1 | Gebäude „Stufe {n+1}“ (`kontext.ts` ~148) | Gebäude hat schon die Stufe der Heizzentrale | „erst Heizzentrale ausbauen“ | „Stufe {n+1} gibt es, sobald die Heizzentrale Stufe {n+1} hat. Baue sie zuerst aus.“ | ja (neu) |
+| S2 | Heizhaus-Quelle „Stufe {n+1}“ (~369, rechts in der Zeile) | wie S1 | „erst Heizzentrale ausbauen“, darf zweizeilig umbrechen („erst Heizzentrale / ausbauen“) | „Stufe {n+1} gibt es, sobald die Heizzentrale Stufe {n+1} hat. Der Ausbau steht unten im Blatt.“ (ersetzt den heutigen Text) | ja (neu) |
+| S3 | „Ausbauen auf Stufe {n+1}“ Heizzentrale (~153) | Ziele offen | „Ziele noch offen“ | „Erst alle Ziele für die nächste Stufe erreichen – sie stehen weiter oben im Blatt.“ | ja |
+| S3g | dito, sonstige Gebäude | Geld fehlt | Preis · Zeit (wie frei) | Geld-Regel 5 | nein |
+| S4 | „Dickere“ (~55) | nächste Leitung noch gesperrt | Blatt: „ab Heizzentrale Stufe {n}“ · Leiste: „ab Stufe {n}“ | bleibt: „Dickere Leitungen gibt es ab Heizzentrale Stufe {n}. Baue die Heizzentrale aus.“ | ja |
+| S5 | „T-Stück mit Vorsehung“ (Zeichenleiste `steuerung.ts` ~158, Leitungsblatt `kontext.ts` ~353) | `vorsehung` gesperrt | Leiste: „ab Stufe 4“ · Blatt: „ab Heizzentrale Stufe 4“ | fachgeprüfter Text (ENTSCHEIDUNGEN 2026-11-05) – **190 Zeichen, siehe Hinweis unten** | ja |
+| B1 | „Hausanschluss ziehen“, „Leitung selbst legen“ (~206/207), Großabnehmer „{Leitung} legen“ (~296), Zeichenleiste „Abschnitt abschließen“ (`steuerung.ts` ~150) | **kein** Bauabschnitt | „braucht offenen Bauabschnitt“ | bleibt: „Erst mit {Planung} einen Bauabschnitt planen: Bauen → Leitungen.“ | ja |
+| B2 | dito | Abschnitt in Planung | „{Planung} plant noch“ | „{Planung} plant den Bauabschnitt noch ({Restzeit}). Danach kannst du zeichnen.“ | ja |
+| B3 | dito | Abschnitt wartet auf Bestellung | „Abschnitt ist geplant“ | „Abschnitt wartet auf {Material}s Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.“ | ja |
+| B4 | dito | Abschnitt wird gebaut | „Abschnitt wird gebaut“ | „Der Bauabschnitt wird gerade gebaut ({Restzeit}). Danach kannst du den nächsten planen.“ | ja |
+| B5 | „Hausanschluss geplant“ (~205) | Anschluss ist schon im Abschnitt | „kommt mit dem Bauabschnitt“ | „Der Hausanschluss ist schon eingeplant. Gebaut wird er mit dem Bauabschnitt.“ | nein |
+| B6 | „Abschnitt abschließen“ im Baumenü (`katalog.ts` ~86) | 0 Leitungen eingezeichnet | „noch nichts gezeichnet“ (neu) | „Noch nichts gezeichnet. Wähle eine Leitung und zieh sie in der Karte.“ | nein |
+| B7 | „↶ Zurück“ in der Zeichenleiste (W1c, 12.18; heute „Letzte zurück“, nie gesperrt) | keine geplante Leitung im Abschnitt | – (Knopf zu schmal, 94 px) | „Noch nichts gezeichnet.“ | nein |
+| B8 | „{Planung}: Bauabschnitt planen (lassen)“ (`kontext.ts` ~202, `katalog.ts` ~71), „{Material}: Material bestellen“ (~92) | Geld fehlt | Preis | Geld-Regel 5 | nein |
+| B9 | „{Material}: Expresslieferung“ (~102) | `express` gesperrt / Geld | „ab Heizzentrale Stufe 2“ / Preis | „Expresslieferung gibt es ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.“ / Geld-Regel | ja / nein |
+| B10 | „Sofort fertig“ (~103) | Taler fehlen | „{c} Taler“ | Taler-Regel 5 | nein |
+| H1 | „Vertrag unterschreiben“ (~297) | Bedingungen nicht erfüllt | „noch {k} Bedingung(en) offen“ (1 → „Bedingung“) | „Für den Vertrag fehlt noch: {erste fehlende}.“ – bei mehr: „… und {k−1} weitere.“ Beispiel: „Für den Vertrag fehlt noch: Ruf 60 % (jetzt 45 %).“ [F] nur, solange der Satz „freie Leistung“ auf der Sammelliste steht | ja (neu) |
+| H2 | „Helfer beauftragen“ (~242) | `ruecklauf_helfer` gesperrt | „ab Heizzentrale Stufe 3“ | „Rücklauf-Helfer gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.“ | ja (neu) |
+| H3 | „Alle Helfer beschäftigt“ (~255) | kein Helfer frei | „nächster frei in {Zeit}“ (statt Preis) | „Alle Helfer sind gerade beschäftigt. Der nächste ist in {Zeit} frei.“ | nein |
+| H4 | „{Helfer} beauftragen · …“ (~255) | Haus ohne Übergabestation | „erst Station wählen“ | „Dieses Haus hat noch keine Übergabestation. Wähle oben im Blatt erst eine.“ | ja |
+| H5 | „Puffer einbauen“ (~220) | `hauspuffer` gesperrt / Geld | „ab Heizzentrale Stufe 3“ / Preis | „Puffer im Haus gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.“ / Geld-Regel | ja (neu) / nein |
+| H6 | „Verkaufen“ (~317) | Gebäude wird gebaut | „erst nach dem Bau“ (statt Erlös) | „Während des Baus kannst du nicht verkaufen. Warte, bis er fertig ist.“ | nein |
+| Z1 | „PV aufs Dach · {kWp}“ (~386) | `dach_pv` gesperrt / Geld | „ab Heizzentrale Stufe 4“ / Preis | „PV auf dem Heizhaus-Dach gibt es ab Heizzentrale Stufe 4. Baue die Heizzentrale aus.“ / Geld-Regel | ja (neu) / nein |
+| Z2 | „Baugebiet erschließen“ (~392) | `baugebiet` gesperrt | „ab Heizzentrale Stufe 4“ | „Baugebiet gibt es ab Heizzentrale Stufe 4. Baue die Heizzentrale aus.“ | ja (neu) |
+| Z3 | dito | zu wenig versorgte Häuser | „{ist}/{soll} Häuser versorgt“ (heute steht dort fälschlich der Preis) | „Für das Baugebiet brauchst du {soll} versorgte Häuser – dir fehlen noch {soll−ist}.“ | ja |
+| Z4 | dito | Geld fehlt | Preis | Geld-Regel 5 | nein |
+| R1 | Stepper Vorlauf −/+ (~379/381) | `vorlauf` gesperrt | – (48×48, die Schloss-Zeile darunter gibt es schon) | „Den Vorlauf-Regler gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.“ | nein (Zeile darunter hat es) |
+| R2 | Stepper Vorlauf − / + | am Rand | – | „Im Spiel geht der Vorlauf nur bis {min} °C hinunter.“ / „… nur bis {max} °C hinauf.“ [F] | nein |
+| R3 | Stepper Wärmepreis − / + (~418/420) | am Rand | – | „Günstiger geht es im Spiel nicht: {min} ct/kWh ist der niedrigste Preis.“ / „Teurer geht es im Spiel nicht: {max} ct/kWh ist der höchste Preis.“ | nein |
+| R4 | Stepper Grundgebühr − / + (~425/427) | am Rand | – | „Die Grundgebühr geht im Spiel nicht unter {min} € im Monat.“ / „… nicht über {max} € im Monat.“ | nein |
+| D1 | „Gefällt dir“ (`steuerung.ts` ~217, `sperren(`) | schon gemocht | – | „Du hast {Dorf} schon ein Gefällt mir gegeben.“ | nein |
+
+Bewusst **ohne** Eintrag: Katalogkarten (`bkarte`, kein `aus`, eigene Meldung beim Antippen – nur Wortlaut nach Regel 5/6 angleichen: „{Name} ab Heizzentrale Stufe {n}. Baue die Heizzentrale aus.“) und Büro-Förderquellen (Chip statt Knopf, 12.15).
+
+**T-Stück-Hinweis ist zu lang (Vorschlag an Projektleiter und Fachprüfer, nicht eigenmächtig geändert):** Der festgelegte Text hat 190 Zeichen. Nach 12.17 bräuchte er rund 12,7 s Lesezeit, die Meldung steht aber höchstens 6 s, und bei offener Zeichenleiste (freie Fläche 628 bzw. 451 px) braucht er 4–5 Zeilen statt höchstens 3. Vorschlag für die Meldung (98 Zeichen, nur gekürzt, kein neuer Inhalt): „Für Hausanschlüsse nicht nötig – den Abzweig setzt das Spiel selbst. Frei ab Heizzentrale Stufe 4.“ Der Satz zum Anbohren bleibt im Leitungsblatt (dort steht er schon, `kontext.ts` ~345) und im [?]-Text der Zeichenleiste.
+
+**aria-describedby – Entscheidung: nicht verwenden.** Zeile 2 steht im `button`, ist also schon Teil des Knopfnamens („Stufe 3, erst Heizzentrale ausbauen, nicht verfügbar“). Ein zusätzliches `aria-describedby` auf denselben Text würde ihn doppelt vorlesen. Die Meldung beim Antippen kommt über `role="status"` / `aria-live` (12.17) und erreicht Vorleser ohnehin. Für die Stepper ohne Zeile 2 reicht `aria-label` + `aria-disabled`; der Wert steht vorlesbar daneben. Das Schloss-Symbol bleibt `aria-hidden`. 12.19 ist entsprechend angepasst.
+
+**Übergabe Bau (NR16-B2):**
+- `stepper()` braucht wie `knopf()` einen Hinweis; `sperren()` (D1) muss einen Hinweis mitnehmen können – heute wackelt „Gefällt dir“ ohne Meldung.
+- Hinweise mit `{Fehlbetrag}`/`{Restzeit}` beim Antippen erzeugen (Funktion statt fester Zeichenfolge), sonst nennt die Meldung einen veralteten Betrag.
+- Alle Texte zentral (wie `OHNE_ABSCHNITT_HINWEIS`, `tStueckHinweis`), Namen der Helfer aus `ABSCHNITT_HELFER`, Grenzwerte aus `VORLAUF`, `PREISSTUFEN`, `GRUNDGEBUEHR`, `KONSTANTEN.baugebiet_anschluesse`.
+
+Tokens: keine neuen; es gelten `menue.mass_px.schloss_klein`, `wackeln_weg`, `menue.zeit_ms.wackeln` und die Toast-Zeiten aus 12.17.
+
+**Prüfkriterium (Foto):** 844×390 und 667×375, je ein Foto vor und direkt nach dem Antippen von S1, S2 (Heizhaus mit Quelle auf Stufe der HZ), H1, H5, Z3, R2 und einem Geld-Knopf (B8 ohne Geld). Zeile 2 vollständig sichtbar, höchstens 2 Zeilen, kein abgeschnittener Text, Knopf ≥ 44 px hoch; S2 passt rechts in die Zeile, ohne die Quellenbezeichnung zu überdecken. Per Skript: Jeder `button[aria-disabled="true"]` in Haus-, Großabnehmer-, Heizhaus-, Leitungs-, Baumenü- und Zeichenblatt zeigt nach `click()` eine Meldung (`#toast` nicht leer, ≤ 90 Zeichen außer S5); kein gesperrter Knopf ohne Meldung. Geld-Knopf: Meldung enthält den aufgerundeten Fehlbetrag.
