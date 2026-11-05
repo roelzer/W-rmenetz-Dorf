@@ -8,17 +8,25 @@ import type { Ui } from './schnittstelle';
 
 const SCHLUESSEL = 'waermedorf-einstellungen-v1';
 
-export interface Einstellungen { weniger_bewegung: boolean; kw_anzeigen: boolean }
+export interface Einstellungen { weniger_bewegung: boolean; kw_anzeigen: boolean; sparmodus: boolean }
+
+const abonnenten: Array<(e: Einstellungen) => void> = [];
+/** Wer Einstellungen nur liest (Bildschleife), erfährt hier jede Änderung – egal, wer sie schreibt. */
+export function beiEinstellungsAenderung(f: (e: Einstellungen) => void): void { abonnenten.push(f); }
 
 export function einstellungenLesen(): Einstellungen {
   let gespeichert: Partial<Einstellungen> = {};
   try { gespeichert = JSON.parse(localStorage.getItem(SCHLUESSEL) ?? '{}'); } catch (fehler) { console.warn('Einstellungen nicht lesbar, Standard gilt', fehler); }
   const system = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return { weniger_bewegung: gespeichert.weniger_bewegung ?? system, kw_anzeigen: gespeichert.kw_anzeigen ?? true };
+  return { weniger_bewegung: gespeichert.weniger_bewegung ?? system, kw_anzeigen: gespeichert.kw_anzeigen ?? true, sparmodus: gespeichert.sparmodus ?? false };
 }
 
+/** Speichert und meldet die Änderung allen Abonnenten – auch wenn das Speichern scheitert, gilt sie für diese Sitzung. */
 export function einstellungenSchreiben(e: Einstellungen): boolean {
-  try { localStorage.setItem(SCHLUESSEL, JSON.stringify(e)); return true; } catch { return false; }
+  let gespeichert: boolean;
+  try { localStorage.setItem(SCHLUESSEL, JSON.stringify(e)); gespeichert = true; } catch { gespeichert = false; }
+  for (const f of abonnenten) f(e);
+  return gespeichert;
 }
 
 /** Dorf-Einstellungen / Info (S8). */
@@ -31,6 +39,9 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
   const bewegung = h('input', { type: 'checkbox', id: 'bewegung', role: 'switch' }) as HTMLInputElement;
   bewegung.checked = e.weniger_bewegung;
   bewegung.addEventListener('change', () => { e.weniger_bewegung = bewegung.checked; einstellungenSchreiben(e); geaendert(e); });
+  const spar = h('input', { type: 'checkbox', id: 'sparmodus', role: 'switch' }) as HTMLInputElement;
+  spar.checked = e.sparmodus;
+  spar.addEventListener('change', () => { e.sparmodus = spar.checked; einstellungenSchreiben(e); geaendert(e); });
   const loeschen = knopf('Spielstand löschen', () => {
     b.inhalt.replaceChildren(
       h('p', {}, 'Wirklich alles löschen? Dein Dorf, dein Geld und alle Aufträge sind danach weg.'),
@@ -44,6 +55,8 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     h('label', { for: 'spielername', class: 'gedaempft' }, 'Dein Name (so sprechen dich Philipp, Laura und die Techniker an)'), spieler,
     h('label', { class: 'schalter', for: 'bewegung' }, bewegung, 'Weniger Bewegung'),
     h('p', { class: 'gedaempft' }, 'Rauch, Wasser und Münzflug stehen still. Wichtige Hinweise bleiben sichtbar.'),
+    h('label', { class: 'schalter', for: 'sparmodus' }, spar, 'Sparmodus'),
+    h('p', { class: 'gedaempft' }, '30 Bilder/s, keine Hintergrund-Animationen, etwas geringere Schärfe – für ältere Handys'),
     h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),
       h('p', { class: 'gedaempft' }, 'Für Vorführungen: Die Spielzeit läuft schneller. Normal ist das vorgesehene Tempo.'),
       h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'gewaehlt' : '', { klein: true })))),

@@ -7,15 +7,20 @@ import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL, speichernErlaubt } 
 import { neuerSpielstand, Spiel } from './core/spiel';
 import { Maler } from './render/maler';
 import { zeichneSzene } from './render/szene';
+import { animationBedarf, szenenSchluessel } from './render/szene-schluessel';
+import { MIN_KAMERA_PROBEN, neuerTakt, sollZeichnen, sparHinweisNoetig, type BildProbe } from './render/takt';
+import { zeichenAufloesung, type Aufloesung } from './render/aufloesung';
 import { Steuerung } from './steuerung';
 import { tokensAnwenden } from './ui/tokens';
 import { vorspannZeigen } from './ui/vorspann';
 import { hinweisMitKnopf } from './ui/toast';
-import { einstellungenLesen } from './ui/einstellungen';
+import { beiEinstellungsAenderung, einstellungenLesen, type Einstellungen } from './ui/einstellungen';
 import { tempoSpeichern, uhr } from './tempo';
 
 tokensAnwenden();
-vorspannZeigen(einstellungenLesen().weniger_bewegung);
+/** Nur lesen: Änderungen kommen über beiEinstellungsAenderung; geschrieben wird von der Oberfläche, nie von hier. */
+let einstellungen: Einstellungen = einstellungenLesen();
+vorspannZeigen(einstellungen.weniger_bewegung);
 
 const lesen = (): string | null => { try { return localStorage.getItem(SPEICHER_SCHLUESSEL); } catch { return null; } };
 /** Einen unbrauchbaren Spielstand sichern, bevor er vom neuen Spiel überschrieben wird. */
@@ -53,23 +58,106 @@ else if (weg && uhr() - weg.seit_ms > 5 * 60_000) {
   steuerung.toast(`Willkommen zurück! Du warst ${dauer} weg: ${diff >= 0 ? '+' : '−'}${Math.abs(diff).toLocaleString('de-DE')} € auf dem Konto${weg.bau && !spiel.stand.objekte.some((o) => o.bau) ? ', der Bau ist fertig' : ''}. Deine Kunden haben ihre Monatsrechnungen automatisch bezahlt.`);
 }
 
+/**
+ * Einziger Merker „sofort neu zeichnen“ (A90): nach echter Größenänderung, Einstellungswechsel, Rückkehr in die App und
+ * Leinwand-Verlust. Wird dem Takt übergeben und nach dem Zeichnen zurückgesetzt.
+ */
+let erzwingen = false;
+let aufloesung: Aufloesung = { faktor: 0, breite_px: 0, hoehe_px: 0 };
 function groesseAnpassen(): void {
   const r = leinwand.parentElement!.getBoundingClientRect();
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  leinwand.width = Math.round(r.width * dpr); leinwand.height = Math.round(r.height * dpr);
-  if (kamera.groesseSetzen(r.width, r.height, dpr)) steuerung.zentrieren();
+  const a = zeichenAufloesung(r.width, r.height, window.devicePixelRatio, einstellungen.sparmodus);
+  // Breite/Höhe setzen leert die Leinwand – iOS meldet resize oft ohne echte Änderung.
+  if (a.breite_px !== aufloesung.breite_px || a.hoehe_px !== aufloesung.hoehe_px || a.faktor !== aufloesung.faktor) {
+    aufloesung = a;
+    leinwand.width = a.breite_px; leinwand.height = a.hoehe_px;
+    erzwingen = true;
+  }
+  if (kamera.groesseSetzen(r.width, r.height, a.faktor)) steuerung.zentrieren();
 }
 window.addEventListener('resize', groesseAnpassen);
 groesseAnpassen();
+beiEinstellungsAenderung((e) => {
+  const sparWechsel = e.sparmodus !== einstellungen.sparmodus;
+  einstellungen = { ...e };
+  if (sparWechsel) groesseAnpassen();
+  erzwingen = true; // „Weniger Bewegung“ friert die Zeit ein – das Bild soll das sofort zeigen
+});
+const neuZeichnen = (): void => { erzwingen = true; };
+document.addEventListener('visibilitychange', () => { if (!document.hidden) neuZeichnen(); });
+// Nur bei Rückkehr aus dem Seiten-Zwischenspeicher; beim ersten Laden soll unter dem Vorspann kein zweites Bild entstehen.
+window.addEventListener('pageshow', (e) => { if (e.persisted) neuZeichnen(); });
+leinwand.addEventListener('contextrestored', neuZeichnen);
 
-let letzt = performance.now();
+const vorspannDeckt = (): boolean => { const v = document.getElementById('vorspann'); return !!v && !v.classList.contains('aus'); };
+
+/** Messanzeige für die Abnahme auf dem Handy (`?messen=1`): Bildabstand der Bildaufrufe und gezeichnete Bilder je Sekunde. */
+const messfeld = new URLSearchParams(location.search).get('messen') === '1' ? document.createElement('div') : null;
+if (messfeld) {
+  messfeld.id = 'messanzeige';
+  messfeld.style.cssText = 'position:fixed;left:4px;top:4px;z-index:9999;padding:2px 6px;border-radius:4px;background:rgba(0,0,0,.65);color:#fff;font:12px/1.3 monospace;pointer-events:none';
+  document.body.append(messfeld);
+}
+const messAbstaende: number[] = [];
+let messGezeichnet = 0, messStart = performance.now();
+const perzentil = (sortiert: number[], p: number): number => sortiert[Math.min(sortiert.length - 1, Math.floor(p * sortiert.length))] ?? 0;
+function messen(jetzt: number, abstand_ms: number, gezeichnet: boolean): void {
+  if (!messfeld) return;
+  messAbstaende.push(abstand_ms);
+  if (gezeichnet) messGezeichnet++;
+  if (jetzt - messStart < 1000) return;
+  const s = messAbstaende.sort((a, b) => a - b);
+  messfeld.textContent = `p50 ${perzentil(s, 0.5).toFixed(1)} ms · p95 ${perzentil(s, 0.95).toFixed(1)} ms · gezeichnet ${Math.round(messGezeichnet * 1000 / (jetzt - messStart))}/s`;
+  messAbstaende.length = 0; messGezeichnet = 0; messStart = jetzt;
+}
+
+/** Einmal je Gerät: Ruckelt das Spiel beim Verschieben, wird der Sparmodus empfohlen (Messung nach dem Vorspann). */
+const SPARHINWEIS_SCHLUESSEL = 'waermedorf-sparhinweis-v1';
+function sparHinweisSchonGezeigt(): boolean {
+  try { return localStorage.getItem(SPARHINWEIS_SCHLUESSEL) !== null; }
+  catch (fehler) { console.warn('Merker für den Sparhinweis nicht lesbar, Hinweis entfällt', fehler); return true; }
+}
+let sparProben: BildProbe[] | null = sparHinweisSchonGezeigt() ? null : [];
+function sparHinweisPruefen(probe: BildProbe): void {
+  // Nur Bilder mit Kamerabewegung zählen (sparHinweisNoetig wertet nur diese); so wächst die Liste in Ruhe nicht.
+  if (!sparProben || einstellungen.sparmodus || !probe.kamera_bewegt) return;
+  sparProben.push(probe);
+  if (sparProben.length < MIN_KAMERA_PROBEN) return;
+  const noetig = sparHinweisNoetig(sparProben);
+  sparProben = null; // nur einmal je Sitzung messen
+  if (!noetig) return;
+  steuerung.toast('Das Spiel ruckelt auf diesem Gerät. Tipp: Sparmodus in den Dorf-Einstellungen einschalten.');
+  try { localStorage.setItem(SPARHINWEIS_SCHLUESSEL, '1'); } catch (fehler) { console.warn('Merker für den Sparhinweis nicht speicherbar', fehler); }
+}
+
+let takt = neuerTakt();
+let letzt = performance.now(), letztGezeichnet = letzt, letzteKamera = '';
 const t0 = letzt;
 function bild(jetzt: number): void {
-  const dt = (jetzt - letzt) / 1000; letzt = jetzt;
+  const raf_abstand_ms = jetzt - letzt; letzt = jetzt;
   steuerung.tick(uhr());
-  kamera.schritt(dt);
-  maler.zeit_s = maler.reduziert ? 0 : (jetzt - t0) / 1000;
-  zeichneSzene(maler, kamera, steuerung.szene(), steuerung.effekte, dt);
+  kamera.schritt(raf_abstand_ms / 1000);
+  // Überschreibt steuerung.bewegungAnwenden je Bild absichtlich: der Sparmodus schaltet die Umgebungsanimation ebenfalls ab.
+  maler.reduziert = einstellungen.weniger_bewegung || einstellungen.sparmodus;
+  steuerung.effekte.sparsam = einstellungen.sparmodus;
+  const szene = steuerung.szene(), kameraSchluessel = kamera.schluessel(), effekte_aktiv = steuerung.effekte.aktiv(), verdeckt = vorspannDeckt();
+  const r = sollZeichnen(takt, {
+    jetzt_ms: jetzt, szene: szenenSchluessel(szene), kamera: kameraSchluessel, bedarf: animationBedarf(szene, effekte_aktiv),
+    effekte_aktiv, animation: maler.reduziert ? 'aus' : 'an', sparmodus: einstellungen.sparmodus, verdeckt, erzwingen,
+  });
+  takt = r.zustand;
+  let zeichen_ms = 0;
+  if (r.zeichnen) {
+    maler.zeit_s = maler.reduziert ? 0 : (jetzt - t0) / 1000;
+    const start = performance.now();
+    zeichneSzene(maler, kamera, szene, steuerung.effekte, (jetzt - letztGezeichnet) / 1000);
+    zeichen_ms = performance.now() - start;
+    letztGezeichnet = jetzt;
+    erzwingen = false;
+  }
+  if (!verdeckt) sparHinweisPruefen({ raf_abstand_ms, zeichen_ms, kamera_bewegt: kameraSchluessel !== letzteKamera });
+  letzteKamera = kameraSchluessel;
+  messen(jetzt, raf_abstand_ms, r.zeichnen);
   requestAnimationFrame(bild);
 }
 requestAnimationFrame(bild);
