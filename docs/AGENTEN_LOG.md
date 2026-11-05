@@ -61,3 +61,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 11:28 | ■ 🟡 | reviewer | 🟡 **Nachprüfung A84 (Commit 7be3ff6, Basis 6b6ea56): freigegeben mit einem kleinen Punkt.** Alle drei Befunde sind behoben. Die Nachbesserung hat nichts Wic ([Bericht](docs/pruefberichte/20261105-112803-reviewer-a982b881c0925e4bf.md)) |
 | 2026-11-05 11:30 | ■ 🟡 | designer | 🟡 **Nachprüfung A84: Nr. 1, 2, 4, 5, 6 und 7 sind erledigt. Nr. 3 (HUD bei 667 px) ist es noch nicht: Die Geld-Kapsel verdeckt dort weiter das Zahnrad.**  ([Bericht](docs/pruefberichte/20261105-113056-designer-aa18eccd55a98c373.md)) |
 | 2026-11-05 11:32 | ▶ | reviewer | Review A86, A87, HUD-Fix |
+| 2026-11-05 11:34 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig (ein wichtiger Befund).** Prüfmodus „paket“ (klein), geprüft wurde `2406971..23a324b`.  ([Bericht](docs/pruefberichte/20261105-113409-reviewer-ae640507c50297d1b.md)) |

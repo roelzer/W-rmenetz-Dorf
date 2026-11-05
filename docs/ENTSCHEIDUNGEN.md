@@ -83,3 +83,4 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-05 – A86 Dorfname „Wärmlingen“ statt Hilpoltstein (NR5); interne Ort-Id bleibt für alte Spielstände, alter Vorgabename wird beim Laden ersetzt – Name ist ein Vorschlag, Simon kann ihn ändern
 - 2026-11-05 – A87 Firmenname aus angezeigtem Stationstext entfernt (NR6); Test prüft alle Katalog- und Stationstexte gegen eine Herstellerliste
 - 2026-11-05 – A84 Treue Nr. 3 bei 667 px: schmalere Dorfschild-Spalte (160 px), engere Kapseln, Monteure ohne „frei“ unter 700 px; gemessen 18 px Luft zwischen Schild und erstem Symbolkreis (Ziel ≥ 8). Designer-Kann-Punkte (Abstand unter gesperrtem Knopf, Titel 20 px unter 700 px) vorgemerkt
+- 2026-11-05 – Review A86: reine Namensänderung meldet kein 'migriert' mehr (sonst falscher Start-Hinweis über Straßen/Fluss bei fast allen Spielern); Monteur-Text als reine Funktion getestet

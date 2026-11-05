@@ -200,3 +200,12 @@ describe('A84 Designer-Treueprüfung (Nr. 1–7)', () => {
     expect(k).toContain("knopf(`Stufe ${o.stufe + 1}`, () => undefined, '', { aus: true, unter: 'Erst Heizzentrale ausbauen' })");
   });
 });
+
+describe('A84 (Review A86-Paket) Monteur-Anzeige auf schmalen Handys', () => {
+  it('A84: unter 700 px ohne „frei“, sonst mit', async () => {
+    const { monteurText } = await import('../src/ui/hud');
+    expect(monteurText(1, 2, false)).toBe('1/2 frei');
+    expect(monteurText(1, 2, true)).toBe('1/2');
+    expect(lies('src/ui/hud.ts')).toContain("monteurText(frei, sp.monteure(), kurz)");
+  });
+});

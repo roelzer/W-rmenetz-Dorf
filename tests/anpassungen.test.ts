@@ -1438,7 +1438,7 @@ describe('A86 Fiktiver Dorfname statt Hilpoltstein (Simon, Review-Chat NR5)', ()
   it('A86: Alte Spielstände laden weiter; nur der alte Vorgabename wird ersetzt, eigene Namen bleiben', () => {
     const alt = neuerSpielstand(0); alt.name = 'Hilpoltstein';
     const r = ladenMitBefund(serialisieren(alt), 0);
-    expect(r.befund).toBe('migriert');
+    expect(r.befund).toBe('ok'); // Review A86: kein Start-Hinweis über Straßen/Fluss, nur weil der Name wechselt
     expect(r.stand.name).toBe('Wärmlingen');
     expect(r.stand.objekte.length).toBe(alt.objekte.length);
     const eigen = neuerSpielstand(0); eigen.name = 'Simonsdorf';
