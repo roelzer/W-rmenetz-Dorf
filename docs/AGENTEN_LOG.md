@@ -240,3 +240,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:58 | ▶ | entwickler | NR15-P2 Fix-Runde 1 |
 | 2026-11-05 20:03 | ■ 🟡 | tester | 🟡 Die Tester-Vorarbeit für NR16-B2b (A92) ist fertig. Gelb, weil 30 Tests absichtlich rot sind: Sie beschreiben, was der Entwickler noch baut. Kein grüner  ([Bericht](docs/pruefberichte/20261105-200307-tester-a5ff7567654cf85ab.md)) |
 | 2026-11-05 20:03 | ▶ | entwickler | Baue NR16-B2b |
+| 2026-11-05 20:16 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT, Grund „Kontext voll“ (der Kontext-Wächter hat den Abbruch verlangt). Das Paket ist ungefähr zur Hälfte fertig. Alles Gebaute ist  ([Bericht](docs/pruefberichte/20261105-201649-entwickler-a076576a83997f8c5.md)) |
