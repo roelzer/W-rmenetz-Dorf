@@ -3,7 +3,7 @@ import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k 
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
-import { balken, chip, erklaerKnopf, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile } from './bausteine';
+import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -35,8 +35,12 @@ export const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
 export const tStueckHinweis = (): string =>
   `Für Hausanschlüsse nicht nötig – den Abzweig setzt das Spiel selbst. Ein T-Stück mit Vorsehung legt einen Abzweig für später bereit und spart dann das Anbohren. Frei ab Heizzentrale Stufe ${abStufe('vorsehung')}.`;
 
-/** Kurzer Sperrgrund für enge Leisten und Chips (DESIGN.md 12.15); die Stufe kommt aus dem Kern. */
-const kurzGrund = (m: Merkmal): string => `ab Stufe ${abStufe(m)}`;
+/** DESIGN.md 12.18/12.19: Hinweis beim Antippen von Knöpfen, die ohne offenen Bauabschnitt gesperrt sind. */
+export const OHNE_ABSCHNITT_HINWEIS = `Erst mit ${ABSCHNITT_HELFER.planung} einen Bauabschnitt planen: Bauen → Leitungen.`;
+
+/** Kurzer Sperrgrund für enge Leisten und Chips (DESIGN.md 12.15); die Stufe kommt aus dem Kern. Geschütztes Leerzeichen
+ *  vor der Zahl, damit sie in schmalen Knöpfen nicht allein in die nächste Zeile rutscht. */
+export const kurzGrund = (m: Merkmal): string => `ab Stufe\u00a0${abStufe(m)}`;
 
 /** A88: freigeschaltete Leitungen als Knöpfe (ohne `ohne`) plus höchstens ein deaktivierter Knopf „Dickere“ mit dem Grund –
  *  für Zeichenleiste und Leitungskarte. LEITUNGEN ist dünn → dick sortiert, die erste gesperrte ist also die nächste Freischaltung.
@@ -47,7 +51,8 @@ export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: Ty
   const ab = ohne ? LEITUNGEN.indexOf(ohne) + 1 : 0;
   const naechste = LEITUNGEN.slice(ab).find((t) => !sp.freigeschaltet(t));
   const grund = naechste ? (kurz ? kurzGrund(naechste) : sp.sperrgrund(naechste)) : null;
-  if (grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, unter: grund }));
+  // DESIGN.md 12.19: Hinweis beim Antippen nennt die volle Stufe, auch wenn der Knopf nur den kurzen Grund trägt
+  if (naechste && grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, schloss: true, unter: grund, hinweis: `Dickere Leitungen gibt es ab Heizzentrale Stufe ${abStufe(naechste)}. Baue die Heizzentrale aus.` }));
   return knoepfe;
 }
 
@@ -198,8 +203,8 @@ export class Kontext {
     }
     const ziehen = sp.hausanschlussGeplant(o.id)
       ? knopf('Hausanschluss geplant', () => undefined, '', { klein: true, aus: true, unter: 'kommt mit dem Bauabschnitt' })
-      : knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: offen ? 'zur nächsten Leitung' : OHNE_ABSCHNITT, aus: !offen });
-    const selbst = knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, aus: !offen, unter: offen ? undefined : OHNE_ABSCHNITT });
+      : knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, schloss: true, unter: offen ? 'zur nächsten Leitung' : OHNE_ABSCHNITT, aus: !offen, hinweis: OHNE_ABSCHNITT_HINWEIS });
+    const selbst = knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, schloss: true, aus: !offen, unter: offen ? undefined : OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS });
     reihen.push(h('div', { class: 'knopfreihe' }, ziehen, selbst));
     return reihen;
   }
@@ -286,7 +291,9 @@ export class Kontext {
       c.append(kasten_);
       // A88: kleinste freigeschaltete Leitung, die den Bedarf (beim Sägewerk die Abwärme) trägt – der Kern entscheidet
       const leitung = sp.passendeLeitung(Math.max(bedarfKw(o), D.abwaerme_kw ?? 0));
-      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los')) : '');
+      // A92: Leitungen entstehen nur im offenen Bauabschnitt – ohne ihn gesperrt wie „Leitung selbst legen“ am Haus
+      const offen = sp.abschnitt?.phase === 'offen';
+      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los', { aus: !offen, schloss: true, unter: offen ? undefined : OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS })) : '');
       c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { aus: !b.ok })));
       return;
     }
@@ -343,7 +350,7 @@ export class Kontext {
     else if (!o.geplant && n.tiefe.has(key) && sp.freigeschaltet('vorsehung')) c.append(h('p', { class: 'gedaempft' }, `Ohne Vorsehung muss für einen neuen Abzweig die laufende Leitung angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}). Am Leitungsende geht es ohne.`));
     // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
     const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
-    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, erklaerKnopf(knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) }), () => this.ui.toast(tStueckHinweis()))));
+    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, hinweis: tStueckHinweis(), unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
     const tausch = o.geplant ? [] : leitungsKnoepfe(sp, o.typ, (t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }));
     if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch));
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
@@ -359,7 +366,7 @@ export class Kontext {
       const rechts = q.bau ? h('span', {}, 'wird gebaut …') :
         q.stufe >= KONSTANTEN.hoechststufe ? h('span', { class: 'gedaempft' }, 'Höchste Stufe') :
           // Grauer Text an Knopfstelle sah aus wie ein Knopf ohne Rahmen (DESIGN.md 12.12): deshalb ein deaktivierter Knopf mit Grund
-          q.stufe >= sp.hzStufe ? knopf(`Stufe ${q.stufe + 1}`, () => undefined, '', { klein: true, aus: true, unter: 'Erst Heizzentrale ausbauen' }) :
+          q.stufe >= sp.hzStufe ? knopf(`Stufe ${q.stufe + 1}`, () => undefined, '', { klein: true, aus: true, unter: 'Erst Heizzentrale ausbauen', hinweis: `Stufe ${q.stufe + 1} gibt es erst, wenn die Heizzentrale ausgebaut ist.` }) :
             knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(D.kosten_eur![q.stufe]), aus: s.geld_eur < D.kosten_eur![q.stufe] });
       const verkauf = s.innen.length > 1 && !q.bau ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(q.typ, q.stufe))}` }) : null;
       k.append(zeile(h('span', {}, `${D.name} · Stufe ${q.stufe}`, h('br'), h('small', { class: 'gedaempft' }, `${leistung} kW`)), h('span', { class: 'rechts' }, rechts, verkauf)));

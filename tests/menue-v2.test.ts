@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { SYMBOLE } from '../src/ui/symbole';
+import { gesperrt as istGesperrt } from './hilfen/gesperrt';
 
 const lies = (p: string): string => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 /** Findet den knopf(…)-Aufruf, der mit dem Text beginnt, und liefert die Zeile ab dort (Variante steht in derselben Zeile). */
@@ -142,10 +143,10 @@ describe('A84 (Review W1) Bausteine verhalten sich richtig', () => {
       b.symbol('plus');
       expect(a.mime).toEqual(['image/svg+xml']);
       const aus = b.stepper('minus', 'Senken', () => {}, true) as unknown as InstanceType<typeof a.El>;
-      expect(aus.hasAttribute('disabled')).toBe(true);
+      expect(istGesperrt(aus)).toBe(true); // disabled oder nach DESIGN.md 12.19 aria-disabled="true"
       expect(aus.attrs['aria-label']).toBe('Senken');
       const an = b.stepper('plus', 'Erhöhen', () => {}, false) as unknown as InstanceType<typeof a.El>;
-      expect(an.hasAttribute('disabled')).toBe(false);
+      expect(istGesperrt(an)).toBe(false);
       const geld = b.knopf('Kaufen', () => {}, 'geld', { unter: '100 €' }) as unknown as InstanceType<typeof a.El>;
       const zeile = geld.kinder.at(-1) as InstanceType<typeof a.El>;
       expect(zeile.tag).toBe('small');

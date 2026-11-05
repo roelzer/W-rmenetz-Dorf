@@ -3,6 +3,7 @@ import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { istLeitung, KATALOG, KONSTANTEN, UPGRADES, type TypId } from '../src/core/katalog';
 import type { Objekt } from '../src/core/typen';
 import { kontextKarte } from './hilfen/kontext-attrappe';
+import { gesperrt } from './hilfen/gesperrt';
 
 // A88 – Testlücken aus dem Review A88 P2 (K1, K3, K4). Eigene Datei, weil tests/a88-freischalt-leiter.test.ts als bestehender
 // Test gesperrt ist; die Kartenhilfe kommt aus tests/hilfen/kontext-attrappe.ts (echtes Kernmodul, winzige DOM-Nachbildung ohne Browser).
@@ -26,7 +27,7 @@ type Knopf = { text: string; aus: boolean };
 /** Kontextkarte eines Objekts aufbauen (gemeinsame Hilfe tests/hilfen/kontext-attrappe.ts); liefert Text und Knöpfe. */
 async function karte(s: Spiel, o: Objekt): Promise<{ text: string; knoepfe: Knopf[] }> {
   const { a, c } = await kontextKarte(s, o, T0);
-  const knoepfe = a.alle(c).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: e.attrs.disabled !== undefined }));
+  const knoepfe = a.alle(c).filter((e) => e.tag === 'button').map((e) => ({ text: a.text(e), aus: gesperrt(e) }));
   return { text: a.text(c), knoepfe };
 }
 const mit = (k: Knopf[], anfang: string) => k.filter((x) => x.text.startsWith(anfang));
