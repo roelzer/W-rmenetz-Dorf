@@ -115,3 +115,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:19 | ■ 🟢 | entwickler | **Status: FERTIG – 🟢**  ([Bericht](docs/pruefberichte/20261105-141946-entwickler-a87b6789bfa005f5c.md)) |
 | 2026-11-05 14:20 | ▶ | entwickler | Designer-Treue Teil 2 bauen |
 | 2026-11-05 14:20 | ▶ | reviewer | Review NR12 P2 Startbildschirm |
+| 2026-11-05 14:22 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig, aber nur ein fehlender Test.** Der Code selbst arbeitet in allen drei Teilen richtig, das habe ich nachgemessen.  ([Bericht](docs/pruefberichte/20261105-142257-reviewer-a142140be0755eb25.md)) |
+| 2026-11-05 14:23 | ▶ | tester | Tester: A89 Test zweiter Anschluss |
