@@ -121,9 +121,13 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
   m.flaeche([[tp.bL[0], tp.bL[1]], [tp.bB[0], tp.bB[1]], [tp.bB[0], tp.bB[1] - hp * 0.22], [tp.bL[0], tp.bL[1] - hp * 0.22]], '#a8553c');
   m.flaeche([[tp.bB[0], tp.bB[1]], [tp.bR[0], tp.bR[1]], [tp.bR[0], tp.bR[1] - hp * 0.22], [tp.bB[0], tp.bB[1] - hp * 0.22]], '#86412e');
   m.flaeche([[tp.L[0], tp.L[1] + hp * 0.12], [tp.B[0], tp.B[1] + hp * 0.12], [tp.B[0], tp.B[1] + hp * 0.24], [tp.L[0], tp.L[1] + hp * 0.24]], '#3d9b4f');
-  m.flaeche([[cx + tw * 0.14, cy + th * 0.72], [cx + tw * 0.52, cy + th * 0.34], [cx + tw * 0.52, cy + th * 0.34 - hp * 0.55], [cx + tw * 0.14, cy + th * 0.72 - hp * 0.55]], m.verlauf(cy - hp * 0.3, cy + th * 0.7, '#7d8a96', '#4f5b66'));
-  X.strokeStyle = 'rgba(255,255,255,.25)'; X.lineWidth = 1;
-  for (let i = 1; i < 5; i++) { const yy = cy + th * 0.72 - (hp * 0.55 * i) / 5; X.beginPath(); X.moveTo(cx + tw * 0.14, yy); X.lineTo(cx + tw * 0.52, yy - th * 0.38); X.stroke(); }
+  { // Rolltor auf der rechten sichtbaren Wand (A75: entlang der Wand)
+    const auf = (f: number): [number, number] => [tp.bB[0] + (tp.bR[0] - tp.bB[0]) * f, tp.bB[1] + (tp.bR[1] - tp.bB[1]) * f];
+    const a = auf(0.16), b = auf(0.58);
+    m.flaeche([a, b, [b[0], b[1] - hp * 0.55], [a[0], a[1] - hp * 0.55]], m.verlauf(cy - hp * 0.3, cy + th * 0.7, '#7d8a96', '#4f5b66'));
+    X.strokeStyle = 'rgba(255,255,255,.25)'; X.lineWidth = 1;
+    for (let i = 1; i < 5; i++) { const d = (hp * 0.55 * i) / 5; X.beginPath(); X.moveTo(a[0], a[1] - d); X.lineTo(b[0], b[1] - d); X.stroke(); }
+  }
   for (const fr of [0.25, 0.5, 0.75]) m.fenster(tp.bL, tp.bB, fr, hp, -hp * 0.42, '#bfe0f5', false);
   for (let i = 0; i < nw; i++) {
     const x = cx + tw * 0.05 + i * tw * 0.18, y = cy - hp - th * 0.05 + i * th * 0.1;
@@ -147,12 +151,7 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   const hp = tw * (zwei ? 0.6 : t === 'rh' ? 0.3 : 0.24) * (1 + 0.06 * (lv - 1));
   const wand = t === 'baeck' ? '#f3d9a6' : t === 'rh' ? '#e8d2c6' : zwei ? '#e3e6e9' : '#f2e8d6';
   m.schatten(cx, cy, s); m.kontaktSchatten(cx, cy, s);
-  { // O1: Umriss um Wände und Dach
-    const L: [number, number] = [cx - (tw / 2) * s, cy], B: [number, number] = [cx, cy + (th / 2) * s], R: [number, number] = [cx + (tw / 2) * s, cy], T: [number, number] = [cx, cy - (th / 2) * s];
-    const rh = ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, u = (p: [number, number]): [number, number] => [p[0], p[1] - hp];
-    const P1: [number, number] = [(T[0] + L[0]) / 2, (T[1] + L[1]) / 2 - hp - rh], P2: [number, number] = [(R[0] + B[0]) / 2, (R[1] + B[1]) / 2 - hp - rh];
-    m.silhouette([L, B, R, u(L), u(B), u(R), u(T), P1, P2]);
-  }
+  m.quaderUmriss(cx, cy, s, hp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7); // O1: Umriss um Wände und Dach
   const tp = m.quader(cx, cy, s, hp, wand, false); tp.wandR = schatten(wand, -0.28);
   const licht = st.warm ? WARM_FENSTER : '#93b4d0', nw = zwei ? 3 : t === 'rh' ? 2 : 1;
   for (let i = 0; i < nw; i++) {
@@ -160,8 +159,10 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
     m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.32, licht, false, true); if (zwei) m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.72, licht, false, true);
     m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.32, licht, true, true); if (zwei) m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.72, licht, true, true);
   }
-  { const bx = (tp.bB[0] + tp.bR[0]) / 2 - tw * 0.05 * s, by = (tp.bB[1] + tp.bR[1]) / 2;
-    m.flaeche([[bx - tw * 0.04, by + tw * 0.02], [bx + tw * 0.04, by - tw * 0.02], [bx + tw * 0.04, by - tw * 0.02 - hp * 0.45], [bx - tw * 0.04, by + tw * 0.02 - hp * 0.45]], '#7a4e2c'); }
+  { // Tür auf der rechten sichtbaren Wand (A75: entlang der Wand, passt in jedem Drehwinkel)
+    const auf = (f: number): [number, number] => [tp.bB[0] + (tp.bR[0] - tp.bB[0]) * f, tp.bB[1] + (tp.bR[1] - tp.bB[1]) * f];
+    const a = auf(0.4 - 0.08 / s), b = auf(0.4 + 0.08 / s);
+    if (Math.abs(b[0] - a[0]) > tw * 0.02) m.flaeche([a, b, [b[0], b[1] - hp * 0.45], [a[0], a[1] - hp * 0.45]], '#7a4e2c'); }
   if (t === 'baeck') m.flaeche([[tp.bL[0], tp.bL[1] - hp * 0.55], [tp.bB[0], tp.bB[1] - hp * 0.55], [tp.bB[0] - tw * 0.04, tp.bB[1] - hp * 0.3], [tp.bL[0] - tw * 0.04, tp.bL[1] - hp * 0.3]], '#e2582b');
   const r = m.dach(tp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, dachfarbe(o.id));
   const chx = r.P1[0] + (r.P2[0] - r.P1[0]) * 0.3, chy = r.P1[1] + (r.P2[1] - r.P1[1]) * 0.3;

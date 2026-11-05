@@ -23,13 +23,15 @@ export function kwSchildZeigen(
   return !o.bau && !!bedarf_kw && !o.gekuendigt && (kat === 'haus' || (kat === 'gross' && o.zustand === 'vertrag')) && kachel_px >= 44 && kw_anzeigen !== false && relevant;
 }
 
-/** A55: Zwei-Finger-Drehung sammelt den Winkel; ab 0,6 rad dreht die Karte um einen 90°-Schritt. */
-export const DREH_SCHWELLE_RAD = 0.6;
-export function drehSchritt(summe_rad: number, dw_rad: number): { summe_rad: number; schritt: -1 | 0 | 1 } {
+/** A55/A75: Zwei-Finger-Drehung. Erst ab 0,15 rad (gut 8°) Fingerdrehung dreht die Karte mit – Zoomen dreht so nicht versehentlich;
+ *  danach folgt sie den Fingern stufenlos (Simon 2026-11-05: „flüssig in den Winkel, den ich will“). */
+export const DREH_SCHWELLE_RAD = 0.15;
+export function drehFrei(summe_rad: number, dw_rad: number, aktiv: boolean): { summe_rad: number; aktiv: boolean; dreh_rad: number } {
   let dw = dw_rad;
   if (dw > Math.PI) dw -= 2 * Math.PI;
   if (dw < -Math.PI) dw += 2 * Math.PI;
+  if (aktiv) return { summe_rad: 0, aktiv: true, dreh_rad: dw };
   const neu = summe_rad + dw;
-  if (Math.abs(neu) > DREH_SCHWELLE_RAD) return { summe_rad: 0, schritt: neu > 0 ? 1 : -1 };
-  return { summe_rad: neu, schritt: 0 };
+  if (Math.abs(neu) > DREH_SCHWELLE_RAD) return { summe_rad: 0, aktiv: true, dreh_rad: neu };
+  return { summe_rad: neu, aktiv: false, dreh_rad: 0 };
 }

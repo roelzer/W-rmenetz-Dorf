@@ -5,7 +5,7 @@ import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
 import { Effekte } from './render/effekte';
 import { Kamera } from './render/kamera';
-import { drehSchritt } from './render/anschluss';
+import { drehFrei } from './render/anschluss';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
 import { chip, knopf } from './ui/bausteine';
@@ -55,6 +55,7 @@ export class Steuerung implements Ui {
   private readonly nachbarn = nachbardoerfer();
   private pinch: { abstand: number; mx: number; my: number; winkel: number } | null = null;
   private drehSumme = 0;
+  private drehAktiv = false;
   private mitteDreh: { x: number } | null = null;
 
   jetzt_ms(): number { return this.uhr(); }
@@ -75,6 +76,21 @@ export class Steuerung implements Ui {
     this.eingabe();
     this.bewegungAnwenden();
     if (!spiel.stand.quelle_gewaehlt) { this.spiel.ersteQuelleWaehlen('kessel'); this.geaendert(); this.zentrieren(); }
+    if (spiel.stand.namen_gefragt === false) this.namenFragen();
+  }
+
+  /** A79 (Simon): Beim Start eines neuen Spiels nach dem eigenen Namen und dem Dorfnamen fragen. */
+  private namenFragen(): void {
+    const b = blattOeffnen({ titel: 'Willkommen!', art: 'popup', schliessbar: false });
+    const spieler = h('input', { class: 'feld', type: 'text', maxlength: 20, placeholder: 'z. B. Simon', 'aria-label': 'Dein Name', id: 'start-spieler', autocomplete: 'given-name' }) as HTMLInputElement;
+    const dorf = h('input', { class: 'feld', type: 'text', maxlength: 24, value: this.spiel.stand.name, 'aria-label': 'Name deines Dorfs', id: 'start-dorf' }) as HTMLInputElement;
+    const los = (): void => { this.spiel.namenSetzen(spieler.value, dorf.value); b.zu(); this.geaendert(); this.toast(`Viel Erfolg, ${this.spiel.spielerName}! ${this.spiel.stand.name} wartet auf sein Wärmenetz.`); };
+    for (const f of [spieler, dorf]) f.addEventListener('keydown', (e) => { if (e.key === 'Enter') los(); });
+    b.inhalt.append(
+      h('p', {}, 'Du baust das Wärmenetz für ein Dorf. Wie heißt du, und wie heißt dein Dorf?'),
+      h('label', { for: 'start-spieler', class: 'gedaempft' }, 'Dein Name (so sprechen dich Philipp, Laura und die Techniker an)'), spieler,
+      h('label', { for: 'start-dorf', class: 'gedaempft' }, 'Name deines Dorfs'), dorf,
+      h('div', { class: 'knopfreihe' }, knopf('Los geht’s', los, 'los')));
   }
 
   kwUmschalten(): boolean {
@@ -221,12 +237,12 @@ export class Steuerung implements Ui {
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
         if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelnBei(e.clientX, e.clientY); }
-      } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; }
+      } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; this.drehAktiv = false; }
     });
     l.addEventListener('pointermove', (e) => {
       if (this.mitteDreh) {
         const d = e.clientX - this.mitteDreh.x;
-        if (Math.abs(d) > 70) { this.kamera.drehen(d > 0 ? 1 : -1); this.mitteDreh.x = e.clientX; }
+        this.kamera.drehenUm(d * 0.008); this.mitteDreh.x = e.clientX; // A75: stufenlos
         return;
       }
       const alt = this.zeiger.get(e.pointerId);
@@ -236,9 +252,9 @@ export class Steuerung implements Ui {
         const neu = this.pinchMass();
         this.kamera.zoomUm(neu.abstand / (this.pinch.abstand || 1), neu.mx, neu.my);
         this.kamera.schiebe_x += neu.mx - this.pinch.mx; this.kamera.schiebe_y += neu.my - this.pinch.my; this.kamera.begrenzen();
-        const d = drehSchritt(this.drehSumme, neu.winkel - this.pinch.winkel);
-        this.drehSumme = d.summe_rad;
-        if (d.schritt) this.kamera.drehen(d.schritt);
+        const d = drehFrei(this.drehSumme, neu.winkel - this.pinch.winkel, this.drehAktiv);
+        this.drehSumme = d.summe_rad; this.drehAktiv = d.aktiv;
+        if (d.dreh_rad) this.kamera.drehenUm(d.dreh_rad, neu.mx, neu.my);
         this.pinch = neu; return;
       }
       if (!this.start) return;

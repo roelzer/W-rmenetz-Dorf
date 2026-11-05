@@ -57,10 +57,8 @@ export class Hud {
     this.runde = h('div', { class: 'runde' }, rund('besuch', 'karte', 'Dörfer', a.besuchen), rund('bauen', 'bauen', 'Bauen', a.bauen));
     this.kwKnopf = h('button', { type: 'button', class: 'zoomknopf kwknopf', 'aria-label': 'Verbrauch der Häuser anzeigen', 'aria-pressed': String(a.kwAn()), onclick: () => this.kwZeigen(a.kwUmschalten()) }, 'kW');
     this.kwZeigen(a.kwAn());
-    const zk = (t: string, f: number, label: string): HTMLButtonElement => h('button', { type: 'button', class: 'zoomknopf', 'aria-label': label, onclick: () => a.zoom(f) }, t);
-    this.zoom = h('div', { class: 'zoom' }, zk('+', 1.25, 'Vergrößern'), zk('−', 1 / 1.25, 'Verkleinern'),
-      h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach links drehen', onclick: () => a.drehen(-1) }, '⟲'), h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach rechts drehen', onclick: () => a.drehen(1) }, '⟳'),
-      this.kwKnopf);
+    // A77 (Simon): keine Knöpfe für Zoomen und Drehen – das geht mit zwei Fingern (am Rechner Mausrad, mittlere Maustaste, Q/E); nur der kW-Schalter bleibt.
+    this.zoom = h('div', { class: 'zoom' }, this.kwKnopf);
     this.wurzel.append(this.links, this.pillen, this.zoom, this.runde);
   }
 

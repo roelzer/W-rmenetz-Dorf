@@ -10,11 +10,24 @@ const ALLES = Math.PI * 2;
 export class Maler {
   tw = 50;
   th = 25;
+  /** A75: Drehwinkel der Karte als cos/sin – Rauten und Quader werden in jedem Winkel richtig gezeichnet */
+  dreh_cos = 1;
+  dreh_sin = 0;
   zeit_s = 0;
   /** „Weniger Bewegung“: Animationen stehen still, Überlast bleibt dauerhaft rot */
   reduziert = false;
   constructor(public X: CanvasRenderingContext2D) {}
 
+  /** Bildvektoren für einen Feldschritt in x- und y-Richtung (gedreht, isometrisch). */
+  achsen(): [Punkt, Punkt] {
+    const c = this.dreh_cos, si = this.dreh_sin, hw = this.tw / 2, hh = this.th / 2;
+    return [[(c - si) * hw, (c + si) * hh], [(-si - c) * hw, (-si + c) * hh]];
+  }
+  /** Die vier Bodenecken eines Quadrats (Kantenlänge s Felder) in Weltreihenfolge (−x−y, +x−y, +x+y, −x+y). */
+  ecken(cx: number, cy: number, s: number): Punkt[] {
+    const [ax, ay] = this.achsen(), h = s / 2;
+    return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [cx + h * (i * ax[0] + j * ay[0]), cy + h * (i * ax[1] + j * ay[1])] as Punkt);
+  }
   bahn(p: Punkt[]): void {
     const X = this.X;
     X.beginPath(); X.moveTo(p[0][0], p[0][1]);
@@ -32,7 +45,7 @@ export class Maler {
     return g;
   }
   raute(cx: number, cy: number, s: number): void {
-    this.bahn([[cx, cy - (this.th / 2) * s], [cx + (this.tw / 2) * s, cy], [cx, cy + (this.th / 2) * s], [cx - (this.tw / 2) * s, cy]]);
+    this.bahn(this.ecken(cx, cy, s));
   }
   schatten(cx: number, cy: number, s: number): void {
     const X = this.X;
@@ -58,13 +71,11 @@ export class Maler {
     X.beginPath(); X.moveTo(h[0][0], h[0][1]); for (const p of h.slice(1)) X.lineTo(p[0], p[1]); X.closePath(); X.stroke();
     X.restore();
   }
-  /** O1: Umriss eines Quaders (optional mit Satteldach der Höhe rh). */
+  /** O1: Umriss eines Quaders (optional mit Satteldach der Höhe rh; First entlang der Welt-x-Achse wie in `dach`). */
   quaderUmriss(cx: number, cy: number, s: number, hp: number, rh = 0): void {
-    const tw = this.tw, th = this.th;
-    const L: Punkt = [cx - (tw / 2) * s, cy], B: Punkt = [cx, cy + (th / 2) * s], R: Punkt = [cx + (tw / 2) * s, cy], T: Punkt = [cx, cy - (th / 2) * s];
-    const u = (p: Punkt): Punkt => [p[0], p[1] - hp];
-    const pkt: Punkt[] = [L, B, R, u(L), u(B), u(R), u(T)];
-    if (rh) pkt.push([(T[0] + L[0]) / 2, (T[1] + L[1]) / 2 - hp - rh], [(R[0] + B[0]) / 2, (R[1] + B[1]) / 2 - hp - rh]);
+    const g = this.ecken(cx, cy, s), u = (p: Punkt): Punkt => [p[0], p[1] - hp];
+    const pkt: Punkt[] = [...g, ...g.map(u)];
+    if (rh) pkt.push([(g[0][0] + g[3][0]) / 2, (g[0][1] + g[3][1]) / 2 - hp - rh], [(g[1][0] + g[2][0]) / 2, (g[1][1] + g[2][1]) / 2 - hp - rh]);
     this.silhouette(pkt);
   }
   kreis(x: number, y: number, r: number, fuell: string | CanvasGradient, rand = false): void {
@@ -93,32 +104,48 @@ export class Maler {
     X.closePath(); X.fill(); X.stroke();
   }
 
-  /** Quader (isometrisch). Gibt die Eckpunkte von Oberkante und Boden zurück. */
+  /** Quader (isometrisch, in jedem Drehwinkel). Gibt die Eckpunkte von Oberkante und Boden zurück:
+   *  B = vorderste Ecke, L/R = ihre linke/rechte Nachbarecke, T = hinterste; `welt` = Oberkante in Weltreihenfolge (für das Dach). */
   quader(cx: number, cy: number, s: number, hp: number, farbe: string, oben = true) {
-    const tw = this.tw, th = this.th;
-    const L: Punkt = [cx - (tw / 2) * s, cy], B: Punkt = [cx, cy + (th / 2) * s], R: Punkt = [cx + (tw / 2) * s, cy], T: Punkt = [cx, cy - (th / 2) * s];
-    const u = (p: Punkt): Punkt => [p[0], p[1] - hp];
-    this.flaeche([L, B, u(B), u(L)], schatten(farbe, 0));
-    this.flaeche([B, R, u(R), u(B)], schatten(farbe, -0.16));
-    if (oben) this.flaeche([u(T), u(R), u(B), u(L)], schatten(farbe, 0.14));
-    return { L: u(L), B: u(B), R: u(R), T: u(T), bL: L, bB: B, bR: R, wandR: undefined as string | undefined };
+    const g = this.ecken(cx, cy, s), u = (p: Punkt): Punkt => [p[0], p[1] - hp];
+    // sichtbare Wände: Außennormale zeigt im Bild nach unten (zum Betrachter); Helligkeit nach Blickrichtung (links hell, rechts dunkel)
+    for (let i = 0; i < 4; i++) {
+      const a = g[i], b = g[(i + 1) % 4], ex = b[0] - a[0], ey = b[1] - a[1], nx = ey, ny = -ex, nl = Math.hypot(nx, ny) || 1;
+      if (ny <= 0) continue;
+      this.flaeche([a, b, u(b), u(a)], schatten(farbe, -0.08 - 0.179 * (nx / nl)));
+    }
+    if (oben) this.flaeche(g.map(u), schatten(farbe, 0.14));
+    let vb = 0;
+    for (let i = 1; i < 4; i++) if (g[i][1] > g[vb][1] + 1e-6) vb = i;
+    const n1 = g[(vb + 3) % 4], n2 = g[(vb + 1) % 4], li = n1[0] <= n2[0] ? (vb + 3) % 4 : (vb + 1) % 4, re = li === (vb + 3) % 4 ? (vb + 1) % 4 : (vb + 3) % 4;
+    const L = g[li], B = g[vb], R = g[re], T = g[(vb + 2) % 4];
+    return { L: u(L), B: u(B), R: u(R), T: u(T), bL: L, bB: B, bR: R, welt: g.map(u), wandR: undefined as string | undefined };
   }
 
-  /** Satteldach auf einem Quader. */
+  /** Satteldach auf einem Quader; der First läuft entlang der Welt-x-Achse und dreht mit der Karte. */
   dach(t: ReturnType<Maler['quader']>, rh: number, farbe: string): { P1: Punkt; P2: Punkt } {
-    const X = this.X, tw = this.tw;
+    const X = this.X, tw = this.tw, [c0, c1, c2, c3] = t.welt;
     const mitte = (a: Punkt, b: Punkt): Punkt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    const P1 = mitte(t.T, t.L), P2 = mitte(t.R, t.B);
+    const P1 = mitte(c0, c3), P2 = mitte(c1, c2);
     P1[1] -= rh; P2[1] -= rh;
-    this.flaeche([t.T, t.R, P2, P1], schatten(farbe, -0.18));
-    this.flaeche([t.B, t.R, P2], t.wandR || schatten('#e8dcc4', -0.16));
-    this.flaeche([t.L, t.B, P2, P1], schatten(farbe, 0.06));
+    const giebel = t.wandR || schatten('#e8dcc4', -0.16);
+    // Flächen von hinten nach vorn (Tiefe = Bildhöhe der Traufkante)
+    const hinten = mitte(c0, c1)[1], vorn = mitte(c3, c2)[1];
+    const flaechen: Array<[number, Punkt[], string]> = [
+      [hinten, [c0, c1, P2, P1], schatten(farbe, hinten < vorn ? -0.18 : 0.06)],
+      [vorn, [c3, c2, P2, P1], schatten(farbe, vorn <= hinten ? -0.18 : 0.06)],
+      [mitte(c1, c2)[1], [c1, c2, P2], giebel],
+      [mitte(c0, c3)[1], [c0, c3, P1], giebel],
+    ];
+    flaechen.sort((a, b) => a[0] - b[0]);
+    for (const [, p, f] of flaechen) this.flaeche(p, f);
+    const [ka, kb] = vorn >= hinten ? [c3, c2] : [c0, c1];
     X.strokeStyle = 'rgba(0,0,0,.07)'; X.lineWidth = Math.max(0.75, tw * 0.008);
     for (let i = 1; i < 4; i++) {
       const f = i / 4;
       X.beginPath();
-      X.moveTo(t.L[0] + (P1[0] - t.L[0]) * f, t.L[1] + (P1[1] - t.L[1]) * f);
-      X.lineTo(t.B[0] + (P2[0] - t.B[0]) * f, t.B[1] + (P2[1] - t.B[1]) * f);
+      X.moveTo(ka[0] + (P1[0] - ka[0]) * f, ka[1] + (P1[1] - ka[1]) * f);
+      X.lineTo(kb[0] + (P2[0] - kb[0]) * f, kb[1] + (P2[1] - kb[1]) * f);
       X.stroke();
     }
     X.strokeStyle = 'rgba(255,255,255,.55)'; X.lineWidth = Math.max(1.2, tw * 0.025);
@@ -140,7 +167,10 @@ export class Maler {
     const X = this.X;
     const bx = p0[0] + (p1[0] - p0[0]) * f, by = p0[1] + (p1[1] - p0[1]) * f + yoff;
     // O3 (Designer): größere Fenster mit hellem Rahmen; warme Fenster leuchten mit einem Schein (Wärme ist das Leuchten im Spiel)
-    const w = this.tw * (gross ? 0.072 : 0.055), h = hp * (gross ? 0.4 : 0.32), sk = seite ? -0.5 : 0.5;
+    const dx = p1[0] - p0[0];
+    if (Math.abs(dx) < this.tw * 0.04) return; // Wand steht fast hochkant zum Betrachter – kein Platz für ein Fenster
+    void seite;
+    const w = this.tw * (gross ? 0.072 : 0.055) * Math.min(1, Math.abs(dx) / (this.tw * 0.3)), h = hp * (gross ? 0.4 : 0.32), sk = (p1[1] - p0[1]) / dx;
     const rahmen = (d: number): Punkt[] => [[bx - w - d, by - (w + d) * sk - h - d], [bx + w + d, by + (w + d) * sk - h - d], [bx + w + d, by + (w + d) * sk + d], [bx - w - d, by - (w + d) * sk + d]];
     if (gross && licht === WARM_FENSTER) this.flaeche(rahmen(this.tw * 0.035), 'rgba(255,200,80,.32)');
     if (gross) this.flaeche(rahmen(Math.max(1, this.tw * 0.012)), '#fbf6ec');

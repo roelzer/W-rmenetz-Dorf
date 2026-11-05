@@ -251,10 +251,10 @@ describe('Kunden und Gebäude', () => {
 });
 
 describe('A7 Fachregeln V1/V2 (Einspeisung und Speicher, vorgeschlagen)', () => {
-  it('V1: Solarwärme über eine 25er-Leitung (12 kW) liefert höchstens 12 kW', () => {
+  it('V1: Solarwärme über eine 25er-Leitung (15 kW, A72) liefert höchstens 15 kW', () => {
     const solar = neu('solar', 13, 10, { stufe: 5 }); // 100 kW Erzeugung, hängt hinter einer 25er-Leitung am Heizhaus
     const mit = berechneNetz(dorf(neu('d25', 12, 10), solar), [], 2);
-    expect(mit.verfuegbar_kw).toBeLessThanOrEqual(12);
+    expect(mit.verfuegbar_kw).toBeLessThanOrEqual(15);
     expect(mit.verfuegbar_kw).toBeGreaterThan(0);
   });
   it('V1: Direkt am Heizhaus (ohne Leitung) gibt es keine Begrenzung durch Leitungen', () => {
@@ -304,5 +304,22 @@ describe('A69 T-Stück mit Vorsehung', () => {
   it('A69: Ein T-Stück mit Vorsehung zählt als Abzweig – dort darf die Leitung dünner werden', () => {
     const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10, { vorsehung: true }), neu('d25', 14, 10), neu('efh', 15, 10)), [quelle('kessel')], 2);
     expect(n.reduzierung.size).toBe(0);
+  });
+});
+
+describe('A76 Aufteilung am T-Stück (Simon)', () => {
+  it('A76: Teilt sich eine 63er in zwei 63er, ist das ein Planungsfehler', () => {
+    const n = berechneNetz(dorf(neu('d63', 12, 10), neu('d63', 13, 10), neu('d63', 14, 10), neu('d63', 13, 11)), [quelle('kessel')], 2);
+    expect(n.aufteilung.has(10 * 24 + 13)).toBe(true);
+    expect(n.aufteilung.has(10 * 24 + 14)).toBe(true);
+    expect(n.aufteilung.has(11 * 24 + 13)).toBe(true);
+  });
+  it('A76: Läuft ein Abgang dünner weiter, ist die Aufteilung in Ordnung', () => {
+    const n = berechneNetz(dorf(neu('d63', 12, 10), neu('d63', 13, 10), neu('d63', 14, 10), neu('d50', 13, 11)), [quelle('kessel')], 2);
+    expect(n.aufteilung.size).toBe(0);
+  });
+  it('A76: Zwei eigene Abgänge an der Heizzentrale dürfen gleich dick sein', () => {
+    const n = berechneNetz(dorf(neu('d63', 12, 10), neu('d63', 13, 10), neu('d63', 10, 12), neu('d63', 10, 13)), [quelle('kessel')], 2);
+    expect(n.aufteilung.size).toBe(0);
   });
 });

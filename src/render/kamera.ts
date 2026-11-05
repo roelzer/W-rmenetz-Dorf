@@ -8,8 +8,10 @@ export class Kamera {
   hoehe = 0;
   pixelverhaeltnis = 1;
   zoom = 3;
-  /** Drehung der Ansicht in Vierteln (0–3): Die Karte lässt sich in 90°-Schritten drehen, damit nichts hinter Gebäuden verschwindet. */
-  drehung = 0;
+  /** A75: Drehung der Ansicht als beliebiger Winkel (stufenlos, Simon 2026-11-05) */
+  winkel_rad = 0;
+  /** Rest einer weichen Drehung (Knöpfe), wird pro Bild abgebaut */
+  private dreh_rest_rad = 0;
   basis = 40;
   schiebe_x = 0;
   schiebe_y = 0;
@@ -34,18 +36,21 @@ export class Kamera {
   private ursprung(): [number, number] {
     return [this.breite / 2 + this.schiebe_x, this.hoehe / 2 - ((N + 1) * this.th) / 2 + this.schiebe_y];
   }
-  /** Feld → gedrehte Kartenlage (Drehung um die Kartenmitte). */
+  /** Nächstes Viertel der Drehung (0–3) – nur für Angaben, die eine grobe Blickrichtung brauchen. */
+  get drehung(): number { return ((Math.round(this.winkel_rad / (Math.PI / 2)) % 4) + 4) % 4; }
+  /** Feld → gedrehte Kartenlage (Drehung um die Kartenmitte, beliebiger Winkel). */
   dreheFeld(x: number, y: number): [number, number] {
-    const e = N - 1;
-    switch (this.drehung & 3) { case 1: return [e - y, x]; case 2: return [e - x, e - y]; case 3: return [y, e - x]; default: return [x, y]; }
+    const c = (N - 1) / 2, co = Math.cos(this.winkel_rad), si = Math.sin(this.winkel_rad), dx = x - c, dy = y - c;
+    return [c + dx * co - dy * si, c + dx * si + dy * co];
   }
   private dreheZurueck(x: number, y: number): [number, number] {
-    const e = N - 1;
-    switch (this.drehung & 3) { case 1: return [y, e - x]; case 2: return [e - x, e - y]; case 3: return [e - y, x]; default: return [x, y]; }
+    const c = (N - 1) / 2, co = Math.cos(this.winkel_rad), si = Math.sin(this.winkel_rad), dx = x - c, dy = y - c;
+    return [c + dx * co + dy * si, c - dx * si + dy * co];
   }
   /** Richtungsvektor in die gedrehte Ansicht (für Kanten zwischen Nachbarfeldern). */
   dreheVektor(dx: number, dy: number): [number, number] {
-    switch (this.drehung & 3) { case 1: return [-dy, dx]; case 2: return [-dx, -dy]; case 3: return [dy, -dx]; default: return [dx, dy]; }
+    const co = Math.cos(this.winkel_rad), si = Math.sin(this.winkel_rad);
+    return [dx * co - dy * si, dx * si + dy * co];
   }
   /** Feldmitte (x,y; auch gebrochen) → Bildschirmpunkt. */
   mitte(x0: number, y0: number): [number, number] {
@@ -59,13 +64,21 @@ export class Kamera {
     const a = (mx - ox) / (this.tw / 2), b = (my - oy) / (this.th / 2) - 1;
     return this.dreheZurueck((a + b) / 2, (b - a) / 2);
   }
-  /** Um 90° drehen (+1 = im Uhrzeigersinn); die Bildmitte bleibt am selben Feld. */
-  drehen(richtung: 1 | -1): void {
-    const [fx, fy] = this.feldGenau(this.breite / 2, this.hoehe / 2);
-    this.drehung = (this.drehung + richtung + 4) & 3;
+  /** A75: Um einen beliebigen Winkel drehen (positiv = im Uhrzeigersinn); der Punkt (um_x|um_y) im Bild bleibt am selben Feld. */
+  drehenUm(rad: number, um_x = this.breite / 2, um_y = this.hoehe / 2): void {
+    const [fx, fy] = this.feldGenau(um_x, um_y);
+    this.winkel_rad = ((this.winkel_rad + rad) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
     const [sx, sy] = this.mitte(fx, fy);
-    this.schiebe_x += this.breite / 2 - sx; this.schiebe_y += this.hoehe / 2 - sy;
+    this.schiebe_x += um_x - sx; this.schiebe_y += um_y - sy;
     this.begrenzen();
+  }
+  /** Knöpfe/Tasten: weich um eine Achteldrehung (+1 = im Uhrzeigersinn) weiterdrehen. */
+  drehen(richtung: 1 | -1): void { this.dreh_rest_rad += richtung * Math.PI / 4; }
+  /** Pro Bild aufrufen: baut eine weiche Drehung ab (etwa 0,3 s). */
+  schritt(dt_s: number): void {
+    if (Math.abs(this.dreh_rest_rad) < 1e-4) { this.dreh_rest_rad = 0; return; }
+    const d = this.dreh_rest_rad * Math.min(1, dt_s * 12);
+    this.dreh_rest_rad -= d; this.drehenUm(d);
   }
   feld(mx: number, my: number): [number, number] {
     const [x, y] = this.feldGenau(mx, my);

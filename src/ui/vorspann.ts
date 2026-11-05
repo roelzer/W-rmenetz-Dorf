@@ -176,12 +176,31 @@ function schriftzugGross(): SVGSVGElement {
   return svg;
 }
 
+const BEWEGT = '.vs-wolke,.vs-dampf,.vs-fluss,.vs-rotor,.vs-freude,.vs-blatt';
+/** A78: Teilt das Ladebild in ein ruhendes Bild (wird nur einmal gemalt) und eine kleine Ebene mit allem, was sich bewegt.
+ *  Eine Animation in einem großen SVG lässt sonst in jedem Bild das ganze Dorf neu malen – das ruckelt auf dem Handy. */
+export function bewegteEbene(szene: SVGSVGElement): SVGSVGElement {
+  const ebene = szene.cloneNode(true) as SVGSVGElement;
+  for (const el of Array.from(szene.querySelectorAll(BEWEGT))) el.remove();
+  szene.querySelector('.vs-strahlen')?.classList.remove('vs-strahlen'); // Sonnenstrahlen ruhen (große Fläche)
+  const behalten = (el: Element): boolean => {
+    if (el.matches(BEWEGT) || el.tagName.toLowerCase() === 'defs') return true;
+    let irgendwas = false;
+    for (const k of Array.from(el.children)) { if (behalten(k)) irgendwas = true; else k.remove(); }
+    return irgendwas;
+  };
+  for (const k of Array.from(ebene.children)) if (!behalten(k)) k.remove();
+  ebene.classList.add('vs-bewegt');
+  return ebene;
+}
+
 /** A63/A64: Ladebildschirm mit gezeichnetem Dorf, Logo, Ladebalken und Tipp; Tippen überspringt ihn. */
 export function vorspannZeigen(weniger_bewegung: boolean, tippNr = Math.floor(Math.random() * TIPPS.length)): void {
   const szene = svgAus(ladebildSvg()); szene.classList.add('vs-szene'); szene.setAttribute('aria-hidden', 'true');
+  const bewegt = bewegteEbene(szene);
   const balken = h('div', { class: 'vs-balken' }, h('div', { class: 'vs-fuellung' }), h('span', { class: 'vs-prozent' }, 'Lädt …'));
   const v = h('div', { id: 'vorspann', class: weniger_bewegung ? 'still' : '', role: 'img', 'aria-label': 'Heatnet wird geladen' },
-    szene,
+    szene, bewegt,
     h('div', { class: 'vs-kopf' }, logoElement(96), h('div', { class: 'vs-titel' }, schriftzugGross(), h('span', { class: 'unterzeile' }, h('span', { class: 'vs-blattzeichen', 'aria-hidden': 'true' }, '🌿'), 'Mach dein Dorf Schritt für Schritt erneuerbar'))),
     h('div', { class: 'vs-fuss' }, balken, h('p', { class: 'vs-tipp' }, h('b', {}, 'Tipp: '), TIPPS[tippNr % TIPPS.length])));
   document.body.append(v);

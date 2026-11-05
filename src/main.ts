@@ -66,6 +66,7 @@ const t0 = letzt;
 function bild(jetzt: number): void {
   const dt = (jetzt - letzt) / 1000; letzt = jetzt;
   steuerung.tick(uhr());
+  kamera.schritt(dt);
   maler.zeit_s = maler.reduziert ? 0 : (jetzt - t0) / 1000;
   zeichneSzene(maler, kamera, steuerung.szene(), steuerung.effekte, dt);
   requestAnimationFrame(bild);

@@ -49,6 +49,8 @@ export interface Objekt {
   vollversorgung?: boolean;
   /** Das Haus hat ein Stockwerk aufgesetzt: höherer Bedarf */
   aufgestockt?: boolean;
+  /** A71: Pufferspeicher im Haus – Anschlussleistung mit 1.800 statt 1.500 Volllaststunden */
+  hauspuffer?: boolean;
   /** A50: Nachbarhaus, das gern ans Netz möchte (leuchtet gelb) */
   interessent?: boolean;
   /** A36: PV-Anlage auf dem Dach */
@@ -103,6 +105,8 @@ export interface Spielstand {
   karte?: number;
   /** Name des Spielers, mit dem die Helfer ihn ansprechen (A51) */
   spieler?: string;
+  /** A79: false = neues Spiel, Name und Dorfname wurden noch nicht abgefragt (fehlt bei alten Ständen = nicht fragen) */
+  namen_gefragt?: boolean;
   /** A50: Sekunden, in denen die Anschlussnehmer zufrieden waren (Mundpropaganda) */
   zufrieden_s?: number;
   antraege: Partial<Record<TypId, Foerderantrag>>;
@@ -128,6 +132,8 @@ export interface Netz {
   engpass: Set<number>;
   /** A67: Leitungsfelder, an denen die Leitung ohne Abzweig dünner wird (Planungsfehler) */
   reduzierung: Set<number>;
+  /** A76: Abzweig, an dem zwei oder mehr Abgänge so dick sind wie die Zuleitung (Zuleitung + diese Abgänge) */
+  aufteilung: Set<number>;
   /** Anschlusspunkt je Gebäude-ID (-1 = direkt am Heizhaus) */
   anschluss: Map<number, { feld: number; tiefe: number }>;
   warm: Set<number>;

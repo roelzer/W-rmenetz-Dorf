@@ -1,18 +1,23 @@
 import {
-  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
+  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, istLeitung, stationHolen,
   type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
 
+/** Spreizung eines Kunden in K: Grundwert plus Upgrades (A33), aber höchstens Vorlauf minus Mindest-Rücklauf 40 °C (A73). */
+export function spreizungHaus_k(o: Objekt, vorlauf_c: number = VORLAUF.start_c): number {
+  const ziel = SPREIZUNG_BASIS_K + UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0);
+  return Math.max(0, Math.min(ziel, vorlauf_c - MIN_RUECKLAUF_C));
+}
 /** A49: Mittlere Spreizung (Vorlauf minus Rücklauf) der Kunden in K, nach Bedarf gewichtet; mit `auswahl` nur diese Gebäude (z. B. die warmen). Niedrigere Rücklauftemperatur = größere Spreizung. */
-export function mittlereSpreizung_k(objekte: Objekt[], auswahl?: ReadonlySet<number>): number {
+export function mittlereSpreizung_k(objekte: Objekt[], auswahl?: ReadonlySet<number>, vorlauf_c: number = VORLAUF.start_c): number {
   let summe = 0, gew = 0;
   for (const o of objekte) {
     if (!istKunde(o) || (auswahl && !auswahl.has(o.id))) continue;
     const w = bedarfKw(o);
-    summe += (SPREIZUNG_BASIS_K + UPGRADES.slice(0, o.upgrade ?? 0).reduce((a, u) => a + u.senkung_k, 0)) * w; gew += w;
+    summe += spreizungHaus_k(o, vorlauf_c) * w; gew += w;
   }
-  return gew ? summe / gew : SPREIZUNG_BASIS_K;
+  return gew ? summe / gew : Math.min(SPREIZUNG_BASIS_K, vorlauf_c - MIN_RUECKLAUF_C);
 }
 
 const N = KONSTANTEN.feldanzahl;
@@ -152,7 +157,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     if (p >= 0) last_kw.set(p, (last_kw.get(p) as number) + (last_kw.get(k) as number));
   }
   // A49: Eine Leitung transportiert bei größerer Spreizung mehr Wärme (Q = m·c·ΔT): Kapazität × Spreizung / Basisspreizung
-  const spreizung_faktor = mittlereSpreizung_k(objekte) / SPREIZUNG_BASIS_K;
+  const spreizung_faktor = mittlereSpreizung_k(objekte, undefined, vorlauf_c) / SPREIZUNG_BASIS_K;
   const kapazitaet_ok = new Map<number, boolean>();
   for (const k of reihenfolge) {
     const p = eltern.get(k) as number;
@@ -180,6 +185,15 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     if ((kinderzahl.get(p) ?? 0) >= 2 || angebunden.has(p) || (leitungAn(p) as Objekt).vorsehung) continue; // A69: T-Stück mit Vorsehung ist ein Abzweig
     reduzierung.add(k); reduzierung.add(p);
   }
+  // A76 (Simon): Teilt sich eine Leitung an einem T-Stück, laufen nicht beide Abgänge so dick weiter wie die Zuleitung –
+  // dann braucht es eine dickere Zuleitung (z. B. 90er aus der Heizzentrale) oder zwei eigene Abgänge an der Heizzentrale.
+  const aufteilung = new Set<number>();
+  const gleichDick = new Map<number, number[]>();
+  for (const k of reihenfolge) {
+    const p = eltern.get(k) as number;
+    if (p >= 0 && LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) gleichDick.set(p, [...(gleichDick.get(p) ?? []), k]);
+  }
+  for (const [p, kinder] of gleichDick) if (kinder.length >= 2) { aufteilung.add(p); for (const k of kinder) aufteilung.add(k); }
 
   // Erzeugung. Fachregel V1: Von außen eingespeiste Wärme ist höchstens so groß wie die kleinste
   // Leitungskapazität auf dem Weg zur Heizzentrale. V2: Ein Speicher erzeugt keine Wärme (zählt nur, wenn eine Quelle läuft).
@@ -259,7 +273,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     if (warm.has(o.id)) einnahmen_eur_min += ((KATALOG[o.typ].einnahmen_eur_min as number[])[o.stufe - 1] || 0) * P.einnahmefaktor * nutzungsfaktor(o);
   }
   return {
-    tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, reduzierung, anschluss, warm, kalt,
+    tiefe, eltern, reihenfolge, last_kw, kapazitaet_ok, engpass, reduzierung, aufteilung, anschluss, warm, kalt,
     verfuegbar_kw, genutzt_kw, bedarf_kw, betriebskosten_eur_min, einnahmen_eur_min,
     spreizung_faktor, pv_faktor, strom_kw, einspeisung_kw, laeuft_mit_kw, belegung, nachId,
   };
@@ -270,8 +284,11 @@ export function nutzungsfaktor(o: Objekt): number {
   return (o.vollversorgung ? KONSTANTEN.vollversorgung_faktor : 1) * (o.aufgestockt ? KONSTANTEN.aufstockung_faktor : 1);
 }
 /** Tatsächlicher Wärmebedarf in kW. */
+/** A71: Anschlussleistung = Jahresverbrauch ÷ Volllaststunden (1.800 h mit Pufferspeicher im Haus, sonst 1.500 h), mal Nutzung (Kamin aus, aufgestockt). */
 export function bedarfKw(o: Objekt): number {
-  return (KATALOG[o.typ].bedarf_kw ?? 0) * nutzungsfaktor(o);
+  const D = KATALOG[o.typ];
+  const basis = D.verbrauch_kwh_a ? D.verbrauch_kwh_a / (o.hauspuffer ? VOLLLASTSTUNDEN.mit_puffer_h : VOLLLASTSTUNDEN.ohne_puffer_h) : (D.bedarf_kw ?? 0);
+  return basis * nutzungsfaktor(o);
 }
 
 /** Dorfwert für die Rangliste. */

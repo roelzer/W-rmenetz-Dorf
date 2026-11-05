@@ -41,9 +41,10 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
   // A29/A59: zwei Starthäuser sind von Anfang an angeschlossen. Die Hauptleitung (40er) liegt in der Straße neben dem Heizhaus,
   // die Hausanschlüsse (25er) führen von dort zu den Häusern; alle weiteren Häuser heizen noch mit Öl.
-  // A67: Die Hauptleitung endet am letzten Abzweig (9|13 schließt bei 10|13 seitlich an); erst dort wird es dünner.
-  for (let y = 10; y <= 13; y++) add('d40', 10, y);
-  add('d25', 10, 14); add('d25', 11, 14);
+  // A67/A74 (Simon): Die 40er läuft bis vor das letzte Haus, weil in diese Richtung absehbar weitergebaut wird. Dort sitzt ein T-Stück:
+  // geradeaus eine Vorsehung für den Weiterbau, seitlich die 25er zum Haus (12|14). 9|13 schließt bei 10|13 seitlich an.
+  for (let y = 10; y <= 14; y++) add('d40', 10, y, y === 14 ? { vorsehung: true } : {});
+  add('d25', 11, 14);
   // Die beiden Starthäuser haben eine Übergabestation; alle anderen müssen eine kaufen (A32, Simon 2026-11-05).
   const starthaeuser = new Set([13 * N + 9, 14 * N + 12]);
   ort.haeuser.forEach((h) => {
@@ -63,7 +64,7 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   const behalten: Objekt[] = [];
   for (const a of objekte) if (!behalten.some((b) => ueberlappt(a, b))) behalten.push(a);
   return {
-    version: 3, name: ort.name, ort: ort.id, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
+    version: 3, name: ort.name, ort: ort.id, namen_gefragt: false, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
     objekte: behalten, naechste_id: id, innen: [], preisstufe: START_PREISSTUFE, antraege: {},
     karte: 2, zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: false, deko_anzahl: 0,
   };
@@ -173,8 +174,8 @@ export class Spiel {
     this.sagt(wer, `Alles klar, ${this.spielerName}, ich kümmere mich drum: ${UPGRADES[n].name}.`);
     return ok();
   }
-  /** Spreizung des Netzes (Vorlauf minus Rücklauf): Grundwert plus die Rücklauf-Senkung der Upgrades, nach Bedarf gewichtet. Sie hängt nicht vom Regler ab – ein heißerer Vorlauf hebt auch den Rücklauf (A39). */
-  spreizung_k(): number { return mittlereSpreizung_k(this.stand.objekte, this.netz.warm); }
+  /** Spreizung des Netzes (Vorlauf minus Rücklauf): Grundwert plus Upgrades, nach Bedarf gewichtet; der Rücklauf fällt nie unter 40 °C (A73), bei niedrigem Vorlauf schrumpft sie also. */
+  spreizung_k(): number { return mittlereSpreizung_k(this.stand.objekte, this.netz.warm, this.vorlauf_c); }
   /** Bedingungen für die nächste Heizzentralen-Stufe (A39). */
   hzZiele(): { text: string; ist: number; soll: number; erreicht: boolean }[] {
     const z = HZ_ZIELE.find((x) => x.stufe === this.hzStufe + 1);
@@ -249,6 +250,13 @@ export class Spiel {
   private nein(text: string): Ergebnis { this.ereignisse.push({ art: 'hinweis', text }); return { ok: false, hinweis: text }; }
   private hinweis(text: string): void { this.ereignisse.push({ art: 'hinweis', text }); }
   /** Name des Spielers für die Ansprache der Helfer (A51). */
+  /** A79: Name und Dorfname beim Spielstart; leere Eingaben behalten den bisherigen Wert. */
+  namenSetzen(spieler: string, dorf: string): void {
+    const sp = spieler.trim().slice(0, 20), d = dorf.trim().slice(0, 24);
+    if (sp) this.stand.spieler = sp;
+    if (d) this.stand.name = d;
+    this.stand.namen_gefragt = true;
+  }
   get spielerName(): string { return this.stand.spieler?.trim() || 'Chef'; }
   private sagt(figur: string, text: string): void { this.ereignisse.push({ art: 'sprecher', figur, text }); }
   /** Lieferzeit des Materials in Spieltagen (1 Spieljahr = 365 Tage); mindestens 1. Wochen wären zu grob (Review: immer „1 Woche“). */
@@ -567,6 +575,17 @@ export class Spiel {
     }
     return [...felder];
   }
+  /** A71: Pufferspeicher im Haus einbauen – die Anschlussleistung sinkt (1.800 statt 1.500 Volllaststunden), der Jahresverbrauch bleibt. */
+  hauspufferEinbauen(id: number): Ergebnis {
+    const o = this.objekt(id);
+    if (!o || KATALOG[o.typ].kategorie !== 'haus' || o.hauspuffer || o.gekuendigt) return { ok: false };
+    const b = this.bezahlen({ eur: KONSTANTEN.hauspuffer_eur });
+    if (!b.ok) return b;
+    o.hauspuffer = true; o._pop = this.uhr();
+    this.neuBerechnen();
+    this.hinweis(`${KATALOG[o.typ].name}: Pufferspeicher eingebaut – Anschlussleistung jetzt ${Math.round(bedarfKw(o) * 10) / 10} kW`);
+    return ok();
+  }
   /** A69: Im offenen Bauabschnitt auf eine geplante Leitung ein T-Stück mit Vorsehung setzen oder wieder wegnehmen. */
   vorsehungUmschalten(id: number): Ergebnis {
     const o = this.objekt(id);
@@ -856,7 +875,7 @@ export class Spiel {
     }
     for (const o of s.objekte) if (o.upgrade_auftrag && o.upgrade_auftrag.ende_ms <= t) {
       const u = UPGRADES[o.upgrade ?? 0];
-      this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (Rücklauf −${u.senkung_k} K)`);
+      this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (Spreizung +${u.senkung_k} K)`);
       o.upgrade = (o.upgrade ?? 0) + 1; delete o.upgrade_auftrag; o._pop = t; geaendert = true;
       this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     }

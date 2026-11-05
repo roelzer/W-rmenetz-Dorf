@@ -37,7 +37,9 @@ Recherche (docs/recherche/stationen-hp-up.md, Sicherheit gelb): Die Bezeichnunge
 ## Nur Simon: Fotos der Mitarbeiter (2026-11-05)
 Die Fotos in public/figuren/ zeigen echte Personen und werden mit dem Spiel öffentlich bei Cloudflare ausgeliefert. Bitte vor der Veröffentlichung das Einverständnis aller fünf einholen (Recht am eigenen Bild, DSGVO). Zum Entfernen: Dateien löschen, dann erscheinen automatisch die gezeichneten Gesichter.
 
-## Fragen an Simon (2026-11-05, nach Prüfrunde A45–A66)
+## Fragen an Simon (2026-11-05, nach Prüfrunde A45–A66) – beantwortet 2026-11-05
+Q2: 10 m · Q3: 40 °C Mindest-Rücklauf (A73) · Q4: passt · Q5: ja, weiter so · F2: bestätigt (W8) · F3: später klären
+
 - **Q2 (blockiert: nein):** Wie viele Meter ist ein Feld lang? – Empfehlung: 10 m (dann wären Gestattung 150 €/m und Spülbohrung 800 €/m; beides eher hoch) – ohne Antwort: Preise bleiben als reine Spielwerte, Fachprüfer kann sie nicht gegen echte Preise prüfen.
 - **Q3 (blockiert: nein):** Welche Rücklauftemperatur darf ein Haus mindestens haben? – Hintergrund: Mit 55 °C Vorlauf und allen Upgrades rechnet das Spiel heute 17 °C Rücklauf, das geht real nicht. Empfehlung: Mindest-Rücklauf 30 °C, Spreizung höchstens Vorlauf minus 30 K – ohne Antwort: bleibt wie heute.
 - **Q4 (blockiert: nein):** Vorsehung 300 € und Anbohrung 2.500 € (Spielwerte; Recherche fand keine Baukosten, nur Kundenpreise wie Adelsdorf „Abzweig“ 3.000 € brutto) – passen die Größenordnungen aus deiner Praxis?
@@ -46,3 +48,8 @@ Die Fotos in public/figuren/ zeigen echte Personen und werden mit dem Spiel öff
 ## Fachliche Bestätigungen für Simon (2026-11-05)
 - **F2:** Eine Leitung wird von der Heizzentrale weg nur an einem Abzweig (T-Stück) kleiner, nie mitten auf der Strecke – Quelle: Simon, Fachprüfer: physikalisch haltbar (zwischen zwei Abzweigen gleiche Wassermenge) – Empfehlung: bestätigen (als Regel W8).
 - **F3:** Ein BHKW erzeugt Strom nur im Verhältnis zur tatsächlich erzeugten Wärme (0,8 kW Strom je kW Wärme, Spielwert) – Quelle: Fachprüfer (Kraft-Wärme-Kopplung) – Empfehlung: bestätigen.
+
+## Fragen an Simon (2026-11-05, zu A71–A76)
+- **Q6 (blockiert: nein):** Leitungsleistung ab der 40er: von deinen Werten (25er 15 kW, 32er 25 kW) nach Rohrquerschnitt fortgeschrieben: 40er 40, 50er 60, 63er 95, 75er 135, 90er 195, 110er 290 kW. Passt das, oder hast du eine eigene Tabelle?
+- **Q7 (blockiert: nein):** Der Puffer ist jetzt eine eigene Einbau-Option im Haus (1.800 €, Spielwert). Sollen stattdessen die Stationstypen HP/ÜP (mit Puffer) als Stationen kaufbar sein? Was bedeuten 800/1000 (Liter Puffer?)
+- **F3 (offen, Simon: später):** BHKW – Antwort an Simon: Ein Blockheizkraftwerk erzeugt Strom (Kraft-Wärme-Kopplung, Motor treibt Generator, Abwärme heizt). Strom braucht die Wärmepumpe. Wir klären später, ob die 0,8 kW Strom je kW Wärme passen.

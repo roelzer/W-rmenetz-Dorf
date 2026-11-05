@@ -13,7 +13,7 @@ function werte(t: TypId): string {
   if (D.strom_kw) teile.push(`${D.strom_kw[0]} kW Strom`);
   if (D.strom_je_waerme && D.leistung_kw) teile.push(`+ ${Math.round(D.leistung_kw[0] * D.strom_je_waerme)} kW Strom`);
   if (D.kapazitaet_kw) teile.push(`bis ${D.kapazitaet_kw} kW`);
-  if (D.bedarf_kw) teile.push(`braucht ${D.bedarf_kw} kW`);
+  if (D.bedarf_kw) teile.push(D.verbrauch_kwh_a ? `${D.verbrauch_kwh_a.toLocaleString('de-DE')} kWh im Jahr = ${Math.round(D.bedarf_kw * 10) / 10} kW` : `braucht ${D.bedarf_kw} kW`);
   if (D.einnahmen_eur_min && D.kategorie === 'haus') teile.push(`${D.einnahmen_eur_min[0]} €/min`);
   if (D.groesse && D.groesse > 1) teile.push(`${D.groesse}×${D.groesse} Felder`);
   return teile.join(' · ');
@@ -65,7 +65,7 @@ export class Katalog {
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
     } else if (a.phase === 'bestellen') {
       const kost = sp.abschnittKosten_eur();
-      k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungen sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
+      k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
         h('div', { class: 'knopfreihe' },
           knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'los', { unter: eur(kost), aus: sp.stand.geld_eur < kost }),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true }),

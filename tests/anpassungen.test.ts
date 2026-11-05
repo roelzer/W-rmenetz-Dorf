@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { Kamera } from '../src/render/kamera';
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
@@ -139,9 +140,9 @@ describe('A32 Übergabestationen', () => {
     const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 13)!;
     haus.station = 'st_15';
     for (const o of s.stand.objekte) if (o.id !== haus.id && o.station) { delete o.station; o.ohne_station = true; } // nur dieses Haus belastet die 40er-Hauptleitung
-    (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 20;
+    (KATALOG.efh as { verbrauch_kwh_a: number }).verbrauch_kwh_a = 30_000; // 20 kW bei 1.500 h (A71)
     try { s.neuBerechnen(); expect(s.netz.kalt.get(haus.id)).toBe('station'); }
-    finally { (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 10; }
+    finally { (KATALOG.efh as { verbrauch_kwh_a: number }).verbrauch_kwh_a = 15_000; }
   });
 });
 
@@ -520,20 +521,20 @@ describe('A46 alter Spielstand wird an Straßen und Fluss angepasst', () => {
   });
 });
 
-describe('A48 Karte drehen', () => {
-  it('A48: Die Ansicht lässt sich in 90°-Schritten drehen; Feld → Bild → Feld bleibt in jeder Drehung exakt, vier Drehungen ergeben die Ausgangsansicht', async () => {
+describe('A48/A75 Karte drehen', () => {
+  it('A48/A75: Feld → Bild → Feld bleibt in jedem Winkel exakt (auch zwischen den Vierteln); eine volle Umdrehung ergibt die Ausgangsansicht', async () => {
     const { Kamera } = await import('../src/render/kamera');
     const k = new Kamera(); k.groesseSetzen(844, 390, 1);
     const vorher = k.mitte(7, 3);
-    for (let d = 0; d < 4; d++) {
-      k.drehung = d;
+    for (const w of [0, 0.3, Math.PI / 4, 1, Math.PI / 2, 2.2, Math.PI, 4.4, 5.9]) {
+      k.winkel_rad = w;
       const [mx, my] = k.mitte(7, 3);
       const [fx, fy] = k.feldGenau(mx, my);
       expect(fx).toBeCloseTo(7); expect(fy).toBeCloseTo(3);
     }
-    k.drehung = 0;
-    for (let i = 0; i < 4; i++) k.drehen(1);
-    expect(k.drehung).toBe(0);
+    k.winkel_rad = 0;
+    for (let i = 0; i < 8; i++) k.drehenUm(Math.PI / 4);
+    expect(k.winkel_rad).toBeCloseTo(0);
     const nachher = k.mitte(7, 3);
     expect(nachher[0]).toBeCloseTo(vorher[0]); expect(nachher[1]).toBeCloseTo(vorher[1]);
   });
@@ -673,22 +674,28 @@ describe('A54 kW-Schilder schaltbar, weniger Zebrastreifen', () => {
   });
 });
 
-describe('A55 Drehen per Geste', () => {
-  it('A55: Zwei-Finger-Drehung dreht erst ab der Schwelle um genau einen Schritt, in beide Richtungen, auch über ±π hinweg', async () => {
-    const { drehSchritt, DREH_SCHWELLE_RAD } = await import('../src/render/anschluss');
-    let z = drehSchritt(0, 0.3); expect(z.schritt).toBe(0);
-    z = drehSchritt(z.summe_rad, 0.25); expect(z.schritt).toBe(0);
-    z = drehSchritt(z.summe_rad, 0.1); expect(z.schritt).toBe(1); expect(z.summe_rad).toBe(0);
-    expect(drehSchritt(0, -(DREH_SCHWELLE_RAD + 0.01)).schritt).toBe(-1);
+describe('A55/A75 Drehen per Geste', () => {
+  it('A55/A75: Zwei-Finger-Drehung startet erst ab der Schwelle, folgt danach den Fingern stufenlos, in beide Richtungen, auch über ±π hinweg', async () => {
+    const { drehFrei, DREH_SCHWELLE_RAD } = await import('../src/render/anschluss');
+    let z = drehFrei(0, 0.05, false); expect(z.aktiv).toBe(false); expect(z.dreh_rad).toBe(0);
+    z = drehFrei(z.summe_rad, 0.05, z.aktiv); expect(z.aktiv).toBe(false);
+    z = drehFrei(z.summe_rad, 0.1, z.aktiv); expect(z.aktiv).toBe(true); expect(z.dreh_rad).toBeCloseTo(0.2);
+    z = drehFrei(z.summe_rad, 0.013, z.aktiv); expect(z.dreh_rad).toBeCloseTo(0.013); // jetzt jede kleine Bewegung, kein 90°-Sprung
+    expect(drehFrei(0, -(DREH_SCHWELLE_RAD + 0.01), false).dreh_rad).toBeCloseTo(-(DREH_SCHWELLE_RAD + 0.01));
     // Sprung des Winkels von +π nach −π ist nur eine kleine Drehung
-    expect(drehSchritt(0, -2 * Math.PI + 0.1).schritt).toBe(0);
+    expect(drehFrei(0, -2 * Math.PI + 0.1, false).aktiv).toBe(false);
   });
-  it('A55: Kamera dreht in 90°-Schritten, vier Schritte ergeben wieder die Ausgangsansicht', () => {
+  it('A75: Die Karte dreht um einen beliebigen Winkel; der Drehpunkt bleibt im Bild am selben Feld; Knöpfe drehen weich', () => {
     const k = new Kamera(); k.groesseSetzen(844, 390, 1);
-    const [x0, y0] = k.mitte(10, 10);
-    for (let i = 0; i < 4; i++) k.drehen(1);
-    const [x1, y1] = k.mitte(10, 10);
-    expect(Math.abs(x1 - x0) + Math.abs(y1 - y0)).toBeLessThan(1);
+    const [fx, fy] = k.feldGenau(300, 200);
+    k.drehenUm(0.37, 300, 200);
+    expect(k.winkel_rad).toBeCloseTo(0.37);
+    const [gx, gy] = k.feldGenau(300, 200);
+    expect(gx).toBeCloseTo(fx); expect(gy).toBeCloseTo(fy);
+    const vorher = k.winkel_rad;
+    k.drehen(1); expect(k.winkel_rad).toBeCloseTo(vorher); // noch nichts – erst die Bilder drehen
+    for (let i = 0; i < 60; i++) k.schritt(1 / 60);
+    expect(k.winkel_rad).toBeCloseTo(vorher + Math.PI / 4, 2);
   });
 });
 
@@ -922,6 +929,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
   it('A69: Der automatische Hausanschluss rechnet die Anbohrung ein und weicht zu einer nahen Vorsehung aus', () => {
     const plane = (vorsehungBei?: [number, number]) => {
       const s = offen();
+      delete s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 14)!.vorsehung; // Start-Vorsehung (A74) weg, sonst dockt der Weg dort an
       if (vorsehungBei) s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === vorsehungBei[0] && o.y === vorsehungBei[1])!.vorsehung = true;
       const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 6 && o.y === 15)!;
       expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
@@ -1072,5 +1080,91 @@ describe('A70 Kartenoptik nach Designer-Prüfung', () => {
     const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
     expect(css).toContain('.blatt-offen .pillen{right:calc(min(46%,400px) + 12px)}');
     expect(css).toMatch(/\.zoom\{display:grid;grid-template-columns:repeat\(2,/);
+  });
+});
+
+describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
+  it('A71: Anschlussleistung = Jahresverbrauch ÷ 1.500 h, mit Pufferspeicher im Haus ÷ 1.800 h', async () => {
+    const { VOLLLASTSTUNDEN } = await import('../src/core/katalog');
+    expect(VOLLLASTSTUNDEN).toEqual({ ohne_puffer_h: 1500, mit_puffer_h: 1800 });
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.stand.geld_eur = 100_000;
+    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && !o.vollversorgung && !o.aufgestockt)!;
+    expect(bedarfKw(haus)).toBeCloseTo(KATALOG.efh.verbrauch_kwh_a! / 1500);
+    const geld = s.stand.geld_eur;
+    expect(s.hauspufferEinbauen(haus.id).ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(geld - KONSTANTEN.hauspuffer_eur);
+    expect(bedarfKw(haus)).toBeCloseTo(KATALOG.efh.verbrauch_kwh_a! / 1800);
+    expect(s.hauspufferEinbauen(haus.id).ok).toBe(false); // nur einmal
+    const buero = s.stand.objekte.find((o) => o.typ === 'buero')!;
+    expect(s.hauspufferEinbauen(buero.id).ok).toBe(false);
+  });
+  it('A71: Jeder Kunde hat einen Jahresverbrauch in kWh; der kW-Bedarf ergibt sich daraus', () => {
+    for (const t of ['efh', 'rh', 'baeck', 'mfh', 'bad', 'klinik'] as const) {
+      expect(KATALOG[t].verbrauch_kwh_a).toBeGreaterThan(0);
+      expect(KATALOG[t].bedarf_kw).toBeCloseTo(KATALOG[t].verbrauch_kwh_a! / 1500);
+    }
+  });
+  it('A72: 25er bis 15 kW, 32er bis 25 kW, danach nach Rohrquerschnitt', () => {
+    expect(LEITUNGEN.map((l) => KATALOG[l].kapazitaet_kw)).toEqual([15, 25, 40, 60, 95, 135, 195, 290]);
+    for (const l of LEITUNGEN) expect(KATALOG[l].beschreibung).toContain(`bis ${KATALOG[l].kapazitaet_kw} kW`);
+  });
+  it('A73: Der Rücklauf fällt nie unter 40 °C; Upgrades vergrößern die Spreizung', async () => {
+    const { spreizungHaus_k } = await import('../src/core/netz');
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const haus = { ...s.stand.objekte.find((o) => o.typ === 'efh')! };
+    for (const vorlauf of [55, 60, 70, 75, 85]) for (const upgrade of [0, 1, 2, 3]) {
+      haus.upgrade = upgrade;
+      expect(vorlauf - spreizungHaus_k(haus, vorlauf)).toBeGreaterThanOrEqual(40);
+    }
+    haus.upgrade = 0; expect(spreizungHaus_k(haus, 85)).toBe(20);
+    haus.upgrade = 1; expect(spreizungHaus_k(haus, 85)).toBe(25); // +5 K
+    haus.upgrade = 3; expect(spreizungHaus_k(haus, 75)).toBe(35); // gedeckelt: 75 − 40
+    const kontext = readFileSync(new URL('../src/ui/kontext.ts', import.meta.url), 'utf8');
+    expect(kontext).toContain('Spreizung +${u.senkung_k} K');
+    expect(kontext).not.toContain('−${u.senkung_k} K');
+  });
+  it('A74: Startnetz – 40er bis vor das letzte Haus, dort T-Stück mit Vorsehung geradeaus, 25er zum Haus', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const an = (x: number, y: number) => s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === x && o.y === y);
+    for (let y = 10; y <= 14; y++) expect(an(10, y)?.typ).toBe('d40');
+    expect(an(10, 14)?.vorsehung).toBe(true);
+    expect(an(11, 14)?.typ).toBe('d25');
+    expect(an(10, 15)).toBeUndefined();
+    expect(s.netz.reduzierung.size).toBe(0);
+    expect(s.netz.aufteilung.size).toBe(0);
+    for (const h of s.stand.objekte.filter((o) => o.station)) expect(s.netz.warm.has(h.id)).toBe(true);
+  });
+});
+
+describe('Simon 2026-11-05: Bedienung und Start', () => {
+  it('A77: Keine Knöpfe für Zoomen und Drehen mehr, der kW-Schalter bleibt', () => {
+    const hud = readFileSync(new URL('../src/ui/hud.ts', import.meta.url), 'utf8');
+    for (const weg of ['Vergrößern', 'Verkleinern', 'Karte nach links drehen', 'Karte nach rechts drehen']) expect(hud).not.toContain(weg);
+    expect(hud).toContain('kwknopf');
+  });
+  it('A78: Ladebild – Bewegtes auf eigener Ebene, Ladebalken über transform statt Breite', () => {
+    const vs = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
+    const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
+    expect(vs).toContain('bewegteEbene(szene)');
+    expect(css).toMatch(/\.vs-bewegt\{[^}]*will-change:transform/);
+    expect(css).toContain('@keyframes vs-laden{to{transform:scaleX(1)}}');
+    expect(css).not.toContain('@keyframes vs-laden{to{width:100%}}');
+  });
+  it('A79: Neues Spiel fragt nach Name und Dorfname; leere Eingaben behalten den Vorschlag; alte Stände werden nicht gefragt', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    expect(s.stand.namen_gefragt).toBe(false);
+    const vorschlag = s.stand.name;
+    s.namenSetzen('  Simon  ', '');
+    expect(s.stand.spieler).toBe('Simon');
+    expect(s.stand.name).toBe(vorschlag);
+    expect(s.stand.namen_gefragt).toBe(true);
+    s.namenSetzen('', 'Wärmhausen an der Schwarzach mit Zusatz');
+    expect(s.stand.spieler).toBe('Simon');
+    expect(s.stand.name.length).toBeLessThanOrEqual(24);
+    const alt = neuerSpielstand(0); delete alt.namen_gefragt;
+    const geladen = ladenMitBefund(serialisieren(alt), 0);
+    expect(geladen.stand.namen_gefragt).toBeUndefined(); // kein Fragefenster für alte Stände
+    const steuerung = readFileSync(new URL('../src/steuerung.ts', import.meta.url), 'utf8');
+    expect(steuerung).toContain('if (spiel.stand.namen_gefragt === false) this.namenFragen();');
   });
 });

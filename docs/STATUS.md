@@ -1,9 +1,9 @@
-<!-- Stand 2026-11-05: A67–A70 fertig und nachgeprüft (Reviewer-Nachprüfung W1/W2 behoben), 237 Tests grün, main aktualisiert -->
+<!-- Stand 2026-11-05 nachmittags: A71–A79 gebaut (kWh/Volllaststunden, Leitungen, Rücklauf 40 °C, Startnetz, freies Drehen, Aufteilung, Knöpfe weg, Ladebild, Namensfrage), 248 Tests grün -->
 # Status
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** warten auf Simons Antworten Q2–Q5, F2–F3 · **Zuletzt fertig:** A67 Reduzierung nur am Abzweig, A68 Fachprüfungs-Befunde, A69 T-Stück mit Vorsehung/Anbohrung, A70 Kartenoptik; Reviewer-Befunde 1–9 · **Als Nächstes:** Designer-Reste O2, O5, O6, O8, O9, V1/V2; kleine Reviewer-Punkte K4, K5 · **Fortschritt:** 237 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us (main = gleicher Stand)
+> **Jetzt:** A71–A79 fertig, Reviewer-Prüfung steht an · **Als Nächstes:** Reviewer + Fachprüfer über A71–A79, Antworten Q6/Q7 · **Fortschritt:** 248 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us
 
 ## Ampel
 🟢 läuft

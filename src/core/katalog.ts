@@ -51,7 +51,10 @@ export interface Definition {
   breite?: number;
   farbe?: string;
   /** Wärmebedarf (Auslegung) in kW */
+  /** A71: Wärmebedarf (Anschlussleistung) in kW – aus dem Jahresverbrauch berechnet (verbrauch_kwh_a ÷ Volllaststunden ohne Puffer). */
   bedarf_kw?: number;
+  /** A71: Jahreswärmeverbrauch in kWh (Spielwert). */
+  verbrauch_kwh_a?: number;
   /** Einnahmen je Stufe in €/min bei Preisstufe „fair“ */
   einnahmen_eur_min?: number[];
   /** Abwärme-Einspeisung in kW (Sägewerk) */
@@ -190,75 +193,75 @@ export const KATALOG: Record<TypId, Definition> = {
       'Wärme aus dem Erdreich, über das Jahr weitgehend gleichmäßig. In der Praxis hebt meist eine Wärmepumpe sie auf Netztemperatur – im Spiel vereinfacht ohne Strombedarf.',
   },
   d25: {
-    name: '25er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 12, durchmesser_mm: 25,
+    name: '25er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 15, durchmesser_mm: 25,
     kosten_eur: [10], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.06, farbe: '#d8392f',
-    beschreibung: 'Für ein einzelnes Haus. Durchmesser 25 mm (rot), überträgt im Spiel bis 12 kW.',
+    beschreibung: 'Für ein einzelnes Haus. Durchmesser 25 mm (rot), überträgt im Spiel bis 15 kW.',
   },
   d32: {
-    name: '32er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 20, durchmesser_mm: 32,
+    name: '32er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 25, durchmesser_mm: 32,
     kosten_eur: [14], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.07, farbe: '#4caf3e',
-    beschreibung: 'Für ein bis zwei Häuser. Durchmesser 32 mm (grün), überträgt im Spiel bis 20 kW.',
+    beschreibung: 'Für ein bis zwei Häuser. Durchmesser 32 mm (grün), überträgt im Spiel bis 25 kW.',
   },
   d40: {
-    name: '40er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 30, durchmesser_mm: 40,
+    name: '40er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 40, durchmesser_mm: 40,
     kosten_eur: [20], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.08, farbe: '#6ec6ff',
-    beschreibung: 'Für eine kurze Stichleitung. Durchmesser 40 mm (hellblau), überträgt im Spiel bis 30 kW.',
+    beschreibung: 'Für eine kurze Stichleitung. Durchmesser 40 mm (hellblau), überträgt im Spiel bis 40 kW.',
   },
   d50: {
-    name: '50er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 50, durchmesser_mm: 50,
+    name: '50er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 60, durchmesser_mm: 50,
     kosten_eur: [28], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.09, farbe: '#1f4fa8',
-    beschreibung: 'Für eine Straße mit mehreren Häusern. Durchmesser 50 mm (dunkelblau), überträgt im Spiel bis 50 kW.',
+    beschreibung: 'Für eine Straße mit mehreren Häusern. Durchmesser 50 mm (dunkelblau), überträgt im Spiel bis 60 kW.',
   },
   d63: {
-    name: '63er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 80, durchmesser_mm: 63,
+    name: '63er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 95, durchmesser_mm: 63,
     kosten_eur: [38], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.11, farbe: '#e86aa0',
-    beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt im Spiel bis 80 kW.',
+    beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt im Spiel bis 95 kW.',
   },
   d75: {
-    name: '75er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 110, durchmesser_mm: 75,
+    name: '75er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 135, durchmesser_mm: 75,
     kosten_eur: [50], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.125, farbe: '#f6c22c',
-    beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt im Spiel bis 110 kW.',
+    beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt im Spiel bis 135 kW.',
   },
   d90: {
-    name: '90er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 160, durchmesser_mm: 90,
+    name: '90er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 195, durchmesser_mm: 90,
     kosten_eur: [68], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.145, farbe: '#8a5a2b',
-    beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt im Spiel bis 160 kW.',
+    beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt im Spiel bis 195 kW.',
   },
   d110: {
-    name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 220, durchmesser_mm: 110,
+    name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 290, durchmesser_mm: 110,
     kosten_eur: [90], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.165, farbe: '#1f6b3a',
-    beschreibung: 'Dickste Leitung (110 mm, dunkelgrün), überträgt im Spiel bis 220 kW. Nur dort sinnvoll, wo viel Wärme fließt – für ein einzelnes Haus ist sie zu teuer.',
+    beschreibung: 'Dickste Leitung (110 mm, dunkelgrün), überträgt im Spiel bis 290 kW. Nur dort sinnvoll, wo viel Wärme fließt – für ein einzelnes Haus ist sie zu teuer.',
   },
   efh: {
-    name: 'Einfamilienhaus', groesse: 1, kategorie: 'haus', bedarf_kw: 10,
+    name: 'Einfamilienhaus', groesse: 1, kategorie: 'haus', verbrauch_kwh_a: 15000,
     einnahmen_eur_min: [20, 30, 42, 58, 80],
     kosten_eur: [120, 300, 700, 1600, 3500], bauzeit_s: [4, 15, 40, 100, 240],
     grenze: [5, 8, 12, 16, 20],
     beschreibung: 'Zahlt für seine Wärme, wenn es angeschlossen und warm ist.',
   },
   rh: {
-    name: 'Reihenhaus', groesse: 1, kategorie: 'haus', bedarf_kw: 16,
+    name: 'Reihenhaus', groesse: 1, kategorie: 'haus', verbrauch_kwh_a: 24000,
     einnahmen_eur_min: [34, 50, 70, 96, 130],
     kosten_eur: [300, 600, 1300, 2800, 6000], bauzeit_s: [8, 25, 60, 150, 300],
     grenze: [0, 3, 5, 7, 9],
     beschreibung: 'Drei Häuser Wand an Wand – spart Leitung und Fläche.',
   },
   baeck: {
-    name: 'Bäckerei', groesse: 1, kategorie: 'haus', bedarf_kw: 20,
+    name: 'Bäckerei', groesse: 1, kategorie: 'haus', verbrauch_kwh_a: 30000,
     einnahmen_eur_min: [45, 65, 90, 125, 170],
     kosten_eur: [400, 800, 1700, 3500, 7000], bauzeit_s: [10, 30, 80, 180, 360],
     grenze: [0, 1, 1, 1, 1],
     beschreibung: 'Braucht schon früh am Morgen viel Wärme.',
   },
   mfh: {
-    name: 'Mehrfamilienhaus', groesse: 2, kategorie: 'haus', bedarf_kw: 30,
+    name: 'Mehrfamilienhaus', groesse: 2, kategorie: 'haus', verbrauch_kwh_a: 45000,
     einnahmen_eur_min: [60, 90, 125, 170, 230],
     kosten_eur: [700, 1200, 2500, 5000, 10000], bauzeit_s: [15, 40, 100, 240, 480],
     grenze: [0, 1, 2, 3, 4],
     beschreibung: 'Viele Wohnungen, viel Wärmebedarf.',
   },
   bad: {
-    name: 'Hallenbad', groesse: 2, kategorie: 'gross', bedarf_kw: 45,
+    name: 'Hallenbad', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 67500,
     einnahmen_eur_min: [160], min_hz_stufe: 2, min_ruf_pct: 55,
     beschreibung: 'Großabnehmer. Braucht dauerhaft viel Wärme und zahlt entsprechend.',
   },
@@ -269,7 +272,7 @@ export const KATALOG: Record<TypId, Definition> = {
       'Hat Abwärme übrig. Angeschlossen liefert es dir günstige Wärme ins Netz – solange der Betrieb läuft.',
   },
   klinik: {
-    name: 'Klinik', groesse: 2, kategorie: 'gross', bedarf_kw: 70,
+    name: 'Klinik', groesse: 2, kategorie: 'gross', verbrauch_kwh_a: 105000,
     einnahmen_eur_min: [240], min_hz_stufe: 3, min_ruf_pct: 65,
     beschreibung: 'Großabnehmer mit strengem Vertrag: Wird sie kalt, sinkt dein Ruf stark.',
   },
@@ -382,9 +385,17 @@ export const KONSTANTEN = {
   vorsehung_eur: 300,
   /** A69: Abzweig nachträglich an eine laufende Leitung ohne Vorsehung (Absperren/Anbohren); Spielwert (Recherche fand keine Baukosten, siehe docs/recherche/vorsehung_anbohrung.md) */
   anbohrung_eur: 2500,
+  /** A71: Pufferspeicher im Haus einbauen; Spielwert */
+  hauspuffer_eur: 1800,
+  /** Q2 (Simon 2026-11-05): Ein Feld ist 10 m lang. */
+  feldlaenge_m: 10,
   starttaler: 100,
   hoechststufe: 5,
 } as const;
+
+/** A71 (Simon 2026-11-05): Anschlussleistung = Jahresverbrauch ÷ Volllaststunden. Mit Pufferspeicher im Haus 1.800 h, nur Übergabestation ohne Puffer 1.500 h. */
+export const VOLLLASTSTUNDEN = { ohne_puffer_h: 1500, mit_puffer_h: 1800 } as const;
+for (const D of Object.values(KATALOG)) if (D.verbrauch_kwh_a) D.bedarf_kw = D.verbrauch_kwh_a / VOLLLASTSTUNDEN.ohne_puffer_h;
 
 // Realistische Preisklasse: Technik kostet mehr als die Rohwerte oben (A29). Deko und Hindernisse bleiben günstig.
 for (const D of Object.values(KATALOG)) {
@@ -420,6 +431,8 @@ export const UPGRADES: ReadonlyArray<{ name: string; kosten_eur: number; senkung
 
 /** Spreizung (Vorlauf minus Rücklauf) eines Hauses ohne Upgrades in K (Spielwert); Upgrades senken den Rücklauf und erhöhen sie um ihre Kelvin-Zahl (A33/A39). */
 export const SPREIZUNG_BASIS_K = 20;
+/** A73 (Simon 2026-11-05): Ein gut eingestelltes Haus erreicht höchstens 40 °C Rücklauf – kälter geht er nicht. Spreizung ≤ Vorlauf − 40 K. */
+export const MIN_RUECKLAUF_C = 40;
 /** Helfer für die Bauabschnitte (A41): Philipp plant, Laura bestellt das Material. */
 export const ABSCHNITT_HELFER = { planung: 'Philipp', material: 'Laura' } as const;
 /** Die drei Helfer (A40): Sie senken auf Auftrag den Rücklauf eines Hauses. */
