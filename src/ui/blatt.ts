@@ -7,6 +7,8 @@ export interface BlattOptionen {
   /** 'blatt' = von unten (Handy: ≤ 50 % Höhe), 'hoch' = 80 %, 'popup' = mittig mit abgedunkeltem Grund */
   art?: 'blatt' | 'hoch' | 'popup';
   schliessbar?: boolean;
+  /** zusätzliche Klasse am Blatt (z. B. 'zeichenleiste', DESIGN.md 12.18) */
+  klasse?: string;
   beiZu?: () => void;
 }
 
@@ -23,6 +25,8 @@ let vorherFokus: Element | null = null;
 
 export const blattOffen = (): boolean => aktuell !== null;
 export const blattSchliessen = (): void => aktuell?.zu();
+/** Tatsächliche Breite des offenen Blatts in px (DESIGN.md 12.21 Punkt 4: aus dem Rechteck lesen, nicht nachrechnen); 0 ohne Blatt. */
+export const blattBreite_px = (): number => (aktuell ? aktuell.wurzel.getBoundingClientRect().width : 0);
 
 /** Öffnet genau ein Blatt (ein neues ersetzt das alte). Fokus bleibt gefangen, Esc schließt. */
 export function blattOeffnen(opt: BlattOptionen): Blatt {
@@ -37,7 +41,7 @@ export function blattOeffnen(opt: BlattOptionen): Blatt {
   const zuKnopf = h('button', { type: 'button', class: 'schliessen', 'aria-label': 'Schließen', onclick: () => b.zu() }, symbol('schliessen'));
   const kopf = h('div', { class: 'kopf' }, h('span', { class: 'umriss', style: 'display:contents' }, titel), stufe, opt.schliessbar === false ? null : zuKnopf);
   titel.classList.add('umriss');
-  const wurzel = h('section', { class: `blatt ${art === 'hoch' ? 'hoch' : art === 'popup' ? 'popup' : ''}`.trim(), role: 'dialog', 'aria-modal': art === 'popup' ? 'true' : null, 'aria-labelledby': 'blatt-titel', tabindex: -1 }, kopf, inhalt);
+  const wurzel = h('section', { class: `blatt ${art === 'hoch' ? 'hoch' : art === 'popup' ? 'popup' : ''} ${opt.klasse ?? ''}`.trim(), role: 'dialog', 'aria-modal': art === 'popup' ? 'true' : null, 'aria-labelledby': 'blatt-titel', tabindex: -1 }, kopf, inhalt);
   const abdunkeln = art === 'popup' ? h('div', { class: 'abdunkeln' }) : null;
   const tasten = (e: KeyboardEvent): void => {
     if (e.key === 'Escape' && opt.schliessbar !== false) { e.preventDefault(); b.zu(); return; }

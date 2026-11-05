@@ -3,7 +3,7 @@ import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzung
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
-import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile, type Sperre } from './bausteine';
+import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, zeile, type Sperre } from './bausteine';
 import { ANSCHLUSS_GEPLANT, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
@@ -55,7 +55,12 @@ export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: Ty
   const naechste = LEITUNGEN.slice(ab).find((t) => !sp.freigeschaltet(t));
   const grund = naechste ? (kurz ? kurzGrund(naechste) : sp.sperrgrund(naechste)) : null;
   // DESIGN.md 12.19: Hinweis beim Antippen nennt die volle Stufe, auch wenn der Knopf nur den kurzen Grund trägt
-  if (naechste && grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, schloss: true, unter: grund, hinweis: stufenHinweis(naechste, 'Dickere Leitungen') }));
+  if (naechste && grund && kurz) {
+    // Zeichenleiste (DESIGN.md 12.18): ein grauer Farbknopf, Schloss über „St. N“; der Vorleser hört den ganzen Satz
+    const k = knopf(h('span', { class: 'farb-sperre' }, symbol('schloss', 'sym schloss-klein'), `St.\u00a0${abStufe(naechste)}`), () => undefined, '', { klein: true, aus: true, hinweis: stufenHinweis(naechste, 'Dickere Leitungen') });
+    k.setAttribute('aria-label', `Dickere Leitungen ab Heizzentrale Stufe ${abStufe(naechste)}`);
+    knoepfe.push(k);
+  } else if (naechste && grund) knoepfe.push(knopf('Dickere', () => undefined, '', { klein: true, aus: true, schloss: true, unter: grund, hinweis: stufenHinweis(naechste, 'Dickere Leitungen') }));
   return knoepfe;
 }
 

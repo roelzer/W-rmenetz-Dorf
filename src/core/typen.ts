@@ -115,6 +115,8 @@ export interface Spielstand {
   spieler?: string;
   /** A79: false = neues Spiel, Name und Dorfname wurden noch nicht abgefragt (fehlt bei alten Ständen = nicht fragen) */
   namen_gefragt?: boolean;
+  /** DESIGN.md 12.18 „Erste Nutzung“: Die Zeichenleiste wurde in diesem Spielstand schon einmal geöffnet (fehlt = noch nie) */
+  zeichenhilfe_gesehen?: boolean;
   /** A50: Sekunden, in denen die Anschlussnehmer zufrieden waren (Mundpropaganda) */
   zufrieden_s?: number;
   /** A81: monatliche Grundgebühr je Anschluss in € */
