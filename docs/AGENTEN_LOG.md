@@ -195,3 +195,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:52 | ■ 🔴 | architekt | 🔴 **BLOCKIERT – Grund „Kontext voll“.** Fassung 3 von NR15/A91 ist **noch nicht geschrieben**. Im Projekt ist nichts verändert und nichts committet. ` ([Bericht](docs/pruefberichte/20261105-175237-architekt-af759d489bbe0f3c0.md)) |
 | 2026-11-05 17:53 | ▶ | architekt | NR15 Fassung 3 schreiben |
 | 2026-11-05 17:56 | ■ 🟢 | tester | 🟢 **Vorarbeit K1 ist fertig.** Neu sind 5 Tests, die gegen den heutigen Code absichtlich rot sind. Programmcode habe ich nicht geändert, nicht gepusht, nich ([Bericht](docs/pruefberichte/20261105-175616-tester-a4145f69451376c4e.md)) |
+| 2026-11-05 17:58 | ■ 🔴 | reviewer | 🔴 Ampel ROT: Nachbesserung nötig. Der Grundmechanismus ist sauber und im echten Browser getestet. Es fehlen aber Teile der Vorgabe DESIGN 12.19, und K1 fehl ([Bericht](docs/pruefberichte/20261105-175847-reviewer-a78360a0e41cf0b53.md)) |
+| 2026-11-05 17:59 | ▶ | entwickler | NR16-B1 Fix-Runde |
