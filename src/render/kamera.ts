@@ -10,7 +10,7 @@ export class Kamera {
   zoom = 3;
   /** A75: Drehung der Ansicht als beliebiger Winkel (stufenlos, Simon 2026-11-05) */
   winkel_rad = 0;
-  /** Rest einer weichen Drehung (Knöpfe), wird pro Bild abgebaut */
+  /** Rest einer weichen 45°-Drehung (drehen ±1), wird pro Bild abgebaut */
   private dreh_rest_rad = 0;
   basis = 40;
   schiebe_x = 0;
@@ -36,8 +36,6 @@ export class Kamera {
   private ursprung(): [number, number] {
     return [this.breite / 2 + this.schiebe_x, this.hoehe / 2 - ((N + 1) * this.th) / 2 + this.schiebe_y];
   }
-  /** Nächstes Viertel der Drehung (0–3) – nur für Angaben, die eine grobe Blickrichtung brauchen. */
-  get drehung(): number { return ((Math.round(this.winkel_rad / (Math.PI / 2)) % 4) + 4) % 4; }
   /** Feld → gedrehte Kartenlage (Drehung um die Kartenmitte, beliebiger Winkel). */
   dreheFeld(x: number, y: number): [number, number] {
     const c = (N - 1) / 2, co = Math.cos(this.winkel_rad), si = Math.sin(this.winkel_rad), dx = x - c, dy = y - c;
@@ -72,7 +70,7 @@ export class Kamera {
     this.schiebe_x += um_x - sx; this.schiebe_y += um_y - sy;
     this.begrenzen();
   }
-  /** Knöpfe/Tasten: weich um eine Achteldrehung (+1 = im Uhrzeigersinn) weiterdrehen. */
+  /** Tasten Q/E: weich um eine Achteldrehung (+1 = im Uhrzeigersinn) weiterdrehen. */
   drehen(richtung: 1 | -1): void { this.dreh_rest_rad += richtung * Math.PI / 4; }
   /** Pro Bild aufrufen: baut eine weiche Drehung ab (etwa 0,3 s). */
   schritt(dt_s: number): void {

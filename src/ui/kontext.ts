@@ -1,5 +1,5 @@
-import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
-import { bedarfKw, groesse, istAktiv, nutzungsfaktor } from '../core/netz';
+import { istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
+import { bedarfKw, groesse, istAktiv, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, zeile } from './bausteine';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -164,7 +164,10 @@ export class Kontext {
       k.append(h('p', {}, `${o.upgrade_auftrag.helfer} arbeitet an: ${u.name} · noch ${zeitText(Math.ceil(rest / 1000))}`));
     } else if (n < UPGRADES.length) {
       const u = UPGRADES[n], frei = sp.freierHelfer();
-      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · Spreizung +${u.senkung_k} K` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, aus: !!o.ohne_station || !frei })));
+      // Fachprüfung A73: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
+      const gewinn = Math.round(spreizungHaus_k({ ...o, upgrade: n + 1 }, sp.vorlauf_c) - spreizungHaus_k(o, sp.vorlauf_c));
+      if (gewinn < u.senkung_k) k.append(h('p', { class: 'gedaempft' }, gewinn > 0 ? `Bei ${sp.vorlauf_c} °C Vorlauf bringt das nur +${gewinn} K Spreizung: Der Rücklauf fällt nicht unter ${MIN_RUECKLAUF_C} °C. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.` : `Der Rücklauf liegt bei ${sp.vorlauf_c} °C Vorlauf schon bei ${MIN_RUECKLAUF_C} °C – mehr Spreizung geht nicht. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.`));
+      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, aus: !!o.ohne_station || !frei })));
     } else k.append(h('p', { class: 'gedaempft' }, 'Alle Upgrades erledigt.'));
     c.append(k);
   }
@@ -235,7 +238,9 @@ export class Kontext {
     const anHaus = !verzweigt && haeuser.length === 1;
     c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser, deshalb dick. Dünner werden darf sie nur an einem Abzweig (T-Stück).'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
-    if (Math.abs(n.spreizung_faktor - 1) > 0.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
+    // Fachprüfung A73: Unter 1 liegt der Faktor, wenn der Vorlauf so niedrig ist, dass bis 40 °C Rücklauf wenig Spreizung bleibt.
+    if (n.spreizung_faktor > 1.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
+    else if (n.spreizung_faktor < 0.99) c.append(h('p', { class: 'gedaempft' }, `Der Vorlauf ist so niedrig, dass bis zum Rücklauf (mindestens ${MIN_RUECKLAUF_C} °C) wenig Spreizung bleibt – die Leitung schafft ${Math.round((1 - n.spreizung_faktor) * 100)} % weniger als nominal.`));
     if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
     else if (n.aufteilung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier teilt sich die Leitung in zwei Abgänge, die beide so dick sind wie die Zuleitung. So plant das niemand: Nimm eine dickere Zuleitung (z. B. eine 90er aus der Heizzentrale), führe zwei eigene Abgänge aus der Heizzentrale oder lass mindestens einen Abgang dünner weiterlaufen.')));
     else if (n.reduzierung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier wird die Leitung mitten auf der Strecke dünner. Wie in echt wechselt der Durchmesser nur an einem Abzweig (T-Stück). Tausche den dünneren Abschnitt auf die Größe davor oder lass die Leitung erst am Abzweig dünner werden.')));

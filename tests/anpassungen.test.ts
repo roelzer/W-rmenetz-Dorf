@@ -1120,8 +1120,33 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     haus.upgrade = 1; expect(spreizungHaus_k(haus, 85)).toBe(25); // +5 K
     haus.upgrade = 3; expect(spreizungHaus_k(haus, 75)).toBe(35); // gedeckelt: 75 − 40
     const kontext = readFileSync(new URL('../src/ui/kontext.ts', import.meta.url), 'utf8');
-    expect(kontext).toContain('Spreizung +${u.senkung_k} K');
+    expect(kontext).toContain('Spreizung +${gewinn} K'); // Fachprüfung: tatsächlicher Gewinn statt Nennwert
+    expect(kontext).toContain('spreizungHaus_k({ ...o, upgrade: n + 1 }');
+    expect(kontext).toContain('% weniger als nominal'); // Fachprüfung: niedriger Vorlauf heißt weniger, nicht „-25 % mehr“
     expect(kontext).not.toContain('−${u.senkung_k} K');
+  });
+  it('A73: Der 40-°C-Rücklauf wirkt im Netz – Leitungskapazität und Netz-Spreizung folgen dem Vorlauf', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    // letztes Haus am 25er (15 kW): Reihenhaus mit Puffer = 24.000 kWh ÷ 1.800 h = 13,3 kW
+    const haus = s.stand.objekte.find((o) => o.x === 12 && o.y === 14)!;
+    haus.typ = 'rh'; haus.hauspuffer = true; s.neuBerechnen();
+    const d25 = s.stand.objekte.find((o) => o.typ === 'd25' && o.x === 11 && o.y === 14)!;
+    const schluessel = [...s.netz.last_kw.keys()].find((k) => Math.abs((s.netz.last_kw.get(k) ?? 0) - bedarfKw(haus)) < 0.01 && k % 24 === d25.x)!;
+    expect(schluessel).toBeDefined();
+    expect(s.netz.spreizung_faktor).toBe(1); expect(s.spreizung_k()).toBe(20);
+    expect(s.netz.kapazitaet_ok.get(schluessel)).toBe(true);
+    s.vorlaufSetzen(55); // Rücklauf mindestens 40 °C → nur 15 K Spreizung
+    expect(s.netz.spreizung_faktor).toBeCloseTo(0.75); expect(s.spreizung_k()).toBe(15);
+    expect(s.netz.kapazitaet_ok.get(schluessel)).toBe(false); // 13,3 kW > 15 kW × 0,75
+  });
+  it('A71: Pufferspeicher ohne genug Geld wird nicht eingebaut; Meldungen nennen gerundete kW', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const haus = s.stand.objekte.find((o) => o.typ === 'efh')!;
+    s.stand.geld_eur = KONSTANTEN.hauspuffer_eur - 1;
+    expect(s.hauspufferEinbauen(haus.id).ok).toBe(false); expect(haus.hauspuffer).toBeFalsy();
+    const quelle = readFileSync(new URL('../src/core/spiel.ts', import.meta.url), 'utf8');
+    expect(quelle).not.toContain('das Gebäude braucht ${bedarf} kW');
+    expect(quelle).toContain('braucht ${u.senkung_k} K weniger Vorlauf'); // Fertig-Meldung ohne Nennwert-Spreizung
   });
   it('A74: Startnetz – 40er bis vor das letzte Haus, dort T-Stück mit Vorsehung geradeaus, 25er zum Haus', () => {
     const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');

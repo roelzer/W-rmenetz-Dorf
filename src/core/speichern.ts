@@ -15,7 +15,7 @@ export function serialisieren(stand: Spielstand): string {
 
 export type LadeBefund = 'neu' | 'ok' | 'migriert' | 'defekt';
 
-/** Leitungs-Namen der Versionen 1 (p1/p2/p3) → Durchmesser (gleiche Leistung 12/50/220 kW). */
+/** Leitungs-Namen der Versionen 1 (p1/p2/p3) → Durchmesser (etwa gleiche Rohrgröße). */
 const ALTE_LEITUNGEN: Record<string, TypId> = { p1: 'd25', p2: 'd50', p3: 'd110' };
 
 const ALTE_PREISE_CT = [10, 12, 14, 16, 18];

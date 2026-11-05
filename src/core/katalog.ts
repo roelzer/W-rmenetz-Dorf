@@ -50,7 +50,6 @@ export interface Definition {
   /** Zeichenbreite und -farbe der Leitung */
   breite?: number;
   farbe?: string;
-  /** Wärmebedarf (Auslegung) in kW */
   /** A71: Wärmebedarf (Anschlussleistung) in kW – aus dem Jahresverbrauch berechnet (verbrauch_kwh_a ÷ Volllaststunden ohne Puffer). */
   bedarf_kw?: number;
   /** A71: Jahreswärmeverbrauch in kWh (Spielwert). */

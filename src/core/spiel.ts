@@ -249,7 +249,6 @@ export class Spiel {
   }
   private nein(text: string): Ergebnis { this.ereignisse.push({ art: 'hinweis', text }); return { ok: false, hinweis: text }; }
   private hinweis(text: string): void { this.ereignisse.push({ art: 'hinweis', text }); }
-  /** Name des Spielers für die Ansprache der Helfer (A51). */
   /** A79: Name und Dorfname beim Spielstart; leere Eingaben behalten den bisherigen Wert. */
   namenSetzen(spieler: string, dorf: string): void {
     const sp = spieler.trim().slice(0, 20), d = dorf.trim().slice(0, 24);
@@ -257,6 +256,7 @@ export class Spiel {
     if (d) this.stand.name = d;
     this.stand.namen_gefragt = true;
   }
+  /** Name des Spielers für die Ansprache der Helfer (A51). */
   get spielerName(): string { return this.stand.spieler?.trim() || 'Chef'; }
   private sagt(figur: string, text: string): void { this.ereignisse.push({ art: 'sprecher', figur, text }); }
   /** Lieferzeit des Materials in Spieltagen (1 Spieljahr = 365 Tage); mindestens 1. Wochen wären zu grob (Review: immer „1 Woche“). */
@@ -472,7 +472,7 @@ export class Spiel {
     const o = this.objekt(id), st = stationHolen(stationId);
     if (!o || !st || !(o.ohne_station || o.station) || o.bau) return { ok: false };
     const bedarf = bedarfKw(o);
-    if (st.leistung_kw < bedarf) return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${bedarf} kW`);
+    if (st.leistung_kw < bedarf) return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${Math.round(bedarf * 10) / 10} kW`);
     const alt = stationHolen(o.station);
     if (alt && alt.leistung_kw >= st.leistung_kw) return this.nein('Es steht schon eine gleich große oder größere Station');
     const b = this.bezahlen({ eur: this.stationspreis_eur(o, st) });
@@ -875,7 +875,7 @@ export class Spiel {
     }
     for (const o of s.objekte) if (o.upgrade_auftrag && o.upgrade_auftrag.ende_ms <= t) {
       const u = UPGRADES[o.upgrade ?? 0];
-      this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (Spreizung +${u.senkung_k} K)`);
+      this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (braucht ${u.senkung_k} K weniger Vorlauf)`);
       o.upgrade = (o.upgrade ?? 0) + 1; delete o.upgrade_auftrag; o._pop = t; geaendert = true;
       this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     }

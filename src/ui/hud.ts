@@ -9,8 +9,6 @@ export interface HudAktionen {
   besuchen(): void;
   einstellungen(): void;
   auftrag(): void;
-  zoom(faktor: number): void;
-  drehen(richtung: 1 | -1): void;
   kwUmschalten(): boolean;
   kwAn(): boolean;
 }

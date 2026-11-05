@@ -283,7 +283,6 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
 export function nutzungsfaktor(o: Objekt): number {
   return (o.vollversorgung ? KONSTANTEN.vollversorgung_faktor : 1) * (o.aufgestockt ? KONSTANTEN.aufstockung_faktor : 1);
 }
-/** Tatsächlicher Wärmebedarf in kW. */
 /** A71: Anschlussleistung = Jahresverbrauch ÷ Volllaststunden (1.800 h mit Pufferspeicher im Haus, sonst 1.500 h), mal Nutzung (Kamin aus, aufgestockt). */
 export function bedarfKw(o: Objekt): number {
   const D = KATALOG[o.typ];

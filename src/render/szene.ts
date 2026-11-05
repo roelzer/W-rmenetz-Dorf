@@ -361,7 +361,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
         // A65: Liegt das Haus direkt an einer dicken Leitung, führt ein eigener, dünner Hausanschluss
         // (kleinste passende Leitung) vom Haus bis an die Hauptleitung – kein Stummel in der Farbe der Hauptleitung.
         const [a, b] = k.mitte(nx, ny), mx = (cx + a) / 2, my = (cy + b) / 2;
-        const eigen = KATALOG[n.typ].kategorie !== 'waerme' ? eigenerHausanschluss(o.typ, KATALOG[n.typ].bedarf_kw ?? 0) : null;
+        const eigen = KATALOG[n.typ].kategorie !== 'waerme' ? eigenerHausanschluss(o.typ, bedarfKw(n)) : null;
         if (eigen) stummel.push({ von: [cx, cy], bis: [mx, my], typ: eigen, an });
         else seg.push([mx, my]);
       }

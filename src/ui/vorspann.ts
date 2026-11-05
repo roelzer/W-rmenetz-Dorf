@@ -107,7 +107,7 @@ function ladebildSvg(): string {
   // [x, Fußpunkt y, Größe, angeschlossen]; hinten = oberhalb der Straße, vorne = unterhalb
   const hinten: Array<[number, number, number, boolean]> = [[170, 566, 0.8, true], [320, 560, 0.78, false], [480, 566, 0.82, true], [1110, 566, 0.82, true], [1270, 560, 0.78, true], [1430, 566, 0.8, false]];
   const vorne: Array<[number, number, number, boolean]> = [[250, 720, 1.05, true], [520, 712, 1.0, false], [1070, 712, 1.0, true], [1350, 720, 1.05, true]];
-  const anschluss = (x: number, y: number, oben: boolean): string => rohr(oben ? `M${x} ${strasse_y}V${y - 4}` : `M${x} ${strasse_y}V${y - 40}`, 'd25');
+  const anschluss = (x: number, y: number, oben: boolean): string => rohr(oben ? `M${x} ${strasse_y}V${y - 4}` : `M${x} ${strasse_y}V${y - 40}`, 'd25', false); // A78: ohne Fließpunkte – sie lägen in der bewegten Ebene sonst über den vorderen Häusern
   const fernHaeuser: Array<[number, number, number]> = [[300, 470, 0.5], [420, 462, 0.45], [1180, 462, 0.45], [1300, 470, 0.5], [620, 480, 0.5], [980, 480, 0.5]];
   const strahlen = Array.from({ length: 12 }, (_, i) => `<path d="M0 0L${Math.cos((i * Math.PI) / 6 - 0.08) * 900} ${Math.sin((i * Math.PI) / 6 - 0.08) * 900}L${Math.cos((i * Math.PI) / 6 + 0.08) * 900} ${Math.sin((i * Math.PI) / 6 + 0.08) * 900}z"/>`).join('');
   const blumen = Array.from({ length: 70 }, () => {

@@ -68,8 +68,6 @@ export class Steuerung implements Ui {
       besuchen: () => this.doerferOeffnen(),
       einstellungen: () => einstellungenOeffnen(this, this.einstellungen, (e) => { this.einstellungen = e; this.bewegungAnwenden(); }),
       auftrag: () => { if (this.auftrag) toast(this.auftrag.text); },
-      zoom: (f) => this.kamera.zoomUm(f, this.kamera.breite / 2, this.kamera.hoehe / 2),
-      drehen: (r) => this.kamera.drehen(r),
       kwUmschalten: () => this.kwUmschalten(),
       kwAn: () => this.einstellungen.kw_anzeigen,
     });
