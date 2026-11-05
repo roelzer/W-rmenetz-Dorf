@@ -5,10 +5,16 @@ import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz'
 import type { Spiel } from '../core/spiel';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
+import { BodenEbene, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
-import { Blase, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
+import { blase } from './blase';
+import { zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
+import { bodenSchluessel } from './szene-schluessel';
+
+// Bestehende Aufrufer (Tests) holen `blase` weiter hier.
+export { blase };
 
 const N = KONSTANTEN.feldanzahl;
 
@@ -46,9 +52,8 @@ const GRAS: Gras[] = (() => {
 const KARTE = tokens.farbe.karte;
 const NACHBARN: Punkt[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
-export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt_s: number): void {
+function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m;
-  m.tw = k.tw; m.th = k.th; m.dreh_cos = Math.cos(k.winkel_rad); m.dreh_sin = Math.sin(k.winkel_rad);
   const tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
   X.setTransform(k.pixelverhaeltnis, 0, 0, k.pixelverhaeltnis, 0, 0);
   X.fillStyle = KARTE.hintergrund_rand; X.fillRect(0, 0, W, H);
@@ -80,8 +85,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       const [cx, cy] = k.mitte(fx, fy);
       if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
       m.raute(cx, cy, 1.03); X.fillStyle = (fx + fy) % 2 ? KARTE.wasser_a : KARTE.wasser_b; X.fill();
-      const glitzer = Math.sin(m.zeit_s * 1.4 + fx * 1.3 + fy * 0.7);
-      if (glitzer > 0.6) { X.strokeStyle = 'rgba(255,255,255,.35)'; X.lineWidth = 1; X.beginPath(); X.moveTo(cx - tw * 0.12, cy); X.lineTo(cx + tw * 0.12, cy); X.stroke(); }
     }
     X.strokeStyle = KARTE.ufer; X.lineWidth = Math.max(1.5, tw * 0.03);
     for (const [fx, fy] of s.fluss) {
@@ -208,6 +211,36 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       X.beginPath(); X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
     }
   }
+}
+
+/** Ruhezeit nach Zoomen/Drehen, bevor die Bodenebene neu aufgebaut wird (während der Geste wäre jedes Bild ein Neuaufbau). */
+const BODEN_RUHE_S = 0.15;
+/** Rand der Bodenebene je Seite als Anteil der Bildgröße: Verschieben bis hierhin kopiert nur (Fläche 1,5² = 2,25-fach). */
+const BODEN_RAND_ANTEIL = 0.25;
+
+let bodenEbene: BodenEbene | null = null;
+let letzte_tw = NaN;
+let letzter_winkel_rad = NaN;
+let ruhe_s = Infinity;
+
+/** Zwischenspeicher für den Boden einschalten (Fabrik) oder ausschalten (null, Standard: direkt zeichnen wie bisher). */
+export function bodenEbeneEinrichten(fabrik: FlaechenFabrik | null): void {
+  bodenEbene?.freigeben();
+  bodenEbene = fabrik ? new BodenEbene(fabrik) : null;
+  letzte_tw = NaN; letzter_winkel_rad = NaN; ruhe_s = Infinity; // das erste Bild baut sofort auf
+}
+
+/** Fläche freigeben; das nächste Bild malt den Boden neu (Rückkehr in die App, Leinwand-Verlust). */
+export function bodenEbeneVerwerfen(): void {
+  bodenEbene?.freigeben();
+}
+
+export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt_s: number): void {
+  const { X } = m;
+  m.tw = k.tw; m.th = k.th; m.dreh_cos = Math.cos(k.winkel_rad); m.dreh_sin = Math.sin(k.winkel_rad);
+  const tw = k.tw, th = k.th;
+  bodenAuflegen(m, k, s, dt_s);
+  zeichneGlitzern(m, k, s);
 
   zeichneLeitungen(m, k, s);
 
@@ -298,25 +331,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   if (durchsicht) zeichneLeitungen(m, k, s);
   oben.forEach((f) => f());
   effekte.zeichnen(m, dt_s, (x, y) => k.mitte(x, y));
-}
-
-/** Welche Sprechblase gehört über das Gebäude? Nur eine, wichtigste zuerst. */
-export function blase(sp: Spiel, netz: Netz, o: Objekt, warm: boolean, angeschlossen: boolean): Blase | null {
-  const D = KATALOG[o.typ], kat = D.kategorie;
-  if (kat === 'haus' || (kat === 'gross' && o.zustand === 'vertrag' && D.bedarf_kw)) {
-    if (o.gekuendigt) return 'weg';
-    if (!angeschlossen && !o.station) return null; // Häuser, die noch mit Öl heizen, bekommen keine Blase (weniger Unruhe)
-    if (!angeschlossen || o.ohne_station) return 'stecker';
-    if (netz.kalt.get(o.id) === 'leitung' || netz.kalt.get(o.id) === 'station') return 'leitung';
-    if (!warm) return 'kalt';
-    if ((o.zufriedenheit_pct ?? 80) < 40) return 'wuetend';
-    if (o.anfrage) return 'anfrage'; // A88/F2: Probleme haben Vorrang vor der Kundenanfrage
-    return null;
-  }
-  if (kat === 'gross' && o.zustand !== 'vertrag' && sp.vertragBedingungen(o).ok) return 'angebot';
-  if (kat === 'gross' && o.typ === 'gewerbe' && o.zustand === 'vertrag' && !angeschlossen) return 'stecker';
-  if (kat === 'waerme' && !angeschlossen) return 'stecker';
-  return null;
 }
 
 /** A37: Beim Planen sind Gebäude durchsichtig, damit nichts dahinter verschwindet. */
@@ -428,4 +442,49 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     X.globalAlpha = 0.9; X.beginPath(); X.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, Math.max(1.5, tw * 0.028), 0, Math.PI * 2); X.fill();
   }
   X.globalAlpha = 1;
+}
+
+/** Boden direkt oder über die Bodenebene. Umgehen bei Zoomen/Drehen bis BODEN_RUHE_S Ruhe, sonst wäre jedes Bild ein Neuaufbau. */
+function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number): void {
+  const ebene = bodenEbene, pv = k.pixelverhaeltnis;
+  if (!ebene) { zeichneBoden(m, k, s); return; }
+  if (k.tw !== letzte_tw || k.winkel_rad !== letzter_winkel_rad) {
+    if (!Number.isNaN(letzte_tw)) ruhe_s = 0;
+    letzte_tw = k.tw; letzter_winkel_rad = k.winkel_rad;
+  } else ruhe_s += dt_s;
+  const breite_px = k.breite * pv, hoehe_px = k.hoehe * pv;
+  if (ruhe_s < BODEN_RUHE_S || breite_px <= 0 || hoehe_px <= 0) { zeichneBoden(m, k, s); return; }
+  const schiebe_x_px = k.schiebe_x * pv, schiebe_y_px = k.schiebe_y * pv, schluessel = bodenSchluessel(s, k);
+  if (ebene.braucht(schluessel, schiebe_x_px, schiebe_y_px)) {
+    const rand_x_px = Math.round(BODEN_RAND_ANTEIL * breite_px), rand_y_px = Math.round(BODEN_RAND_ANTEIL * hoehe_px);
+    ebene.neu(schluessel, breite_px, hoehe_px, rand_x_px, rand_y_px, schiebe_x_px, schiebe_y_px, (FX) => {
+      // Kamera vorübergehend um den Rand vergrößern (Felder direkt, nicht groesseSetzen – das würde tw ändern):
+      // der Ursprung rückt genau um den Rand, und die Sichtbarkeitsprüfungen behalten den Randstreifen.
+      const X = m.X, breite = k.breite, hoehe = k.hoehe;
+      m.X = FX; k.breite += (2 * rand_x_px) / pv; k.hoehe += (2 * rand_y_px) / pv;
+      try { zeichneBoden(m, k, s); } finally { m.X = X; k.breite = breite; k.hoehe = hoehe; }
+    });
+    if (ebene.braucht(schluessel, schiebe_x_px, schiebe_y_px)) {
+      console.warn('Bodenebene: Zeichenfläche ohne 2D-Kontext – die Karte wird ab jetzt direkt gezeichnet');
+      bodenEbene = null;
+      zeichneBoden(m, k, s);
+      return;
+    }
+  }
+  ebene.auflegen(m.X, schiebe_x_px, schiebe_y_px);
+  m.X.setTransform(pv, 0, 0, pv, 0, 0);
+}
+
+/** Wasserglitzern ändert sich mit der Zeit und liegt deshalb nicht in der Bodenebene; Brückenfelder decken es zu. */
+function zeichneGlitzern(m: Maler, k: Kamera, s: Szene): void {
+  if (!s.fluss?.length) return;
+  const { X } = m, tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
+  const strasse = new Set((s.strassen ?? []).map(([sx, sy]) => sy * N + sx));
+  for (const [fx, fy] of s.fluss) {
+    if (strasse.has(fy * N + fx)) continue;
+    const [cx, cy] = k.mitte(fx, fy);
+    if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
+    const glitzer = Math.sin(m.zeit_s * 1.4 + fx * 1.3 + fy * 0.7);
+    if (glitzer > 0.6) { X.strokeStyle = 'rgba(255,255,255,.35)'; X.lineWidth = 1; X.beginPath(); X.moveTo(cx - tw * 0.12, cy); X.lineTo(cx + tw * 0.12, cy); X.stroke(); }
+  }
 }
