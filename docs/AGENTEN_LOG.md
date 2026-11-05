@@ -145,3 +145,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:52 | ▶ | entwickler | NR12 P4 fix round 1 |
 | 2026-11-05 14:52 | ■ 🟡 | reviewer | **Ampel: 🟡 freigegeben mit kleinen Punkten. Plan-Treue: ✅**  ([Bericht](docs/pruefberichte/20261105-145259-reviewer-a0319abe034bc1833.md)) |
 | 2026-11-05 14:53 | ▶ | entwickler | NR12 P5 Verdrahtung bauen |
+| 2026-11-05 14:58 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Beide Review-Befunde (W1 und K1) sind behoben, der Prüflauf ist gemacht und die Test-Schranke meldet „OK – alles grü ([Bericht](docs/pruefberichte/20261105-145801-entwickler-a2fc7a68f70737adc.md)) |
