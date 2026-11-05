@@ -1,0 +1,13 @@
+# Übergabe NR15/A91 Fassung 3 (Architekt, Kontext voll, 2026-11-05)
+
+Fassung 2 steht in NR15-netzmodell.md. Kritiker-Nachprüfung: docs/pruefberichte/20261105-175123-kritiker-ad725001787fa6abd.md. Entscheidungen: docs/ENTSCHEIDUNGEN.md (Einträge 2026-11-05 zu NR15 und Hausanschluss-Satz).
+
+## Variante (a) – durchdacht, nicht getestet
+- „Begünstigt“: Kunde, der nach alter Rechnung (Zuordnung aus Durchgang 1, Baum vor Umhängen) kalt wegen Leitung wäre, nach neuer nicht.
+- Wärmeverteilung (netz.ts:234-236): neuer erster Sortierschlüssel nicht begünstigt vor begünstigt, dann Tiefe, ID.
+- Garantie: Restprüfung überlastet kein Feld neu; P2 hängt keine Teilbäume mit Quellen/Abwärme um → verfuegbar_kw gleich; alt Versorgbare bekommen dieselbe Wärme. Bedingung (c) streng: kein alt warmes Haus neu kalt; (e) verfuegbar_kw neu ≥ alt.
+- Gleitkomma: Restkapazität und Endprüfung (netz.ts:164-165) mit demselben Ausdruck `last ≤ kap × spreizung_faktor`, gleiche Summierreihenfolge.
+
+## Nächste Schritte
+1. Prototyp (Scratchpad …/scratchpad/proto; netz.ts PROTO-Schalter: Durchgang 2 ab Z.153, Umhängen ab Z.174, Verteilung Z.298; tests/proto-*.test.ts, Generator tests/proto-gen.ts): alte Zuordnung/Elternfelder sichern, Begünstigt-Schlüssel, Quellen-Teilbäume ausschließen; `npx vitest run tests/proto-vergleich.test.ts --reporter=verbose` → erwartet 0 warm→kalt, 0 Netze mit weniger verfügbarer Wärme; Gesamtlauf (843 grün).
+2. Fassung 3 schreiben: P0 (tests/hilfen/netz-alt-a91.ts mit eigenen Kopien istKunde, bedarfKw, leitungsNachbarn, mittlereSpreizung_k, groesse, belegungskarte – kein Import aus src/core/netz.ts; zufallsNetz mit Verteilung aus proto-gen.ts + Quellen, Abwärme, Spreizungs-Upgrades; Vergleichstest mit Mindestzahlen je ≥100 Wechsel/Umhängen/Wärmemangel, ≥30 Großabnehmer-Wechsel; Gegenprobe Fassung-1-Regeln rot). Befund 4 Tests mit Last/Koordinaten + Gegenprobe (Ring hinter (6|4) trägt/trägt nicht; volle Leitung; Klinik 70 kW an überlasteter 50er + 75er + EFH). Befund 5 P3-Probe lehnt neue engpass/reduzierung/aufteilung ab, Test „Abkürzung neben HZ“. Befund 6 M1 ≤1 ms (oder 1,5× mehr Läufe), M3 ≤8 ms hart, M4 Hausanschluss Extremnetz ≤100 ms + Zahl Netzrechnungen. Befund 7 Abhängigkeit NR16-B2, Messskript nach tools/. P1-Satztest: alte Sätze steuerung.ts:150 und katalog.ts:79 weg, neuer Satz „ist es“ schlägt nicht an. Festlegungen: eigenes Leitungsende = Anschlussfeld aus Durchgang 1 mit ≤1 Leitungsnachbarn im angebundenen Teil; Hauptstrang am Haus = eigenes Ende; A89-Lastenheft beim Merge P3. Alle Rückfragen P1 1–15, P2 1–5, P3 1–3 beantworten. 560 €/Feld aus spiel.ts:648-654 herleiten.
