@@ -255,3 +255,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 20:49 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT. Der Bau ist fertig, aber die vorbereitenden Teständerungen des Testers fehlen.**  ([Bericht](docs/pruefberichte/20261105-204910-entwickler-a92b6f4c70c588a70.md)) |
 | 2026-11-05 20:49 | ▶ | designer | Fotoprüfung NR16-B2b |
 | 2026-11-05 20:49 | ▶ | tester | Tester-Vorarbeit NR15-P3 |
+| 2026-11-05 20:57 | ■ 🟡 | tester | 🟡 Gelb: Die Vorarbeit ist fertig. Alle Tests sind grün, auf dem heutigen Stand und mit P3 obendrauf. Die Test-Schranke meldet aber **NICHT OK**. Grund: Laut ([Bericht](docs/pruefberichte/20261105-205730-tester-a6b6332cc7fdb77d7.md)) |
+| 2026-11-05 20:58 | ▶ | reviewer | Review NR15-P3 |
