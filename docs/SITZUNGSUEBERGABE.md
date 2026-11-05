@@ -9,7 +9,10 @@
 - Artefakt-Vorschau: https://claude.ai/artifact/WiLVUTFj9uMdA9MXr9ZqQS (Version 37, Stand A84–A87).
 
 ## Nächster Schritt
-A88 P2 „Freischalt-Leiter“ fertig bauen: Zwischenstand auf Branch `worktree-agent-ae8ab8968e37aeaad` (Commit 7415bc4, Worktree .claude/worktrees/agent-ae8ab8968e37aeaad). Kern fertig, 2 Tests rot (T6: Wegsuche wählt ohne Anbohrkosten einen Weg neben der Heizzentrale → Starthäuser kalt), Oberfläche (Bauplan 7a) fehlt. Entscheidung Projektleiter: Wegsuche behält die Anbohr-/Gestattungs-Gewichte als Routing-Gewicht, nur der Preis für den Spieler ist vor Freischaltung 0; Hilfe `laeuftDurch` wieder raus, falls nutzlos. Danach Review, Designer-Fotos, main.
+A88 P2 „Freischalt-Leiter“ fertig bauen. Zwischenstand (unfertig, Typprüfung rot) liegt als Patch in `docs/bauplaene/A88-P2-zwischenstand.patch` (gegen 8a4b746, passt auf den aktuellen Branch: `git apply`). Enthält: Kern fertig (`src/core/freischaltung.ts`, Sperren in spiel.ts, Gestattung/Anbohrung vor Freischaltung kostenlos, ungültige `anfrage` wird gelöscht), Tests `tests/a88-freischalt-leiter.test.ts` (2 rot: T6) und angefangen `tests/a88-wegsuche.test.ts`, Anfang ui/katalog.ts.
+- Entscheidung Projektleiter zu T6: Wegsuche behält die Anbohr-/Gestattungs-Gewichte von vor A88 als Routing-Gewicht; nur der Preis für den Spieler ist vor Freischaltung 0. Hilfe `laeuftDurch` raus, falls nutzlos. netz.ts nicht ändern.
+- Danach Oberfläche nach Bauplan 7a (katalog.ts, steuerung.ts Zeichenleiste, kontext.ts inkl. Großabnehmer/Außenquelle über `passendeLeitung`), `chip('fragt an','gold')`, Test Blase „wuetend“ vor Anfrage. tests/menue-v2.test.ts prüft Quelltext-Stellen – nicht ändern.
+- Ablauf: frischer Entwickler im Worktree mit Patch → Schranke → Review → Designer-Fotos → main. Patch-Datei danach löschen.
 
 ## Danach (Reihenfolge)
 1. NR12 weniger Rechenlast / flüssiger (Simon)
