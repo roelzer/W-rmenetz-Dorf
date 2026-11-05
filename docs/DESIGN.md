@@ -301,3 +301,9 @@ Fotos: HUD oben · Hauskarte (oben und ganz unten gescrollt) · Heizzentralen-Ka
 - Sprechblase und Banner ziehen im nächsten Abschnitt auf den Tafel-Look nach: Creme `tafel`, 2 px `kontur`, Sockel `0 3px 0 kontur`, Radius 14 (Ecke zum Sprecher 4), Name in Lilita 15 `kontur`, Text Manrope 600 14 `text`.
 - Update-Hinweis darf nie über einer offenen Tafel liegen: bei Seitenfläche links daneben, bei Popup ausgeblendet bis zum Schließen.
 - Popups mittig (Abschnitt 5), nicht rechtsbündig.
+
+### 12.15 Entscheidungen aus der Treueprüfung A88 P2 (2026-11-05)
+- In Listen mit vielen gesperrten Zeilen (z. B. Büro/Förderquellen) Chip statt Knopf: rechts in der Zeile ein neutraler Chip „Schloss · ab Stufe X“ (26 px, nicht tippbar); nur freie Einträge behalten den Knopf. Sortierung: frei zuerst, dann nach Stufe. Ergänzt 12.5 (dort weiter: einzelne gesperrte Aktion = grauer Knopf mit Grund in Zeile 2).
+- In engen Leisten (Zeichenleiste) kurzer Grund „ab Stufe X“.
+- Gesperrte Hinweiszeilen einheitlich gedämpft mit Schloss 14 px davor, 8 px Abstand nach oben.
+- Grund auf Katalogkarten in `menue.farbe.text`.
