@@ -461,6 +461,10 @@ function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number): void {
       // Kamera vorübergehend um den Rand vergrößern (Felder direkt, nicht groesseSetzen – das würde tw ändern):
       // der Ursprung rückt genau um den Rand, und die Sichtbarkeitsprüfungen behalten den Randstreifen.
       const X = m.X, breite = k.breite, hoehe = k.hoehe;
+      // Erst die ganze Fläche in Gerätepixeln füllen: bei gebrochener CSS-Größe deckt die Hintergrundfläche von zeichneBoden
+      // den aufgerundeten letzten Pixelstreifen nur teilweise, er bliebe sonst halb durchsichtig.
+      FX.setTransform(1, 0, 0, 1, 0, 0); FX.fillStyle = KARTE.hintergrund_rand;
+      FX.fillRect(0, 0, Math.ceil(breite_px) + 2 * rand_x_px, Math.ceil(hoehe_px) + 2 * rand_y_px);
       m.X = FX; k.breite += (2 * rand_x_px) / pv; k.hoehe += (2 * rand_y_px) / pv;
       try { zeichneBoden(m, k, s); } finally { m.X = X; k.breite = breite; k.hoehe = hoehe; }
     });

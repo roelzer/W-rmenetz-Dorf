@@ -486,3 +486,52 @@ describe('NR12 P0 Nachtrag aus dem P0-Review (K1/K2)', () => {
     expect(szenenSchluessel(s)).toBe(mit80);
   });
 });
+
+describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
+  const zaunStart = (b: string[]): [number, number] => {
+    const i = b.indexOf('strokeStyle=#c9a76a');
+    const m = b.slice(i).find((x) => x.startsWith('moveTo('))!;
+    const [x, y] = m.slice(7, -1).split(',').map(Number);
+    return [x, y];
+  };
+  it('NR12 P3a: zwischengespeicherter Boden liegt genau an der Stelle des direkt gezeichneten (Zaun-Startpunkt, Auflegen bei −Rand)', () => {
+    const { sp } = mitUhr();
+    const k = kamera(), s = spielSzene(sp, T0);
+    const direkt = zaunStart(bild(k, s).befehle);
+    const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
+    const a = bild(k, s);
+    const [x, y] = zaunStart(f.flaechen[0].a.befehle);
+    // Rand in CSS-px: 422 / 2 = 211 und 195 / 2 = 97,5
+    expect(x - RAND_X / 2).toBeCloseTo(direkt[0], 6);
+    expect(y - RAND_Y / 2).toBeCloseTo(direkt[1], 6);
+    expect(drawImage(a.befehle)).toEqual([`drawImage(flaeche1,${-RAND_X},${-RAND_Y})`]);
+  });
+  it('NR12 P3a: abgebrochenes Malen lässt die Ebene ungültig', () => {
+    const f = testFabrik();
+    const e = new BodenEbene(f.fabrik);
+    e.neu('a', 100, 50, 25, 13, 0, 0, () => undefined);
+    expect(() => e.neu('b', 100, 50, 25, 13, 0, 0, () => { throw new Error('Malfehler'); })).toThrow('Malfehler');
+    expect(e.braucht('a', 0, 0)).toBe(true);
+    expect(e.braucht('b', 0, 0)).toBe(true);
+  });
+  it('NR12 P3a: erneutes Einrichten gibt die alte Fläche frei', () => {
+    const { sp } = mitUhr();
+    const f1 = testFabrik(); bodenEbeneEinrichten(f1.fabrik);
+    bild(kamera(), spielSzene(sp, T0));
+    const f2 = testFabrik(); bodenEbeneEinrichten(f2.fabrik);
+    expect([f1.flaechen[0].width, f1.flaechen[0].height]).toEqual([0, 0]);
+    bild(kamera(), spielSzene(sp, T0));
+    bodenEbeneEinrichten(null);
+    expect([f2.flaechen[0].width, f2.flaechen[0].height]).toEqual([0, 0]);
+  });
+  it('NR12 P3a: Hintergrund deckt die ganze Fläche, auch den aufgerundeten letzten Pixelstreifen', () => {
+    const { sp } = mitUhr();
+    const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
+    const k = new Kamera(); k.groesseSetzen(844.3, 390.2, 2); k.zentrieren(11, 10, 2);
+    bild(k, spielSzene(sp, T0));
+    // 844,3 · 2 = 1688,6 → 1689 + 2 · round(422,15) = 1689 + 844 = 2533; 390,2 · 2 = 780,4 → 781 + 2 · round(195,1) = 781 + 390 = 1171
+    expect([f.flaechen[0].width, f.flaechen[0].height]).toEqual([2533, 1171]);
+    const b = f.flaechen[0].a.befehle;
+    expect(b.slice(0, 3)).toEqual(['setTransform(1,0,0,1,0,0)', 'fillStyle=#b9c8ad', 'fillRect(0,0,2533,1171)']);
+  });
+});
