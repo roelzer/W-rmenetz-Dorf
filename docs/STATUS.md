@@ -1,12 +1,12 @@
 <!-- Stand 2026-11-05: A45–A66 fertig, 212 Tests grün; zuletzt Logo/Ladebildschirm (A63/A64), Abzweig-Darstellung (A65), Autos raus (A66); Details docs/SITZUNGSUEBERGABE.md -->
 # Status
 
-**Auftrag:** Wärmenetz-Dorf bauen nach „Mein Wärmedorf“ · **Zuletzt aktualisiert:** 2026-11-04
+**Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** Reviewer-Befunde (H1, H2, M1–M6, N1–N4) abgearbeitet; Demo-Artifact aktualisiert · **Zuletzt fertig:** A33–A43, Vorführ-Tempo · **Als Nächstes:** Fachprüfer (Spreizung, Dach-PV-Ertrag, Spielwerte), Designer-Mängelliste, Nachprüfung, Abschluss · **Fortschritt:** Tests grün, Schranke projektleiter grün vor den Fixes · **Frage an Simon:** docs/OFFENE_FRAGEN.md
+> **Jetzt:** Sitzungswechsel – Übergabe in docs/SITZUNGSUEBERGABE.md · **Zuletzt fertig:** A45–A66 (Straßen/Fluss, Heizhaus-Ausbau, Express, Logo, Ladebildschirm, Abzweige) · **Als Nächstes:** Simons nächste Wünsche; Fachprüfer, Designer-Treue, Reviewer über A45–A66 · **Fortschritt:** 212 Tests grün, Schranke projektleiter OK · **Artefakt:** Version 30 · **Frage an Simon:** docs/OFFENE_FRAGEN.md
 
 ## Gerade läuft
-Phase Solo: Nachbesserung. Designer-Treue-Prüfung läuft noch; Reviewer (rot) und Fachprüfer (gelb) sind fertig, ihre Befunde werden abgearbeitet (siehe docs/SITZUNGSUEBERGABE.md).
+Nichts – Sitzung wird übergeben. Kein Agent läuft.
 
 **Arbeitsbranch:** claude/youthful-feynman-jaegcj
 
