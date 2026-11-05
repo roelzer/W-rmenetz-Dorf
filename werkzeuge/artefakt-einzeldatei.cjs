@@ -7,7 +7,7 @@ const left=(css.match(/url\([^d)][^)]*\)/g)||[]);
 const jsf=fs.readdirSync(d+'assets').find(f=>f.endsWith('.js'));
 const js=fs.readFileSync(d+'assets/'+jsf,'utf8').replace(/<\/script/g,'<\\/script');
 const fig={};if(fs.existsSync(d+'figuren'))for(const f of fs.readdirSync(d+'figuren'))fig[f.replace(/\.[a-z]+$/,'')]='data:image/'+(f.endsWith('.webp')?'webp':f.endsWith('.png')?'png':'jpeg')+';base64,'+fs.readFileSync(d+'figuren/'+f).toString('base64');
-const out=`<title>Heatnet</title>
+const out=`<title>Heatville</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>html,body{margin:0;padding:0;background:#3f7a2f}</style>
 <style>${css}</style>

@@ -1376,7 +1376,8 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
     expect(m.sicherungEinspielen(speicher, 'kein json', 0).ok).toBe(false);
     expect(m.sicherungEinspielen(speicher, '{"version":99}', 0).ok).toBe(false);
     expect(m.sicherungEinspielen(speicher, '', 0).ok).toBe(false); // leere Datei ersetzt das Dorf nicht durch ein neues
-    expect(m.sicherungEinspielen(speicher, ' '.repeat(m.SICHERUNG_MAX_ZEICHEN + 1), 0).ok).toBe(false);
+    const gueltig = m.serialisieren(neuerSpielstand(0));
+    expect(m.sicherungEinspielen(speicher, gueltig + ' '.repeat(m.SICHERUNG_MAX_ZEICHEN), 0).ok).toBe(false); // gültig, nur zu groß
     expect(ablage.size).toBe(0);
     expect(m.speichernErlaubt()).toBe(true);
     const st = neuerSpielstand(0); st.name = 'Testdorf'; st.geld_eur = 4321;
@@ -1410,13 +1411,13 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
     expect(readFileSync(new URL('../.node-version', import.meta.url), 'utf8').trim()).toBe('22');
     const kopf = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
     for (const d of ['/sw.js', '/index.html']) expect(kopf).toContain(d);
-    expect(kopf).toMatch(/^\/\n\s+Cache-Control: no-cache/m); // Cloudflare liefert die Seite unter „/“ aus // Seite und Service Worker nie aus dem Zwischenspeicher
+    expect(kopf).toMatch(/^\/\n\s+Cache-Control: no-cache/m); // Cloudflare liefert die Seite unter „/“ aus
   });
 });
 
 describe('A85 Spielname Heatville (Simon 2026-11-05)', () => {
   it('A85: Kein „Heatnet“ mehr in angezeigten Texten, Manifest und Titel; Speicherschlüssel unverändert', async () => {
-    for (const f of ['../index.html', '../public/manifest.webmanifest', '../src/main.ts', '../src/ui/vorspann.ts', '../src/ui/einstellungen.ts', '../src/ui/hud.ts', '../src/core/speichern.ts', '../src/ui/stil.css']) {
+    for (const f of ['../index.html', '../public/manifest.webmanifest', '../src/main.ts', '../src/ui/vorspann.ts', '../src/ui/einstellungen.ts', '../src/ui/hud.ts', '../src/core/speichern.ts', '../src/ui/stil.css', '../werkzeuge/artefakt-einzeldatei.cjs']) {
       expect(readFileSync(new URL(f, import.meta.url), 'utf8')).not.toMatch(/heatnet/i);
     }
     const v = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');

@@ -140,11 +140,11 @@ export function sicherungsDateiname(stand: Spielstand, datum: Date): string {
   return `heatville-${dorf}-${datum.toISOString().slice(0, 10)}.json`;
 }
 
-/** A83: Eine Sicherungsdatei einspielen. Nur ein lesbarer Spielstand wird übernommen; danach ist das Zurückschreiben
- *  des alten Stands gesperrt (wie beim Löschen), damit beim Neuladen nichts überschrieben wird. */
 /** A83: größte Sicherungsdatei in Zeichen bzw. Byte (ein Spielstand hat wenige 10 kB) */
 export const SICHERUNG_MAX_ZEICHEN = 5_000_000;
 
+/** A83: Eine Sicherungsdatei einspielen. Nur ein lesbarer Spielstand wird übernommen; danach ist das Zurückschreiben
+ *  des alten Stands gesperrt (wie beim Löschen), damit beim Neuladen nichts überschrieben wird. */
 export function sicherungEinspielen(speicher: Pick<Storage, 'setItem'>, text: string, jetzt_ms: number): { ok: true; stand: Spielstand } | { ok: false; grund: string } {
   if (text.length > SICHERUNG_MAX_ZEICHEN) return { ok: false, grund: 'Die Datei ist zu groß für einen Spielstand.' };
   const { stand, befund } = ladenMitBefund(text, jetzt_ms);
