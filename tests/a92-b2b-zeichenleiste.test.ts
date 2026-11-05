@@ -243,7 +243,7 @@ describe('A92 / 12.18 + 12.21 Punkt 4 – Zeichenleiste: Titel, Reihenfolge, ari
     await echteSteuerung(s, (u) => {
       u.st.stempeln('d32');
       hilfeZu(u);
-      // Kapazitäten aus src/core/katalog.ts: d25 15 kW, d32 25 kW, d40 40 kW
+      // Kapazitäten aus src/core/katalog.ts: d25 15 kW, d32 25 kW, d40 40 kW; gewählt d32: Spielpreis 14 € × kosten_faktor 40 = 560 €/Feld
       const [d25, d32, d40] = ['25er-Leitung, bis 15 kW', '32er-Leitung, bis 25 kW', '40er-Leitung, bis 40 kW'].map((l) => perLabel(u, l));
       expect([d25, d32, d40].map((k) => norm(k.textContent))).toEqual(['25', '32', '40']);
       expect([d25, d32, d40].map((k) => k.attrs['aria-pressed'])).toEqual(['false', 'true', 'false']);
@@ -251,7 +251,7 @@ describe('A92 / 12.18 + 12.21 Punkt 4 – Zeichenleiste: Titel, Reihenfolge, ari
       expect(gesperrtMitHinweis(dick)).toBe(true);
       expect(dick.textContent, 'kurz „St. 2“ mit geschütztem Leerzeichen (12.18, Antwort 1)').toBe('St. 2');
       expect(schloss(dick)).toBe(true);
-      expect(leiste(u).textContent, 'Kennzeile der gewählten Leitung').toContain('bis 25 kW · 14 €/Feld');
+      expect(leiste(u).textContent, 'Kennzeile der gewählten Leitung').toContain('bis 25 kW · 560 €/Feld');
     });
   });
 
