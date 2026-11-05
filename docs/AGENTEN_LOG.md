@@ -156,3 +156,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 15:38 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261105-153848-entwickler-a728d1f9ce13509c9.md)) |
 | 2026-11-05 15:39 | ▶ | reviewer | Review NR12 P5b Ruhe nach Geste |
 | 2026-11-05 15:41 | ■ 🟢 | reviewer | 🟢 **Freigegeben – mit zwei kleinen Punkten, die den Merge nicht aufhalten** (NR12 P5b, 9cbff83..445e12b)  ([Bericht](docs/pruefberichte/20261105-154135-reviewer-ac4e29710f7106dca.md)) |
+| 2026-11-05 15:42 | ▶ | tester | A90 Abnahmetest schreiben |
+| 2026-11-05 15:43 | ▶ | entwickler | Designer-Kann 1+2 nachziehen |
+| 2026-11-05 15:43 | ▶ | architekt | NR15 Netzmodell planen |

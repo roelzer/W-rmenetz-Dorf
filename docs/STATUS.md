@@ -3,11 +3,12 @@
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt (2026-11-05 nachmittags):** Branch claude/keen-mccarthy-f4p5us enthält gemergt: A88 P2 Freischalt-Leiter, A89 (Hausanschluss ohne kalte Häuser), A88-Reviewlücken, Designer-Treue Teil 1, NR12 P0 (Szenen-Schlüssel), NR12 P2 (Startbildschirm ruhig) – 663 Tests grün. **Noch nicht auf main.**
-> Offen vor main: (1) Tester-Test A89 W1 „mehrere Anschlüsse im selben Abschnitt“ + gemeinsame Testhilfe (läuft, Branch tester-a89-w1); (2) Designer-Treue Teil 2 (Branch design2-bau 6980499) im Review + Designer-Nachprüfung auf Worktree scratchpad/vorschau (dba9c76); dann Merge → main.
-> NR12/A90 (Ruckeln, Simon: „ruckelt sogar am Laptop“): Bauplan docs/bauplaene/NR12-fluessig.md Fassung 2. Läuft: P3a Bodenebene (Branch nr12-p3a auf 44463cc, inkl. P0-Review K1–K3), P4 Messwerkzeug (Branch nr12-p4). Danach P1 Takt/Auflösung/Sparmodus (nach P0 baubar), dann P5 Verdrahtung + Zusammenspieltest, dann Messung am Handy (Messanzeige ?messen=1).
-> Sammelliste: P2-Testlücken + tote CSS stil.css:330–331; Kommentar spiel.ts:653 (A89 K1); Designer Kann 4/7; NR15 Netzmodell „Haus an seiner Leitung“ (nach NR12).
-> Offen an Simon: Q11 Abgleich, Bild Anleiter-Figur, Dorfname Wärmlingen, Cloudflare-Werkzeuge in settings.json; E2/E3 NR12 mit Empfehlung angenommen (E1 = ruhiger Startbildschirm ohne Dampf).
+> **Jetzt (2026-11-05 abends):** main = c20ec80, live auf heatville.pages.dev: A88 P2, A89, Designer-Treue 1+2, ruhiger Start, NR12/A90 P0–P5b (flüssig: Takt, Pixel-Obergrenze, Bodenebene, Sparmodus, Messanzeige ?messen=1). 794 Tests grün.
+> Wartet auf Simon: Messung am iPhone mit heatville.pages.dev/?messen=1 (Ziel p50 ≤ 17,5 ms, p95 ≤ 25 ms) – entscheidet Z4/Z5/Z8-4× und ob P3b (Gebäude-Ebene) nötig ist.
+> Läuft: Tester A90-Abnahmetest + Lastenheft NR12a→A90; Entwickler Designer-Kann 1+2 (Tipp abgeschnitten, Zeichenleiste); Architekt NR15 (→ A91) Bauplan.
+> Danach: NR15 bauen, NR11 Vollbild, NR13 Pflicht-Tutorial mit NR2/NR3, kleine Punkte.
+> Sammelliste: P2-Testlücken; Kommentar spiel.ts:653 (A89 K1); Stationspreis-Test mit Interessenten-Rabatt; Designer Kann 4/7; NR12: Test Geste→Neuaufbau→Mausrad, Zeigerliste bei lostpointercapture/App verstecken leeren, Gerätetest App-Wechsel mitten in Geste, Speicher Bodenebene iPhone; Tipp „erst dickere Leitung legen“ für NR13; Hausanschluss „kein Weg“ (~30 ms) am Handy messen.
+> Offen an Simon: Q11 Abgleich, Bild Anleiter-Figur, Dorfname Wärmlingen, Cloudflare-Werkzeuge in settings.json.
 
 ## Ampel
 🟢 läuft
