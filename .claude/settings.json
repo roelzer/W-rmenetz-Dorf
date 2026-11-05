@@ -22,6 +22,11 @@
     "CLAUDE_CODE_FORK_SUBAGENT": "0"
   },
   "permissions": {
+    "allow": [
+      "mcp__cloudflare__search",
+      "mcp__cloudflare__whoami",
+      "mcp__cloudflare__execute"
+    ],
     "deny": [
       "Bash(git push --force*)",
       "Bash(git push -f*)",
