@@ -49,6 +49,8 @@ export interface Objekt {
   vollversorgung?: boolean;
   /** Das Haus hat ein Stockwerk aufgesetzt: höherer Bedarf */
   aufgestockt?: boolean;
+  /** A88/F2: offene Kundenanfrage; der Bedarf steigt erst, wenn der Spieler annimmt */
+  anfrage?: 'vollversorgung' | 'aufstockung';
   /** A71: Pufferspeicher im Haus – Anschlussleistung mit 1.800 statt 1.500 Volllaststunden */
   hauspuffer?: boolean;
   /** A81: im laufenden Monat gelieferte Wärme in kWh (Zähler, wird bei der Monatsabrechnung zurückgesetzt) */
