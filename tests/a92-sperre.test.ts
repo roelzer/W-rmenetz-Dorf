@@ -5,6 +5,19 @@ import type { TypId } from '../src/core/katalog';
 import type { Objekt } from '../src/core/typen';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
+import { echteSteuerung, tippe as echtTippe, type EchteUmgebung } from './hilfen/echte-steuerung';
+import type { El } from './hilfen/dom-attrappe';
+
+/** Leerzeichenarten angleichen (ENTSCHEIDUNGEN 2026-11-05 Antwort 2: in Meldungen beide erlaubt). */
+const leer = (t: string): string => t.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+/** Vorlesetext eines Knopfs: aria-label, sonst der sichtbare Text (wie ein Bildschirmleser). */
+const vorlesetext = (k: El): string => leer(k.attrs['aria-label'] ?? k.textContent);
+/** genau ein sichtbar eingehängter Knopf, dessen Vorlesetext mit `anfang` beginnt */
+function perVorlesetext(u: EchteUmgebung, anfang: string): El {
+  const k = u.knoepfe().filter((e) => e.isConnected && vorlesetext(e).startsWith(anfang));
+  expect(k.map(vorlesetext), `genau ein Knopf „${anfang}…“`).toHaveLength(1);
+  return k[0];
+}
 
 // A92 / DESIGN.md 12.19 (NR16-B1): Gesperrte Knöpfe tragen aria-disabled="true" statt disabled, führen beim Antippen nie die
 // Aktion aus, wackeln und zeigen – wo es einen Hinweistext gibt – eine Meldung. Dazu K2 (Baumenü auf einem anderen Reiter
@@ -213,26 +226,28 @@ describe('A92 Hinweise beim Antippen gesperrter Knöpfe ohne offenen Bauabschnit
   });
 
   it('A92: Zeichenleiste ohne Abschnitt – „Abschnitt abschließen“ zeigt den Philipp-Hinweis', async () => {
-    await mitAttrappe(async (a, toasts, blatt) => {
-      const { Steuerung } = await import('../src/steuerung');
-      const s = neu(1);
-      const st = Object.assign(Object.create(Steuerung.prototype), { spiel: s, katalogUi: { schliessen: () => {} }, kontextUi: { schliessen: () => {} }, modusBlatt: null, vorsehen: false });
-      (st as { stempeln: (t: TypId) => void }).stempeln('d25');
-      tippe(mit(a, blatt.inhalt, 'Abschnitt abschließen')[0]);
-      expect(toasts).toEqual([SELBST_HINWEIS]);
+    // Stand NR16-B2b: echte Steuerung (tests/hilfen/echte-steuerung.ts) statt Object.create(Steuerung.prototype). Die Leiste
+    // öffnet sich nur im offenen Bauabschnitt (12.18); der Abschnitt fällt bei offener Leiste weg (12.21 Punkt 1, B1) –
+    // beim Tippen werden die Gründe neu gelesen (12.21 Punkt 3). Heute rot: Steuerung liest die Sperre nur beim Öffnen.
+    const s = neu(1);
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    await echteSteuerung(s, (u) => {
+      u.st.stempeln('d25');
+      delete s.stand.abschnitt;
+      echtTippe(perVorlesetext(u, 'Abschnitt abschließen'));
+      expect(leer(u.meldung())).toBe(SELBST_HINWEIS);
     });
   });
 });
 
 describe('A92 Hinweis „Dickere“ nennt die nächste Freischaltung', () => {
   it('A92: Zeichenleiste Stufe 2 – Tippen auf „Dickere“ nennt Stufe 3 (nicht fest Stufe 2)', async () => {
-    await mitAttrappe(async (a, toasts, blatt) => {
-      const { Steuerung } = await import('../src/steuerung');
-      const s = neu(2);
-      const st = Object.assign(Object.create(Steuerung.prototype), { spiel: s, katalogUi: { schliessen: () => {} }, kontextUi: { schliessen: () => {} }, modusBlatt: null, vorsehen: false });
-      (st as { stempeln: (t: TypId) => void }).stempeln('d25');
-      tippe(mit(a, blatt.inhalt, 'Dickere')[0]);
-      expect(toasts).toEqual(['Dickere Leitungen gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.']);
+    const s = neu(2);
+    s.stand.abschnitt = { phase: 'offen', bau: null };
+    await echteSteuerung(s, (u) => {
+      u.st.stempeln('d25');
+      echtTippe(perVorlesetext(u, 'Dickere'));
+      expect(leer(u.meldung())).toBe('Dickere Leitungen gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.');
     });
   });
 });
