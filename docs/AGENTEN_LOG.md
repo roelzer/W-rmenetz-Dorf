@@ -212,3 +212,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:23 | ▶ | tester | Tester-Vorarbeit NR16-B2 |
 | 2026-11-05 18:24 | ■ 🟡 | kritiker | 🟡 **Nachprüfung Bauplan NR15/A91, Fassung 3: P0 und P1 können sofort gebaut werden. Vor P2 müssen zwei Testaufbauten nachgebessert werden.**  ([Bericht](docs/pruefberichte/20261105-182421-kritiker-a41826c39bc1b1356.md)) |
 | 2026-11-05 18:24 | ▶ | architekt | NR15-Plan Nachbesserung N1/N2 |
+| 2026-11-05 18:33 | ■ 🔴 | tester | 🔴 BLOCKIERT – Grund: Kontext voll (Grenze für Agenten erreicht). Die Vorarbeit ist NICHT fertig. Bitte einen frischen Tester-Agenten auf denselben Zweig a ([Bericht](docs/pruefberichte/20261105-183346-tester-ab0c2ae3fe316af94.md)) |
