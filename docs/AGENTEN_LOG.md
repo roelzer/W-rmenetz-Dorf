@@ -257,3 +257,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 20:49 | ▶ | tester | Tester-Vorarbeit NR15-P3 |
 | 2026-11-05 20:57 | ■ 🟡 | tester | 🟡 Gelb: Die Vorarbeit ist fertig. Alle Tests sind grün, auf dem heutigen Stand und mit P3 obendrauf. Die Test-Schranke meldet aber **NICHT OK**. Grund: Laut ([Bericht](docs/pruefberichte/20261105-205730-tester-a6b6332cc7fdb77d7.md)) |
 | 2026-11-05 20:58 | ▶ | reviewer | Review NR15-P3 |
+| 2026-11-05 20:58 | ■ 🟡 | designer | 🟡 Paket NR16-B2b ist weitgehend so gebaut, wie ich es entworfen habe (DESIGN.md 12.16–12.18 und 12.21). Es gibt **einen Muss-Mangel**, im Hausblatt bei 667 ([Bericht](docs/pruefberichte/20261105-205855-designer-a2f07bb559e8d0556.md)) |
+| 2026-11-05 20:59 | ▶ | entwickler | NR16-B2b Fix Designer |
