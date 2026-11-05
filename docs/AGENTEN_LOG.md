@@ -78,3 +78,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 12:52 | ▶ | entwickler | A88 P2 Leiter bauen |
 | 2026-11-05 12:59 | ■ 🔴 | entwickler | Status: BLOCKIERT 🔴. Grund: Kontext voll. Das Paket ist nicht fertig.  ([Bericht](docs/pruefberichte/20261105-125951-entwickler-ae8ab8968e37aeaad.md)) |
 | 2026-11-05 13:00 | ▶ | entwickler | A88 P2 fertig bauen |
+| 2026-11-05 13:11 | ▶ | entwickler | A88 P2 Freischalt-Leiter fertig bauen |
