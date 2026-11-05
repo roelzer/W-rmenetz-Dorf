@@ -249,3 +249,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 20:35 | ▶ | entwickler | Baue NR15-P3 |
 | 2026-11-05 20:37 | ■ 🔴 | entwickler | ## 🔴 Status: BLOCKIERT. Ein einziger Test ist noch rot. Grund: Er erwartet einen falschen Preis.  ([Bericht](docs/pruefberichte/20261105-203755-entwickler-aadf80f49674e59ed.md)) |
 | 2026-11-05 20:38 | ▶ | tester | Tester-Fix Preis B2b |
+| 2026-11-05 20:40 | ■ 🟢 | tester | 🟢 Korrektur erledigt. Der Entwickler hatte recht: Der Test erwartete den Rohpreis aus dem Katalog statt des Preises, den das Spiel wirklich verlangt. Ich hab ([Bericht](docs/pruefberichte/20261105-204014-tester-afb909d2a97e25839.md)) |
+| 2026-11-05 20:41 | ▶ | reviewer | Review NR16-B2b |
