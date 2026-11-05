@@ -28,7 +28,7 @@ Siehe `docs/OFFENE_FRAGEN.md` (0 offen).
 Gebaut und getestet (139 Tests, Gate solo grün): kleiner Start (A22), T-Stück ohne Kreuzungen (A23), Puffer automatisch verbunden (A24), Verbrauch je Haus auf Karte und Karte (A25), langsameres Tempo ×2,5 (A26), Ortswahl mit drei Orten und Beispielhäusern (A21). Offen: echte OSM-Daten, moderner Stil umsetzen (A27), Designer-Mängel, Reviewer, Fachprüfung der T-Stück-Regel.
 
 ## Stand 2026-11-04 spät
-Jetzt: A88 P1 Kundenanfrage gemergt (334 Tests), Review läuft; danach P2 Leiter (Entwickler). Cloudflare: eigene Sitzung „Heatville: Cloudflare Pages einrichten“, wartet auf Simons Connector-Anmeldung
+Jetzt: Spiel online unter heatville.pages.dev (main = 1e9f10c inkl. A88 P1). A88 P2 Leiter beim Entwickler (Worktree). Offen an Simon: Cloudflare-Werkzeug-Freigabe in settings.json nicht übernommen
 
 ## Nachtrag 2026-11-05 (A44)
 Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpoltstein, keine Ortswahl), kleinere Anzeigen oben, Leitungskarte nennt Hausanschluss- bzw. Hauptleitung. 173 Tests grün.

@@ -75,3 +75,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 12:47 | ■ 🟡 | entwickler | ## 🟡 FERTIG_MIT_BEDENKEN – A88 P1 „Kundenanfrage“  ([Bericht](docs/pruefberichte/20261105-124747-entwickler-a9a639fc55b2f9ba0.md)) |
 | 2026-11-05 12:48 | ▶ | reviewer | Review A88 P1 Kundenanfrage |
 | 2026-11-05 12:51 | ■ 🟡 | reviewer | 🟡 **A88 P1 „Kundenanfrage“: freigegeben mit kleinen Punkten**  ([Bericht](docs/pruefberichte/20261105-125139-reviewer-afe2a20132da449e5.md)) |
+| 2026-11-05 12:52 | ▶ | entwickler | A88 P2 Leiter bauen |
