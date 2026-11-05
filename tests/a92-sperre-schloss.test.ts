@@ -14,7 +14,8 @@ import { gesperrtMitHinweis } from './hilfen/gesperrt';
 // Echtes Kernmodul und echte Oberflächen-Module; ohne Browser über die DOM-Attrappe der Testhilfen.
 
 const T0 = 1_000_000_000_000;
-const HZ_HINWEIS = 'Stufe 2 gibt es erst, wenn die Heizzentrale ausgebaut ist.';
+// DESIGN.md 12.20 S2: Heizhaus-Quelle „Stufe {n+1}“, Hinweis nennt die nötige Stufe und wo der Ausbau steht.
+const HZ_HINWEIS = 'Stufe 2 gibt es, sobald die Heizzentrale Stufe 2 hat. Der Ausbau steht unten im Blatt.';
 
 const neu = (stufe = 1) => {
   const s = new Spiel(neuerSpielstand(T0), () => T0);
@@ -196,14 +197,14 @@ describe('A92 / 12.19 – „Stufe X“ im Heizhaus erklärt sich beim Antippen'
     const s = neu(2);
     const hz = s.stand.objekte.find((o) => o.typ === 'hz')!;
     const { toasts } = await karte(s, hz, (a, c) => {
-      const k = mit(a, c, 'Stufe 2').filter((e) => !a.text(e).includes('Erst Heizzentrale ausbauen'));
+      const k = mit(a, c, 'Stufe 2').filter((e) => !a.text(e).includes('erst Heizzentrale ausbauen'));
       expect(k.length).toBeGreaterThan(0);
       for (const x of k) expect('aria-disabled' in x.attrs).toBe(false);
     });
     expect(toasts).toEqual([]);
   });
 });
-const knopfStufe2 = (a: Attrappe, c: AttrappenElement) => mit(a, c, 'Stufe 2').filter((e) => a.text(e) === 'Stufe 2Erst Heizzentrale ausbauen');
+const knopfStufe2 = (a: Attrappe, c: AttrappenElement) => mit(a, c, 'Stufe 2').filter((e) => a.text(e) === 'Stufe 2erst Heizzentrale ausbauen');
 
 describe('A92 / K-b – „Gefällt mir“ beim Dorfbesuch', () => {
   it('A92: zweimal tippen → einmal mögen, eine Meldung, Knopf danach gesperrt mit „Gefällt dir“', async () => {

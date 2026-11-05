@@ -13,7 +13,8 @@ import { serialisieren } from '../src/core/speichern';
 // und richtig gebeugtes „1 Feld“. Echtes Kernmodul; ohne Browser über die DOM-Attrappe der Testhilfen.
 
 const T0 = 1_000_000_000_000;
-const TSTUECK_HINWEIS = 'Für Hausanschlüsse nicht nötig – den Abzweig setzt das Spiel selbst. Ein T-Stück mit Vorsehung legt einen Abzweig für später bereit und spart dann das Anbohren. Frei ab Heizzentrale Stufe 4.';
+// DESIGN.md 12.20 S5, fachgeprüft (ENTSCHEIDUNGEN 2026-11-05): 90 Zeichen, der Nutzen (Anbohren sparen) bleibt vor Stufe 4 unerwähnt.
+const TSTUECK_HINWEIS = 'Für Hausanschlüsse nicht nötig, den Abzweig setzt das Spiel. Frei ab Heizzentrale Stufe 4.';
 const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
 // Hinweistexte beim Antippen gesperrter Knöpfe, wörtlich aus DESIGN.md 12.19 (Punkt 2) bzw. 12.18 (Leitung selbst legen).
 const SELBST_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
@@ -203,13 +204,16 @@ describe('A92 Hausblatt – Weg zum Anschluss', () => {
     expect(mit((await karte(s, haus)).knoepfe, PLANEN)[0].aus).toBe(false);
   });
 
-  it('A92: in Planung, beim Bestellen und im Bau – kein Planen-Knopf, „Leitung selbst legen“ gesperrt', async () => {
+  it('A92: in Planung, beim Bestellen und im Bau – kein Planen-Knopf, „Leitung selbst legen“ gesperrt mit Grund der Phase (12.20 B2–B4)', async () => {
+    // DESIGN.md 12.20 B2/B3/B4: Zeile 2 nennt, woran es gerade hängt, statt immer „braucht offenen Bauabschnitt“.
+    const ZEILE2 = { planung: 'Philipp plant noch', bestellen: 'Abschnitt ist geplant', bau: 'Abschnitt wird gebaut' } as const;
     for (const phase of ['planung', 'bestellen', 'bau'] as const) {
       const { s } = neu(1);
       s.stand.abschnitt = { phase, bau: phase === 'bestellen' ? null : { art: 'neu', start_ms: T0, ende_ms: T0 + 60_000 } };
       const k = await karte(s, objektBei(s, 9, 15));
       expect(mit(k.knoepfe, PLANEN), phase).toEqual([]);
-      expect(mit(k.knoepfe, 'Leitung selbst legen'), phase).toEqual([expect.objectContaining({ aus: true, text: `Leitung selbst legen${OHNE_ABSCHNITT}` })]);
+      expect(mit(k.knoepfe, 'Leitung selbst legen'), phase).toEqual([expect.objectContaining({ aus: true, text: `Leitung selbst legen${ZEILE2[phase]}` })]);
+      expect(mit(k.knoepfe, 'Hausanschluss ziehen'), phase).toEqual([expect.objectContaining({ aus: true, text: `Hausanschluss ziehen${ZEILE2[phase]}` })]);
     }
   });
 

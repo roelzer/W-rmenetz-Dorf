@@ -374,7 +374,8 @@ describe('A88 Oberfläche fragt nur ab (T10, ohne Browser)', () => {
       expect(a.text(karte('75er-Leitung'))).toContain('ab Heizzentrale Stufe 3');
       expect(karte('40er-Leitung').className).not.toContain('gesperrt');
       (k as unknown as { waehlen: (t: TypId, g: boolean) => void }).waehlen('d50', true);
-      expect(toasts).toEqual(['50er-Leitung ab Heizzentrale Stufe 2']);
+      // DESIGN.md 12.20 (Katalogkarten, Wortlaut nach Regel 6 angeglichen): Grund + was man tun kann
+      expect(toasts).toEqual(['50er-Leitung ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.']);
     } finally { vi.unstubAllGlobals(); vi.doUnmock('../src/ui/bild'); vi.doUnmock('../src/ui/blatt'); }
   });
   const bauKasten = async (stufe: number, phase: 'offen' | 'bau') => {
