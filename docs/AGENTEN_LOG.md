@@ -52,3 +52,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 11:02 | ▶ | entwickler | Menü-Stil v2 umsetzen |
 | 2026-11-05 11:12 | ■ 🔴 | reviewer | 🟡 **A83 (Commit dcb0c85, Basis bcf1c76): kann veröffentlicht werden, mit einem wichtigen Testpunkt, der nachgebessert werden muss**  ([Bericht](docs/pruefberichte/20261105-111214-reviewer-ab554e44f13b49de9.md)) |
 | 2026-11-05 11:14 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN**  ([Bericht](docs/pruefberichte/20261105-111443-entwickler-a9632f2c858d8acc8.md)) |
+| 2026-11-05 11:16 | ▶ | reviewer | Nachprüfung A83 W1 + A85 |

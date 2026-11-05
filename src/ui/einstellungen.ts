@@ -28,14 +28,14 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
   const spieler = h('input', { class: 'feld', type: 'text', maxlength: 20, placeholder: 'Chef', value: ui.spiel.stand.spieler ?? '', 'aria-label': 'Dein Name', id: 'spielername' }) as HTMLInputElement;
   spieler.addEventListener('change', () => { ui.spiel.stand.spieler = spieler.value.trim().slice(0, 20); ui.geaendert(); });
   name.addEventListener('change', () => { const n = name.value.trim().slice(0, 24); if (n) { ui.spiel.stand.name = n; ui.geaendert(); } else name.value = ui.spiel.stand.name; });
-  const bewegung = h('input', { type: 'checkbox', id: 'bewegung' }) as HTMLInputElement;
+  const bewegung = h('input', { type: 'checkbox', id: 'bewegung', role: 'switch' }) as HTMLInputElement;
   bewegung.checked = e.weniger_bewegung;
   bewegung.addEventListener('change', () => { e.weniger_bewegung = bewegung.checked; einstellungenSchreiben(e); geaendert(e); });
   const loeschen = knopf('Spielstand löschen', () => {
     b.inhalt.replaceChildren(
       h('p', {}, 'Wirklich alles löschen? Dein Dorf, dein Geld und alle Aufträge sind danach weg.'),
       h('div', { class: 'knopfreihe' },
-        knopf('Ja, löschen', () => { try { speicherLoeschen(localStorage); } catch (fehler) { console.warn('Spielstand ließ sich nicht entfernen', fehler); } location.reload(); }, 'heiss'),
+        knopf('Ja, löschen', () => { try { speicherLoeschen(localStorage); } catch (fehler) { console.warn('Spielstand ließ sich nicht entfernen', fehler); } location.reload(); }, 'gefahr'),
         knopf('Abbrechen', () => b.zu())));
   }, '', { klein: true });
   b.inhalt.append(
@@ -46,7 +46,7 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     h('p', { class: 'gedaempft' }, 'Rauch, Wasser und Münzflug stehen still. Wichtige Hinweise bleiben sichtbar.'),
     h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),
       h('p', { class: 'gedaempft' }, 'Für Vorführungen: Die Spielzeit läuft schneller. Normal ist das vorgesehene Tempo.'),
-      h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'los' : '', { klein: true })))),
+      h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'gewaehlt' : '', { klein: true })))),
     sicherungKasten(ui),
     h('div', { class: 'knopfreihe' }, loeschen),
     h('div', { class: 'kasten' }, h('h3', {}, 'Hinweis'), h('p', {}, 'Alle Wärmenetze und Werte sind fiktiv. Das Spiel vereinfacht stark und ersetzt keine echte Planung.'),

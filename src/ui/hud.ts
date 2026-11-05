@@ -45,7 +45,7 @@ export class Hud {
   private pillen: HTMLElement;
 
   constructor(private readonly spiel: () => Spiel, a: HudAktionen) {
-    const schild = h('button', { type: 'button', class: 'dorfschild', 'aria-label': 'Dorf-Einstellungen', onclick: a.einstellungen }, this.name, this.unter, h('span', { class: 'zahnrad', 'aria-hidden': 'true' }, '⚙'));
+    const schild = h('button', { type: 'button', class: 'dorfschild', 'aria-label': 'Dorf-Einstellungen', onclick: a.einstellungen }, this.name, this.unter, symbol('zahnrad', 'zahnrad'));
     this.auftragKarte = h('button', { type: 'button', class: 'auftrag pergament', onclick: a.auftrag },
       h('span', { class: 'marker', 'aria-hidden': 'true' }, '!'), this.auftragText, this.auftragLohn);
     this.links = h('div', { class: 'hud-links' }, schild, this.auftragKarte);

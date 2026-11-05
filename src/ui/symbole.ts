@@ -1,6 +1,7 @@
 /** Eigene SVG-Symbole im Stil der Karte (keine Emoji-Schrift, M7). 24×24, Umriss tinte-tief. */
 const U = 'stroke="#1a1208" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"';
-const SVG = (inhalt: string): string => `<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" focusable="false">${inhalt}</svg>`;
+// xmlns ist nötig: bausteine.ts parst die Symbole per DOMParser als SVG, ohne Namensraum würde nichts gezeichnet
+const SVG = (inhalt: string): string => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true" focusable="false">${inhalt}</svg>`;
 
 export const SYMBOLE = {
   geld: SVG(`<circle cx="12" cy="12" r="9" fill="#f6c22c" ${U}/><circle cx="12" cy="12" r="6" fill="none" stroke="#c88a08" stroke-width="1.4"/><path d="M14.6 9.2c-.6-.8-1.5-1.2-2.6-1.2-1.9 0-3 1.5-3 4s1.1 4 3 4c1.1 0 2-.4 2.6-1.2M7.8 11h4.6M7.8 13h4.6" fill="none" stroke="#7a5200" stroke-width="1.5" stroke-linecap="round"/>`),
@@ -15,6 +16,10 @@ export const SYMBOLE = {
   stern: SVG(`<path d="M12 2.500l2.800 6 6.500.7-4.900 4.400 1.400 6.400L12 16.600l-5.800 3.400 1.400-6.400L2.700 9.200l6.500-.7z" fill="#f6c22c" ${U}/>`),
   ausruf: SVG(`<circle cx="12" cy="12" r="10" fill="#e2582b" ${U}/><path d="M12 6.500v7" stroke="#fff" stroke-width="2.800" stroke-linecap="round"/><circle cx="12" cy="17.300" r="1.700" fill="#fff"/>`),
   zahnrad: SVG(`<path d="M12 8.500a3.500 3.500 0 1 0 0 7 3.500 3.500 0 0 0 0-7zM10.500 2.500h3l.5 2.300 1.700.7 2-1.300 2.100 2.100-1.300 2 .7 1.700 2.300.5v3l-2.300.5-.7 1.700 1.300 2-2.100 2.100-2-1.300-1.700.7-.5 2.300h-3l-.5-2.300-1.700-.7-2 1.300-2.100-2.100 1.300-2-.7-1.700-2.300-.5v-3l2.300-.5.700-1.700-1.300-2 2.100-2.100 2 1.300 1.700-.7z" fill="#fff6e2" ${U}/>`),
+  // Plus/Minus für Stufenknöpfe: dunkler Unterstrich + helle Linie wie beim Schließen-X, damit sie auf Creme und Grau lesbar bleiben
+  plus: SVG(`<path d="M12 5v14M5 12h14" stroke="#1a1208" stroke-width="5" stroke-linecap="round"/><path d="M12 5v14M5 12h14" stroke="#fff6e2" stroke-width="2.4" stroke-linecap="round"/>`),
+  minus: SVG(`<path d="M5 12h14" stroke="#1a1208" stroke-width="5" stroke-linecap="round"/><path d="M5 12h14" stroke="#fff6e2" stroke-width="2.4" stroke-linecap="round"/>`),
+  schloss: SVG(`<path d="M8 10V7.500a4 4 0 0 1 8 0V10" fill="none" stroke="#1a1208" stroke-width="2.200" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2.500" fill="#f6c22c" ${U}/><circle cx="12" cy="14.300" r="1.500" fill="#7a5200"/><path d="M12 15.500v2" stroke="#7a5200" stroke-width="1.600" stroke-linecap="round"/>`),
 } as const;
 
 export type SymbolName = keyof typeof SYMBOLE;
