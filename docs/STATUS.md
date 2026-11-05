@@ -6,7 +6,8 @@
 > **Jetzt (2026-11-05 abends):** main = c20ec80, live auf heatville.pages.dev: A88 P2, A89, Designer-Treue 1+2, ruhiger Start, NR12/A90 P0–P5b (flüssig: Takt, Pixel-Obergrenze, Bodenebene, Sparmodus, Messanzeige ?messen=1). 794 Tests grün.
 > Wartet auf Simon: Messung am iPhone mit heatville.pages.dev/?messen=1 (Ziel p50 ≤ 17,5 ms, p95 ≤ 25 ms) – entscheidet Z4/Z5/Z8-4× und ob P3b (Gebäude-Ebene) nötig ist.
 > Läuft (2026-11-05 spät): main d214666 live (A92 Teil A + B1, 886 Tests). Jetzt parallel: (1) Tester-Vorarbeit NR16-B2a (Sperrtexte 12.20, Erklärsätze, T-Stück 90 Z.) im Worktree agent-ab0c2ae3fe316af94 → danach Entwickler B2a → Review → main; dann B2b (Reiter 12.16, Toast 12.17, Zeichenleiste 12.18, Fotos) mit eigener Vorarbeit. (2) Tester baut NR15-P0 (Branch tester-nr15-p0). (3) Architekt bessert NR15-Plan nach Kritiker Fassung 3 (N1 P2-Tests, N2, P1-1..5, P3 M5) – danach P1 → P2 → P3. Danach NR11, NR13. Vorarbeiten unter .dev-team/vorarbeit eintragen, sobald angenommen.
-> Danach: NR15 bauen, NR11 Vollbild, NR13 Pflicht-Tutorial mit NR2/NR3, kleine Punkte.
+> 2026-11-05 nachts: NR15-P1 gemergt (Branch, 914+ Tests, Review 🟡), B2a im Review (e46e2f4). Neu A93 Engstelle Hauptleitung (wohl Ursache von Simons Beschwerde) direkt nach P3.
+> Danach: NR15 P2/P3, A93, NR11 Vollbild, NR13 Pflicht-Tutorial mit NR2/NR3, kleine Punkte.
 > Sammelliste: P2-Testlücken; Kommentar spiel.ts:653 (A89 K1); Stationspreis-Test mit Interessenten-Rabatt; Designer Kann 4/7; NR12: Test Geste→Neuaufbau→Mausrad, Zeigerliste bei lostpointercapture/App verstecken leeren, Gerätetest App-Wechsel mitten in Geste, Speicher Bodenebene iPhone; Tipp „erst dickere Leitung legen“ für NR13; Hausanschluss „kein Weg“ (~30 ms) am Handy messen.
 > Offen an Simon: Q11 Abgleich, Bild Anleiter-Figur, Dorfname Wärmlingen, Cloudflare-Werkzeuge in settings.json.
 
