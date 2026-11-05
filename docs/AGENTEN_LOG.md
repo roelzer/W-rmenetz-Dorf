@@ -139,3 +139,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:44 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG.** Deine Entscheidungen 1–3 sind im Messwerkzeug umgesetzt und committet. Der Prüflauf gegen die gespeicherten Vorher-Werte zeigt das e ([Bericht](docs/pruefberichte/20261105-144451-entwickler-a2874e7256aadb7ef.md)) |
 | 2026-11-05 14:45 | ▶ | reviewer | Review NR12 P4 Messwerkzeug |
 | 2026-11-05 14:48 | ■ 🟡 | entwickler | 🟡 **FERTIG_MIT_BEDENKEN.** Paket P1 ist gebaut und alles ist grün. An drei Stellen weiche ich bewusst vom Bauplan ab (Abschnitt 8). Eine davon betrifft eine ([Bericht](docs/pruefberichte/20261105-144823-entwickler-a499012680a5887a6.md)) |
+| 2026-11-05 14:48 | ▶ | reviewer | Review NR12 P1 Takt/Sparmodus |
