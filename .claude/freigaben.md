@@ -1,2 +1,2 @@
 # Freigaben. Format: Datum | Stichwort | Geltung | Grund
-2026-11-05 | A88-V1 | testzahl | Bauplan A88 Abschnitt 11: zwei A34-Automatiktests entfallen (296→294), ersetzt durch verdeckte Anfrage-Tests in P1
+2026-11-05 | A88-V1 | testzahl | Kritiker (Modus freigabe) 🟢: F2 (Simon) schafft das automatische Wachstum ab; laut Diff 11e648d genau die zwei Automatik-Tests entfernt, sonst nichts abgeschwächt. Ersatz: 17 verdeckte T11-Tests (gesichert in .dev-team/verdeckt), kommen mit P1 ins Repo. Gilt nur für 296→294 bis P1; kein Release zwischen V1 und P1

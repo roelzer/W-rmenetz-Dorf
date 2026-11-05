@@ -69,3 +69,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 12:23 | ■ 🟢 | architekt | 🟢 **Simons Antworten F1–F3 stehen jetzt im Bauplan A88, und alle Tests sind grün.** `npx vitest run`: 11 Dateien, 296 von 296 grün; `npx tsc --noEmit` oh ([Bericht](docs/pruefberichte/20261105-122335-architekt-aa82074d94115d818.md)) |
 | 2026-11-05 12:24 | ▶ | tester | A88 Vorarbeit V1 (Tester) |
 | 2026-11-05 12:30 | ■ 🟡 | tester | 🟡 **Vorarbeit V1 ist fertig und committet. Die Schranke sagt NICHT OK, und das hat nur einen Grund: Wie im Bauplan vorgesehen gibt es jetzt 2 Tests weniger ( ([Bericht](docs/pruefberichte/20261105-123040-tester-ab1acaa4c42c9e60e.md)) |
+| 2026-11-05 12:31 | ▶ | kritiker | Kritiker Freigabe Testzahl A88-V1 |
+| 2026-11-05 12:32 | ■ 🟢 | kritiker | 🟢 **Freigegeben:** Die Test-Schranke darf den Rückgang von 296 auf 294 Tests durch Commit 11e648d annehmen.  ([Bericht](docs/pruefberichte/20261105-123257-kritiker-adcaab68e117b8583.md)) |
