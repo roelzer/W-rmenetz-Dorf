@@ -261,3 +261,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 20:59 | ▶ | entwickler | NR16-B2b Fix Designer |
 | 2026-11-05 21:02 | ■ 🟡 | reviewer | 🟢 **Freigegeben mit kleinen Punkten (eigentlich 🟡, aber nichts blockiert)**. Urteil: 🟡 freigegeben mit kleinen Punkten.  ([Bericht](docs/pruefberichte/20261105-210217-reviewer-a639ccca3ecb8dd06.md)) |
 | 2026-11-05 21:03 | ▶ | architekt | Bauplan NR17 Engstelle |
+| 2026-11-05 21:12 | ▶ | entwickler | NR16-B2b Fix Designer (neu) |
+| 2026-11-05 21:12 | ▶ | architekt | Bauplan NR17 Engstelle (neu) |
