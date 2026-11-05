@@ -852,7 +852,7 @@ export class Spiel {
     }
     if (this.abwesend && offline.monate === 1 && this.offline_text) this.hinweis(this.offline_text);
     this.offline_text = '';
-    if (this.abwesend && offline.monate > 1) this.hinweis(`Während du weg warst: ${offline.monate} Monatsabrechnungen, zusammen +${Math.round(offline.eur).toLocaleString('de-DE')} € überwiesen`);
+    if (this.abwesend && offline.monate > 1) this.hinweis(`Während du weg warst: ${offline.monate} Monatsabrechnungen, zusammen +${Math.round(offline.eur).toLocaleString('de-DE')} € eingegangen`);
     this.abwesend = false;
   }
   private naechstesEreignis_ms(): number | null {
@@ -923,7 +923,7 @@ export class Spiel {
     s.letzte_abrechnung = a;
     if (kunden > 0) {
       const eingang = Math.round(s.geld_eur - vorher);
-      const text = `Abrechnung ${this.monatsname(nr)}: ${kunden} Kunden · ${Math.round(kwh).toLocaleString('de-DE')} kWh · +${eingang.toLocaleString('de-DE')} € überwiesen${eingang < Math.round(summe_eur) ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`;
+      const text = `Abrechnung ${this.monatsname(nr)}: ${kunden} Kunden · ${Math.round(kwh).toLocaleString('de-DE')} kWh · +${eingang.toLocaleString('de-DE')} € eingegangen${eingang < Math.round(summe_eur) ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`;
       if (this.abwesend) this.offline_text = text; else this.hinweis(text);
       const hz = this.hz;
       if (!this.abwesend) this.ereignisse.push({ art: 'schwebtext', x: hz.x, y: hz.y, text: `+${eingang.toLocaleString('de-DE')} €`, farbe: '#ffd166' });

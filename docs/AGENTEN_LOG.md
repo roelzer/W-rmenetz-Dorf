@@ -44,3 +44,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 10:47 | ▶ | reviewer | Review A80–A82 |
 | 2026-11-05 10:47 | ▶ | fachpruefer | Fachprüfung A81/A82 |
 | 2026-11-05 10:47 | ▶ | designer | Menü-Stil neu entwerfen |
+| 2026-11-05 10:50 | ■ 🟡 | fachpruefer | 🟡 GELB – Fachprüfung A81 (Monatsabrechnung) und A82 (Ladebild), Projekt /home/user/W-rmenetz-Dorf  ([Bericht](docs/pruefberichte/20261105-105049-fachpruefer-ae5578d4ef6e19017.md)) |

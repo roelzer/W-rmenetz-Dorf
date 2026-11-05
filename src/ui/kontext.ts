@@ -162,7 +162,7 @@ export class Kontext {
     k.append(zeile('Wärmepreis', `${zahl(ct)} ct/kWh`), zeile('Grundgebühr', `${eur(sp.grundgebuehr_eur)} im Monat`),
       zeile(`${sp.monatsname(m.nr)} bisher`, `${zahl(o.zaehler_kwh ?? 0)} kWh`),
       zeile(`Rechnung ${sp.monatsname(m.nr)} (erwartet)`, eur(sp.monatsbetrag_eur(o, m.nr))),
-      h('p', { class: 'gedaempft' }, `Im Jahr etwa ${eur(jahr_eur)}. Im Winter wird mehr geheizt als im Sommer – die Rechnung schwankt. Am Monatsende wird automatisch abgerechnet und überwiesen.`));
+      h('p', { class: 'gedaempft' }, `Im Jahr etwa ${eur(jahr_eur)}. Im Winter wird mehr geheizt als im Sommer – die Rechnung schwankt. Im Spiel wird jeden Monat abgerechnet, der Kunde zahlt automatisch (in echt meist Abschlag plus Jahresabrechnung).`));
     c.append(k);
   }
   private upgradeBereich(c: HTMLElement, o: Objekt): void {
