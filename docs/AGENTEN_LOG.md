@@ -229,3 +229,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:09 | ▶ | entwickler | Baue NR15-P2 |
 | 2026-11-05 19:11 | ▶ | tester | Tester-Nachzug B2a/P1 Tests |
 | 2026-11-05 19:23 | ■ 🟢 | tester | 🟢 Grün: Beide fehlenden Testbereiche sind jetzt abgedeckt. Am Produktivcode ist nichts geändert. Alle Tests laufen durch, die Schranke meldet OK.  ([Bericht](docs/pruefberichte/20261105-192349-tester-a08f4533441874409.md)) |
+| 2026-11-05 19:25 | ▶ | designer | Designer-Vorgaben NR16-B2b |
