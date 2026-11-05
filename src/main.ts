@@ -20,12 +20,14 @@ function sichern(text: string | null): void {
   try { localStorage.setItem(`${SPEICHER_SCHLUESSEL}-defekt`, text); } catch (fehler) { console.warn('Sicherung des alten Spielstands fehlgeschlagen', fehler); }
 }
 let startHinweis = '';
+let weg: { geld_eur: number; seit_ms: number; bau: number } | null = null;
 const gelesen = lesen();
 const geladen = ladenMitBefund(gelesen, uhr());
 let spiel: Spiel;
 if (geladen.befund === 'defekt') { sichern(gelesen); startHinweis = 'Dein alter Spielstand ließ sich nicht lesen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).'; }
 try {
   spiel = new Spiel(geladen.stand, uhr);
+  weg = { geld_eur: geladen.stand.geld_eur, seit_ms: geladen.stand.zuletzt_ms, bau: geladen.stand.objekte.filter((o) => o.bau).length };
   spiel.bis(uhr());
 } catch (fehler) {
   console.warn('Spielstand führte zu einem Fehler, neues Dorf', fehler);
@@ -39,6 +41,12 @@ const maler = new Maler(leinwand.getContext('2d')!);
 const steuerung = new Steuerung(spiel, leinwand, maler, uhr);
 const kamera = steuerung.kamera;
 if (startHinweis) steuerung.toast(startHinweis);
+else if (weg && uhr() - weg.seit_ms > 5 * 60_000) {
+  // A38: Willkommen zurück – was ist während der Abwesenheit passiert?
+  const min = Math.round((uhr() - weg.seit_ms) / 60_000), dauer = min >= 120 ? `${Math.round(min / 60)} Std.` : `${min} Min.`;
+  const diff = Math.round(spiel.stand.geld_eur - weg.geld_eur);
+  steuerung.toast(`Willkommen zurück! Du warst ${dauer} weg: ${diff >= 0 ? '+' : '−'}${Math.abs(diff).toLocaleString('de-DE')} € auf dem Konto${weg.bau && !spiel.stand.objekte.some((o) => o.bau) ? ', der Bau ist fertig' : ''}. Vergiss die Münzen über den Häusern nicht.`);
+}
 
 function groesseAnpassen(): void {
   const r = leinwand.parentElement!.getBoundingClientRect();

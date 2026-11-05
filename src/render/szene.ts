@@ -1,3 +1,4 @@
+import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { bedarfKw, groesse, heizzentrale } from '../core/netz';
 import type { Spiel } from '../core/spiel';
@@ -36,6 +37,7 @@ const GRAS: Gras[] = (() => {
   return a;
 })();
 
+const KARTE = tokens.farbe.karte;
 const NACHBARN: Punkt[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt_s: number): void {
@@ -43,7 +45,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   m.tw = k.tw; m.th = k.th;
   const tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
   X.setTransform(k.pixelverhaeltnis, 0, 0, k.pixelverhaeltnis, 0, 0);
-  X.fillStyle = '#3f7a2f'; X.fillRect(0, 0, W, H);
+  X.fillStyle = KARTE.hintergrund_rand; X.fillRect(0, 0, W, H);
 
   // Boden
   for (let y = -3; y < N + 3; y++) {
@@ -54,15 +56,15 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       m.raute(cx, cy, 1.02);
       if (innen) {
         const g = GRAS[y * N + x];
-        X.fillStyle = (x + y) % 2 ? '#92cc63' : '#88c35a'; X.fill();
+        X.fillStyle = (x + y) % 2 ? KARTE.wiese_a : KARTE.wiese_b; X.fill();
         if (g.hell > 0.8) { X.fillStyle = 'rgba(255,255,255,.05)'; X.fill(); }
-        if (tw > 34) {
-          X.strokeStyle = '#6ea845'; X.lineWidth = 1; X.beginPath();
+        if (tw > (tokens as unknown as { karte: { grashalme_ab_kachelbreite: number } }).karte.grashalme_ab_kachelbreite) {
+          X.strokeStyle = KARTE.halm; X.lineWidth = 1; X.beginPath();
           for (const [a, b] of g.n) { const px = cx + a * tw * 0.6, py = cy + b * th * 0.6; X.moveTo(px, py); X.lineTo(px - 1.5, py - tw * 0.05); X.moveTo(px, py); X.lineTo(px + 1.5, py - tw * 0.045); }
           X.stroke();
-          if (g.blume >= 0) m.kreis(cx + g.n[0][0] * tw * 0.4, cy + g.n[0][1] * th * 0.4, Math.max(1.2, tw * 0.022), ['#fff', '#f6c22c', '#e86aa0'][g.blume]);
+          if (g.blume >= 0) m.kreis(cx + g.n[0][0] * tw * 0.4, cy + g.n[0][1] * th * 0.4, Math.max(1.2, tw * 0.022), KARTE.blumen[g.blume]);
         }
-      } else { X.fillStyle = (x + y) % 2 ? '#4c8a36' : '#478433'; X.fill(); }
+      } else { X.fillStyle = (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b; X.fill(); }
     }
   }
   // Waldrand
