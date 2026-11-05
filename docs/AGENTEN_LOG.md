@@ -175,3 +175,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:11 | ■ 🟢 | designer | 🟢 **Vorgaben fertig.** Für alle drei Mängel und den gesperrten Knopf gibt es jetzt eine baubare Vorgabe mit Maßen, Zuständen und Prüfkriterium. Sie steh ([Bericht](docs/pruefberichte/20261105-171119-designer-a69fef3873825425f.md)) |
 | 2026-11-05 17:12 | ▶ | fachpruefer | Fachprüfung T-Stück-Hinweistext |
 | 2026-11-05 17:12 | ■ 🟡 | fachpruefer | 🟡 Fast richtig, ein Halbsatz führt aber in die Irre. Ich habe nur gelesen, nichts ausgeführt: den Text, A47, A69 und A88 im Lastenheft, src/core/spiel.ts ( ([Bericht](docs/pruefberichte/20261105-171257-fachpruefer-a2e8dcb79efb4e8f4.md)) |
+| 2026-11-05 17:21 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle fünf Punkte sind gebaut, getestet und committet. Bei Punkt 1 weicht eine Sache von der Designer-Vorgabe 12.19 ab: De ([Bericht](docs/pruefberichte/20261105-172157-entwickler-af90a159dbf863066.md)) |
+| 2026-11-05 17:22 | ▶ | reviewer | Review NR16-A Anschlussweg |
+| 2026-11-05 17:22 | ▶ | tester | Tester-Vorarbeit NR16-B/Kann 2 |
