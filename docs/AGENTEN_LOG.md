@@ -48,3 +48,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 10:54 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Die Paketprüfung von A80, A81 und A82 findet vier wichtige Befunde, alle in A81 (Monatsabrechnung). Die Grundrechnung stimmt, ab ([Bericht](docs/pruefberichte/20261105-105437-reviewer-ac2578019c1eacc0c.md)) |
 | 2026-11-05 10:59 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** Nachprüfung von Commit bcf1c76: alle vier wichtigen Befunde (W1–W4) sind behoben und durch Tests abgesichert. Es bl ([Bericht](docs/pruefberichte/20261105-105956-reviewer-ac2578019c1eacc0c.md)) |
 | 2026-11-05 11:00 | ■ 🟢 | designer | 🟢 **Menü-Stil v2 ist fertig entworfen und als Vorschau fotografiert. Am Projektcode habe ich nichts geändert.**  ([Bericht](docs/pruefberichte/20261105-110005-designer-a2ef8f47f2a76b256.md)) |
+| 2026-11-05 11:02 | ▶ | reviewer | Review A83 Cloudflare-Vorbereitung |
+| 2026-11-05 11:02 | ▶ | entwickler | Menü-Stil v2 umsetzen |

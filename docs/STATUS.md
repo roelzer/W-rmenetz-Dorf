@@ -1,9 +1,9 @@
-<!-- Stand 2026-11-05 abends: A80–A82 gebaut (Antippen, Monatsabrechnung, Ladebild), Review-Befunde W1–W4 behoben, 265 Tests grün -->
+<!-- Stand 2026-11-05 abends: A71–A83 gebaut und (bis auf A83) geprüft, A84 Menü-Stil v2 in Arbeit, NR1–NR10 vorgemerkt, 268 Tests grün -->
 # Status
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** A81 Review-Befunde W1–W4 behoben → Nachprüfung; danach A83 (Cloudflare-Vorbereitung: Speicher dauerhaft, Update-Hinweis, Spielstand sichern/laden, Version) und Menü-Stil v2 (Designer arbeitet) · Vorgemerkt aus Review-Chat: NR1–NR10 (Freischalt-Leiter, erste 10 Minuten, Begriffe, Öleinsparung, Hilpoltstein raus, Firmenhinweise, Spielname …) · Offene Simon-Fragen: Q8–Q10, Hausstufe = mehr Verbrauch? · **Fortschritt:** 265 Tests · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us
+> **Jetzt:** A81 freigegeben (Review 🟡), A83 Cloudflare-Vorbereitung im Review, A84 Menü-Stil v2 beim Entwickler; main bekommt den Stand nach A83-Freigabe · Vorgemerkt aus Review-Chat: NR1–NR10 (Freischalt-Leiter, erste 10 Minuten, Begriffe, Öleinsparung, Hilpoltstein raus, Firmenhinweise, Spielname …) · Offene Simon-Fragen: Q8–Q10, Hausstufe = mehr Verbrauch? · **Fortschritt:** 268 Tests · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us
 
 ## Ampel
 🟢 läuft

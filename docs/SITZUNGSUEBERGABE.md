@@ -1,26 +1,43 @@
 # Sitzungsübergabe
 
-**Übergeben am:** 2026-11-05 nachmittags · **Auftrag:** Heatnet – Simons Wünsche A71–A81 · **Dev-Team-Version:** 3.8
-**Durchlauf:** an (Simon gibt laufend neue Wünsche, „bau das erstmal“; Push nach main erlaubt, wenn geprüft)
+**Übergeben am:** 2026-11-05 abends · **Auftrag:** Heatnet – laufende Wünsche von Simon (A71–A84) · **Dev-Team-Version:** 3.8
+**Durchlauf:** an (Simon gibt laufend Wünsche, Projektleiter baut, prüft, committet, pusht)
 
 ## Wo wir stehen
-- **Arbeitsbranch:** claude/keen-mccarthy-f4p5us · **Letzter Commit:** efd321d + Agenten-Log (gepusht) · main = c6894fc (noch alter Stand)
-- **Letzter grüner Stand:** efd321d, 248 Tests. Im Arbeitsordner (nicht committet): A80 (Treffer per Gebäudeform src/render/treffer.ts, leeres Fenster in src/ui/kontext.ts behoben, Ladebild-Unterzeile einzeilig in stil.css), Tests A80 grün.
+- **Arbeitsbranch:** claude/keen-mccarthy-f4p5us · **Letzter Commit:** 7b93494 + Doku-Commit (gepusht: ja)
+- **Letzter grüner Stand:** 7b93494, 268 Tests, Schranke projektleiter OK
+- **main:** d27798e (Review-Chat-Doku) – noch NICHT auf unserem Stand. main darf nach Prüfung bekommen: Merge-Stand inkl. A71–A83, sobald A83 vom Reviewer freigegeben ist (`git push origin claude/keen-mccarthy-f4p5us:main`, vorher `git fetch origin main` und prüfen, dass main ein Vorfahr ist).
+- Artefakt (Einzeldatei-Vorschau): https://claude.ai/artifact/WiLVUTFj9uMdA9MXr9ZqQS, zuletzt Version 35 (Stand A81, vor Review-Fixes/A83). Bauen: `npm run build && node werkzeuge/artefakt-einzeldatei.cjs <scratchpad>/waermedorf.html`, dann gleiche Datei veröffentlichen.
 
 ## Nächster Schritt
-A80 durch die Schranke, committen, pushen; dann Fachprüfer-Befunde 1–3 (kontext.ts:236 Text „-25 % mehr“ bei niedrigem Vorlauf, Upgrade-Knopf zeigt nominal statt tatsächlichen Spreizungsgewinn, Hallenbad-Volllaststunden als Frage) beheben; Reviewer-Ergebnis A71–A79 abwarten; dann A81 Abrechnung bauen.
+Ergebnis des Entwicklers „Menü-Stil v2 (A84)“ abwarten, seinen Worktree-Branch prüfen (Fotos in scratchpad/v2bau/, Schranke), in den Arbeitsbranch mergen, Designer-Treueprüfung (DESIGN.md 12.13) beauftragen; parallel Reviewer-Ergebnis zu A83 abarbeiten.
 
-## A81 (neu, noch nicht im Lastenheft)
-Simon: „Es gibt einen jährlichen Verbrauch und einen Wärmepreis pro kWh, außerdem eine Grundgebühr, die man auch festlegen kann, ca. 30–35 €, dann Verbrauch auf Monate aufgeteilt und Abrechnung pro Monat, das Geld wird automatisch überwiesen.“ Offen: Spieltempo (Spieljahr = 16,8 h echt → Monat 1,4 h; reale Beträge ~2.200 €/Jahr je EFH wären ~7× weniger Geld als heute) – Simon zur Balance fragen oder Tempo-Faktor vorschlagen; Monatsanteile nach Gradtagen (Spielwert, Recherche).
+## Pakete
+| Nr. | Stand | Branch / Worktree | Was noch fehlt |
+|---|---|---|---|
+| A71–A80 | gemergt, reviewt (🟡) | Arbeitsbranch | kleine Punkte K3/K4/K7 (A80-Tests), Typprüfung neuer Felder beim Laden |
+| A81 Monatsabrechnung | gemergt, Review 🟡 frei, Fachprüfer GELB | Arbeitsbranch | Simon-Fragen Q8–Q10 (Warmwasser-Sockel, Grundgebühr je kW, Verlustkosten), Hausstufe = mehr Verbrauch? |
+| A82 Ladebild | gemergt, reviewt | Arbeitsbranch | – |
+| A83 Cloudflare-Vorbereitung | gemergt, im Review | Arbeitsbranch | Reviewer-Ergebnis; Simon richtet Cloudflare Pages ein (docs/CLOUDFLARE.md) |
+| A84 Menü-Stil v2 | in Arbeit (Entwickler) | eigener Worktree | Merge, Fotos, Designer-Treue |
+| NR1–NR10 | vorgemerkt (aus Review-Chat) | – | bekommen beim Bau nächste A-Nummer; Reihenfolge wie Nummern |
 
 ## Laufende Agenten
-- reviewer „Review A71–A79“ (c6894fc..efd321d), Bericht kommt als Nachricht.
-- Fachprüfer A71–A76: fertig (Gelb, Befunde oben).
+- reviewer „Review A83 Cloudflare-Vorbereitung“ – Basis bcf1c76..dcb0c85, eigene Kopie.
+- entwickler „Menü-Stil v2 umsetzen“ (A84) – Worktree, Basis 7b93494, Vorgabe DESIGN.md Abschnitt 12 + design/menue-v2-referenz.md.
+
+## Nur in dieser Sitzung entschieden oder besprochen
+- Simon: Zeitraffer (1 Spielmonat = 10 min) „erstmal so, falls zu schnell durchgespielt, anpassen“ (steht in ENTSCHEIDUNGEN).
+- Simon: Spruch „Heize dein Dorf klimaneutral“ (steht in ENTSCHEIDUNGEN; vor Store rechtlich prüfen, L3).
+- Simon: Cloudflare Pages einrichten – Antwort gegeben: Pages (nicht Workers), Production branch main, Preview an, Build `npm run build`, Output `dist`, NODE_VERSION 22; Simon schickt Adresse, dann ersten Durchlauf prüfen.
+- Offene Frage an Simon: Großkunden-Grundgebühr je 10 kW? Warmwasser-Anteil nach Recherche? Hausausbau = mehr Verbrauch?
+- Ein anderer Claude-Chat (Review-Chat, Session …RMTrQFLrwQepR8ZBAN) schreibt auf main Doku. Vor jedem Push auf main `git fetch origin main` und mergen.
 
 ## Fallstricke
-- Spielstand-Schlüssel `waermedorf-…` nie umbenennen; kein innerHTML.
-- vitest läuft in node (kein DOM) – UI nur per Quelltext-Test oder Playwright prüfen.
-- Artefakt: npm run build; node werkzeuge/artefakt-einzeldatei.cjs <scratchpad>/waermedorf.html; veröffentlichen an https://claude.ai/artifact/WiLVUTFj9uMdA9MXr9ZqQS.
+- Schranke verlangt für jede `**A<Nr>**`-Zeile im Lastenheft einen Test mit der Nummer → neue Anforderung erst eintragen, wenn der Test dabei ist (oder als NR/Vormerkung).
+- Spielstand-Schlüssel `waermedorf-…` nie umbenennen; kein innerHTML; SVG nur per DOMParser.
+- Playwright-Tipp-Koordinaten (844×390, Einzeldatei): Haus (330,262), danach Heizzentrale (415,215); Zahnrad Dorfschild (177,22). Skripte im Scratchpad: rechnung.cjs, einst.cjs, lade.cjs, tipp.cjs.
+- Vitest-Umgebung node (kein DOM); UI nur über Quelltext-Tests oder Playwright prüfbar.
 
 ## Erst lesen
-`docs/STATUS.md`, `docs/lastenheft.md` (A71–A80), `docs/ENTSCHEIDUNGEN.md`, `docs/OFFENE_FRAGEN.md` (Q6, Q7, F3)
+`docs/STATUS.md`, `docs/ENTSCHEIDUNGEN.md` (Ende), `docs/OFFENE_FRAGEN.md` (Q8–Q10), `docs/lastenheft.md` (A80–A83, NR1–NR10), `docs/DESIGN.md` Abschnitt 12, `docs/CLOUDFLARE.md`
