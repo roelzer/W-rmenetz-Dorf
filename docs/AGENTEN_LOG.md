@@ -178,3 +178,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:21 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle fünf Punkte sind gebaut, getestet und committet. Bei Punkt 1 weicht eine Sache von der Designer-Vorgabe 12.19 ab: De ([Bericht](docs/pruefberichte/20261105-172157-entwickler-af90a159dbf863066.md)) |
 | 2026-11-05 17:22 | ▶ | reviewer | Review NR16-A Anschlussweg |
 | 2026-11-05 17:22 | ▶ | tester | Tester-Vorarbeit NR16-B/Kann 2 |
+| 2026-11-05 17:25 | ■ 🟡 | reviewer | 🟡 **NR16-A (A92) „Anschluss-Weg verständlich“: freigegeben mit kleinen Punkten**  ([Bericht](docs/pruefberichte/20261105-172526-reviewer-a4249c6d0bcaaa659.md)) |
