@@ -65,3 +65,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 11:35 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit einem kleinen Punkt.** Nachprüfung von `23a324b..ad64d6a`, in einer eigenen Kopie geprüft. Die Kopie ist wieder entfernt, der Projektor ([Bericht](docs/pruefberichte/20261105-113548-reviewer-ae640507c50297d1b.md)) |
 | 2026-11-05 11:36 | ▶ | architekt | Bauplan NR1 Freischalt-Leiter |
 | 2026-11-05 11:47 | ■ 🟡 | architekt | 🟡 GELB – Der Bauplan ist fertig. Der Vorschlag aus NR1 lässt sich aber nicht wörtlich bauen: Wird „Gestattung erst ab Stufe 2“ als Verbot umgesetzt,  ([Bericht](docs/pruefberichte/20261105-114745-architekt-a69297d3dfbdf29b9.md)) |
+| 2026-11-05 12:13 | ▶ | architekt | Bauplan A88 nachtragen |
