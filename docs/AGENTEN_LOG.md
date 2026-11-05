@@ -144,3 +144,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:51 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT – Kontext voll.** Von Nachbesserungsrunde 1 (W1, K1) ist noch nichts umgesetzt. Kein neuer Commit, kein neuer Prüflauf, keine neue S ([Bericht](docs/pruefberichte/20261105-145153-entwickler-a2874e7256aadb7ef.md)) |
 | 2026-11-05 14:52 | ▶ | entwickler | NR12 P4 fix round 1 |
 | 2026-11-05 14:52 | ■ 🟡 | reviewer | **Ampel: 🟡 freigegeben mit kleinen Punkten. Plan-Treue: ✅**  ([Bericht](docs/pruefberichte/20261105-145259-reviewer-a0319abe034bc1833.md)) |
+| 2026-11-05 14:53 | ▶ | entwickler | NR12 P5 Verdrahtung bauen |
