@@ -27,3 +27,10 @@
 - Simon hat versehentlich einen **Worker** `w-rmenetz-dorf` angelegt (Repo verbunden, Deploy command `npx wrangler deploy`). Der soll weg.
 - Ziel: **Pages-Projekt `heatville`** aus Repo `roelzer/W-rmenetz-Dorf`, Production branch `main`, Build `npm run build`, Output `dist`, Umgebungsvariable `NODE_VERSION=22`, Preview-Deployments an → Adresse `heatville.pages.dev`.
 - Worker löschen und Projekt anlegen nur nach ausdrücklicher Bestätigung durch Simon. Danach ersten Build prüfen (Protokoll, Seite lädt, Service Worker, `_headers`).
+
+## Erledigt 2026-11-05
+- Worker `w-rmenetz-dorf` existierte im Konto nicht (mehr) – nichts gelöscht. Worker `ichkannalles` gehört zu einem anderen Projekt, bleibt.
+- Pages-Projekt `heatville` angelegt (Simons Ja), Repo `roelzer/W-rmenetz-Dorf`, `main`, `npm run build` → `dist`, `NODE_VERSION=22` (Produktion und Vorschau), Previews für alle Branches.
+- Erster Build (main, Commit 75d289d) grün; 4 Header-Regeln erkannt.
+- Live geprüft: Seite lädt (Titel „Heatville“), Service Worker aktiv, Neuladen offline klappt, `Cache-Control: no-cache` für `/`, `/sw.js`, `/manifest.webmanifest`; `/index.html` leitet auf `/` um (Pages-Verhalten), ebenfalls no-cache.
+- Zugriff für Sitzungen: Connector `https://mcp.cloudflare.com/mcp` (claude.ai), Werkzeuge in `.claude/settings.json` freigegeben.
