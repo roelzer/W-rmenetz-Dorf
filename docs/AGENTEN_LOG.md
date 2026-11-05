@@ -221,3 +221,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:47 | ▶ | entwickler | NR16-B2a bauen |
 | 2026-11-05 18:59 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN 🟡**  ([Bericht](docs/pruefberichte/20261105-185919-entwickler-a60f7da285d13d8a5.md)) |
 | 2026-11-05 18:59 | ▶ | reviewer | Review NR15-P1 |
+| 2026-11-05 19:03 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Bis auf einen sind alle Tests grün. Der letzte rote Test ist fehlerhaft, und Tests ändern darf ich nicht.  ([Bericht](docs/pruefberichte/20261105-190316-entwickler-a2983c1bbf8965a08.md)) |
