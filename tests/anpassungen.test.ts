@@ -1172,11 +1172,8 @@ describe('Simon 2026-11-05: Bedienung und Start', () => {
     for (const weg of ['Vergrößern', 'Verkleinern', 'Karte nach links drehen', 'Karte nach rechts drehen']) expect(hud).not.toContain(weg);
     expect(hud).toContain('kwknopf');
   });
-  it('A78: Ladebild – Bewegtes auf eigener Ebene, Ladebalken über transform statt Breite', () => {
-    const vs = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
+  it('A78: Ladebalken über transform statt Breite (bewegte Ebene entfällt mit A90/E1 b)', () => {
     const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
-    expect(vs).toContain('bewegteEbene(szene)');
-    expect(css).toMatch(/\.vs-bewegt\{[^}]*will-change:transform/);
     expect(css).toContain('@keyframes vs-laden{to{transform:scaleX(1)}}');
     expect(css).not.toContain('@keyframes vs-laden{to{width:100%}}');
   });
