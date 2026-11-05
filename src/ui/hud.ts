@@ -11,6 +11,8 @@ export interface HudAktionen {
   auftrag(): void;
   zoom(faktor: number): void;
   drehen(richtung: 1 | -1): void;
+  kwUmschalten(): boolean;
+  kwAn(): boolean;
 }
 
 interface Pille { wurzel: HTMLElement; wert: HTMLElement; fuell: HTMLElement; }
@@ -38,6 +40,9 @@ export class Hud {
   private auftragKarte: HTMLButtonElement;
   private runde: HTMLElement;
   private zoom: HTMLElement;
+  private kwKnopf!: HTMLButtonElement;
+  /** Zustand des kW-Schalters im Knopf spiegeln */
+  kwZeigen(an: boolean): void { this.kwKnopf.setAttribute('aria-pressed', String(an)); this.kwKnopf.classList.toggle('aus', !an); }
   private links: HTMLElement;
   private pillen: HTMLElement;
 
@@ -50,9 +55,12 @@ export class Hud {
     const rund = (art: string, sym: SymbolName, text: string, bei: () => void): HTMLButtonElement =>
       h('button', { type: 'button', class: `rund ${art}`, onclick: bei, 'aria-label': text }, h('span', { class: 'kreis' }, symbol(sym)), h('span', { class: 'etikett umriss' }, text));
     this.runde = h('div', { class: 'runde' }, rund('besuch', 'karte', 'Dörfer', a.besuchen), rund('bauen', 'bauen', 'Bauen', a.bauen));
+    this.kwKnopf = h('button', { type: 'button', class: 'zoomknopf kwknopf', 'aria-label': 'Verbrauch der Häuser anzeigen', 'aria-pressed': String(a.kwAn()), onclick: () => this.kwZeigen(a.kwUmschalten()) }, 'kW');
+    this.kwZeigen(a.kwAn());
     const zk = (t: string, f: number, label: string): HTMLButtonElement => h('button', { type: 'button', class: 'zoomknopf', 'aria-label': label, onclick: () => a.zoom(f) }, t);
     this.zoom = h('div', { class: 'zoom' }, zk('+', 1.25, 'Vergrößern'), zk('−', 1 / 1.25, 'Verkleinern'),
-      h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach links drehen', onclick: () => a.drehen(-1) }, '⟲'), h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach rechts drehen', onclick: () => a.drehen(1) }, '⟳'));
+      h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach links drehen', onclick: () => a.drehen(-1) }, '⟲'), h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach rechts drehen', onclick: () => a.drehen(1) }, '⟳'),
+      this.kwKnopf);
     this.wurzel.append(this.links, this.pillen, this.zoom, this.runde);
   }
 

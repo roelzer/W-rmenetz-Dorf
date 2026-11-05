@@ -7,13 +7,13 @@ import type { Ui } from './schnittstelle';
 
 const SCHLUESSEL = 'waermedorf-einstellungen-v1';
 
-export interface Einstellungen { weniger_bewegung: boolean }
+export interface Einstellungen { weniger_bewegung: boolean; kw_anzeigen: boolean }
 
 export function einstellungenLesen(): Einstellungen {
   let gespeichert: Partial<Einstellungen> = {};
   try { gespeichert = JSON.parse(localStorage.getItem(SCHLUESSEL) ?? '{}'); } catch (fehler) { console.warn('Einstellungen nicht lesbar, Standard gilt', fehler); }
   const system = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return { weniger_bewegung: gespeichert.weniger_bewegung ?? system };
+  return { weniger_bewegung: gespeichert.weniger_bewegung ?? system, kw_anzeigen: gespeichert.kw_anzeigen ?? true };
 }
 
 export function einstellungenSchreiben(e: Einstellungen): boolean {

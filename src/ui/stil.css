@@ -194,3 +194,5 @@ button{font:inherit;color:inherit;cursor:pointer}
 .blatt-offen #sprecher{left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));transform:none;width:min(52%,380px)}
 .dorfschild{position:relative}
 .dorfschild .zahnrad{position:absolute;right:8px;top:6px;font-size:16px;line-height:1;color:var(--farbe-ui-dorfschild-untertext);opacity:.8}
+.kwknopf{font-size:15px;font-weight:800}
+.kwknopf.aus{opacity:.55;text-decoration:line-through}

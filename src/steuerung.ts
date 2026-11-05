@@ -11,7 +11,7 @@ import { chip, knopf } from './ui/bausteine';
 import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { h } from './ui/dom';
 import { sprecherZeigen } from './ui/sprecher';
-import { einstellungenLesen, einstellungenOeffnen } from './ui/einstellungen';
+import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
@@ -50,7 +50,9 @@ export class Steuerung implements Ui {
   private besuch: Nachbardorf | null = null;
   private banner: HTMLElement | null = null;
   private readonly nachbarn = nachbardoerfer();
-  private pinch: { abstand: number; mx: number; my: number } | null = null;
+  private pinch: { abstand: number; mx: number; my: number; winkel: number } | null = null;
+  private drehSumme = 0;
+  private mitteDreh: { x: number } | null = null;
 
   jetzt_ms(): number { return this.uhr(); }
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
@@ -63,11 +65,19 @@ export class Steuerung implements Ui {
       auftrag: () => { if (this.auftrag) toast(this.auftrag.text); },
       zoom: (f) => this.kamera.zoomUm(f, this.kamera.breite / 2, this.kamera.hoehe / 2),
       drehen: (r) => this.kamera.drehen(r),
+      kwUmschalten: () => this.kwUmschalten(),
+      kwAn: () => this.einstellungen.kw_anzeigen,
     });
     document.getElementById('app')!.append(this.hud.wurzel, h('div', { id: 'ebene' }));
     this.eingabe();
     this.bewegungAnwenden();
     if (!spiel.stand.quelle_gewaehlt) { this.spiel.ersteQuelleWaehlen('kessel'); this.geaendert(); this.zentrieren(); }
+  }
+
+  kwUmschalten(): boolean {
+    this.einstellungen = { ...this.einstellungen, kw_anzeigen: !this.einstellungen.kw_anzeigen };
+    einstellungenSchreiben(this.einstellungen);
+    return this.einstellungen.kw_anzeigen;
   }
 
   private bewegungAnwenden(): void {
@@ -201,14 +211,20 @@ export class Steuerung implements Ui {
   private eingabe(): void {
     const l = this.leinwand;
     l.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button === 1) { e.preventDefault(); this.mitteDreh = { x: e.clientX }; l.setPointerCapture(e.pointerId); return; }
       l.setPointerCapture(e.pointerId);
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
         if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelnBei(e.clientX, e.clientY); }
-      } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); }
+      } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; }
     });
     l.addEventListener('pointermove', (e) => {
+      if (this.mitteDreh) {
+        const d = e.clientX - this.mitteDreh.x;
+        if (Math.abs(d) > 70) { this.kamera.drehen(d > 0 ? 1 : -1); this.mitteDreh.x = e.clientX; }
+        return;
+      }
       const alt = this.zeiger.get(e.pointerId);
       if (!alt) return;
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -216,6 +232,9 @@ export class Steuerung implements Ui {
         const neu = this.pinchMass();
         this.kamera.zoomUm(neu.abstand / (this.pinch.abstand || 1), neu.mx, neu.my);
         this.kamera.schiebe_x += neu.mx - this.pinch.mx; this.kamera.schiebe_y += neu.my - this.pinch.my; this.kamera.begrenzen();
+        let dw = neu.winkel - this.pinch.winkel; if (dw > Math.PI) dw -= 2 * Math.PI; if (dw < -Math.PI) dw += 2 * Math.PI;
+        this.drehSumme += dw;
+        if (Math.abs(this.drehSumme) > 0.6) { this.kamera.drehen(this.drehSumme > 0 ? 1 : -1); this.drehSumme = 0; }
         this.pinch = neu; return;
       }
       if (!this.start) return;
@@ -226,11 +245,13 @@ export class Steuerung implements Ui {
       this.kamera.schiebe_x += e.clientX - alt.x; this.kamera.schiebe_y += e.clientY - alt.y; this.kamera.begrenzen();
     });
     const ende = (e: PointerEvent): void => {
+      if (this.mitteDreh) { this.mitteDreh = null; return; }
       const war = this.zeiger.delete(e.pointerId);
       if (this.zeiger.size < 2) this.pinch = null;
       if (war && this.zeiger.size === 0 && this.start && !this.zieht) this.tippen(e.clientX, e.clientY);
       if (this.zeiger.size === 0) this.start = null;
     };
+    l.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
     l.addEventListener('pointerup', ende);
     l.addEventListener('pointercancel', ende);
     l.addEventListener('wheel', (e) => { e.preventDefault(); this.kamera.zoomUm(e.deltaY < 0 ? T.karte.zoom_schritt_rad : 1 / T.karte.zoom_schritt_rad, e.clientX, e.clientY); }, { passive: false });
@@ -242,6 +263,7 @@ export class Steuerung implements Ui {
       else if (e.key === 'ArrowUp') { this.kamera.schiebe_y += schritt; this.kamera.begrenzen(); }
       else if (e.key === 'ArrowDown') { this.kamera.schiebe_y -= schritt; this.kamera.begrenzen(); }
       else if (e.key === '+' || e.key === '=') this.kamera.zoomUm(T.karte.zoom_schritt_knopf, this.kamera.breite / 2, this.kamera.hoehe / 2);
+      else if (e.key === 'k' || e.key === 'K') this.hud.kwZeigen(this.kwUmschalten());
       else if (e.key === 'q' || e.key === 'Q') this.kamera.drehen(-1);
       else if (e.key === 'e' || e.key === 'E') this.kamera.drehen(1);
       else if (e.key === '-') this.kamera.zoomUm(1 / T.karte.zoom_schritt_knopf, this.kamera.breite / 2, this.kamera.hoehe / 2);
@@ -251,9 +273,9 @@ export class Steuerung implements Ui {
       e.preventDefault();
     });
   }
-  private pinchMass(): { abstand: number; mx: number; my: number } {
+  private pinchMass(): { abstand: number; mx: number; my: number; winkel: number } {
     const [a, b] = [...this.zeiger.values()];
-    return { abstand: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    return { abstand: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, winkel: Math.atan2(b.y - a.y, b.x - a.x) };
   }
   private nahAmGeist(mx: number, my: number): boolean {
     const g = this.geist;
@@ -316,7 +338,7 @@ export class Steuerung implements Ui {
       objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
-      strassen: ortHolen(this.spiel.stand.ort).strassen, fluss: ortHolen(this.spiel.stand.ort).fluss,
+      strassen: ortHolen(this.spiel.stand.ort).strassen, fluss: ortHolen(this.spiel.stand.ort).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
     };
   }
 

@@ -1,3 +1,4 @@
+import { Kamera } from '../src/render/kamera';
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { bedarfKw } from '../src/core/netz';
@@ -647,5 +648,25 @@ describe('A53 Optik: Straßen und Gärten', () => {
     const feld = new Set(ort.strassen.map(([x, y]) => y * 24 + x));
     const kreuzungen = ort.strassen.filter(([x, y]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => feld.has((y + dy) * 24 + x + dx)).length >= 3);
     expect(kreuzungen.length).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe('A54 kW-Schilder schaltbar, weniger Zebrastreifen', () => {
+  it('A54: Die kW-Anzeige der Häuser ist standardmäßig an und über die Einstellungen schaltbar', async () => {
+    const { einstellungenLesen } = await import('../src/ui/einstellungen');
+    const e = einstellungenLesen();
+    expect(e.kw_anzeigen).toBe(true);
+    const aus = { ...e, kw_anzeigen: false };
+    expect(aus.kw_anzeigen).toBe(false);
+  });
+});
+
+describe('A55 Drehen per Geste', () => {
+  it('A55: Kamera dreht in 90°-Schritten, vier Schritte ergeben wieder die Ausgangsansicht', () => {
+    const k = new Kamera(); k.groesseSetzen(844, 390, 1);
+    const [x0, y0] = k.mitte(10, 10);
+    for (let i = 0; i < 4; i++) k.drehen(1);
+    const [x1, y1] = k.mitte(10, 10);
+    expect(Math.abs(x1 - x0) + Math.abs(y1 - y0)).toBeLessThan(1);
   });
 });

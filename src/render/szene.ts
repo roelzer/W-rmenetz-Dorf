@@ -27,6 +27,8 @@ export interface Szene {
   /** Straßenfelder des Ortes (nur Optik) */
   strassen?: ReadonlyArray<readonly [number, number]>;
   fluss?: ReadonlyArray<readonly [number, number]>;
+  /** Verbrauchsschilder (kW) der Häuser anzeigen; Standard: ja */
+  kw_anzeigen?: boolean;
 }
 
 interface Gras { n: Punkt[]; blume: number; hell: number }
@@ -143,7 +145,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       }
       // Zebrastreifen auf Feldern direkt neben einer Kreuzung/Einmündung
       const naheKreuzung = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => strasse(sx + dx, sy + dy) && arme(sx + dx, sy + dy) >= 3);
-      if (gerade && naheKreuzung) {
+      if (gerade && naheKreuzung && hash(sx + 5, sy + 2) > 0.85) {
         for (let i = -2; i <= 2; i++) { const o = i * 0.11; poly(sx, sy, waag ? [[-0.13, o - 0.035], [0.13, o - 0.035], [0.13, o + 0.035], [-0.13, o + 0.035]] : [[o - 0.035, -0.13], [o + 0.035, -0.13], [o + 0.035, 0.13], [o - 0.035, 0.13]], 'rgba(255,255,255,.82)'); }
       }
       // Flicken im Asphalt
@@ -185,9 +187,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       }
       const [gcx, gcy] = k.mitte(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2);
       if (gcx < -tw || gcx > W + tw || gcy < -th || gcy > H + tw) continue;
-      // Garten: leicht abgesetzte Grünfläche mit hellem Zaunrand
-      m.raute(gcx, gcy, kk + 0.55); X.fillStyle = 'rgba(96,142,64,.30)'; X.fill();
-      X.strokeStyle = 'rgba(214,196,150,.85)'; X.lineWidth = Math.max(1, tw * 0.014); X.stroke();
       if (weg) {
         const [wx, wy, dx, dy] = weg, hw = 0.12;
         const pts: Array<[number, number]> = dx === 0
@@ -264,7 +263,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     }
     // A25: Verbrauch jedes Kunden als kleines Schild am Fuß des Gebäudes
     const DK = KATALOG[o.typ];
-    if (!o.bau && DK.bedarf_kw && !o.gekuendigt && (DK.kategorie === 'haus' || (DK.kategorie === 'gross' && o.zustand === 'vertrag')) && tw >= 36) {
+    if (!o.bau && DK.bedarf_kw && !o.gekuendigt && (DK.kategorie === 'haus' || (DK.kategorie === 'gross' && o.zustand === 'vertrag')) && tw >= 36 && s.kw_anzeigen !== false) {
       const txt = `${Math.round(bedarfKw(o))} kW`, fy = cy + tw * 0.16 * kante;
       oben.push(() => {
         const g = Math.max(10, tw * 0.17), w = txt.length * g * 0.56 + g * 0.9;
