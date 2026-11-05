@@ -129,3 +129,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:30 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Keine Befunde der Stufen Kritisch oder Wichtig, nur zwei kleine Punkte.  ([Bericht](docs/pruefberichte/20261105-143003-reviewer-ad5c0df095c5b32a7.md)) |
 | 2026-11-05 14:30 | ▶ | entwickler | NR12 P1 Takt und Sparmodus bauen |
 | 2026-11-05 14:33 | ■ 🟡 | entwickler | 🟡 Status: FERTIG_MIT_BEDENKEN. Gebaut, committet und von der Test-Schranke geprüft. Mein Kontext ist danach voll gelaufen; deshalb ist dieser Bericht kürze ([Bericht](docs/pruefberichte/20261105-143302-entwickler-a700bf2f083fcd358.md)) |
+| 2026-11-05 14:33 | ▶ | reviewer | Review NR12 P3a Bodenebene |
