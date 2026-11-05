@@ -26,7 +26,8 @@ function figur(name: string): HTMLElement {
     <path d="M42 63c5 5 11 5 16 0" stroke="#7a3d2b" stroke-width="2.4" fill="none" stroke-linecap="round"/>
   </svg>`;
   const kasten = h('div', { class: 'sprecher-bild' });
-  kasten.innerHTML = svg;
+  // Der SVG-Text entsteht nur aus festen Farbwerten der Tabelle oben, nie aus Spielerdaten.
+  kasten.append(document.importNode(new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement, true));
   const foto = new Image();
   const endungen = ['jpg', 'png', 'webp'];
   const probieren = (i: number): void => { if (i < endungen.length) foto.src = `figuren/${name.toLowerCase()}.${endungen[i]}`; };
