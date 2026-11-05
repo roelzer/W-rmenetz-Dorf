@@ -59,6 +59,7 @@ export class Steuerung implements Ui {
       einstellungen: () => einstellungenOeffnen(this, this.einstellungen, (e) => { this.einstellungen = e; this.bewegungAnwenden(); }),
       auftrag: () => { if (this.auftrag) toast(this.auftrag.text); },
       zoom: (f) => this.kamera.zoomUm(f, this.kamera.breite / 2, this.kamera.hoehe / 2),
+      drehen: (r) => this.kamera.drehen(r),
     });
     document.getElementById('app')!.append(this.hud.wurzel, h('div', { id: 'ebene' }));
     this.eingabe();
@@ -235,6 +236,8 @@ export class Steuerung implements Ui {
       else if (e.key === 'ArrowUp') { this.kamera.schiebe_y += schritt; this.kamera.begrenzen(); }
       else if (e.key === 'ArrowDown') { this.kamera.schiebe_y -= schritt; this.kamera.begrenzen(); }
       else if (e.key === '+' || e.key === '=') this.kamera.zoomUm(T.karte.zoom_schritt_knopf, this.kamera.breite / 2, this.kamera.hoehe / 2);
+      else if (e.key === 'q' || e.key === 'Q') this.kamera.drehen(-1);
+      else if (e.key === 'e' || e.key === 'E') this.kamera.drehen(1);
       else if (e.key === '-') this.kamera.zoomUm(1 / T.karte.zoom_schritt_knopf, this.kamera.breite / 2, this.kamera.hoehe / 2);
       else if ((e.key === 'b' || e.key === 'B') && !blattOffen()) this.katalog();
       else if (e.key === 'Enter' && this.geist) this.bestaetigen();

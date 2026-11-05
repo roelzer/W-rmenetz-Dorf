@@ -10,6 +10,7 @@ export interface HudAktionen {
   einstellungen(): void;
   auftrag(): void;
   zoom(faktor: number): void;
+  drehen(richtung: 1 | -1): void;
 }
 
 interface Pille { wurzel: HTMLElement; wert: HTMLElement; fuell: HTMLElement; }
@@ -50,7 +51,8 @@ export class Hud {
       h('button', { type: 'button', class: `rund ${art}`, onclick: bei, 'aria-label': text }, h('span', { class: 'kreis' }, symbol(sym)), h('span', { class: 'etikett umriss' }, text));
     this.runde = h('div', { class: 'runde' }, rund('besuch', 'karte', 'Dörfer', a.besuchen), rund('bauen', 'bauen', 'Bauen', a.bauen));
     const zk = (t: string, f: number, label: string): HTMLButtonElement => h('button', { type: 'button', class: 'zoomknopf', 'aria-label': label, onclick: () => a.zoom(f) }, t);
-    this.zoom = h('div', { class: 'zoom' }, zk('+', 1.25, 'Vergrößern'), zk('−', 1 / 1.25, 'Verkleinern'));
+    this.zoom = h('div', { class: 'zoom' }, zk('+', 1.25, 'Vergrößern'), zk('−', 1 / 1.25, 'Verkleinern'),
+      h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach links drehen', onclick: () => a.drehen(-1) }, '⟲'), h('button', { type: 'button', class: 'zoomknopf', 'aria-label': 'Karte nach rechts drehen', onclick: () => a.drehen(1) }, '⟳'));
     this.wurzel.append(this.links, this.pillen, this.zoom, this.runde);
   }
 

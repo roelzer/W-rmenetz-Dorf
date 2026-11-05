@@ -87,8 +87,11 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       const ecken: Array<[number, number, [number, number], [number, number]]> = [
         [0, -1, [0, -th / 2], [tw / 2, 0]], [1, 0, [tw / 2, 0], [0, th / 2]], [0, 1, [0, th / 2], [-tw / 2, 0]], [-1, 0, [-tw / 2, 0], [0, -th / 2]],
       ];
-      for (const [dx, dy, a, b] of ecken) {
+      for (const [dx0, dy0] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        const [dx, dy] = [dx0, dy0];
         if (wasser.has((fy + dy) * N + fx + dx)) continue;
+        const [rx, ry] = k.dreheVektor(dx, dy);
+        const [, , a, b] = ecken.find((e) => e[0] === rx && e[1] === ry) as (typeof ecken)[number];
         X.beginPath(); X.moveTo(cx + a[0], cy + a[1]); X.lineTo(cx + b[0], cy + b[1]); X.stroke();
       }
     }
@@ -109,8 +112,11 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       const ecken: Array<[number, number, [number, number], [number, number]]> = [
         [0, -1, [0, -th / 2], [tw / 2, 0]], [1, 0, [tw / 2, 0], [0, th / 2]], [0, 1, [0, th / 2], [-tw / 2, 0]], [-1, 0, [-tw / 2, 0], [0, -th / 2]],
       ];
-      for (const [dx, dy, a, b] of ecken) {
+      for (const [dx0, dy0] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
+        const [dx, dy] = [dx0, dy0];
         if (feld.has((sy + dy) * N + sx + dx)) continue;
+        const [rx, ry] = k.dreheVektor(dx, dy);
+        const [, , a, b] = ecken.find((e) => e[0] === rx && e[1] === ry) as (typeof ecken)[number];
         X.beginPath(); X.moveTo(cx + a[0], cy + a[1]); X.lineTo(cx + b[0], cy + b[1]); X.stroke();
       }
     }
@@ -147,8 +153,10 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   // Gebäude von hinten nach vorn
   // A37: Beim Planen (Leitungen einzeichnen) werden Gebäude durchsichtig, die Leitungen dahinter bleiben sichtbar.
   const durchsicht = istDurchsichtig(s.modus, s.spiel?.abschnitt?.phase);
+  // Zeichenreihenfolge von hinten nach vorn in der gedrehten Ansicht (Mittelpunkt, nach Größe gewichtet)
+  const tiefe = (o: Objekt): number => { const kk = groesse(o), [rx, ry] = k.dreheFeld(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2); return rx + ry + kk; };
   const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
-    .sort((a, b) => (a.x + a.y + 2 * groesse(a)) - (b.x + b.y + 2 * groesse(b)) || a.x - b.x);
+    .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
   for (const o of sortiert) {
     const kante = groesse(o), D = KATALOG[o.typ], kat = D.kategorie;

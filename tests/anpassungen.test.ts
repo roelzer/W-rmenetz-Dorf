@@ -516,3 +516,22 @@ describe('A46 alter Spielstand wird an Straßen und Fluss angepasst', () => {
     }
   });
 });
+
+describe('A48 Karte drehen', () => {
+  it('A48: Die Ansicht lässt sich in 90°-Schritten drehen; Feld → Bild → Feld bleibt in jeder Drehung exakt, vier Drehungen ergeben die Ausgangsansicht', async () => {
+    const { Kamera } = await import('../src/render/kamera');
+    const k = new Kamera(); k.groesseSetzen(844, 390, 1);
+    const vorher = k.mitte(7, 3);
+    for (let d = 0; d < 4; d++) {
+      k.drehung = d;
+      const [mx, my] = k.mitte(7, 3);
+      const [fx, fy] = k.feldGenau(mx, my);
+      expect(fx).toBeCloseTo(7); expect(fy).toBeCloseTo(3);
+    }
+    k.drehung = 0;
+    for (let i = 0; i < 4; i++) k.drehen(1);
+    expect(k.drehung).toBe(0);
+    const nachher = k.mitte(7, 3);
+    expect(nachher[0]).toBeCloseTo(vorher[0]); expect(nachher[1]).toBeCloseTo(vorher[1]);
+  });
+});
