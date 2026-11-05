@@ -1,8 +1,8 @@
 import { KATALOG } from '../core/katalog';
 import { groesse } from '../core/netz';
 import type { Bau, InnenQuelle, Objekt } from '../core/typen';
-import { DACHFARBEN, KONTUR, schatten } from './farben';
-import type { Maler } from './maler';
+import { dachfarbe, KONTUR, schatten } from './farben';
+import { WARM_FENSTER, type Maler } from './maler';
 
 const ALLES = Math.PI * 2;
 
@@ -46,14 +46,14 @@ export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Z
     for (let i = 0; i < Math.min(6, lv + 2); i++) { const a = i * 1.1; m.zylinder(cx + Math.cos(a) * tw * 0.38, cy + Math.sin(a) * th * 0.38, tw * 0.07, tw * 0.05, '#9aa4ac'); }
     m.quader(cx, cy, 0.45, tw * 0.18, '#c9d0d6');
   } else if (t === 'buero') {
-    m.schatten(cx, cy, 1.4); const hp = tw * (0.38 + 0.05 * lv), tp = m.quader(cx, cy, 1.35, hp, '#f1e6cf', false);
+    m.schatten(cx, cy, 1.4); const hp = tw * (0.38 + 0.05 * lv); m.kontaktSchatten(cx, cy, 1.35); m.quaderUmriss(cx, cy, 1.35, hp, tw * 0.35); const tp = m.quader(cx, cy, 1.35, hp, '#f1e6cf', false);
     tp.wandR = schatten('#f1e6cf', -0.25);
     m.fenster(tp.bL, tp.bB, 0.3, hp, -hp * 0.35, '#ffe08a', false); m.fenster(tp.bL, tp.bB, 0.7, hp, -hp * 0.35, '#ffe08a', false);
     m.dach(tp, tw * 0.35, lv >= 3 ? '#3f72b8' : '#3c8a4a');
     m.kreis(cx + tw * 0.33, cy - hp * 0.35, tw * 0.13, '#f6c22c', true); X.lineWidth = 2; X.stroke();
     m.text('€', cx + tw * 0.33, cy - hp * 0.35 + tw * 0.06, tw * 0.17, 'rgba(40,34,26,.4)');
   } else if (t === 'huette') {
-    m.schatten(cx, cy, 0.7); const hp = tw * 0.2, tp = m.quader(cx, cy, 0.62, hp, '#c98f52', false);
+    m.schatten(cx, cy, 0.7); const hp = tw * 0.2; m.quaderUmriss(cx, cy, 0.62, hp, tw * 0.2); const tp = m.quader(cx, cy, 0.62, hp, '#c98f52', false);
     tp.wandR = schatten('#c98f52', -0.3); m.dach(tp, tw * 0.2, '#e2582b');
   } else if (D.kategorie === 'haus') haus(m, o, cx, cy, st);
   else if (D.kategorie === 'gross') gross(m, o, cx, cy, st);
@@ -116,6 +116,7 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
     X.strokeStyle = KONTUR; X.lineWidth = 1.2; X.strokeRect(x, y - tw * 0.55, tw * 0.1, tw * 0.55);
     X.fillStyle = '#e2582b'; X.fillRect(x, y - tw * 0.5, tw * 0.1, tw * 0.05); X.fillStyle = '#fff'; X.fillRect(x, y - tw * 0.45, tw * 0.1, tw * 0.04);
   }
+  m.kontaktSchatten(cx, cy, 1.78); m.quaderUmriss(cx, cy, 1.78, hp);
   const tp = m.quader(cx, cy, 1.78, hp, '#e4e7e9', true);
   m.flaeche([[tp.bL[0], tp.bL[1]], [tp.bB[0], tp.bB[1]], [tp.bB[0], tp.bB[1] - hp * 0.22], [tp.bL[0], tp.bL[1] - hp * 0.22]], '#a8553c');
   m.flaeche([[tp.bB[0], tp.bB[1]], [tp.bR[0], tp.bR[1]], [tp.bR[0], tp.bR[1] - hp * 0.22], [tp.bB[0], tp.bB[1] - hp * 0.22]], '#86412e');
@@ -145,18 +146,24 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   const s = zwei ? 1.5 : t === 'rh' ? 0.8 : 0.62 + 0.03 * lv;
   const hp = tw * (zwei ? 0.6 : t === 'rh' ? 0.3 : 0.24) * (1 + 0.06 * (lv - 1));
   const wand = t === 'baeck' ? '#f3d9a6' : t === 'rh' ? '#e8d2c6' : zwei ? '#e3e6e9' : '#f2e8d6';
-  m.schatten(cx, cy, s);
+  m.schatten(cx, cy, s); m.kontaktSchatten(cx, cy, s);
+  { // O1: Umriss um Wände und Dach
+    const L: [number, number] = [cx - (tw / 2) * s, cy], B: [number, number] = [cx, cy + (th / 2) * s], R: [number, number] = [cx + (tw / 2) * s, cy], T: [number, number] = [cx, cy - (th / 2) * s];
+    const rh = ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, u = (p: [number, number]): [number, number] => [p[0], p[1] - hp];
+    const P1: [number, number] = [(T[0] + L[0]) / 2, (T[1] + L[1]) / 2 - hp - rh], P2: [number, number] = [(R[0] + B[0]) / 2, (R[1] + B[1]) / 2 - hp - rh];
+    m.silhouette([L, B, R, u(L), u(B), u(R), u(T), P1, P2]);
+  }
   const tp = m.quader(cx, cy, s, hp, wand, false); tp.wandR = schatten(wand, -0.28);
-  const licht = st.warm ? '#ffd45c' : '#93b4d0', nw = zwei ? 3 : t === 'rh' ? 2 : 1;
+  const licht = st.warm ? WARM_FENSTER : '#93b4d0', nw = zwei ? 3 : t === 'rh' ? 2 : 1;
   for (let i = 0; i < nw; i++) {
     const f = (i + 1) / (nw + 1);
-    m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.32, licht, false); if (zwei) m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.72, licht, false);
-    m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.32, licht, true); if (zwei) m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.72, licht, true);
+    m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.32, licht, false, true); if (zwei) m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.72, licht, false, true);
+    m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.32, licht, true, true); if (zwei) m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.72, licht, true, true);
   }
   { const bx = (tp.bB[0] + tp.bR[0]) / 2 - tw * 0.05 * s, by = (tp.bB[1] + tp.bR[1]) / 2;
     m.flaeche([[bx - tw * 0.04, by + tw * 0.02], [bx + tw * 0.04, by - tw * 0.02], [bx + tw * 0.04, by - tw * 0.02 - hp * 0.45], [bx - tw * 0.04, by + tw * 0.02 - hp * 0.45]], '#7a4e2c'); }
   if (t === 'baeck') m.flaeche([[tp.bL[0], tp.bL[1] - hp * 0.55], [tp.bB[0], tp.bB[1] - hp * 0.55], [tp.bB[0] - tw * 0.04, tp.bB[1] - hp * 0.3], [tp.bL[0] - tw * 0.04, tp.bL[1] - hp * 0.3]], '#e2582b');
-  const r = m.dach(tp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, DACHFARBEN[Math.min(lv, 5)]);
+  const r = m.dach(tp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, dachfarbe(o.id));
   const chx = r.P1[0] + (r.P2[0] - r.P1[0]) * 0.3, chy = r.P1[1] + (r.P2[1] - r.P1[1]) * 0.3;
   m.quader(chx, chy + tw * 0.02, 0.12, tw * 0.1, '#9c5a3c');
   // A60: kein Rauch aus den Hauskaminen (spart Rechenleistung; Simon 2026-11-05)
@@ -172,19 +179,19 @@ function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   const { X } = m, tw = m.tw, th = m.th, t = o.typ, mein = o.zustand === 'vertrag';
   m.schatten(cx, cy, 1.7);
   if (t === 'bad') {
-    const hp = tw * 0.42, tp = m.quader(cx, cy, 1.75, hp, '#e9f1f5', false);
+    const hp = tw * 0.42; m.kontaktSchatten(cx, cy, 1.75); m.quaderUmriss(cx, cy, 1.75, hp); const tp = m.quader(cx, cy, 1.75, hp, '#e9f1f5', false);
     for (let i = 0; i < 4; i++) m.fenster(tp.bL, tp.bB, (i + 1) / 5, hp, -hp * 0.35, '#9fd6f5', false);
     m.flaeche([tp.T, tp.R, tp.B, tp.L], '#f4f8fa');
     m.raute(cx, cy - hp, 1.25); X.fillStyle = m.verlauf(cy - hp - th * 0.6, cy - hp + th * 0.6, '#d6f0ff', '#5aa6d6'); X.fill(); X.strokeStyle = KONTUR; X.lineWidth = Math.max(1, tw * 0.018); X.stroke();
     X.strokeStyle = 'rgba(255,255,255,.7)'; X.beginPath(); X.moveTo(cx - tw * 0.35, cy - hp); X.lineTo(cx, cy - hp + th * 0.35); X.stroke();
     m.text('BAD', cx - tw * 0.35, cy - hp * 0.1, tw * 0.18, '#3b86d1');
   } else if (t === 'klinik') {
-    const hp = tw * 0.8, tp = m.quader(cx, cy, 1.6, hp, '#f4f6f8', true);
+    const hp = tw * 0.8; m.kontaktSchatten(cx, cy, 1.6); m.quaderUmriss(cx, cy, 1.6, hp); const tp = m.quader(cx, cy, 1.6, hp, '#f4f6f8', true);
     for (let r2 = 0; r2 < 3; r2++) for (let i = 0; i < 3; i++) { m.fenster(tp.bL, tp.bB, (i + 1) / 4, hp, -hp * (0.25 + r2 * 0.27), '#cfe6f5', false); m.fenster(tp.bB, tp.bR, (i + 1) / 4, hp, -hp * (0.25 + r2 * 0.27), '#cfe6f5', true); }
     X.fillStyle = '#3b86d1'; X.strokeStyle = KONTUR; m.rundRechteck(cx - tw * 0.12, cy - hp - tw * 0.12, tw * 0.24, tw * 0.18, 4); X.fill(); X.stroke();
     m.text('H', cx, cy - hp + tw * 0.02, tw * 0.16);
   } else {
-    const hp = tw * 0.4, tp = m.quader(cx, cy, 1.75, hp, '#c99a63', false);
+    const hp = tw * 0.4; m.kontaktSchatten(cx, cy, 1.75); m.quaderUmriss(cx, cy, 1.75, hp); const tp = m.quader(cx, cy, 1.75, hp, '#c99a63', false);
     for (let i = 0; i < 3; i++) {
       const f = i / 3, f2 = (i + 1) / 3;
       const a: [number, number] = [tp.L[0] + (tp.B[0] - tp.L[0]) * f, tp.L[1] + (tp.B[1] - tp.L[1]) * f];

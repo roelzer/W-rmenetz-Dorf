@@ -34,3 +34,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 09:34 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig** (Modus gesamt, A45–A66, geprüfter Stand: Commits 87c8e65~1..8a9fdcd, dazu cbfd8d1, das nur die *.whl-Dateien entfernt)  ([Bericht](docs/pruefberichte/20261105-093429-reviewer-a3da02cf7c2069181.md)) |
 | 2026-11-05 09:36 | ■ 🟡 | designer | 🟡 **Logo und Ladebildschirm sind gut. Die Spielkarte spricht eine andere Bildsprache als der Ladebildschirm, und an der Bedienung am Handy sind mehrere Punkt ([Bericht](docs/pruefberichte/20261105-093630-designer-aeebd4e32905af725.md)) |
 | 2026-11-05 09:37 | ■ 🟡 | rechercheur | Ampel GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/vorsehung_anbohrung.md (Modus recherche, keine Gegenprüfung).  ([Bericht](docs/pruefberichte/20261105-093749-rechercheur-a936115a8abd69953.md)) |
+| 2026-11-05 09:44 | ▶ | reviewer | Nachprüfung Review-Fixes + A67/A69 |

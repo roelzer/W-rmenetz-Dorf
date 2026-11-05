@@ -258,12 +258,20 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     }
     // A25: Verbrauch jedes Kunden als kleines Schild am Fuß des Gebäudes
     const DK = KATALOG[o.typ];
-    if (kwSchildZeigen(o, DK.kategorie, DK.bedarf_kw, tw, s.kw_anzeigen)) {
-      const txt = `${Math.round(bedarfKw(o))} kW`, fy = cy + tw * 0.16 * kante;
+    const planung = s.modus === 'stempel' || s.spiel?.abschnitt?.phase === 'offen';
+    const relevant = planung || s.netz.anschluss.has(o.id) && !o.ohne_station || !!o.interessent;
+    if (kwSchildZeigen(o, DK.kategorie, DK.bedarf_kw, tw, s.kw_anzeigen, relevant)) {
+      // Designer A66: helles, kleines Schild an der vorderen Ecke, Punkt zeigt den Zustand (warm / kalt / nicht angeschlossen)
+      const txt = `${Math.round(bedarfKw(o))} kW`, fx = cx + tw * 0.18 * kante, fy = cy + tw * 0.2 * kante;
+      const punkt = s.netz.warm.has(o.id) ? '#ffc65c' : s.netz.anschluss.has(o.id) && !o.ohne_station ? '#4a86c5' : '#a7afb4';
       oben.push(() => {
-        const g = Math.max(10, tw * 0.17), w = txt.length * g * 0.56 + g * 0.9;
-        X.fillStyle = 'rgba(42,33,24,.72)'; m.rundRechteck(cx - w / 2, fy - g * 0.9, w, g * 1.3, g * 0.4); X.fill();
-        m.text(txt, cx, fy, g, '#fff');
+        const g = DK.kategorie === 'gross' ? 12 : 11;
+        X.font = `700 ${g}px "Manrope",system-ui,sans-serif`;
+        const w = X.measureText(txt).width + g * 1.6, hgt = g * 1.5;
+        X.fillStyle = 'rgba(251,250,247,.92)'; X.strokeStyle = 'rgba(31,42,46,.12)'; X.lineWidth = 1;
+        m.rundRechteck(fx - w / 2, fy - hgt / 2, w, hgt, 6); X.fill(); X.stroke();
+        X.beginPath(); X.arc(fx - w / 2 + g * 0.65, fy, 3, 0, Math.PI * 2); X.fillStyle = punkt; X.fill();
+        X.fillStyle = '#1f2a2e'; X.textAlign = 'center'; X.textBaseline = 'middle'; X.fillText(txt, fx + g * 0.35, fy + 0.5); X.textBaseline = 'alphabetic';
       });
     }
   }

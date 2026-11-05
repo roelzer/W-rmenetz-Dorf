@@ -663,12 +663,13 @@ describe('A54 kW-Schilder schaltbar, weniger Zebrastreifen', () => {
     expect(kwSchildZeigen(haus, 'haus', 10, 60, true)).toBe(true);
     expect(kwSchildZeigen(haus, 'haus', 10, 60, undefined)).toBe(true);
     expect(kwSchildZeigen(haus, 'haus', 10, 60, false)).toBe(false);
-    expect(kwSchildZeigen(haus, 'haus', 10, 20, true)).toBe(false); // zu weit herausgezoomt
+    expect(kwSchildZeigen(haus, 'haus', 10, 40, true)).toBe(false); // zu weit herausgezoomt
+    expect(kwSchildZeigen(haus, 'haus', 10, 60, true, false)).toBe(false); // Designer A66: nicht angeschlossen, kein Interesse, kein Planen
     expect(kwSchildZeigen({ bau: null, gekuendigt: true }, 'haus', 10, 60, true)).toBe(false);
     expect(kwSchildZeigen({ bau: null, zustand: 'gesperrt' }, 'gross', 40, 60, true)).toBe(false);
     expect(kwSchildZeigen({ bau: null, zustand: 'vertrag' }, 'gross', 40, 60, true)).toBe(true);
     const { readFileSync } = await import('node:fs');
-    expect(readFileSync(new URL('../src/render/szene.ts', import.meta.url), 'utf8')).toContain('kwSchildZeigen(o, DK.kategorie, DK.bedarf_kw, tw, s.kw_anzeigen)');
+    expect(readFileSync(new URL('../src/render/szene.ts', import.meta.url), 'utf8')).toContain('kwSchildZeigen(o, DK.kategorie, DK.bedarf_kw, tw, s.kw_anzeigen, relevant)');
   });
 });
 
@@ -1004,5 +1005,25 @@ describe('Review: Anpassung alter Spielstände (A46)', () => {
     expect(neu.zustand).toBe('vertrag');
     expect(r.stand.objekte.some((o) => o.id === 9998)).toBe(false);
     expect(r.stand.geld_eur).toBe(geld + (KATALOG.d50.kosten_eur as number[])[0]);
+  });
+});
+
+describe('A70 Kartenoptik nach Designer-Prüfung', () => {
+  it('A70: Dachfarbe ist je Haus fest und gemischt (Rottöne überwiegen), Umriss ist die konvexe Hülle', async () => {
+    const { dachfarbe } = await import('../src/render/farben');
+    const { huelle } = await import('../src/render/maler');
+    expect(dachfarbe(17)).toBe(dachfarbe(17));
+    const farben = Array.from({ length: 400 }, (_, i) => dachfarbe(i + 1));
+    expect(new Set(farben).size).toBeGreaterThanOrEqual(5);
+    const rot = farben.filter((f) => ['#e2582b', '#c4553e', '#d8392f'].includes(f)).length / farben.length;
+    expect(rot).toBeGreaterThan(0.55); expect(rot).toBeLessThan(0.85);
+    const h = huelle([[0, 0], [10, 0], [10, 10], [0, 10], [5, 5], [5, 0]]);
+    expect(h).toHaveLength(4);
+  });
+  it('A70: Bei offenem Blatt bleibt im Querformat die Geld-Anzeige links neben dem Blatt; Zoomknöpfe paarweise', async () => {
+    const { readFileSync } = await import('node:fs');
+    const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
+    expect(css).toContain('.blatt-offen .pillen{right:calc(min(46%,400px) + 12px)}');
+    expect(css).toMatch(/\.zoom\{display:grid;grid-template-columns:repeat\(2,/);
   });
 });

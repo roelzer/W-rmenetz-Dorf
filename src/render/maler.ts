@@ -43,6 +43,30 @@ export class Maler {
     g.addColorStop(0, 'rgba(30,50,35,.28)'); g.addColorStop(1, 'rgba(30,50,35,0)');
     X.fillStyle = g; X.beginPath(); X.arc(0, 0, rx, 0, ALLES); X.fill(); X.restore();
   }
+  /** O7 (Designer): Kontaktschatten direkt am Fuß – das Gebäude „steht“. */
+  kontaktSchatten(cx: number, cy: number, s: number): void {
+    const X = this.X;
+    X.beginPath(); X.ellipse(cx, cy + this.th * 0.06 * s, this.tw * 0.5 * s, this.th * 0.5 * s, 0, 0, ALLES);
+    X.fillStyle = 'rgba(20,30,15,.22)'; X.fill();
+  }
+  /** O1 (Designer): Umriss in Ladebild-Braun um die Gesamtform. Vor den Flächen zeichnen – die Flächen decken die innere Hälfte ab. */
+  silhouette(punkte: Punkt[]): void {
+    const X = this.X, h = huelle(punkte);
+    if (h.length < 3) return;
+    X.save(); X.lineJoin = 'round'; X.lineCap = 'round';
+    X.strokeStyle = 'rgba(59,29,10,.7)'; X.lineWidth = 2 * Math.max(1, this.tw * 0.018);
+    X.beginPath(); X.moveTo(h[0][0], h[0][1]); for (const p of h.slice(1)) X.lineTo(p[0], p[1]); X.closePath(); X.stroke();
+    X.restore();
+  }
+  /** O1: Umriss eines Quaders (optional mit Satteldach der Höhe rh). */
+  quaderUmriss(cx: number, cy: number, s: number, hp: number, rh = 0): void {
+    const tw = this.tw, th = this.th;
+    const L: Punkt = [cx - (tw / 2) * s, cy], B: Punkt = [cx, cy + (th / 2) * s], R: Punkt = [cx + (tw / 2) * s, cy], T: Punkt = [cx, cy - (th / 2) * s];
+    const u = (p: Punkt): Punkt => [p[0], p[1] - hp];
+    const pkt: Punkt[] = [L, B, R, u(L), u(B), u(R), u(T)];
+    if (rh) pkt.push([(T[0] + L[0]) / 2, (T[1] + L[1]) / 2 - hp - rh], [(R[0] + B[0]) / 2, (R[1] + B[1]) / 2 - hp - rh]);
+    this.silhouette(pkt);
+  }
   kreis(x: number, y: number, r: number, fuell: string | CanvasGradient, rand = false): void {
     const X = this.X;
     X.beginPath(); X.arc(x, y, r, 0, ALLES); X.fillStyle = fuell; X.fill();
@@ -112,11 +136,15 @@ export class Maler {
     X.beginPath(); X.ellipse(cx, cy - hp, rw, rh, 0, 0, ALLES); X.fillStyle = schatten(farbe, 0.25); X.fill(); X.stroke();
   }
 
-  fenster(p0: Punkt, p1: Punkt, f: number, hp: number, yoff: number, licht: string, seite: boolean): void {
+  fenster(p0: Punkt, p1: Punkt, f: number, hp: number, yoff: number, licht: string, seite: boolean, gross = false): void {
     const X = this.X;
     const bx = p0[0] + (p1[0] - p0[0]) * f, by = p0[1] + (p1[1] - p0[1]) * f + yoff;
-    const w = this.tw * 0.055, h = hp * 0.32, sk = seite ? -0.5 : 0.5;
-    this.flaeche([[bx - w, by - w * sk - h], [bx + w, by + w * sk - h], [bx + w, by + w * sk], [bx - w, by - w * sk]], licht);
+    // O3 (Designer): größere Fenster mit hellem Rahmen; warme Fenster leuchten mit einem Schein (Wärme ist das Leuchten im Spiel)
+    const w = this.tw * (gross ? 0.072 : 0.055), h = hp * (gross ? 0.4 : 0.32), sk = seite ? -0.5 : 0.5;
+    const rahmen = (d: number): Punkt[] => [[bx - w - d, by - (w + d) * sk - h - d], [bx + w + d, by + (w + d) * sk - h - d], [bx + w + d, by + (w + d) * sk + d], [bx - w - d, by - (w + d) * sk + d]];
+    if (gross && licht === WARM_FENSTER) this.flaeche(rahmen(this.tw * 0.035), 'rgba(255,200,80,.32)');
+    if (gross) this.flaeche(rahmen(Math.max(1, this.tw * 0.012)), '#fbf6ec');
+    this.flaeche(rahmen(0), licht);
     X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1; X.beginPath(); X.moveTo(bx, by - h); X.lineTo(bx, by); X.stroke();
   }
 
@@ -178,4 +206,18 @@ export class Maler {
     }
     X.restore();
   }
+}
+
+/** Farbe warmer Fenster (Haus wird vom Netz versorgt). */
+export const WARM_FENSTER = '#ffd45c';
+
+/** Konvexe Hülle (Monotone Chain) – für den Gebäudeumriss. */
+export function huelle(punkte: Punkt[]): Punkt[] {
+  const p = [...punkte].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (p.length < 3) return p;
+  const kreuz = (o: Punkt, a: Punkt, b: Punkt): number => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const unten: Punkt[] = [], oben: Punkt[] = [];
+  for (const q of p) { while (unten.length >= 2 && kreuz(unten[unten.length - 2], unten[unten.length - 1], q) <= 0) unten.pop(); unten.push(q); }
+  for (const q of [...p].reverse()) { while (oben.length >= 2 && kreuz(oben[oben.length - 2], oben[oben.length - 1], q) <= 0) oben.pop(); oben.push(q); }
+  return [...unten.slice(0, -1), ...oben.slice(0, -1)];
 }

@@ -14,12 +14,13 @@ export function eigenerHausanschluss(leitung: TypId, bedarf_kw: number): TypId |
   return (KATALOG[passend].kapazitaet_kw as number) < (KATALOG[leitung].kapazitaet_kw as number) ? passend : null;
 }
 
-/** A54: kW-Schild über einem Gebäude zeigen? Nur fertige, nicht gekündigte Häuser bzw. Großabnehmer mit Vertrag, ab ausreichender Kachelbreite und wenn der Schalter an ist. */
+/** A54: kW-Schild über einem Gebäude zeigen? Nur fertige, nicht gekündigte Häuser bzw. Großabnehmer mit Vertrag, wenn der Schalter an ist,
+ *  ab 44 px Kachelbreite und (Designer A66) nur dort, wo die Zahl nützt: angeschlossen, Interessent oder während des Leitungsplanens. */
 export function kwSchildZeigen(
   o: { bau: unknown; gekuendigt?: boolean; zustand?: string },
-  kat: string, bedarf_kw: number | undefined, kachel_px: number, kw_anzeigen: boolean | undefined,
+  kat: string, bedarf_kw: number | undefined, kachel_px: number, kw_anzeigen: boolean | undefined, relevant = true,
 ): boolean {
-  return !o.bau && !!bedarf_kw && !o.gekuendigt && (kat === 'haus' || (kat === 'gross' && o.zustand === 'vertrag')) && kachel_px >= 36 && kw_anzeigen !== false;
+  return !o.bau && !!bedarf_kw && !o.gekuendigt && (kat === 'haus' || (kat === 'gross' && o.zustand === 'vertrag')) && kachel_px >= 44 && kw_anzeigen !== false && relevant;
 }
 
 /** A55: Zwei-Finger-Drehung sammelt den Winkel; ab 0,6 rad dreht die Karte um einen 90°-Schritt. */
