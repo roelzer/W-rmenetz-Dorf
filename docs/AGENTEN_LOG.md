@@ -268,3 +268,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 21:29 | ■ 🟢 | tester | 🟢 Die Tester-Vorarbeit ist fertig und committet. Die umgestellten und neuen Tests sind wie gewollt rot. Mit dem Ein-Zeilen-Fix werden alle grün (getestet in ([Bericht](docs/pruefberichte/20261105-212904-tester-ada421d302e20b69c.md)) |
 | 2026-11-05 21:29 | ▶ | entwickler | B2b Kurzform Einzeiler |
 | 2026-11-05 21:31 | ■ 🟢 | architekt | 🟢 Der Bauplan für NR17 steht und ist auf `claude/keen-mccarthy-f4p5us` (Commit 368f6a4, gepusht). Vorher habe ich fetch/merge gemacht. Simons Problem habe i ([Bericht](docs/pruefberichte/20261105-213129-architekt-ae7b3560aebd044a7.md)) |
+| 2026-11-05 21:31 | ▶ | kritiker | Kritik Bauplan NR17 |
+| 2026-11-05 21:31 | ▶ | fachpruefer | Fachprüfung NR17-Texte |
