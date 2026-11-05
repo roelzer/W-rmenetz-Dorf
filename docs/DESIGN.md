@@ -418,8 +418,8 @@ Anlass: Im Zeichenmodus ist die Leiste so breit wie ein normales Blatt (388 px b
 - *Normal:* wie Skizze. *Radierer an* / *T-Stück an:* Knopf `gewaehlt`, Kennzeile mit Handlungssatz.
 - *Nichts gezeichnet:* „Zurück“ gesperrt-grau nach 12.19, Tippen → „Noch nichts gezeichnet.“
 - *Kein offener Bauabschnitt:* Die Leiste öffnet sich gar nicht; „Leitung selbst legen“ ist vorher gesperrt nach 12.19 (Grund „braucht offenen Bauabschnitt“, Hinweis „Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.“). Inhaltliche Umsetzung entscheidet der Projektleiter (Prüfbericht Punkt a).
-- *Fehler beim Abschließen:* Meldung nach 12.17 in der freien Fläche, Leiste bleibt offen.
-- *Kamera:* Der Abschnitt liegt in der Mitte der freien Fläche (Bildschirm − 216 px), nicht mehr mit festen 46 % rechnen (`steuerung.ts` nutzt heute `0.46` und `400`).
+- *Fehler beim Abschließen:* Meldung nach 12.17 in der freien Fläche, Leiste bleibt offen. *(Mit 0 Leitungen jetzt gesperrt, siehe 12.21 Punkt 1.)*
+- *Kamera:* Der Abschnitt liegt in der Mitte der freien Fläche (Bildschirm − 216 px), nicht mehr mit festen 46 % rechnen (`steuerung.ts` nutzt heute `0.46` und `400`). *(Genaue, prüfbare Regel: 12.21 Punkt 4.)*
 - *Weniger Bewegung:* wie 12.9.
 
 Tokens: `menue.mass_px.zeichenleiste_breite` 216, `zeichenleiste_kopf` 48, `farbknopf` 44, `farbknopf_luecke` 6, `farbknopf_streifen` 6, `zeichen_knopf_innen_seite` 8, `schloss_klein` 14; `menue.schrift.groesse_px.zeichen_titel` 20, `farbknopf` 16, `farbknopf_sperre` 11. Neue Symbole in `symbole.ts` (gleicher Linienstil): `frage` (Fragezeichen im Kreis) und `zurueck` (Bogenpfeil nach links).
@@ -455,7 +455,7 @@ Anlass: Seit NR16-B1 wackeln alle gesperrten Knöpfe, aber nur T-Stück, „Dick
 1. **Zeile 2 = Grund**, klein geschrieben wie die vorhandenen („ab …“, „braucht …“). Seitenblatt: höchstens 28 Zeichen. Enge Stellen (Zeichenleiste, zwei Knöpfe nebeneinander, Knopf rechts in einer Zeile): höchstens 18 Zeichen, sonst die Kurzform aus der Tabelle. Umbruch nur an Wortgrenzen, höchstens 2 Zeilen; Zahl und Wort davor mit geschütztem Leerzeichen verbinden (`\u00a0`, z. B. „Stufe 4“, „noch 3“).
 2. **Schloss ja** = die Sperre fällt erst durch Fortschritt (Stufe der Heizzentrale, Bauabschnitt, Bedingungen, Ziele). **Schloss nein** = vorübergehend oder schon erledigt (Geld, Taler, Helfer beschäftigt, Bau läuft, schon geplant, schon gemocht, Rand eines Reglers, nichts gezeichnet). So bedeutet das Schloss überall dasselbe: „Hier musst du erst etwas anderes schaffen.“
 3. **Hinweis (Meldung beim Antippen)** = was los ist + was man tun kann, Du-Form, höchstens 90 Zeichen. Das sind nach 12.17 höchstens 6 s Anzeige und höchstens 3 Zeilen auch bei 667×375 mit offenem Seitenblatt (freie Breite 667 − 306 = 361 px, Meldung 337 px, rund 42 Zeichen je Zeile). `{…}` = Wert aus dem Spiel, zum Zeitpunkt des **Antippens** berechnet (Geld und Restzeiten ändern sich, während das Blatt offen ist).
-4. **Mehrere Gründe zugleich:** Es zählt nur der oberste nach dieser Reihenfolge – Stufe › Bauabschnitt › Bedingung/Ziel › beschäftigt/Bau läuft › Geld/Taler. Zeile 2 und Hinweis nennen **denselben** Grund. (Beispiel Puffer auf Stufe 1 ohne Geld: „ab Heizzentrale Stufe 3“, nicht der Fehlbetrag.)
+4. **Mehrere Gründe zugleich:** Es zählt nur der oberste nach dieser Reihenfolge – Stufe › Bauabschnitt › Bedingung/Ziel › beschäftigt/Bau läuft › Geld/Taler. Zeile 2 und Hinweis nennen **denselben** Grund. (Beispiel Puffer auf Stufe 1 ohne Geld: „ab Heizzentrale Stufe 3“, nicht der Fehlbetrag.) Fällt der erste Grund bis zum Antippen weg, zählt der nächste noch geltende (12.21 Punkt 3).
 5. **Geld- und Taler-Regel (für jeden Knopf mit Preis):** Fehlt nur Geld, bleibt in Zeile 2 der **Preis** stehen (mit Münze bzw. Taler, in `aus_text`), kein Schloss – der Spieler sieht so, wie viel er braucht. Hinweis: **„Dir fehlen noch {Fehlbetrag}. Am Monatsende zahlen deine Kunden ihre Wärmerechnung.“** Fehlbetrag = Preis − Geld, auf ganze Euro **aufgerundet** (die Geldanzeige rundet ab; aufrunden heißt: mit diesem Betrag reicht es sicher), mit Tausenderpunkt und €. Taler: **„Dir fehlen noch {n} Dorftaler. Du bekommst sie für Aufträge und beim Wegräumen.“** Derselbe Wortlaut gilt auch für die Katalogkarte (`katalog.ts` ~131, heute „Es fehlen …“), damit das Spiel überall gleich spricht.
 6. **Stufen-Regel:** Hinweis „{Name} gibt es ab Heizzentrale Stufe {n}. Baue die Heizzentrale aus.“ – `{Name}` aus `merkmalName`, `{n}` aus `abStufe`, nie fest im Text.
 7. Texte, die etwas über echte Wärmenetze sagen könnten, sind unten mit **[F]** markiert (Fachprüfer). Spielgrenzen sind ausdrücklich als „im Spiel“ gekennzeichnet.
@@ -475,7 +475,7 @@ Anlass: Seit NR16-B1 wackeln alle gesperrten Knöpfe, aber nur T-Stück, „Dick
 | B4 | dito | Abschnitt wird gebaut | „Abschnitt wird gebaut“ | „Der Bauabschnitt wird gerade gebaut ({Restzeit}). Danach kannst du den nächsten planen.“ | ja |
 | B5 | „Hausanschluss geplant“ (~205) | Anschluss ist schon im Abschnitt | „kommt mit dem Bauabschnitt“ | „Der Hausanschluss ist schon eingeplant. Gebaut wird er mit dem Bauabschnitt.“ | nein |
 | B6 | „Abschnitt abschließen“ im Baumenü (`katalog.ts` ~86) | 0 Leitungen eingezeichnet | „noch nichts gezeichnet“ (neu) | „Noch nichts gezeichnet. Wähle eine Leitung und zieh sie in der Karte.“ | nein |
-| B7 | „↶ Zurück“ in der Zeichenleiste (W1c, 12.18; heute „Letzte zurück“, nie gesperrt) | keine geplante Leitung im Abschnitt | – (Knopf zu schmal, 94 px) | „Noch nichts gezeichnet.“ | nein |
+| B7 | „↶ Zurück“ in der Zeichenleiste (W1c, 12.18; heute „Letzte zurück“, nie gesperrt) | keine geplante Leitung im Abschnitt | – (Knopf zu schmal, 94 px) | „Noch nichts gezeichnet – es gibt nichts zurückzunehmen.“ (12.21) | nein |
 | B8 | „{Planung}: Bauabschnitt planen (lassen)“ (`kontext.ts` ~202, `katalog.ts` ~71), „{Material}: Material bestellen“ (~92) | Geld fehlt | Preis | Geld-Regel 5 | nein |
 | B9 | „{Material}: Expresslieferung“ (~102) | `express` gesperrt / Geld | „ab Heizzentrale Stufe 2“ / Preis | „Expresslieferung gibt es ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.“ / Geld-Regel | ja / nein |
 | B10 | „Sofort fertig“ (~103) | Taler fehlen | „{c} Taler“ | Taler-Regel 5 | nein |
@@ -483,6 +483,7 @@ Anlass: Seit NR16-B1 wackeln alle gesperrten Knöpfe, aber nur T-Stück, „Dick
 | H2 | „Helfer beauftragen“ (~242) | `ruecklauf_helfer` gesperrt | „ab Heizzentrale Stufe 3“ | „Rücklauf-Helfer gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.“ | ja (neu) |
 | H3 | „Alle Helfer beschäftigt“ (~255) | kein Helfer frei | „nächster frei in {Zeit}“ (statt Preis) | „Alle Helfer sind gerade beschäftigt. Der nächste ist in {Zeit} frei.“ | nein |
 | H4 | „{Helfer} beauftragen · …“ (~255) | Haus ohne Übergabestation | „erst Station wählen“ | „Dieses Haus hat noch keine Übergabestation. Wähle oben im Blatt erst eine.“ | ja |
+| H7 | „{Helfer} beauftragen · …“ (~261, Nachtrag 12.21 Punkt 2) | Geld fehlt | Preis · Zeit (wie frei) | Geld-Regel 5 | nein |
 | H5 | „Puffer einbauen“ (~220) | `hauspuffer` gesperrt / Geld | „ab Heizzentrale Stufe 3“ / Preis | „Puffer im Haus gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.“ / Geld-Regel | ja (neu) / nein |
 | H6 | „Verkaufen“ (~317) | Gebäude wird gebaut | „erst nach dem Bau“ (statt Erlös) | „Während des Baus kannst du nicht verkaufen. Warte, bis er fertig ist.“ | nein |
 | Z1 | „PV aufs Dach · {kWp}“ (~386) | `dach_pv` gesperrt / Geld | „ab Heizzentrale Stufe 4“ / Preis | „PV auf dem Heizhaus-Dach gibt es ab Heizzentrale Stufe 4. Baue die Heizzentrale aus.“ / Geld-Regel | ja (neu) / nein |
@@ -509,3 +510,76 @@ Bewusst **ohne** Eintrag: Katalogkarten (`bkarte`, kein `aus`, eigene Meldung be
 Tokens: keine neuen; es gelten `menue.mass_px.schloss_klein`, `wackeln_weg`, `menue.zeit_ms.wackeln` und die Toast-Zeiten aus 12.17.
 
 **Prüfkriterium (Foto):** 844×390 und 667×375, je ein Foto vor und direkt nach dem Antippen von S1, S2 (Heizhaus mit Quelle auf Stufe der HZ), H1, H5, Z3, R2 und einem Geld-Knopf (B8 ohne Geld). Zeile 2 vollständig sichtbar, höchstens 2 Zeilen, kein abgeschnittener Text, Knopf ≥ 44 px hoch; S2 passt rechts in die Zeile, ohne die Quellenbezeichnung zu überdecken. Per Skript: Jeder `button[aria-disabled="true"]` in Haus-, Großabnehmer-, Heizhaus-, Leitungs-, Baumenü- und Zeichenblatt zeigt nach `click()` eine Meldung (`#toast` nicht leer, ≤ 90 Zeichen außer S5); kein gesperrter Knopf ohne Meldung. Geld-Knopf: Meldung enthält den aufgerundeten Fehlbetrag.
+
+### 12.21 Nachträge zu 12.16–12.20 für den Bau NR16-B2b (A92, 2026-11-05)
+Anlass: offene Punkte aus dem Bau und Review NR16-B2a (ENTSCHEIDUNGEN 2026-11-05) und Lücken, die für Abnahmetests fehlen. **Ergänzt** 12.16–12.20; wo etwas ersetzt wird, steht es dabei.
+
+**1. „Abschnitt abschließen“ in der Zeichenleiste – Zeile 2 und Hinweise**
+Der **Knopfname bleibt „Abschnitt abschließen“** (gleiches Wort wie im Baumenü, B6; gemessen 185 ≤ 197 px bei Lilita 16, 12.18). Die 18-Zeichen-Regel (12.20 Regel 1) gilt für **Zeile 2**; dafür gelten in der Zeichenleiste diese Kurzformen. Der Name des Planers steht bewusst nicht in Zeile 2 (ein längerer Name würde die 18 Zeichen sprengen), sondern nur im Hinweis.
+| Nr | gesperrt, wenn | Zeile 2 in der Leiste (≤ 18 Zeichen) | Hinweis beim Antippen | Schloss |
+|---|---|---|---|---|
+| B1 | kein Bauabschnitt | „kein Bauabschnitt“ (17) | wie 12.20 B1: „Erst mit {Planung} einen Bauabschnitt planen: Bauen → Leitungen.“ | ja |
+| B2 | Abschnitt in Planung | „wird noch geplant“ (17) | wie 12.20 B2: „{Planung} plant den Bauabschnitt noch ({Restzeit}). Danach kannst du zeichnen.“ | ja |
+| B3 | wartet auf Bestellung | „Bestellung offen“ (16) | wie 12.20 B3 | ja |
+| B4 | wird gebaut | „Abschnitt im Bau“ (16) | wie 12.20 B4 | ja |
+| B6 | Abschnitt offen, 0 Leitungen eingezeichnet | „nichts gezeichnet“ (17) | wie 12.20 B6: „Noch nichts gezeichnet. Wähle eine Leitung und zieh sie in der Karte.“ | nein |
+| B7 | „↶ Zurück“: keine geplante Leitung im Abschnitt | – (Knopf 94 px, keine Zeile 2) | **neu:** „Noch nichts gezeichnet – es gibt nichts zurückzunehmen.“ (ersetzt „Noch nichts gezeichnet.“ aus 12.18/12.20 B7) | nein |
+
+Regeln dazu:
+- Reihenfolge B1–B4 › B6 (Bauabschnitt vor „nichts gezeichnet“, 12.20 Regel 4). Die Leiste öffnet sich heute nur im offenen Abschnitt (B6 ist der Regelfall); B1–B4 sind die Absicherung, falls sich der Zustand ändert, während die Leiste offen ist (z. B. Spielstand geladen).
+- **Ersetzt** in 12.18 „Fehler beim Abschließen“: Mit 0 Leitungen ist der Knopf gesperrt (B6); er schließt die Leiste **nicht** mehr und ruft das Abschließen nicht auf. Heute schließt Tippen ohne Leitung die Leiste und meldet erst danach „Zeichne erst Leitungen …“ – das entfällt.
+- B6 (Abschließen) und B7 (Zurück) nutzen **dieselbe** Abfrage („gibt es eine geplante Leitung im Abschnitt?“). Sie werden nach jeder Änderung neu gesetzt, ohne die Leiste neu zu öffnen: erste Leitung gezeichnet → beide frei; letzte mit „Zurück“ entfernt → beide wieder gesperrt.
+- Höhe des Knopfs: **immer 52 px** (`zeichen_abschluss_hoehe`), auch frei (dann einzeilig, senkrecht mittig). So springt die Aktionsleiste nicht, wenn Zeile 2 kommt oder geht. Höhe der Leiste im schlechtesten Fall damit 369 px statt 365 (12.18): passt in 375 und mit 21 px Gerätespielraum genau in 390.
+- Zeile 2 Manrope 800 12, Schloss 14 + 4 davor; Breite geschätzt (nicht gemessen) höchstens rund 135 px ≤ 197 – im Test messen (Prüfkriterium unten).
+- „Zurück“ gesperrt: Pfeil-Symbol und Wort in `aus_text`, `aria-label` bleibt „Letzte Leitung zurück“, dazu `aria-disabled="true"`.
+
+**2. Helfer-Knopf im Hausblatt: bekommt die Geld-Sperre – ja.**
+Grund: Regel 5 gilt für **jeden** Knopf mit Preis; der Knopf zeigt einen Preis („{Preis} · {Zeit}“). Ohne Sperre sieht er frei aus, Tippen führt den Kauf aus und der Kern lehnt mit eigenem Text („Zu wenig Geld“-Fall) ab – das Spiel spräche hier anders als bei Puffer, Material und Planung. Mit Sperre: Zeile 2 bleibt „{Preis} · {Zeit}“ (wie 12.20 S3g), kein Schloss, Hinweis nach Regel 5 „Dir fehlen noch {Fehlbetrag}. Am Monatsende zahlen deine Kunden ihre Wärmerechnung.“, Fehlbetrag beim Antippen berechnet. Reihenfolge am Knopf (bestätigt die angenommene Abweichung aus B2a): **H3 beschäftigt › H4 ohne Station › Geld**. 12.20 bekommt damit die Zeile **H7 | „{Helfer} beauftragen“ | Geld fehlt | Preis · Zeit | Geld-Regel 5 | nein**.
+
+**3. Fällt der erste Sperrgrund beim Antippen weg, zählt der nächste – bestätigt, gilt als Vorgabe.**
+Ergänzt 12.20 Regel 4 und ENTSCHEIDUNGEN Antwort 7: Beim Antippen werden **alle** Gründe des Knopfs neu gelesen, in der Reihenfolge der Regel 4.
+- Gilt noch irgendein Grund: Knopf wackelt, Meldung = Hinweis des **ersten noch geltenden** Grundes (Wortlaut nach 12.20, nicht der Kerntext), und das Blatt baut sich neu auf, damit Zeile 2 denselben Grund zeigt (Regel 4: Zeile 2 und Hinweis nennen denselben Grund).
+- Gilt kein Grund mehr: die normale Aktion läuft (wie bisher).
+- Grund: Sonst führt das Tippen eine Aktion aus, die der Kern ablehnt, die Meldung kommt im Kernwortlaut („Erst eine Übergabestation einbauen“) und Zeile 2 nennt noch den alten Grund. Das wirkt wie zwei verschiedene Spiele.
+- Beispiel: Haus ohne Station, alle Helfer beschäftigt, Zeile 2 „nächster frei in 1m“. Ein Helfer wird frei, der Spieler tippt → Wackeln, Meldung H4 „Dieses Haus hat noch keine Übergabestation. Wähle oben im Blatt erst eine.“, Zeile 2 jetzt „erst Station wählen“ mit Schloss, kein Geld abgezogen, kein Auftrag.
+- Gilt für alle Knöpfe mit mehreren Gründen (Helfer, B9, H5, Z1–Z4, Zeichenleiste B1–B6).
+
+**4. Was für Abnahmetests fehlte (12.16–12.18)**
+*Prüfumgebung (gilt für alle Fotos und Skripte 12.16–12.21):* Playwright, Chromium, Fenster 844×390 und 667×375, Gerätefaktor 2, Touch an (`hasTouch`), Querformat. Vor jedem Messen `document.fonts.ready` abwarten (sonst stimmen die Breiten nicht). Messtoleranz 1 px für Lagen und Breiten (Teilpixel). Je einmal mit `reducedMotion: 'reduce'`. Sicherheitsabstand des Geräts ist im Test 0.
+
+*12.16 Reiter – ergänzt:*
+- Die Leiste hat `role="tablist"`, jeder Reiter `role="tab"`; genau **ein** Reiter hat `aria-selected="true"`, und das ist der blaue.
+- Wort-Stufe prüfbar: bei 844×390 ist das sichtbare Wort des zweiten Reiters „Außenanlagen“ und des dritten „Leitungen“, bei 667×375 „Außen“ und „Netz“ (sichtbar = nicht `display:none`). `aria-label` in beiden Größen der volle Name.
+- Jeder Reiter enthält ein Symbol (`svg`, 20×20 ±1) über dem Wort; Symbol-Unterkante ≤ Wort-Oberkante.
+- Tastatur: Tab erreicht jeden Reiter, Enter und Leertaste wählen ihn (aria-selected wechselt, Inhalt wechselt). Fokusring sichtbar (3 px).
+- Höhe der Leiste 64 ±1 px in beiden Größen (die Reiter dürfen die Leiste nicht wachsen lassen).
+
+*12.17 Meldung – ergänzt (Zahlen zum Nachrechnen):*
+| Lage | 844×390 | 667×375 |
+|---|---|---|
+| kein Blatt | Mitte x = 422, Breite ≤ 420 | Mitte x = 333,5, Breite ≤ 420 |
+| Seitenblatt (388 bzw. 306,8 px) | Mitte x = 228, Breite ≤ 420 | Mitte x = 180, Breite ≤ 336 |
+| Zeichenleiste (216 px) | Mitte x = 314, Breite ≤ 420 | Mitte x = 225,5, Breite ≤ 420 |
+- Mitte x = halbe freie Breite (aus dem Rechteck des Blatts), Toleranz ±2 px. Unterkante = Fensterhöhe − 12 ±2 px (bzw. 8 px über dem obersten unteren Element). Abstand zum Blatt `blatt.left − toast.right ≥ 12`.
+- Höchstens 3 Zeilen: Kapsel höchstens **74 px** hoch (3 × 18 px Zeilenhöhe bei 15 px und Zeilenhöhe 1,2 + 2 × 8 Innenabstand + 2 × 2 Kontur, Stand `stil.css`).
+- Popup offen: Oberkante 8 ±2 px; die Kapsel überschneidet keinen Knopf und keinen Absatz des Popups.
+- Dauer = Zeit bis zum **Beginn** des Ausblendens; die 200 ms Blende kommen dazu. 46 Zeichen: 3,76 s sichtbar, nach 3,96 s weg – daher die Prüfpunkte 3,5 s (da) und 4,2 s (weg). Dafür im Test die Uhr steuern (Fake-Timer), nicht echte Wartezeit.
+- Immer genau ein Element `#toast .toast` (zweimal schnell hintereinander verschiedene Texte → eins, mit dem zweiten Text).
+- Berührung geht durch: `document.elementFromPoint` an der Mitte der Kapsel liefert die Karte (`canvas`), nicht die Meldung.
+- Blatt öffnet sich bei stehender Meldung: nach 250 ms steht sie in der neuen Lage (mit „weniger Bewegung“ sofort).
+- Meldung beim Antippen eines gesperrten Knopfs in der Zeichenleiste liegt links der Leiste (Mitte x 314 bzw. 225,5).
+
+*12.18 Zeichenleiste – ergänzt:*
+- Tab-Reihenfolge = Lesereihenfolge: [?] → [X] → Farbknöpfe → Radierer → Zurück → T-Stück → Abschnitt abschließen. Gesperrte Knöpfe sind dabei (aria-disabled, nicht `disabled`).
+- Umschaltknöpfe haben `aria-pressed`: gewählter Farbknopf, Radierer an, T-Stück an = `true`. Farbknopf-`aria-label` = Leitungsname mit Kennwerten („25er-Leitung, bis 12 kW“), weil die Zahl allein nichts sagt.
+- [?] hat `aria-expanded` (Hilfe offen = `true`); [Verstanden] schließt die Hilfe und gibt den Fokus an [?] zurück.
+- *Erste Nutzung* „je Spielstand“: die Merke steht im Spielstand (an der einen Stelle, Architekturregel). Prüfbar: neues Spiel → Leiste zeigt Hilfe; schließen, neu laden, Leiste öffnen → Bedienelemente, keine Hilfe.
+- **Kamera** (ersetzt den Punkt „Kamera“ in 12.18): Öffnet sich die Leiste aus dem Hausblatt („Leitung selbst legen“), steht das Haus danach in der Mitte der freien Fläche: Bildschirm-x = (Fensterbreite − 216) / 2 ±16 px (= 314 bzw. 225,5), y = Fensterhöhe × 0,5 ±16 px, Zoom unverändert. Öffnet sie sich aus dem Baumenü, rückt die zuletzt geplante Leitung des Abschnitts so in die freie Fläche; gibt es keine, bleibt die Kamera, wo sie ist. Beim Schließen der Leiste springt die Kamera nicht zurück. Dieselbe Rechnung (Breite aus dem tatsächlichen Blatt-Rechteck statt `0.46`/`400`) gilt auch für das Hausblatt; Prüfung: Haus nach dem Antippen bei 844 auf x = 228 ±16, bei 667 auf x = 180 ±16.
+- Prüfbar „kein Scrollbalken“: an der Leiste und am Mittelteil `scrollHeight ≤ clientHeight + 1` (bei 844×390 und 667×375 in Stufe 1 und mit 2 Reihen Farbknöpfen – dafür Spielstand Stufe 3 direkt setzen).
+- Abschließen-Knopf: Höhe 52 ±1, Name einzeilig (Höhe der Namenszeile < 2 × Zeilenhöhe), Zeile 2 nicht abgeschnitten (`scrollWidth ≤ clientWidth` am Zeile-2-Element).
+
+*Tippflächen (alle drei Abschnitte):* Jedes tippbare Element in Reiterleiste, Zeichenleiste und Blattkopf (Knopf, Reiter, Farbknopf, [?], [X], Stepper) misst ≥ 44 × 44 px, auch gesperrt. Ausnahme nur nicht tippbare Chips (12.15). Die Meldung zählt nicht (nicht tippbar).
+
+Tokens: neu `menue.mass_px.zeichen_abschluss_hoehe` 52. Sonst keine neuen.
+
+**Prüfkriterium (Foto), zusätzlich zu 12.16–12.20:** 844×390 und 667×375: Zeichenleiste frisch geöffnet ohne Leitung (Abschließen grau mit „nichts gezeichnet“, Zurück grau) und direkt nach dem Antippen von beiden (Meldung links der Leiste, Leiste bleibt offen); nach dem ersten Strich (beide frei, Aktionsleiste gleich hoch); Hausblatt mit Helfer-Knopf ohne Geld (Preis in Zeile 2, kein Schloss) und nach dem Antippen (Meldung mit aufgerundetem Fehlbetrag). Per Skript: Abschließen mit 0 Leitungen → Leiste noch offen, Abschnitt-Phase unverändert `offen`, Meldung = B6-Text; Zurück mit 0 Leitungen → Meldung = neuer B7-Text; Helfer ohne Geld → Geld unverändert, kein Auftrag; Fall „Helfer frei, Haus ohne Station“ aus Punkt 3 → Meldung H4, Zeile 2 danach „erst Station wählen“.
