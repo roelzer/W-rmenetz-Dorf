@@ -7,7 +7,7 @@ import { eur, h, zahl } from './dom';
 import type { Ui } from './schnittstelle';
 import { zeitText } from '../render/gebaeude';
 
-const QUELLEN: TypId[] = ['kessel', 'wpg', 'ptk', 'pv', 'puffer', 'solar', 'sonde'];
+const QUELLEN: TypId[] = ['kessel', 'pellet', 'gas', 'bhkw', 'wpg', 'ptk', 'pv', 'puffer', 'solar', 'sonde'];
 
 function signatur(c: HTMLElement): string {
   const k = c.cloneNode(true) as HTMLElement;

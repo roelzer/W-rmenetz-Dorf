@@ -328,6 +328,11 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m, tw = k.tw, netz = s.netz;
   const nachFeld = new Map<number, Objekt>();
   for (const o of s.objekte) { const kante = groesse(o); for (let dy = 0; dy < kante; dy++) for (let dx = 0; dx < kante; dx++) nachFeld.set((o.y + dy) * N + o.x + dx, o); }
+  const leitungsNachbarn = (x: number, y: number): number => {
+    let z = 0;
+    for (const [dx, dy] of NACHBARN) { const n = nachFeld.get((y + dy) * N + x + dx); if (n && istLeitung(n.typ) && x + dx >= 0 && x + dx < N) z++; }
+    return z;
+  };
   for (const o of s.objekte) {
     if (!istLeitung(o.typ)) continue;
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
@@ -337,7 +342,14 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       const n = nachFeld.get(ny * N + nx);
       if (!n) continue;
       const c = KATALOG[n.typ].kategorie;
-      if (istLeitung(n.typ) || n.typ === 'hz' || c === 'haus' || c === 'waerme' || c === 'gross') { const [a, b] = k.mitte(nx, ny); seg.push([(cx + a) / 2, (cy + b) / 2]); }
+      // A57: Zu einem Gebäude nur abknicken, wenn genau dieses Leitungsfeld sein Anschluss ist (oder ein geplantes Leitungsende)
+      const gebaeude = c === 'haus' || c === 'waerme' || c === 'gross';
+      if (gebaeude) {
+        if (n.ohne_station && !o.geplant) continue; // Haus ohne Station ist nicht angeschlossen
+        const a = netz.anschluss.get(n.id);
+        if (a ? a.feld !== key : !(o.geplant && leitungsNachbarn(o.x, o.y) <= 1)) continue;
+      }
+      if (istLeitung(n.typ) || n.typ === 'hz' || gebaeude) { const [a, b] = k.mitte(nx, ny); seg.push([(cx + a) / 2, (cy + b) / 2]); }
     }
     const plan = !!o.geplant;
     if (plan) { X.save(); X.globalAlpha = 0.6; }

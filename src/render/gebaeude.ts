@@ -109,7 +109,7 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
   m.tw *= f; m.th *= f;
   const tw = m.tw, th = m.th, lv = o.stufe, hp = tw * (0.4 + 0.05 * lv), ins = st.innen;
   m.schatten(cx, cy, 1.7);
-  const nk = ins.filter((k) => k.typ === 'kessel').length, nw = ins.filter((k) => k.typ === 'wpg').length, np = ins.filter((k) => k.typ === 'ptk').length;
+  const nk = ins.filter((k) => k.typ === 'kessel' || k.typ === 'pellet' || k.typ === 'gas').length, nb = ins.filter((k) => k.typ === 'bhkw').length, nw = ins.filter((k) => k.typ === 'wpg').length, np = ins.filter((k) => k.typ === 'ptk').length;
   for (let i = 0; i < Math.max(1, nk); i++) {
     const x = cx - tw * 0.5 + i * tw * 0.17, y = cy - hp - tw * 0.05, g = X.createLinearGradient(x, 0, x + tw * 0.1, 0);
     g.addColorStop(0, '#c9ced2'); g.addColorStop(1, '#7e868c'); X.fillStyle = g; X.fillRect(x, y - tw * 0.55, tw * 0.1, tw * 0.55);
@@ -131,6 +131,8 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
     for (let j = 0; j < 3; j++) { const an = a + j * 2.09; X.moveTo(x, y - tw * 0.06); X.lineTo(x + Math.cos(an) * tw * 0.08, y - tw * 0.06 + Math.sin(an) * tw * 0.04); }
     X.stroke();
   }
+  // A58: BHKW als grüner Motorcontainer neben dem Heizhaus
+  for (let i = 0; i < nb; i++) { const x = cx - tw * 0.62 - i * tw * 0.12, y = cy + th * 0.35 + i * th * 0.12; m.quader(x, y, 0.42, tw * 0.16, '#3d9b4f', true); m.symbol('blitz', x, y - tw * 0.1, tw * 0.05, '#f6c22c'); }
   for (let i = 0; i < np; i++) { const x = cx - tw * 0.2 + i * tw * 0.16, y = cy - hp + th * 0.15; m.quader(x, y, 0.25, tw * 0.1, '#f2c94c'); m.symbol('blitz', x, y - tw * 0.1, tw * 0.05, 'rgba(40,34,26,.4)'); }
   X.fillStyle = '#f6c22c'; X.strokeStyle = KONTUR; X.lineWidth = 1;
   for (let i = 0; i < lv; i++) m.stern(tp.L[0] + tw * 0.2 + i * tw * 0.1, tp.L[1] + hp * 0.55 + i * th * 0.1, tw * 0.035);

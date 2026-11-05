@@ -9,7 +9,7 @@ export type Kategorie =
   | 'innen' | 'waerme' | 'netz' | 'haus' | 'gross' | 'dorf' | 'deko' | 'hindernis';
 
 export type TypId =
-  | 'hz' | 'kessel' | 'wpg' | 'ptk'
+  | 'hz' | 'kessel' | 'wpg' | 'ptk' | 'pellet' | 'gas' | 'bhkw'
   | 'pv' | 'puffer' | 'solar' | 'sonde'
   | 'd25' | 'd32' | 'd40' | 'd50' | 'd63' | 'd75' | 'd90' | 'd110'
   | 'efh' | 'rh' | 'baeck' | 'mfh'
@@ -37,6 +37,8 @@ export interface Definition {
   leistung_kw?: number[];
   /** Stromerzeugung je Stufe in kW (PV) */
   strom_kw?: number[];
+  /** Kraft-Wärme-Kopplung: erzeugte Stromleistung je kW Wärme (BHKW) */
+  strom_je_waerme?: number;
   /** Betriebskosten in € je erzeugter kW und Minute */
   betriebskosten_eur_je_kw_min?: number;
   /** Quelle braucht Strom (profitiert von PV) */
@@ -75,7 +77,7 @@ export const KATALOG: Record<TypId, Definition> = {
     grenze: [1, 1, 1, 1, 1],
     kosten_eur: [0, 1200, 3500, 9000, 20000],
     bauzeit_s: [0, 30, 90, 240, 480],
-    plaetze: [1, 2, 2, 3, 4],
+    plaetze: [2, 3, 4, 5, 6],
     beschreibung:
       'Dein Heizhaus. Drinnen stehen die Wärmequellen; die Stufe bestimmt, wie viele hineinpassen und wie groß sie sein dürfen. Ab Stufe 3 wird es auf 3×3 Felder vergrößert.',
   },
@@ -115,6 +117,41 @@ export const KATALOG: Record<TypId, Definition> = {
     nachteil: 'Strom ist teuer im Betrieb',
     beschreibung:
       'Macht direkt aus Strom Wärme (eine kWh Strom ergibt höchstens eine kWh Wärme). Billig zu bauen, teuer im Betrieb – außer mit viel PV.',
+  },
+  pellet: {
+    name: 'Pelletkessel', kategorie: 'innen',
+    leistung_kw: [40, 60, 90, 125, 170],
+    kosten_eur: [700, 1200, 2400, 4600, 9000],
+    bauzeit_s: [8, 25, 60, 150, 300],
+    betriebskosten_eur_je_kw_min: 0.55,
+    grenze: [9, 9, 9, 9, 9],
+    vorteil: 'sauber, wenig Asche, wenig Wartung',
+    nachteil: 'Pellets kosten mehr als Hackschnitzel',
+    beschreibung: 'Verbrennt genormte Holzpellets. Kleiner und pflegeleichter als der Hackschnitzelkessel, aber der Brennstoff ist teurer.',
+  },
+  gas: {
+    name: 'Gas-Spitzenlastkessel', kategorie: 'innen',
+    leistung_kw: [80, 120, 170, 230, 300],
+    kosten_eur: [400, 800, 1600, 3200, 6400],
+    bauzeit_s: [6, 20, 50, 120, 240],
+    betriebskosten_eur_je_kw_min: 1.0,
+    grenze: [9, 9, 9, 9, 9],
+    vorteil: 'billig zu bauen, viel Leistung für kalte Tage',
+    nachteil: 'fossil: teurer Brennstoff und CO₂',
+    beschreibung: 'Erdgaskessel für Lastspitzen an kalten Tagen. Weil sein Brennstoff am teuersten ist, springt er im Spiel erst an, wenn die anderen Quellen nicht reichen.',
+  },
+  bhkw: {
+    name: 'Biogas-BHKW', kategorie: 'innen',
+    leistung_kw: [35, 55, 80, 110, 150],
+    strom_je_waerme: 0.8,
+    kosten_eur: [2500, 4000, 7000, 12000, 20000],
+    bauzeit_s: [15, 40, 90, 200, 400],
+    betriebskosten_eur_je_kw_min: 0.3,
+    min_hz_stufe: 2,
+    grenze: [9, 9, 9, 9, 9],
+    vorteil: 'macht Strom und Wärme zugleich',
+    nachteil: 'teuer in der Anschaffung',
+    beschreibung: 'Blockheizkraftwerk: Ein Motor verbrennt Biogas und treibt einen Generator an. Es liefert Strom und Wärme zugleich (Kraft-Wärme-Kopplung). Der Strom senkt die Kosten von Wärmepumpe und Power-to-Heat-Kessel.',
   },
   pv: {
     name: 'PV-Anlage', groesse: 2, kategorie: 'waerme',

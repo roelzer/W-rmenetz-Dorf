@@ -11,6 +11,7 @@ function werte(t: TypId): string {
   const teile: string[] = [];
   if (D.leistung_kw) teile.push(`${D.leistung_kw[0]} kW`);
   if (D.strom_kw) teile.push(`${D.strom_kw[0]} kW Strom`);
+  if (D.strom_je_waerme && D.leistung_kw) teile.push(`+ ${Math.round(D.leistung_kw[0] * D.strom_je_waerme)} kW Strom`);
   if (D.kapazitaet_kw) teile.push(`bis ${D.kapazitaet_kw} kW`);
   if (D.bedarf_kw) teile.push(`braucht ${D.bedarf_kw} kW`);
   if (D.einnahmen_eur_min && D.kategorie === 'haus') teile.push(`${D.einnahmen_eur_min[0]} €/min`);
@@ -82,7 +83,8 @@ export class Katalog {
     const innen = D.kategorie === 'innen';
     const anzahl = sp.anzahl(t), grenze = innen ? 99 : sp.grenze(t);
     const gesamtLeitungen = istLeitung(t) ? sp.leitungsanzahl() : anzahl;
-    const gesperrt = !innen && grenze === 0;
+    const abStufe = innen ? (D.min_hz_stufe ?? 1) : (D.grenze as number[] | undefined)?.findIndex((g) => g > 0) ?? 0;
+    const gesperrt = innen ? sp.hzStufe < (D.min_hz_stufe ?? 1) : grenze === 0;
     const voll = !innen && !gesperrt && gesamtLeitungen >= grenze;
     const c = sp.kosten(t, 1);
     const kostetText = c.taler != null ? `${c.taler} Taler` : eur(c.eur ?? 0);
@@ -92,7 +94,7 @@ export class Katalog {
       katalogBild(t),
       h('span', { class: 'titel' }, D.name),
       h('span', { class: 'werte' }, werte(t)),
-      gesperrt ? h('span', { class: 'grund' }, `ab Heizzentrale Stufe ${(D.grenze as number[]).findIndex((g) => g > 0) + 1}`)
+      gesperrt ? h('span', { class: 'grund' }, `ab Heizzentrale Stufe ${innen ? abStufe : abStufe + 1}`)
         : voll ? h('span', { class: 'grund' }, `${gesamtLeitungen}/${grenze} · mehr ab nächster Stufe`)
           : h('span', { class: `preis ${zuTeuer ? 'zuteuer' : ''}` }, kostetText, !innen && D.kategorie !== 'netz' ? h('span', { class: 'gedaempft' }, ` · ${gesamtLeitungen}/${grenze}`) : null),
       antrag?.stand === 'bewilligt' ? h('span', { class: 'abzeichen' }, chip('−40 % Förderung', 'gruen')) : antrag ? h('span', { class: 'abzeichen' }, chip('Antrag in Prüfung', 'blau')) : null);

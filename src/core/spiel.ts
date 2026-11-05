@@ -329,6 +329,7 @@ export class Spiel {
     const D = KATALOG[t];
     if (this.stand.innen.length >= (KATALOG.hz.plaetze as number[])[this.hzStufe - 1])
       return this.nein('Kein Platz mehr im Heizhaus – erst die Heizzentrale ausbauen');
+    if (!gratis && D.min_hz_stufe && this.hzStufe < D.min_hz_stufe) return this.nein(`${D.name} passt erst in die Heizzentrale Stufe ${D.min_hz_stufe}`);
     if (!gratis) {
       if (!this.braucheMonteur()) return { ok: false };
       const b = this.bezahlen({ eur: (D.kosten_eur as number[])[0] });
@@ -445,6 +446,13 @@ export class Spiel {
   abschnittAnschluesse(): Objekt[] {
     const N_ = N, bau = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ) && !o.geplant).map((o) => o.y * N_ + o.x));
     const plan = new Set(this.stand.objekte.filter((o) => o.geplant).map((o) => o.y * N_ + o.x));
+    // A57: Nur ein Leitungsende am Haus ist ein Hausanschluss – eine vorbeilaufende Leitung nicht.
+    const leitungsEnde = (f: number): boolean => {
+      const x = f % N_, y = (f - x) / N_;
+      let z = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N_ && ny < N_ && (plan.has(ny * N_ + nx) || bau.has(ny * N_ + nx))) z++; }
+      return z <= 1;
+    };
     return this.stand.objekte.filter((h) => {
       if (!['haus', 'gross'].includes(KATALOG[h.typ].kategorie)) return false;
       const g = groesse(h);
@@ -452,7 +460,7 @@ export class Spiel {
       for (let dy = -1; dy <= g; dy++) for (let dx = -1; dx <= g; dx++) {
         if ((dx === -1 || dx === g) === (dy === -1 || dy === g)) continue; // nur die vier Seiten, keine Ecken/Innenfelder
         const f = (h.y + dy) * N_ + h.x + dx;
-        if (plan.has(f)) anPlan = true;
+        if (plan.has(f) && leitungsEnde(f)) anPlan = true;
         if (bau.has(f)) anBau = true;
       }
       return anPlan && !anBau;

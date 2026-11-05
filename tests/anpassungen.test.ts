@@ -681,3 +681,52 @@ describe('A56 Spielstand löschen bleibt gelöscht', () => {
     expect(m.speichernErlaubt()).toBe(false);
   });
 });
+
+describe('A57 Hauptleitung am Haus vorbei knickt nicht ab', () => {
+  const o = (id: number, typ: any, x: number, y: number, extra: any = {}) => ({ id, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
+  it('A57: Hat das Haus einen eigenen Hausanschluss, hängt es daran und nicht an der vorbeilaufenden Hauptleitung', async () => {
+    const { berechneNetz } = await import('../src/core/netz');
+    const N = KONSTANTEN.feldanzahl;
+    const obj: any[] = [o(1, 'hz', 0, 0)];
+    for (let x = 0; x <= 6; x++) obj.push(o(10 + x, 'd50', x, 2));
+    obj.push(o(30, 'd25', 2, 3)); // Hausanschluss vom Hauptstrang zum Haus
+    obj.push(o(40, 'efh', 3, 3, { station: passendeStation(10).id, zufriedenheit_pct: 80 }));
+    const netz = berechneNetz(obj, [{ typ: 'kessel', stufe: 1, bau: null }], 2);
+    expect(netz.anschluss.get(40)?.feld).toBe(3 * N + 2);
+    expect(netz.warm.has(40)).toBe(true);
+  });
+  it('A57: Eine geplante Leitung, die nur am Haus vorbeiläuft, zählt nicht als Hausanschluss des Abschnitts', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 500_000; s.stand.abschnitt = { phase: 'offen', bau: null };
+    const frei = (x: number, y: number) => s.istStrasse(x, y) && !s.stand.objekte.some((o) => o.x === x && o.y === y);
+    const haus = s.stand.objekte.find((h) => KATALOG[h.typ].kategorie === 'haus' && (KATALOG[h.typ].groesse ?? 1) === 1 && h.ohne_station && [-2, -1, 0, 1, 2].every((dx) => frei(h.x + dx, h.y - 1)));
+    expect(haus).toBeDefined();
+    if (!haus) return;
+    for (const dx of [-2, -1, 0, 1, 2]) expect(s.platzieren('d50', haus.x + dx, haus.y - 1).ok).toBe(true);
+    expect(s.abschnittAnschluesse().some((h) => h.id === haus.id)).toBe(false);
+  });
+});
+
+describe('A58 Heizhaus ausbauen', () => {
+  it('A58: Schon Stufe 1 hat zwei Plätze – ein zweiter Kessel passt hinein', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 100_000;
+    expect(KATALOG.hz.plaetze![0]).toBe(2);
+    expect(s.innenEinbauen('pellet').ok).toBe(true);
+    expect(s.stand.innen).toHaveLength(2);
+  });
+  it('A58: Gaskessel, Pelletkessel und BHKW gibt es; das BHKW erst ab Heizzentrale Stufe 2', () => {
+    for (const t of ['pellet', 'gas', 'bhkw'] as const) expect(KATALOG[t].kategorie).toBe('innen');
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    s.stand.geld_eur = 100_000;
+    expect(s.innenEinbauen('bhkw').ok).toBe(false);
+  });
+  it('A58: Das BHKW liefert zusätzlich Strom, der Gaskessel läuft als teuerste Quelle zuletzt', async () => {
+    const { berechneNetz } = await import('../src/core/netz');
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const n = berechneNetz(s.stand.objekte, [{ typ: 'bhkw', stufe: 1, bau: null }], 2);
+    expect(n.strom_kw).toBeCloseTo(35 * 0.8, 6);
+    const preise = (['kessel', 'pellet', 'gas', 'bhkw', 'wpg', 'ptk'] as const).map((t) => KATALOG[t].betriebskosten_eur_je_kw_min!);
+    expect(Math.max(...preise)).toBe(KATALOG.gas.betriebskosten_eur_je_kw_min);
+  });
+});

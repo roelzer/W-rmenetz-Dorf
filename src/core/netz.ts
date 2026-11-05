@@ -116,9 +116,16 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       const k = y * N + x;
       if (hzFelder.has(k)) { best = -1; bd = 0; break; }
       const t = tiefe.get(k);
-      if (t !== undefined && t < bd) { bd = t; best = k; }
+      if (t === undefined) continue;
+      // A57: Eine Leitung, die nur am Haus vorbeiläuft, ist kein Anschluss. Bevorzugt wird ein Leitungsende,
+      // das am Haus endet (Hausanschluss); nur wenn es keins gibt, zählt die vorbeilaufende Leitung.
+      const px = k % N, py = (k - px) / N;
+      let nb = 0;
+      for (const [dx, dy] of NACHBARN) { const nx = px + dx, ny = py + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && leitungAn(ny * N + nx)) nb++; }
+      const wert = (nb <= 1 ? 0 : 1000) + t;
+      if (wert < bd) { bd = wert; best = k; }
     }
-    if (best !== null) anschluss.set(o.id, { feld: best, tiefe: bd });
+    if (best !== null) anschluss.set(o.id, { feld: best, tiefe: best === -1 ? 0 : (tiefe.get(best) as number) });
     // A24: Ein Pufferspeicher außen ist ohne eigene Leitung mit der Heizzentrale verbunden.
     else if (o.typ === 'puffer') anschluss.set(o.id, { feld: -1, tiefe: 0 });
   }
@@ -182,6 +189,8 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const quellen = innen.filter((k) => istAktiv(k));
   const leistung = (k: InnenQuelle): number => (KATALOG[k.typ].leistung_kw as number[])[k.stufe - 1];
   const innen_kw = quellen.reduce((a, k) => a + leistung(k), 0);
+  // A58: Ein BHKW erzeugt neben Wärme auch Strom (Kraft-Wärme-Kopplung); vereinfacht mit voller Leistung
+  for (const k of quellen) strom_kw += leistung(k) * (KATALOG[k.typ].strom_je_waerme ?? 0);
   const ohneSpeicher_kw = aussen_kw + abwaerme_kw + innen_kw;
   if (ohneSpeicher_kw > 0) aussen_kw += speicher_kw;
   const verfuegbar_kw = aussen_kw + abwaerme_kw + innen_kw;
