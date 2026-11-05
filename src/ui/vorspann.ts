@@ -154,9 +154,9 @@ function ladebildSvg(): string {
 const TIPPS = [
   'Je kälter der Rücklauf, desto mehr Wärme passt durch dieselbe Leitung.',
   'Niedrigere Vorlauftemperatur senkt die Wärmeverluste im Netz.',
-  'Leitungen gehören in die öffentliche Straße – über Privatgrund brauchst du eine Gestattung.',
+  'Leitungen liegen meist in der öffentlichen Straße – über fremde Grundstücke brauchst du die Gestattung des Eigentümers.',
   'Ein BHKW erzeugt Strom und Wärme gleichzeitig.',
-  'Unter einem Fluss hindurch kommst du nur mit einer Spülbohrung.',
+  'Unter einem Fluss hindurch geht es meist mit einer Spülbohrung – das ist teuer.',
   'Jedes Haus braucht eine Übergabestation, die zu seinem Wärmebedarf passt.',
 ];
 
@@ -182,7 +182,7 @@ export function vorspannZeigen(weniger_bewegung: boolean, tippNr = Math.floor(Ma
   const balken = h('div', { class: 'vs-balken' }, h('div', { class: 'vs-fuellung' }), h('span', { class: 'vs-prozent' }, 'Lädt …'));
   const v = h('div', { id: 'vorspann', class: weniger_bewegung ? 'still' : '', role: 'img', 'aria-label': 'Heatnet wird geladen' },
     szene,
-    h('div', { class: 'vs-kopf' }, logoElement(96), h('div', { class: 'vs-titel' }, schriftzugGross(), h('span', { class: 'unterzeile' }, h('span', { class: 'vs-blattzeichen', 'aria-hidden': 'true' }, '🌿'), 'Heize dein Dorf klimaneutral'))),
+    h('div', { class: 'vs-kopf' }, logoElement(96), h('div', { class: 'vs-titel' }, schriftzugGross(), h('span', { class: 'unterzeile' }, h('span', { class: 'vs-blattzeichen', 'aria-hidden': 'true' }, '🌿'), 'Mach dein Dorf Schritt für Schritt erneuerbar'))),
     h('div', { class: 'vs-fuss' }, balken, h('p', { class: 'vs-tipp' }, h('b', {}, 'Tipp: '), TIPPS[tippNr % TIPPS.length])));
   document.body.append(v);
   let weg = false;

@@ -203,8 +203,6 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const quellen = innen.filter((k) => istAktiv(k));
   const leistung = (k: InnenQuelle): number => (KATALOG[k.typ].leistung_kw as number[])[k.stufe - 1];
   const innen_kw = quellen.reduce((a, k) => a + leistung(k), 0);
-  // A58: Ein BHKW erzeugt neben Wärme auch Strom (Kraft-Wärme-Kopplung); vereinfacht mit voller Leistung
-  for (const k of quellen) strom_kw += leistung(k) * (KATALOG[k.typ].strom_je_waerme ?? 0);
   const ohneSpeicher_kw = aussen_kw + abwaerme_kw + innen_kw;
   if (ohneSpeicher_kw > 0) aussen_kw += speicher_kw;
   const verfuegbar_kw = aussen_kw + abwaerme_kw + innen_kw;
@@ -228,7 +226,6 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
 
   // Betriebskosten (Merit-Order: kostenlose Außenanlagen, dann Abwärme, dann günstigste Innenquelle)
   const elektrisch_kw = quellen.filter((k) => KATALOG[k.typ].elektrisch).reduce((a, k) => a + leistung(k), 0);
-  const einspeisung_kw = Math.max(0, strom_kw - elektrisch_kw);
   const pv_faktor = Math.max(0.25, 1 - strom_kw / Math.max(1, elektrisch_kw));
   const preis = (k: InnenQuelle): number =>
     (KATALOG[k.typ].betriebskosten_eur_je_kw_min as number) * (KATALOG[k.typ].elektrisch ? pv_faktor : 1);
@@ -244,6 +241,10 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     laeuft_mit_kw.set(k, h);
     betriebskosten_eur_min += h * preis(k);
   }
+  // A58: Ein BHKW erzeugt Strom im Verhältnis zur tatsächlich erzeugten Wärme (Kraft-Wärme-Kopplung).
+  // Der BHKW-Strom zählt erst nach der Einsatzreihenfolge, damit er seine eigene Laufzeit nicht beeinflusst.
+  for (const k of quellen) strom_kw += (laeuft_mit_kw.get(k) ?? 0) * (KATALOG[k.typ].strom_je_waerme ?? 0);
+  const einspeisung_kw = Math.max(0, strom_kw - elektrisch_kw);
   // A33: niedrigere Vorlauftemperatur spart Betriebskosten (Pumpen, Netzverluste)
   betriebskosten_eur_min *= Math.max(0.5, 1 - (VORLAUF.start_c - vorlauf_c) * VORLAUF.ersparnis_je_k);
   const P = PREISSTUFEN[preisstufe ?? 2];

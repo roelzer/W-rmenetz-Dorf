@@ -138,7 +138,7 @@ export const KATALOG: Record<TypId, Definition> = {
     grenze: [9, 9, 9, 9, 9],
     vorteil: 'billig zu bauen, viel Leistung für kalte Tage',
     nachteil: 'fossil: teurer Brennstoff und CO₂',
-    beschreibung: 'Erdgaskessel für Lastspitzen an kalten Tagen. Weil sein Brennstoff am teuersten ist, springt er im Spiel erst an, wenn die anderen Quellen nicht reichen.',
+    beschreibung: 'Erdgaskessel für Lastspitzen an kalten Tagen. Er ist im Spiel die teuerste Quelle und springt deshalb erst an, wenn die anderen Quellen nicht reichen.',
   },
   bhkw: {
     name: 'Biogas-BHKW', kategorie: 'innen',
@@ -192,37 +192,37 @@ export const KATALOG: Record<TypId, Definition> = {
   d25: {
     name: '25er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 12, durchmesser_mm: 25,
     kosten_eur: [10], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.06, farbe: '#d8392f',
-    beschreibung: 'Für ein einzelnes Haus. Durchmesser 25 mm (rot), überträgt bis 12 kW.',
+    beschreibung: 'Für ein einzelnes Haus. Durchmesser 25 mm (rot), überträgt im Spiel bis 12 kW.',
   },
   d32: {
     name: '32er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 20, durchmesser_mm: 32,
     kosten_eur: [14], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.07, farbe: '#4caf3e',
-    beschreibung: 'Für ein bis zwei Häuser. Durchmesser 32 mm (grün), überträgt bis 20 kW.',
+    beschreibung: 'Für ein bis zwei Häuser. Durchmesser 32 mm (grün), überträgt im Spiel bis 20 kW.',
   },
   d40: {
     name: '40er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 30, durchmesser_mm: 40,
     kosten_eur: [20], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.08, farbe: '#6ec6ff',
-    beschreibung: 'Für eine kurze Stichleitung. Durchmesser 40 mm (hellblau), überträgt bis 30 kW.',
+    beschreibung: 'Für eine kurze Stichleitung. Durchmesser 40 mm (hellblau), überträgt im Spiel bis 30 kW.',
   },
   d50: {
     name: '50er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 50, durchmesser_mm: 50,
     kosten_eur: [28], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.09, farbe: '#1f4fa8',
-    beschreibung: 'Für eine Straße mit mehreren Häusern. Durchmesser 50 mm (dunkelblau), überträgt bis 50 kW.',
+    beschreibung: 'Für eine Straße mit mehreren Häusern. Durchmesser 50 mm (dunkelblau), überträgt im Spiel bis 50 kW.',
   },
   d63: {
     name: '63er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 80, durchmesser_mm: 63,
     kosten_eur: [38], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.11, farbe: '#e86aa0',
-    beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt bis 80 kW.',
+    beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt im Spiel bis 80 kW.',
   },
   d75: {
     name: '75er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 110, durchmesser_mm: 75,
     kosten_eur: [50], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.125, farbe: '#f6c22c',
-    beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt bis 110 kW.',
+    beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt im Spiel bis 110 kW.',
   },
   d90: {
     name: '90er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 160, durchmesser_mm: 90,
     kosten_eur: [68], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.145, farbe: '#8a5a2b',
-    beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt bis 160 kW.',
+    beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt im Spiel bis 160 kW.',
   },
   d110: {
     name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 220, durchmesser_mm: 110,
@@ -403,10 +403,10 @@ export const stationHolen = (id: string | undefined): Station | undefined => STA
 /** Kleinste Station, die den Bedarf übergibt. */
 export const passendeStation = (bedarf_kw: number): Station => STATIONEN.find((s) => s.leistung_kw >= bedarf_kw) ?? STATIONEN[STATIONEN.length - 1];
 
-/** Vorlauftemperatur der Heizzentrale (A33). Niedriger spart Pump-/Verlustkosten, ist aber für schlecht gedämmte Häuser zu kalt. Spielwerte. */
+/** Vorlauftemperatur der Heizzentrale (A33). Niedriger spart Verlustkosten, ist aber für schlecht gedämmte Häuser zu kalt. Spielwerte. */
 export const VORLAUF = { min_c: 55, max_c: 85, start_c: 75, schritt_c: 5, ersparnis_je_k: 0.012 } as const;
 /** Mindest-Vorlauftemperatur, die ein Haus für warme Räume braucht, bevor Upgrades die Rücklauf-/Heizflächen verbessern (Spielwerte). */
-export const MIN_VORLAUF_C: Record<string, number> = { efh: 75, rh: 75, baeckerei: 75, mfh: 70, bad: 70, klinik: 70 };
+export const MIN_VORLAUF_C: Record<string, number> = { efh: 75, rh: 75, baeck: 75, mfh: 70, bad: 70, klinik: 70 };
 /** Hausupgrades (A33): senken die nötige Vorlauftemperatur (Rücklauf sinkt). Kosten = Arbeiter und Material, Spielwerte. */
 export const UPGRADES: ReadonlyArray<{ name: string; kosten_eur: number; senkung_k: number; dauer_s: number; beschreibung: string }> = [
   { name: 'Hydraulischer Abgleich', dauer_s: 60, kosten_eur: 1500, senkung_k: 5, beschreibung: 'Ein Monteur stellt alle Heizkörper aufeinander ab. Der Rücklauf wird kälter.' },

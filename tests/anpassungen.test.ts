@@ -4,7 +4,7 @@ import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { bedarfKw } from '../src/core/netz';
 import { ortHolen } from '../src/core/orte';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
-import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation } from '../src/core/katalog';
+import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation, LEITUNGEN } from '../src/core/katalog';
 
 const T0 = 1_000_000_000_000;
 const neuesSpiel = (): Spiel => new Spiel(neuerSpielstand(T0), () => T0);
@@ -726,7 +726,11 @@ describe('A58 Heizhaus ausbauen', () => {
     const { berechneNetz } = await import('../src/core/netz');
     const s = new Spiel(neuerSpielstand(0), () => 0);
     const n = berechneNetz(s.stand.objekte, [{ typ: 'bhkw', stufe: 1, bau: null }], 2);
-    expect(n.strom_kw).toBeCloseTo(35 * 0.8, 6);
+    // Fachprüfung: Strom nur im Verhältnis zur tatsächlich erzeugten Wärme (Startdorf braucht weniger als 35 kW)
+    expect(n.genutzt_kw).toBeGreaterThan(0);
+    expect(n.genutzt_kw).toBeLessThan(35);
+    expect(n.strom_kw).toBeCloseTo(n.genutzt_kw * 0.8, 6);
+    expect(n.einspeisung_kw).toBeCloseTo(n.genutzt_kw * 0.8, 6);
     const preise = (['kessel', 'pellet', 'gas', 'bhkw', 'wpg', 'ptk'] as const).map((t) => KATALOG[t].betriebskosten_eur_je_kw_min!);
     expect(Math.max(...preise)).toBe(KATALOG.gas.betriebskosten_eur_je_kw_min);
   });
@@ -798,7 +802,8 @@ describe('A64 Ladebildschirm, A65 Abzweig an der Hauptleitung', () => {
     expect(q).toContain('const TIPPS');
     expect(q).toContain('Je kälter der Rücklauf');
     expect(q).not.toMatch(/innerHTML/);
-    expect(q).toContain('Heize dein Dorf klimaneutral');
+    expect(q).toContain('Mach dein Dorf Schritt für Schritt erneuerbar');
+    expect(q).not.toContain('klimaneutral'); // A68: Werbeaussage nicht haltbar (Fachprüfung)
   });
   it('A65: Die dünnere Leitung läuft bis in die Hauptleitung, die Hauptleitung zeichnet keinen Stummel', async () => {
     const { abzweigZeichnen, eigenerHausanschluss } = await import('../src/render/anschluss');
@@ -825,5 +830,19 @@ describe('A67 Startnetz', () => {
     expect(s.netz.engpass.size).toBe(0);
     const start = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
     expect(start.every((o) => s.netz.warm.has(o.id))).toBe(true);
+  });
+});
+
+describe('A68 Fachprüfung A45–A66 umgesetzt', () => {
+  it('A68: Leitungstexte kennzeichnen Spielwerte, kein „klimaneutral“, BHKW-Strom folgt der erzeugten Wärme', async () => {
+    const { readFileSync } = await import('node:fs');
+    for (const t of LEITUNGEN) expect(KATALOG[t].beschreibung).toContain('im Spiel');
+    const vorspann = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
+    expect(vorspann).not.toContain('klimaneutral');
+    expect(vorspann).not.toContain('nur mit einer Spülbohrung');
+    const { berechneNetz } = await import('../src/core/netz');
+    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const leer = berechneNetz(s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie !== 'haus'), [{ typ: 'bhkw', stufe: 1, bau: null }], 2);
+    expect(leer.strom_kw).toBe(0); // ohne Wärmeabnahme kein BHKW-Strom
   });
 });
