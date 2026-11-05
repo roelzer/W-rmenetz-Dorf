@@ -9,6 +9,8 @@ import { blase } from '../src/render/szene';
 import type { Objekt } from '../src/core/typen';
 import { SYMBOLE } from '../src/ui/symbole';
 import { gesperrt, gesperrtMitHinweis, htmlDisabled } from './hilfen/gesperrt';
+import { echteSteuerung } from './hilfen/echte-steuerung';
+import { sichtbar } from './hilfen/dom-attrappe';
 
 // A88 Freischalt-Leiter (Bauplan docs/bauplaene/A88-freischalt-leiter.md, Abschnitt 4, 6a, 9 T1–T10, 10).
 // Nutzt das echte Kernmodul (kein vi.mock). Erwartete Stufen von Hand aus der Tabelle in Abschnitt 4.
@@ -452,37 +454,47 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     });
   });
 
-  it('A88: Zeichenleiste – Durchmesser über den Kern, „Dickere“ und T-Stück-Werkzeug vor Stufe 4 gesperrt mit kurzem Grund „ab Stufe X“ (geschütztes Leerzeichen)', async () => {
-    // DESIGN.md 12.15: In der engen Zeichenleiste steht der kurze Grund „ab Stufe X“ (ohne „Heizzentrale“), auch am T-Stück
-    // (Designer-Prüfung 2026-11-05, Kann 2b). Zwischen „Stufe“ und Zahl steht ein geschütztes Leerzeichen U+00A0 (Kann 2a),
-    // damit die Zahl bei 667 px nicht allein in eine Zeile rutscht.
-    // Die Leitungskarte und der direkte Aufruf von leitungsKnoepfe behalten den langen Grund (Tests oben/unten).
-    // DESIGN.md 12.19: das gesperrte T-Stück trägt aria-disabled="true" und KEIN disabled (Tippen zeigt einen Hinweis).
-    await mitAttrappe(async (a, blatt) => {
-      const { Steuerung } = await import('../src/steuerung');
-      for (const [stufe, tstueckAus, texte] of [
-        [1, true, ['25er', '32er', '40er', 'Dickereab Stufe\u00a02']],
-        [2, true, ['25er', '32er', '40er', '50er', '63er', 'Dickereab Stufe\u00a03']],
-        [4, false, ['25er', '32er', '40er', '50er', '63er', '75er', '90er', '110er']],
-      ] as Array<[number, boolean, string[]]>) {
-        blatt.inhalt = new a.El('div');
-        const st = Object.assign(Object.create(Steuerung.prototype), { spiel: neu(stufe).s, katalogUi: { schliessen: () => {} }, kontextUi: { schliessen: () => {} }, modusBlatt: null, vorsehen: false });
-        (st as { stempeln: (t: TypId) => void }).stempeln('d25');
-        const alle = a.alle(blatt.inhalt);
-        const durchmesser = alle.find((e) => e.className === 'durchmesser')!;
-        const dknoepfe = a.alle(durchmesser).filter((e) => e.tag === 'button');
-        expect(dknoepfe.map((e) => a.text(e)), `Stufe ${stufe}`).toEqual(texte);
-        // nur der Knopf „Dickere“ ist deaktiviert, alle Durchmesser-Knöpfe sind tippbar
-        expect(dknoepfe.map((e) => gesperrt(e)), `Stufe ${stufe}`).toEqual(texte.map((t) => t.startsWith('Dickere')));
-        const tstueck = alle.find((e) => e.tag === 'button' && a.text(e).startsWith('T-Stück mit Vorsehung'))!;
-        expect(gesperrtMitHinweis(tstueck), `Stufe ${stufe}: T-Stück aria-disabled="true" ohne disabled`).toBe(tstueckAus);
-        expect(htmlDisabled(tstueck), `Stufe ${stufe}: T-Stück nie mit HTML-disabled (12.19)`).toBe(false);
-        expect(gesperrt(tstueck), `Stufe ${stufe}: T-Stück gesperrt`).toBe(tstueckAus);
-        if (tstueckAus) expect(a.text(tstueck), `Stufe ${stufe}`).toBe('T-Stück mit Vorsehungab Stufe\u00a04');
-        else expect(a.text(tstueck), `Stufe ${stufe}`).not.toContain('ab Stufe');
-        expect(a.text(tstueck), `Stufe ${stufe}: kurzer Grund ohne „Heizzentrale“`).not.toContain('Heizzentrale');
-      }
-    });
+  it('A88: Zeichenleiste – Durchmesser über den Kern, „Dickere“ und T-Stück-Werkzeug vor Stufe 4 gesperrt mit kurzem Grund (geschütztes Leerzeichen)', async () => {
+    // Stand NR16-B2b (DESIGN.md 12.18/12.21, ENTSCHEIDUNGEN 2026-11-05 Tester-Fragen B2b): Farbknöpfe zeigen nur die Zahl
+    // („25“), Vorleser-Text = Name + Kennwert; die gesperrten dickeren Leitungen sind EIN Knopf „St. N“ (geschütztes
+    // Leerzeichen U+00A0) mit Vorleser-Text „Dickere Leitungen ab Heizzentrale Stufe N“. Das T-Stück behält den kurzen
+    // Grund „ab Stufe 4“ (12.15, Kann 2a/2b). Die Leitungskarte und leitungsKnoepfe behalten den langen Grund (Tests oben/unten).
+    // DESIGN.md 12.19: gesperrt = aria-disabled="true" und KEIN disabled (Tippen zeigt einen Hinweis).
+    // Echte Steuerung mit echtem Blatt (tests/hilfen/echte-steuerung.ts) statt Object.create(Steuerung.prototype).
+    // Erwartete Durchmesser je Stufe von Hand aus Bauplan A88 Abschnitt 4 (Stufe 1: 25/32/40, Stufe 2: +50/63, Stufe 3: +75/90/110).
+    for (const [stufe, tstueckAus, zahlen, dicker] of [
+      [1, true, ['25', '32', '40'], 2],
+      [2, true, ['25', '32', '40', '50', '63'], 3],
+      [4, false, ['25', '32', '40', '50', '63', '75', '90', '110'], null],
+    ] as Array<[number, boolean, string[], number | null]>) {
+      const s = neu(stufe).s;
+      offenerAbschnitt(s); // die Zeichenleiste öffnet sich nur im offenen Bauabschnitt (12.18)
+      await echteSteuerung(s, (u) => {
+        u.st.stempeln('d25');
+        u.knoepfe().find((k) => k.isConnected && k.textContent.trim() === 'Verstanden' && sichtbar(k))?.click(); // Erste-Nutzung-Hilfe zu
+        const alle = u.knoepfe().filter((k) => k.isConnected);
+        const farb = alle.filter((k) => /^\d+er-Leitung, bis \d+ kW$/.test(k.attrs['aria-label'] ?? ''));
+        expect(farb.map((k) => k.textContent.trim()), `Stufe ${stufe}: Farbknöpfe zeigen die Zahl`).toEqual(zahlen);
+        expect(farb.map((k) => (k.attrs['aria-label'] ?? '').split('er-')[0]), `Stufe ${stufe}: Vorleser-Name passt zur Zahl`).toEqual(zahlen);
+        expect(farb.map((k) => gesperrt(k)), `Stufe ${stufe}: alle Farbknöpfe tippbar`).toEqual(zahlen.map(() => false));
+        const dick = alle.filter((k) => (k.attrs['aria-label'] ?? '').startsWith('Dickere'));
+        if (dicker === null) expect(dick, `Stufe ${stufe}: kein „Dickere“`).toEqual([]);
+        else {
+          expect(dick.map((k) => k.attrs['aria-label']), `Stufe ${stufe}`).toEqual([`Dickere Leitungen ab Heizzentrale Stufe ${dicker}`]);
+          expect(dick[0].textContent.trim(), `Stufe ${stufe}: kurz mit geschütztem Leerzeichen`).toBe(`St.\u00a0${dicker}`);
+          expect(gesperrtMitHinweis(dick[0]), `Stufe ${stufe}: „Dickere“ aria-disabled ohne disabled`).toBe(true);
+        }
+        const tstueck = alle.filter((k) => k.textContent.startsWith('T-Stück mit Vorsehung'));
+        expect(tstueck, `Stufe ${stufe}: genau ein T-Stück-Knopf`).toHaveLength(1);
+        const t = tstueck[0];
+        expect(gesperrtMitHinweis(t), `Stufe ${stufe}: T-Stück aria-disabled="true" ohne disabled`).toBe(tstueckAus);
+        expect(htmlDisabled(t), `Stufe ${stufe}: T-Stück nie mit HTML-disabled (12.19)`).toBe(false);
+        expect(gesperrt(t), `Stufe ${stufe}: T-Stück gesperrt`).toBe(tstueckAus);
+        if (tstueckAus) expect(t.textContent, `Stufe ${stufe}`).toContain('ab Stufe\u00a04');
+        else expect(t.textContent, `Stufe ${stufe}`).not.toContain('ab Stufe');
+        expect(t.textContent, `Stufe ${stufe}: kurzer Grund ohne „Heizzentrale“`).not.toContain('Heizzentrale');
+      });
+    }
   });
 
   it('A88: Leitungskarte – Tausch nur auf freigeschaltete, Anbohr-Satz erst ab Stufe 4', async () => {
