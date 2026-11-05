@@ -197,3 +197,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:56 | ■ 🟢 | tester | 🟢 **Vorarbeit K1 ist fertig.** Neu sind 5 Tests, die gegen den heutigen Code absichtlich rot sind. Programmcode habe ich nicht geändert, nicht gepusht, nich ([Bericht](docs/pruefberichte/20261105-175616-tester-a4145f69451376c4e.md)) |
 | 2026-11-05 17:58 | ■ 🔴 | reviewer | 🔴 Ampel ROT: Nachbesserung nötig. Der Grundmechanismus ist sauber und im echten Browser getestet. Es fehlen aber Teile der Vorgabe DESIGN 12.19, und K1 fehl ([Bericht](docs/pruefberichte/20261105-175847-reviewer-a78360a0e41cf0b53.md)) |
 | 2026-11-05 17:59 | ▶ | entwickler | NR16-B1 Fix-Runde |
+| 2026-11-05 18:09 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Die Nachbesserung ist fertig gebaut und alle 886 Tests laufen grün. Die Test-Schranke meldet trotzdem „NICHT OK“. Schuld ist ni ([Bericht](docs/pruefberichte/20261105-180923-entwickler-a2e85dff036432c58.md)) |
+| 2026-11-05 18:09 | ▶ | reviewer | Nachprüfung NR16-B1 Fix |
