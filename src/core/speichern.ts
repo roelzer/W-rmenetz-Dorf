@@ -133,3 +133,20 @@ export function speicherLoeschen(speicher: Pick<Storage, 'removeItem'>): void {
   speicher.removeItem(SPEICHER_SCHLUESSEL);
 }
 export function speichernErlaubt(): boolean { return !geloescht; }
+
+/** A83: Dateiname für eine Sicherung des Spielstands (Dorfname + Datum, nur sichere Zeichen). */
+export function sicherungsDateiname(stand: Spielstand, datum: Date): string {
+  const dorf = (stand.name || 'dorf').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'dorf';
+  return `heatnet-${dorf}-${datum.toISOString().slice(0, 10)}.json`;
+}
+
+/** A83: Eine Sicherungsdatei einspielen. Nur ein lesbarer Spielstand wird übernommen; danach ist das Zurückschreiben
+ *  des alten Stands gesperrt (wie beim Löschen), damit beim Neuladen nichts überschrieben wird. */
+export function sicherungEinspielen(speicher: Pick<Storage, 'setItem'>, text: string, jetzt_ms: number): { ok: true; stand: Spielstand } | { ok: false; grund: string } {
+  if (text.length > 5_000_000) return { ok: false, grund: 'Die Datei ist zu groß für einen Spielstand.' };
+  const { stand, befund } = ladenMitBefund(text, jetzt_ms);
+  if (befund === 'defekt' || befund === 'neu') return { ok: false, grund: 'Die Datei ist kein lesbarer Heatnet-Spielstand.' };
+  speicher.setItem(SPEICHER_SCHLUESSEL, serialisieren(stand));
+  geloescht = true;
+  return { ok: true, stand };
+}

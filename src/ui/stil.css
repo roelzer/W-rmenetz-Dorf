@@ -245,3 +245,7 @@ span.schriftzug>span.heat{color:#ff8a1f}span.schriftzug>span.net{color:#3a92ea}
 #vorspann .vs-schriftzug{width:360px;height:auto;display:block;overflow:visible}
 @media (max-height:420px){#vorspann .vs-schriftzug{width:260px}.vs-kopf{top:4%}.vs-kopf .logo-bild{width:64px;height:64px}#vorspann .unterzeile{font-size:14px;-webkit-text-stroke:4px #3b1d0a}}
 .einst-logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}.einst-logo .logo-bild{border-radius:24%}.einst-logo .schriftzug{font-size:30px}
+
+/* A83: Hinweis auf eine neue Version */
+.update-hinweis{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--farbe-ui-pergament);color:var(--farbe-ui-tinte);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);padding:6px 8px 6px 14px;z-index:50;max-width:calc(100% - 32px);font-weight:600}
+.update-hinweis .knopf{min-height:44px}

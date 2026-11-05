@@ -10,6 +10,7 @@ import { zeichneSzene } from './render/szene';
 import { Steuerung } from './steuerung';
 import { tokensAnwenden } from './ui/tokens';
 import { vorspannZeigen } from './ui/vorspann';
+import { hinweisMitKnopf } from './ui/toast';
 import { einstellungenLesen } from './ui/einstellungen';
 import { tempoSpeichern, uhr } from './tempo';
 
@@ -94,4 +95,12 @@ try { void (screen.orientation as unknown as { lock?: (o: string) => Promise<voi
 // Offline spielbar (A16): Service Worker nur im fertigen Build, nicht im Entwicklungsserver.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch((f) => console.warn('Offline-Modus nicht verfügbar', f)); });
+  // A83: Kommt eine neue Version an, übernimmt der neue Service Worker; der Spieler lädt neu, wann es ihm passt (der Spielstand bleibt).
+  const hatteVersion = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hatteVersion) return;
+    hinweisMitKnopf('Neue Version von Heatnet ist da.', 'Neu laden', () => { speichern(); location.reload(); });
+  });
 }
+// A83: Den Browser bitten, den Spielstand dauerhaft zu behalten (vor allem iPhone/Safari räumen sonst auf).
+void navigator.storage?.persist?.().catch((f: unknown) => console.warn('Dauerhafter Speicher abgelehnt', f));

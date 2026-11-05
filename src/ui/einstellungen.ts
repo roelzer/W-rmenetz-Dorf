@@ -1,4 +1,4 @@
-import { speicherLoeschen } from '../core/speichern';
+import { serialisieren, sicherungEinspielen, sicherungsDateiname, speicherLoeschen } from '../core/speichern';
 import { knopf } from './bausteine';
 import { blattOeffnen } from './blatt';
 import { h } from './dom';
@@ -47,7 +47,35 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),
       h('p', { class: 'gedaempft' }, 'Für Vorführungen: Die Spielzeit läuft schneller. Normal ist das vorgesehene Tempo.'),
       h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'los' : '', { klein: true })))),
+    sicherungKasten(ui),
     h('div', { class: 'knopfreihe' }, loeschen),
     h('div', { class: 'kasten' }, h('h3', {}, 'Hinweis'), h('p', {}, 'Alle Wärmenetze und Werte sind fiktiv. Das Spiel vereinfacht stark und ersetzt keine echte Planung.'),
-      h('p', { class: 'gedaempft' }, 'Dein Spielstand liegt nur auf diesem Gerät. Es gibt kein Konto und es werden keine Daten gesendet.')));
+      h('p', { class: 'gedaempft' }, 'Dein Spielstand liegt nur auf diesem Gerät. Es gibt kein Konto und es werden keine Daten gesendet.'),
+      h('p', { class: 'gedaempft' }, `Version ${typeof __SPIELVERSION__ === 'string' ? __SPIELVERSION__ : 'Entwicklung'}`)));
+}
+
+/** A83: Spielstand als Datei sichern und wieder laden (Handywechsel, gelöschter Browser). */
+function sicherungKasten(ui: Ui): HTMLElement {
+  const datei = h('input', { type: 'file', accept: '.json,application/json', class: 'versteckt', id: 'sicherung-datei', 'aria-label': 'Sicherungsdatei wählen' }) as HTMLInputElement;
+  datei.addEventListener('change', () => {
+    const f = datei.files?.[0];
+    if (!f) return;
+    f.text().then((text) => {
+      const r = sicherungEinspielen(localStorage, text, Date.now());
+      if (!r.ok) { ui.toast(r.grund); return; }
+      ui.toast(`Spielstand „${r.stand.name}“ geladen – das Spiel startet neu`);
+      setTimeout(() => location.reload(), 900);
+    }).catch((fehler: unknown) => { console.warn('Sicherung nicht lesbar', fehler); ui.toast('Die Datei ließ sich nicht lesen.'); });
+  });
+  const sichern = knopf('Spielstand sichern', () => {
+    const blob = new Blob([serialisieren(ui.spiel.stand)], { type: 'application/json' });
+    const a = h('a', { href: URL.createObjectURL(blob), download: sicherungsDateiname(ui.spiel.stand, new Date()) }) as HTMLAnchorElement;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    ui.toast('Sicherung gespeichert – heb die Datei gut auf');
+  }, '', { klein: true });
+  const laden = knopf('Spielstand laden', () => datei.click(), '', { klein: true });
+  return h('div', { class: 'kasten' }, h('h3', {}, 'Sicherung'),
+    h('p', { class: 'gedaempft' }, 'Speichere dein Dorf als Datei, z. B. vor einem Handywechsel. Beim Laden wird der jetzige Spielstand ersetzt.'),
+    h('div', { class: 'knopfreihe' }, sichern, laden), datei);
 }

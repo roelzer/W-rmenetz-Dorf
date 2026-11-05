@@ -20,3 +20,13 @@ export function toast(text: string): void {
     timer = window.setTimeout(() => t.remove(), T.zeit_ms.toast_blende);
   }, T.zeit_ms.toast_sichtbar + (lang ? 1200 : 0));
 }
+
+/** A83: Bleibender Hinweis mit Knopf (z. B. „Neue Version da – Neu laden“). */
+export function hinweisMitKnopf(text: string, knopfText: string, aktion: () => void): void {
+  const leiste = h('div', { class: 'update-hinweis', role: 'status', 'aria-live': 'polite' }, h('span', {}, text));
+  const k = h('button', { class: 'knopf los klein', type: 'button' }, knopfText);
+  k.addEventListener('click', aktion);
+  leiste.append(k);
+  document.querySelector('.update-hinweis')?.remove();
+  document.getElementById('app')!.append(leiste);
+}
