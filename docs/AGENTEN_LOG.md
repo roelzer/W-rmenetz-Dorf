@@ -160,3 +160,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 15:43 | ▶ | entwickler | Designer-Kann 1+2 nachziehen |
 | 2026-11-05 15:43 | ▶ | architekt | NR15 Netzmodell planen |
 | 2026-11-05 16:45 | ▶ | produktpruefer | NR16 reproduzieren + Knopf-Durchgang |
+| 2026-11-05 16:51 | ■ 🟢 | architekt | 🟢 **Der Bauplan steht: docs/bauplaene/NR15-netzmodell.md.** NR15 lässt sich lösen, ohne den Spielstand anzufassen. Eine Annahme aus NR15 stimmt aber nur zu ([Bericht](docs/pruefberichte/20261105-165106-architekt-a6f6104c2d9e6dbd4.md)) |
