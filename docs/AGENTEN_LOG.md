@@ -72,3 +72,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 12:31 | ▶ | kritiker | Kritiker Freigabe Testzahl A88-V1 |
 | 2026-11-05 12:32 | ■ 🟢 | kritiker | 🟢 **Freigegeben:** Die Test-Schranke darf den Rückgang von 296 auf 294 Tests durch Commit 11e648d annehmen.  ([Bericht](docs/pruefberichte/20261105-123257-kritiker-adcaab68e117b8583.md)) |
 | 2026-11-05 12:34 | ▶ | entwickler | A88 P1 Kundenanfrage bauen |
+| 2026-11-05 12:47 | ■ 🟡 | entwickler | ## 🟡 FERTIG_MIT_BEDENKEN – A88 P1 „Kundenanfrage“  ([Bericht](docs/pruefberichte/20261105-124747-entwickler-a9a639fc55b2f9ba0.md)) |
