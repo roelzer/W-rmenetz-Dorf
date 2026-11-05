@@ -146,8 +146,8 @@ export class Steuerung implements Ui {
     this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
     this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); });
     // Durchmesser direkt wählen (Designer-Mangel 10)
-    // A88: nur freigeschaltete Durchmesser plus ein deaktivierter Knopf für die dickeren – der Kern entscheidet
-    const wahl = h('div', { class: 'durchmesser' }, ...leitungsKnoepfe(this.spiel, null, (t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true })));
+    // A88: nur freigeschaltete Durchmesser plus ein deaktivierter Knopf für die dickeren – der Kern entscheidet; kurzer Grund, weil die Leiste eng ist
+    const wahl = h('div', { class: 'durchmesser' }, ...leitungsKnoepfe(this.spiel, null, (t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true }), true));
     const sperreTStueck = this.spiel.sperrgrund('vorsehung');
     const werkzeug = h('div', { class: 'knopfreihe' },
       knopf(radieren ? 'Radierer an – tippe Leitungen weg' : 'Radierer', () => this.stempeln(typ, !radieren), radieren ? 'gewaehlt' : '', { klein: true }),

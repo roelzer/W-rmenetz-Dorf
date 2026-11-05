@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
-import { BAU_KATEGORIEN, KATALOG, KONSTANTEN, passendeStation, type TypId } from '../src/core/katalog';
+import { BAU_KATEGORIEN, KATALOG, KONSTANTEN, passendeStation, STATIONEN, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
 import { pruefeAuftraege } from '../src/core/auftraege';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { abStufe, FREISCHALTUNGEN, FUNKTION_NAME, freigeschaltet, neuBeiStufe, sperrgrund, type Funktion, type Merkmal } from '../src/core/freischaltung';
 import { blase } from '../src/render/szene';
 import type { Objekt } from '../src/core/typen';
+import { SYMBOLE } from '../src/ui/symbole';
 
 // A88 Freischalt-Leiter (Bauplan docs/bauplaene/A88-freischalt-leiter.md, Abschnitt 4, 6a, 9 T1–T10, 10).
 // Nutzt das echte Kernmodul (kein vi.mock). Erwartete Stufen von Hand aus der Tabelle in Abschnitt 4.
@@ -344,7 +345,8 @@ function attrappe() {
     replaceChildren(...k: unknown[]) { this.kinder = [...k]; }
   }
   const doc = { createElement: (t: string) => new El(t), createTextNode: (t: string) => ({ text: t }), importNode: (n: unknown) => n, addEventListener: () => {} };
-  class Parser { parseFromString() { return { documentElement: new El('svg') }; } }
+  // Die SVG-Quelle wird am Element vermerkt, damit Tests ein bestimmtes Symbol (z. B. das Schloss) erkennen können.
+  class Parser { parseFromString(q: string) { const svg = new El('svg'); svg.attrs.quelle = q; return { documentElement: svg }; } }
   const text = (n: unknown): string => (n && typeof n === 'object' && 'text' in n ? String((n as { text: string }).text) : n instanceof El ? n.kinder.map(text).join('') : '');
   const alle = (n: unknown): El[] => (n instanceof El ? [n, ...n.kinder.flatMap(alle)] : []);
   return { doc, Parser, El, text, alle };
@@ -448,16 +450,25 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     });
   });
 
-  it('A88: Zeichenleiste – Durchmesser über den Kern, T-Stück-Werkzeug vor Stufe 4 deaktiviert mit Grund', async () => {
+  it('A88: Zeichenleiste – Durchmesser über den Kern, „Dickere“ mit kurzem Grund „ab Stufe X“, T-Stück-Werkzeug vor Stufe 4 deaktiviert mit langem Grund', async () => {
+    // DESIGN.md 12.15: In der engen Zeichenleiste steht der kurze Grund „ab Stufe X“ (ohne „Heizzentrale“).
+    // Die Leitungskarte und der direkte Aufruf von leitungsKnoepfe behalten den langen Grund (Tests oben/unten).
     await mitAttrappe(async (a, blatt) => {
       const { Steuerung } = await import('../src/steuerung');
-      for (const [stufe, tstueckAus, texte] of [[1, true, ['25er', '32er', '40er', 'Dickereab Heizzentrale Stufe 2']], [4, false, ['25er', '32er', '40er', '50er', '63er', '75er', '90er', '110er']]] as Array<[number, boolean, string[]]>) {
+      for (const [stufe, tstueckAus, texte] of [
+        [1, true, ['25er', '32er', '40er', 'Dickereab Stufe 2']],
+        [2, true, ['25er', '32er', '40er', '50er', '63er', 'Dickereab Stufe 3']],
+        [4, false, ['25er', '32er', '40er', '50er', '63er', '75er', '90er', '110er']],
+      ] as Array<[number, boolean, string[]]>) {
         blatt.inhalt = new a.El('div');
         const st = Object.assign(Object.create(Steuerung.prototype), { spiel: neu(stufe).s, katalogUi: { schliessen: () => {} }, kontextUi: { schliessen: () => {} }, modusBlatt: null, vorsehen: false });
         (st as { stempeln: (t: TypId) => void }).stempeln('d25');
         const alle = a.alle(blatt.inhalt);
         const durchmesser = alle.find((e) => e.className === 'durchmesser')!;
-        expect(a.alle(durchmesser).filter((e) => e.tag === 'button').map((e) => a.text(e)), `Stufe ${stufe}`).toEqual(texte);
+        const dknoepfe = a.alle(durchmesser).filter((e) => e.tag === 'button');
+        expect(dknoepfe.map((e) => a.text(e)), `Stufe ${stufe}`).toEqual(texte);
+        // nur der Knopf „Dickere“ ist deaktiviert, alle Durchmesser-Knöpfe sind tippbar
+        expect(dknoepfe.map((e) => e.attrs.disabled !== undefined), `Stufe ${stufe}`).toEqual(texte.map((t) => t.startsWith('Dickere')));
         const tstueck = alle.find((e) => e.tag === 'button' && a.text(e).startsWith('T-Stück mit Vorsehung'))!;
         expect(tstueck.attrs.disabled !== undefined, `Stufe ${stufe}`).toBe(tstueckAus);
         expect(a.text(tstueck).includes('ab Heizzentrale Stufe 4'), `Stufe ${stufe}`).toBe(tstueckAus);
@@ -493,15 +504,40 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
   });
 
   it('A88: Hauskarte – ohne freie Stationswahl genau ein Knopf mit der passenden Station', async () => {
+    // Festlegung Stationsknopf (ENTSCHEIDUNGEN „Designer-Treue A88 P2, Teil 2“):
+    //   Zeile 1 = Text des <button> ohne das <small>-Kind: genau „Station einbauen“ bzw. „Größere Station einbauen“.
+    //   Zeile 2 = Text des <small>-Kinds (knopf-Option `unter`): „<voller Katalogname> · <Preis>“, z. B. „Wandstation Typ 15 · 2.400 €“.
+    //   Der Preis ist der zu zahlende Preis aus dem Katalog (bei „Größere Station“ abzüglich Rückkauf der alten Station).
     const haus = (s: Spiel) => s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
-    const stationen = (k: Knopf[]) => k.filter((x) => x.text.includes('Wandstation')).map((x) => x.text.split(' · ').slice(0, 2).join(' · '));
-    const eins = neu(1).s;
-    expect(stationen((await karte(eins, haus(eins))).knoepfe)).toEqual(['Übergabestation einbauen · Wandstation Typ 15']);
+    const eurText = (n: number) => `${n.toLocaleString('de-DE')} €`;
+    const kosten = (id: string) => STATIONEN.find((x) => x.id === id)!.kosten_eur;
+    type El = { tag: string; kinder: unknown[] };
+    const zeilen = (k: Awaited<ReturnType<typeof karte>>) => k.elemente
+      .filter((e) => e.tag === 'button' && k.a.text(e).includes('Station einbauen'))
+      .map((e) => {
+        const kinder = (e as unknown as El).kinder;
+        const istSmall = (n: unknown) => !!n && typeof n === 'object' && (n as El).tag === 'small';
+        return { z1: kinder.filter((n) => !istSmall(n)).map(k.a.text).join(''), z2: kinder.filter(istSmall).map(k.a.text).join(''), aus: (e as unknown as { attrs: Record<string, string> }).attrs.disabled !== undefined };
+      });
+
+    const eins = neu(1).s, neuesHaus = haus(eins);
+    expect(neuesHaus.interessent, 'Vorbedingung: kein Interessenten-Nachlass').toBeFalsy();
+    expect(bedarfKw(neuesHaus)).toBe(10); // → kleinste passende Station: Typ 15
+    const k1 = await karte(eins, neuesHaus);
+    expect(zeilen(k1)).toEqual([{ z1: 'Station einbauen', z2: `Wandstation Typ 15 · ${eurText(kosten('st_15'))}`, aus: false }]);
+    expect(k1.knoepfe.filter((x) => x.text.includes('Wandstation')).length).toBe(1); // genau ein Stationsknopf
+
     const zwei = neu(2).s;
-    expect(stationen((await karte(zwei, haus(zwei))).knoepfe).map((t) => t.split(' · ')[0])).toEqual(['Wandstation Typ 15', 'Wandstation Typ 25', 'Wandstation Typ 40']);
+    const k2 = await karte(zwei, haus(zwei));
+    expect(k2.knoepfe.filter((x) => x.text.includes('Wandstation')).map((x) => x.text.split(' · ')[0])).toEqual(['Wandstation Typ 15', 'Wandstation Typ 25', 'Wandstation Typ 40']);
+    expect(zeilen(k2)).toEqual([]); // mit freier Stationswahl kein Einzelknopf „Station einbauen“
+
     const h = startHaeuser(eins)[0];
+    expect(h.station).toBe('st_15');
     h.aufgestockt = true; h.vollversorgung = true; eins.neuBerechnen();
-    expect(stationen((await karte(eins, h)).knoepfe)).toEqual(['Größere Station einbauen · Wandstation Typ 25']);
+    // Typ 25 kostet laut Katalog 3.600 €, die alte Typ 15 (2.400 €) wird zu rueckkauf_anteil zurückgekauft.
+    const preis = Math.round(kosten('st_25') - kosten('st_15') * KONSTANTEN.rueckkauf_anteil);
+    expect(zeilen(await karte(eins, h))).toEqual([{ z1: 'Größere Station einbauen', z2: `Wandstation Typ 25 · ${eurText(preis)}`, aus: false }]);
   });
 
   it('A88: Hauskarte – Puffer und Helfer vor Stufe 3 deaktiviert mit Grund, Bestand und laufender Auftrag zuerst', async () => {
@@ -571,16 +607,97 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     expect(mit((await karte(vier, hzVon(vier))).knoepfe, 'PV aufs Dach')[0].aus).toBe(false);
   });
 
-  it('A88: Büro – gesperrte Quelle zeigt deaktivierten Knopf mit Grund statt „Antrag stellen“, Bestand zuerst', async () => {
+  // Festlegung Büro/Förderanträge (DESIGN.md 12.15, ENTSCHEIDUNGEN „Designer-Treue A88 P2, Teil 2“), danach baut der Entwickler:
+  //   - Je Förderquelle eine Zeile (Element mit class „zeile“) im Kasten mit Überschrift <h3>Förderanträge</h3>;
+  //     erstes Kind der Zeile enthält den Katalognamen der Quelle.
+  //   - Freie Quelle ohne Antrag: tippbarer <button> „Antrag stellen“ (nicht deaktiviert).
+  //   - Gesperrte Quelle ohne Antrag: KEIN <button> in der Zeile, sondern ein Chip = Element, dessen class die Wörter
+  //     „chip“ UND „sperr“ enthält (z. B. class="chip sperr"). Der Chip ist kein <button>, hat keinen Klick-Handler,
+  //     enthält das Schloss-Symbol (symbol('schloss'), SVG-Quelle SYMBOLE.schloss) und als Text genau „ab Stufe X“.
+  //   - Gestellter Antrag: Chip „in Prüfung“ bzw. „bewilligt“ wie bisher (ohne „sperr“), auch wenn die Quelle gesperrt ist.
+  //   - Reihenfolge: freie Quellen zuerst, danach gesperrte nach Freischalt-Stufe aufsteigend (innerhalb einer Stufe beliebig).
+  describe('A88: Büro – gesperrte Förderquellen als nicht tippbarer Chip „ab Stufe X“ (DESIGN.md 12.15)', () => {
+    type El = { tag: string; className: string; attrs: Record<string, string>; kinder: unknown[]; on: Record<string, () => void> };
     const buero = (s: Spiel) => s.stand.objekte.find((o) => o.typ === 'buero') ?? lege(s, 'buero', 3, 3);
-    const eins = neu(1).s;
-    const antraege = mit((await karte(eins, buero(eins))).knoepfe, 'Antrag stellen');
-    expect(antraege.filter((x) => !x.aus).map((x) => x.text)).toEqual(['Antrag stellen']);
-    expect(antraege.filter((x) => x.aus).length).toBe(9);
-    expect(antraege.find((x) => x.aus)!.text).toBe('Antrag stellenab Heizzentrale Stufe 3');
-    eins.stand.antraege.pellet = { stand: 'wartet', bewilligt_ms: T0 + 1000 };
-    expect(mit((await karte(eins, buero(eins))).knoepfe, 'Antrag stellen').length).toBe(9);
-    const vier = neu(4).s;
-    expect(mit((await karte(vier, buero(vier))).knoepfe, 'Antrag stellen').every((x) => !x.aus)).toBe(true);
+    // Stufen der Quellen von Hand aus der Tabelle Bauplan A88 Abschnitt 4 (siehe test_a88_tabelle_stufen)
+    const QUELLEN_JE_STUFE: Record<number, TypId[]> = { 1: ['kessel'], 2: ['wpg', 'puffer', 'solar'], 3: ['pellet', 'gas', 'sonde'], 4: ['bhkw', 'ptk', 'pv'] };
+    const name = (t: TypId) => KATALOG[t].name;
+    const klassen = (e: El) => e.className.split(/\s+/);
+    const zeilen = async (s: Spiel) => {
+      const k = await karte(s, buero(s));
+      const els = k.elemente as unknown as El[];
+      const kasten = els.find((e) => e.kinder.some((c) => !!c && typeof c === 'object' && (c as El).tag === 'h3' && k.a.text(c) === 'Förderanträge'));
+      expect(kasten, 'Kasten „Förderanträge“').toBeTruthy();
+      return (k.a.alle(kasten) as unknown as El[]).filter((e) => klassen(e).includes('zeile')).map((z) => {
+        const innen = k.a.alle(z) as unknown as El[];
+        const sperr = innen.filter((e) => klassen(e).includes('chip') && klassen(e).includes('sperr'));
+        const chips = innen.filter((e) => klassen(e).includes('chip') && !klassen(e).includes('sperr'));
+        const knoepfe = innen.filter((e) => e.tag === 'button');
+        return {
+          name: k.a.text(z.kinder[0]),
+          sperr: sperr.map((c) => ({ text: k.a.text(c).trim(), tag: c.tag, klick: Object.keys(c.on).length > 0, schloss: (k.a.alle(c) as unknown as El[]).some((x) => x.attrs.quelle === SYMBOLE.schloss) })),
+          chips: chips.map((c) => k.a.text(c)),
+          knoepfe: knoepfe.map((b) => ({ text: k.a.text(b), aus: b.attrs.disabled !== undefined, klick: b.on.click })),
+        };
+      });
+    };
+    type Zeile = Awaited<ReturnType<typeof zeilen>>[number];
+    const sortiert = (namen: string[]) => [...namen].sort();
+    /** Prüft eine Stufe: freie Quellen mit Knopf vorne, gesperrte mit Chip dahinter nach Stufe aufsteigend. */
+    const pruefeStufe = (stufe: number, z: Zeile[]) => {
+      expect(z.length, `Stufe ${stufe}: zehn Quellen`).toBe(10);
+      let pos = 0;
+      for (let st = 1; st <= 4; st++) {
+        const gruppe = z.slice(pos, pos + QUELLEN_JE_STUFE[st].length);
+        pos += QUELLEN_JE_STUFE[st].length;
+        if (st <= stufe) continue; // freie Gruppen werden unten gemeinsam geprüft (frei untereinander in beliebiger Reihenfolge)
+        expect(sortiert(gruppe.map((x) => x.name)), `Stufe ${stufe}: Gruppe ab Stufe ${st}`).toEqual(sortiert(QUELLEN_JE_STUFE[st].map(name)));
+        for (const x of gruppe) {
+          expect(x.knoepfe, `${x.name}: kein Knopf`).toEqual([]);
+          expect(x.sperr, `${x.name}: Sperr-Chip`).toEqual([{ text: `ab Stufe ${st}`, tag: expect.not.stringMatching(/^button$/), klick: false, schloss: true }]);
+        }
+      }
+      const freiNamen = [1, 2, 3, 4].filter((st) => st <= stufe).flatMap((st) => QUELLEN_JE_STUFE[st].map(name));
+      const frei = z.slice(0, freiNamen.length);
+      expect(sortiert(frei.map((x) => x.name)), `Stufe ${stufe}: freie Quellen zuerst`).toEqual(sortiert(freiNamen));
+      for (const x of frei) {
+        expect(x.sperr, `${x.name}: kein Sperr-Chip`).toEqual([]);
+        expect(x.knoepfe.map((b) => ({ text: b.text, aus: b.aus })), `${x.name}: Antrag stellen`).toEqual([{ text: 'Antrag stellen', aus: false }]);
+      }
+    };
+
+    it('A88: Büro Stufe 1 – nur Holzkessel mit „Antrag stellen“, neun Chips „ab Stufe 2/3/4“ mit Schloss, frei zuerst', async () => {
+      pruefeStufe(1, await zeilen(neu(1).s));
+    });
+    it('A88: Büro Stufe 2 – vier freie Quellen mit Knopf, danach Chips „ab Stufe 3“ und „ab Stufe 4“', async () => {
+      pruefeStufe(2, await zeilen(neu(2).s));
+    });
+    it('A88: Büro Stufe 4 – alle zehn Quellen mit tippbarem „Antrag stellen“, kein Chip', async () => {
+      const z = await zeilen(neu(4).s);
+      pruefeStufe(4, z);
+      expect(z.every((x) => x.sperr.length === 0)).toBe(true);
+    });
+    it('A88: Büro – „Antrag stellen“ einer freien Quelle stellt wirklich den Antrag', async () => {
+      const s = neu(1).s;
+      const kessel = (await zeilen(s)).find((x) => x.name === name('kessel'))!;
+      kessel.knoepfe[0].klick!();
+      expect(s.stand.antraege.kessel?.stand).toBe('wartet');
+      const danach = (await zeilen(s)).find((x) => x.name === name('kessel'))!;
+      expect(danach.knoepfe).toEqual([]);
+      expect(danach.chips).toEqual(['in Prüfung']);
+    });
+    it('A88: Büro – ein gestellter Antrag einer gesperrten Quelle bleibt sichtbar (Chip „in Prüfung“, kein Sperr-Chip)', async () => {
+      const s = neu(1).s;
+      s.stand.antraege.pellet = { stand: 'wartet', bewilligt_ms: T0 + 1000 };
+      const z = await zeilen(s);
+      expect(z.length).toBe(10);
+      const pellet = z.find((x) => x.name === name('pellet'))!;
+      expect(pellet.chips).toEqual(['in Prüfung']);
+      expect(pellet.sperr).toEqual([]);
+      expect(pellet.knoepfe).toEqual([]);
+      expect(z.filter((x) => x.sperr.length > 0).map((x) => x.name).length).toBe(8);
+      expect(z.filter((x) => x.knoepfe.length > 0).map((x) => x.name)).toEqual([name('kessel')]);
+      expect(z[0].name).toBe(name('kessel'));
+    });
   });
 });
