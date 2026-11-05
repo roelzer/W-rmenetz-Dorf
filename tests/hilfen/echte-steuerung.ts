@@ -39,9 +39,19 @@ export async function echteSteuerung(spiel: Spiel, arbeit: (u: EchteUmgebung) =>
   vi.stubGlobal('localStorage', { getItem: (k: string) => speicher.get(k) ?? null, setItem: (k: string, v: string) => { speicher.set(k, String(v)); }, removeItem: (k: string) => { speicher.delete(k); } });
   const matchMedia = (q: string) => ({ matches: false, media: q, addEventListener: () => {}, removeEventListener: () => {} });
   vi.stubGlobal('matchMedia', matchMedia);
-  vi.stubGlobal('requestAnimationFrame', (f: (t: number) => void) => setTimeout(() => f(0), 0));
-  vi.stubGlobal('cancelAnimationFrame', (id: ReturnType<typeof setTimeout>) => clearTimeout(id));
-  vi.stubGlobal('window', { matchMedia, setTimeout, clearTimeout, devicePixelRatio: 2, innerWidth: opt.breite ?? 844, innerHeight: opt.hoehe ?? 390, addEventListener: () => {}, removeEventListener: () => {} });
+  vi.stubGlobal('requestAnimationFrame', (f: (t: number) => void) => fensterSetTimeout(() => f(0), 0));
+  vi.stubGlobal('cancelAnimationFrame', (id: ReturnType<typeof setTimeout>) => fensterClearTimeout(id));
+  // Zeitgeber der Oberfläche merken und am Ende löschen: sonst läuft z. B. die Ausblende-Zeit der Meldung nach dem Test
+  // weiter und trifft auf das schon zurückgesetzte `window` (unbehandelter Fehler im Gesamtlauf). Ruft immer die gerade
+  // gültige globale Uhr auf, damit vi.useFakeTimers() im Test weiter greift.
+  const zeitgeber = new Set<ReturnType<typeof setTimeout>>();
+  const fensterSetTimeout = (f: () => void, ms?: number): ReturnType<typeof setTimeout> => {
+    const id = globalThis.setTimeout(() => { zeitgeber.delete(id); f(); }, ms);
+    zeitgeber.add(id);
+    return id;
+  };
+  const fensterClearTimeout = (id: ReturnType<typeof setTimeout>): void => { zeitgeber.delete(id); globalThis.clearTimeout(id); };
+  vi.stubGlobal('window', { matchMedia, setTimeout: fensterSetTimeout, clearTimeout: fensterClearTimeout, devicePixelRatio: 2, innerWidth: opt.breite ?? 844, innerHeight: opt.hoehe ?? 390, addEventListener: () => {}, removeEventListener: () => {} });
   vi.doMock('../../src/ui/bild', () => ({ katalogBild: () => new El('canvas') }));
   try {
     const { Steuerung } = await import('../../src/steuerung');
@@ -56,6 +66,8 @@ export async function echteSteuerung(spiel: Spiel, arbeit: (u: EchteUmgebung) =>
     };
     await arbeit({ dom, st, meldung, knoepfe: () => dom.html.querySelectorAll('button'), speicher });
   } finally {
+    for (const id of zeitgeber) globalThis.clearTimeout(id);
+    zeitgeber.clear();
     vi.unstubAllGlobals();
     vi.doUnmock('../../src/ui/bild');
   }
