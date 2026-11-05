@@ -33,3 +33,4 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-05 – A50: 40 statt 18 Häuser; Interessent alle 600 s Zufriedenheit (≥ 75 %), max. 4, 20 % Stationsnachlass (Spielwerte)
 - 2026-11-05 – A47: Hausanschluss-Wegsuche mit Biegungsaufschlag 900 €, Ziehen mit Achsensperre (Knick erst bei 2 Feldern Seitenzug), Radierer und „Letzte zurück“ im offenen Bauabschnitt
 - 2026-11-05 – A51: Helfer erscheinen mit gezeichnetem Gesicht und Sprechblase (Foto-Ersatz per Datei public/figuren/<name>.jpg, Einverständnis nötig); Lieferzeit = Bauzeit des Abschnitts in Spielwochen (1 Spieljahr = 52 Wochen), mindestens 1
+- 2026-11-05 – A51: Echte Fotos von Sebastian, Manfred, Christian, Laura, Philipp (von Simon geliefert, in der Reihenfolge seiner Nachricht zugeordnet) als public/figuren/<name>.jpg; Einverständnis der Personen vor Veröffentlichung bei Cloudflare ist Simons Sache (Recht am eigenen Bild)

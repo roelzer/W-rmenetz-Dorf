@@ -30,10 +30,12 @@ function figur(name: string): HTMLElement {
   kasten.append(document.importNode(new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement, true));
   const foto = new Image();
   const endungen = ['jpg', 'png', 'webp'];
-  const probieren = (i: number): void => { if (i < endungen.length) foto.src = `figuren/${name.toLowerCase()}.${endungen[i]}`; };
+  // Einzeldatei-Vorschau: Fotos stehen dort als Datenadressen in window.__figuren
+  const eingebettet = (window as unknown as { __figuren?: Record<string, string> }).__figuren?.[name.toLowerCase()];
+  const probieren = (i: number): void => { if (eingebettet) foto.src = eingebettet; else if (i < endungen.length) foto.src = `figuren/${name.toLowerCase()}.${endungen[i]}`; };
   foto.onload = () => { foto.alt = name; kasten.replaceChildren(foto); };
   let versuch = 0;
-  foto.onerror = () => { versuch++; probieren(versuch); };
+  foto.onerror = () => { if (eingebettet) return; versuch++; probieren(versuch); };
   probieren(0);
   return kasten;
 }
