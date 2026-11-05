@@ -41,3 +41,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 10:23 | ■ 🟡 | fachpruefer | 🟡 **Gelb.** Simons neue Regeln A71 bis A76 sind richtig umgesetzt, und die Tests sichern die wichtigsten Rechenstellen ab. Gegen eine bestätigte Fachregel v ([Bericht](docs/pruefberichte/20261105-102349-fachpruefer-af3ff03e9453287a2.md)) |
 | 2026-11-05 10:28 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Es sind zwei kleine, aber echte Fehler, beide schnell zu beheben.  ([Bericht](docs/pruefberichte/20261105-102818-reviewer-a995cefd743704ca4.md)) |
 | 2026-11-05 10:33 | ■ 🔴 | reviewer | 🔴 **Nachprüfung (Commit 46abf89): Alle meine Befunde sind behoben bis auf zwei kleine Restpunkte, aber die Nachbesserung hat eine neue Abweichung von Simons ([Bericht](docs/pruefberichte/20261105-103310-reviewer-a995cefd743704ca4.md)) |
+| 2026-11-05 10:47 | ▶ | reviewer | Review A80–A82 |
+| 2026-11-05 10:47 | ▶ | fachpruefer | Fachprüfung A81/A82 |
+| 2026-11-05 10:47 | ▶ | designer | Menü-Stil neu entwerfen |
