@@ -92,7 +92,7 @@ function heizzentrale(x: number, y: number): string {
 function ladebildSvg(): string {
   saat = 7;
   const strasse_y = 612, hz: [number, number] = [790, 584];
-  const FARBE: Record<string, [string, number]> = { d63: ['#e86aa0', 15], d50: ['#1f4fa8', 13], d40: ['#6ec6ff', 11], d25: ['#d8392f', 7] };
+  const FARBE: Record<string, [string, number]> = { d40: ['#6ec6ff', 11], d32: ['#4caf3e', 9], d25: ['#d8392f', 7] };
   const rohr = (d: string, typ: string, fluss = true): string => {
     const [f, b] = FARBE[typ];
     return `<path d="${d}" stroke="#3b1d0a" stroke-width="${b + 6}" fill="none" stroke-linecap="round" opacity=".55"/><path d="${d}" stroke="${f}" stroke-width="${b}" fill="none" stroke-linecap="round"/>`
@@ -100,9 +100,11 @@ function ladebildSvg(): string {
       + (fluss ? `<path class="vs-fluss" d="${d}" stroke="#fff" stroke-width="${Math.max(3, b * 0.35)}" fill="none" stroke-linecap="round" stroke-dasharray="1 34"/>` : '');
   };
   // Hauptleitung in der Straße: nahe der Heizzentrale dick, nach außen dünner – wie im Spiel
-  const haupt = [rohr(`M${hz[0]} ${hz[1]}V${strasse_y}`, 'd63'),
-    rohr(`M${hz[0]} ${strasse_y}H600`, 'd63'), rohr(`M600 ${strasse_y}H380`, 'd50'), rohr(`M380 ${strasse_y}H140`, 'd40'),
-    rohr(`M${hz[0]} ${strasse_y}H990`, 'd63'), rohr(`M990 ${strasse_y}H1220`, 'd50'), rohr(`M1220 ${strasse_y}H1470`, 'd40')].join('');
+  // Simon 2026-11-05: Rohrgrößen passend zu den angeschlossenen Häusern (je ca. 10 kW: 25er bis 15 kW, 32er bis 25 kW, 40er bis 40 kW),
+  // zwei eigene Abgänge aus der Heizzentrale statt einer dicken Sammelleitung, die Leitung endet am letzten Haus (keine Vorsehung).
+  const [hx, hy] = hz;
+  const haupt = [rohr(`M${hx - 14} ${hy}V${strasse_y}H480`, 'd40'), rohr(`M480 ${strasse_y}H250`, 'd32'), rohr(`M250 ${strasse_y}H170`, 'd25'),
+    rohr(`M${hx + 14} ${hy}V${strasse_y}H1110`, 'd40'), rohr(`M1110 ${strasse_y}H1270`, 'd32'), rohr(`M1270 ${strasse_y}H1350`, 'd25')].join('');
   const daecher = ['#e2582b', '#c4553e', '#d8392f', '#2f6aa8', '#7a4e9a', '#e2582b'];
   // [x, Fußpunkt y, Größe, angeschlossen]; hinten = oberhalb der Straße, vorne = unterhalb
   const hinten: Array<[number, number, number, boolean]> = [[170, 566, 0.8, true], [320, 560, 0.78, false], [480, 566, 0.82, true], [1110, 566, 0.82, true], [1270, 560, 0.78, true], [1430, 566, 0.8, false]];
@@ -201,7 +203,7 @@ export function vorspannZeigen(weniger_bewegung: boolean, tippNr = Math.floor(Ma
   const balken = h('div', { class: 'vs-balken' }, h('div', { class: 'vs-fuellung' }), h('span', { class: 'vs-prozent' }, 'Lädt …'));
   const v = h('div', { id: 'vorspann', class: weniger_bewegung ? 'still' : '', role: 'img', 'aria-label': 'Heatnet wird geladen' },
     szene, bewegt,
-    h('div', { class: 'vs-kopf' }, logoElement(96), h('div', { class: 'vs-titel' }, schriftzugGross(), h('span', { class: 'unterzeile' }, h('span', { class: 'vs-blattzeichen', 'aria-hidden': 'true' }, '🌿'), 'Mach dein Dorf Schritt für Schritt erneuerbar'))),
+    h('div', { class: 'vs-kopf' }, logoElement(96), h('div', { class: 'vs-titel' }, schriftzugGross(), h('span', { class: 'unterzeile' }, h('span', { class: 'vs-blattzeichen', 'aria-hidden': 'true' }, '🌿'), 'Heize dein Dorf klimaneutral'))),
     h('div', { class: 'vs-fuss' }, balken, h('p', { class: 'vs-tipp' }, h('b', {}, 'Tipp: '), TIPPS[tippNr % TIPPS.length])));
   document.body.append(v);
   let weg = false;

@@ -66,3 +66,5 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-05 – A79: Namensfenster nur bei neuen Spielständen (Merker `namen_gefragt: false`), alte Stände werden nicht gefragt; kein Schließen-Knopf, leere Felder behalten den Vorschlag – Simon
 - 2026-11-05 – A73 nach Fachprüfung: Knopf und Fertig-Meldung zeigen den tatsächlichen Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf-Grenze 40 °C), nicht den Nennwert; ist die Grenze erreicht: „Rücklauf schon bei 40 °C“, dazu „braucht X K weniger Vorlauf“ – Fachprüfer-Befund 2, Reviewer N1
 - 2026-11-05 – A80: Trefferprüfung über die gezeichnete Gebäudeform; ein altes Fenster darf beim Schließen das neue nicht mehr leeren – Simon
+- 2026-11-05 – A82: Unterzeile wieder „Heize dein Dorf klimaneutral“ (ersetzt die A68-Unterzeile). Als Aufforderung an den Spieler, nicht als Produktversprechen; vor einer Store-Veröffentlichung Werbetexte nochmal prüfen (Regeln zu Umweltaussagen) – Simon: „meinen Spruch nutzen“
+- 2026-11-05 – A82: Ladebild-Leitungen nach Spiel-Kapazität (ca. 10 kW je Haus): je Strang 40er → 32er → 25er, zwei Abgänge aus der Heizzentrale – Simon

@@ -829,8 +829,13 @@ describe('A64 Ladebildschirm, A65 Abzweig an der Hauptleitung', () => {
     expect(q).toContain('const TIPPS');
     expect(q).toContain('Je kälter der Rücklauf');
     expect(q).not.toMatch(/innerHTML/);
-    expect(q).toContain('Mach dein Dorf Schritt für Schritt erneuerbar');
-    expect(q).not.toContain('klimaneutral'); // A68: Werbeaussage nicht haltbar (Fachprüfung)
+  });
+  it('A82: Ladebild mit Simons Spruch und Rohrgrößen passend zu den Häusern, ohne Vorsehung', () => {
+    const q = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
+    expect(q).toContain("'Heize dein Dorf klimaneutral'"); // Simon 2026-11-05, ersetzt die Unterzeile aus A68
+    expect(q).not.toMatch(/'d(50|63|75|90|110)'/); // 3–4 Häuser je Strang à ca. 10 kW: höchstens 40er
+    expect(q).toContain("'d32'");
+    expect(q).not.toContain('H1470'); expect(q).not.toContain('H140`'); // Leitung endet am letzten angeschlossenen Haus
   });
   it('A65: Die dünnere Leitung läuft bis in die Hauptleitung, die Hauptleitung zeichnet keinen Stummel', async () => {
     const { abzweigZeichnen, eigenerHausanschluss } = await import('../src/render/anschluss');
@@ -861,11 +866,11 @@ describe('A67 Startnetz', () => {
 });
 
 describe('A68 Fachprüfung A45–A66 umgesetzt', () => {
-  it('A68: Leitungstexte kennzeichnen Spielwerte, kein „klimaneutral“, BHKW-Strom folgt der erzeugten Wärme', async () => {
+  it('A68: Leitungstexte kennzeichnen Spielwerte, BHKW-Strom folgt der erzeugten Wärme', async () => {
     const { readFileSync } = await import('node:fs');
     for (const t of LEITUNGEN) expect(KATALOG[t].beschreibung).toContain('im Spiel');
     const vorspann = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
-    expect(vorspann).not.toContain('klimaneutral');
+    // A82 (Simon): Unterzeile ist wieder „Heize dein Dorf klimaneutral“ – siehe Test A82
     expect(vorspann).not.toContain('nur mit einer Spülbohrung');
     const { berechneNetz } = await import('../src/core/netz');
     const s = new Spiel(neuerSpielstand(0), () => 0);
