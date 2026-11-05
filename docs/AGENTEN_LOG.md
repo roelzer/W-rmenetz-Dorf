@@ -112,3 +112,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:13 | ▶ | entwickler | NR12 P3a Bodenebene bauen |
 | 2026-11-05 14:17 | ■ 🟢 | tester | 🟢 Die Vorarbeit ist fertig. Auf dem Stand f441cb6 schlagen jetzt genau die angepassten Tests fehl (5 Stück), und zwar weil die neue Gestaltung noch nicht ge ([Bericht](docs/pruefberichte/20261105-141712-tester-af80a4c96b02ea972.md)) |
 | 2026-11-05 14:18 | ■ 🟡 | reviewer | 🟡 Ampel GELB: freigegeben, drei kleine Punkte bleiben offen.  ([Bericht](docs/pruefberichte/20261105-141859-reviewer-a7e876e7561e4df67.md)) |
+| 2026-11-05 14:19 | ■ 🟢 | entwickler | **Status: FERTIG – 🟢**  ([Bericht](docs/pruefberichte/20261105-141946-entwickler-a87b6789bfa005f5c.md)) |
+| 2026-11-05 14:20 | ▶ | entwickler | Designer-Treue Teil 2 bauen |
+| 2026-11-05 14:20 | ▶ | reviewer | Review NR12 P2 Startbildschirm |
