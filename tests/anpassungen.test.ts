@@ -28,10 +28,10 @@ describe('A22/A29 Start', () => {
   it('A30: Leitungstausch kostet den Neupreis minus 50 % des Altpreises', () => {
     const s = neuesSpiel();
     s.ersteQuelleWaehlen('kessel');
-    const leitung = s.stand.objekte.find((o) => o.typ === 'd50')!;
+    const leitung = s.stand.objekte.find((o) => o.typ === 'd40')!;
     const vorher = s.stand.geld_eur;
     expect(s.leitungTauschen(leitung.id, 'd63').ok).toBe(true);
-    expect(vorher - s.stand.geld_eur).toBe(KATALOG.d63.kosten_eur![0] - Math.round(KATALOG.d50.kosten_eur![0] * KONSTANTEN.rueckkauf_anteil));
+    expect(vorher - s.stand.geld_eur).toBe(KATALOG.d63.kosten_eur![0] - Math.round(KATALOG.d40.kosten_eur![0] * KONSTANTEN.rueckkauf_anteil));
   });
 });
 
@@ -54,8 +54,8 @@ describe('A23 Leitungen wie in echt', () => {
     s.stand.geld_eur = 10_000;
     s.ersteQuelleWaehlen('kessel');
     s.stand.abschnitt = { phase: 'offen', bau: null };
-    for (const [x, y] of [[11, 12], [11, 13]]) s.platzieren('d50', x, y);
-    for (const [x, y] of [[10, 13]]) s.platzieren('d25', x, y);
+    // A59: Schon der Start hat eine 40er-Hauptleitung und einen 25er-Hausanschluss
+    expect(s.stand.objekte.some((o) => o.typ === 'd25' && !o.geplant)).toBe(true);
     expect(s.netz.engpass.size).toBe(0);
     expect(s.netz.warm.size).toBeGreaterThanOrEqual(1);
   });
@@ -79,10 +79,10 @@ describe('A31 Verkaufen zu 50 %', () => {
   });
   it('A30: entfernte Leitung bringt 50 % zurück', () => {
     const s = neuesSpiel();
-    const l = s.stand.objekte.find((o) => o.typ === 'd50')!;
+    const l = s.stand.objekte.find((o) => o.typ === 'd40')!;
     const vor = s.stand.geld_eur;
     s.entfernen(l.id);
-    expect(s.stand.geld_eur - vor).toBe(Math.round(KATALOG.d50.kosten_eur![0] * 0.5));
+    expect(s.stand.geld_eur - vor).toBe(Math.round(KATALOG.d40.kosten_eur![0] * 0.5));
   });
 });
 
@@ -136,11 +136,12 @@ describe('A32 Übergabestationen', () => {
   });
   it('A32: Station, die für einen gewachsenen Bedarf zu klein ist, macht das Haus kalt (Grund „station“)', () => {
     const s = mitNetz();
-    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9)!;
+    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 13)!;
     haus.station = 'st_15';
-    (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 20; s.neuBerechnen();
-    expect(s.netz.kalt.get(haus.id)).toBe('station');
-    (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 10;
+    for (const o of s.stand.objekte) if (o.id !== haus.id && o.station) { delete o.station; o.ohne_station = true; } // nur dieses Haus belastet die 40er-Hauptleitung
+    (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 20;
+    try { s.neuBerechnen(); expect(s.netz.kalt.get(haus.id)).toBe('station'); }
+    finally { (KATALOG.efh as { bedarf_kw: number }).bedarf_kw = 10; }
   });
 });
 
@@ -552,7 +553,7 @@ describe('A47/A49 Leitungen wegnehmen, Anschlüsse erkennen, Rücklauf bringt Ka
     expect(s.letzteLeitungZurueck().ok).toBe(true);
     expect(s.abschnittLeitungen()).toBe(0);
     expect(s.letzteLeitungZurueck().ok).toBe(false);
-    const gebaut = s.stand.objekte.find((o) => o.typ === 'd50' && !o.geplant)!;
+    const gebaut = s.stand.objekte.find((o) => istLeitung(o.typ) && !o.geplant)!;
     expect(s.geplanteLeitungEntfernen(gebaut.x, gebaut.y).ok).toBe(false);
   });
   it('A47: Eine geplante Leitung am Haus wird als Hausanschluss dieses Abschnitts erkannt', () => {
@@ -728,5 +729,17 @@ describe('A58 Heizhaus ausbauen', () => {
     expect(n.strom_kw).toBeCloseTo(35 * 0.8, 6);
     const preise = (['kessel', 'pellet', 'gas', 'bhkw', 'wpg', 'ptk'] as const).map((t) => KATALOG[t].betriebskosten_eur_je_kw_min!);
     expect(Math.max(...preise)).toBe(KATALOG.gas.betriebskosten_eur_je_kw_min);
+  });
+});
+
+describe('A59 Startleitungen in der Straße', () => {
+  it('A59: Die Hauptleitung am Start ist eine 40er und liegt ganz in der Straße; Hausanschlüsse sind 25er', () => {
+    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const rohre = s.stand.objekte.filter((o) => istLeitung(o.typ));
+    const haupt = rohre.filter((o) => o.typ === 'd40');
+    expect(haupt.length).toBeGreaterThan(0);
+    for (const o of haupt) expect(s.istStrasse(o.x, o.y)).toBe(true);
+    for (const o of rohre.filter((o) => !s.istStrasse(o.x, o.y))) expect(o.typ).toBe('d25');
+    expect(s.stand.objekte.filter((o) => o.station && s.netz.warm.has(o.id))).toHaveLength(2);
   });
 });

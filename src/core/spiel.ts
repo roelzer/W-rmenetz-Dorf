@@ -35,14 +35,15 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
     objekte.push({ id: id++, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
   // Start (A22/A29): Heizhaus, Büro, ein Monteurhäuschen, 30.000 €. Die Häuser des Ortes (A21) heizen noch mit Öl.
   add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
-  // A29: zwei Starthäuser sind von Anfang an mit 50er-Leitung angeschlossen (Hauptleitung zum Heizhaus); alle weiteren Häuser heizen noch mit Öl.
-  for (const [x, y] of [[11, 12], [11, 13], [11, 14], [10, 13]]) add('d50', x, y);
-  // Häuser, die am Start schon am Netz hängen, haben eine Übergabestation; alle anderen müssen eine kaufen (A32, Simon 2026-11-05).
-  const rohre = objekte.filter((o) => o.typ === 'd50');
+  // A29/A59: zwei Starthäuser sind von Anfang an angeschlossen. Die Hauptleitung (40er) liegt in der Straße neben dem Heizhaus,
+  // die Hausanschlüsse (25er) führen von dort zu den Häusern; alle weiteren Häuser heizen noch mit Öl.
+  for (let y = 10; y <= 14; y++) add('d40', 10, y);
+  add('d25', 11, 14); // (9|13) liegt direkt an der Straße und hängt ohne eigenes Zwischenstück an der Hauptleitung
+  // Die beiden Starthäuser haben eine Übergabestation; alle anderen müssen eine kaufen (A32, Simon 2026-11-05).
+  const starthaeuser = new Set([13 * N + 9, 14 * N + 12]);
   ort.haeuser.forEach((h) => {
     const bedarf = KATALOG[h.typ].bedarf_kw as number;
-    const g = KATALOG[h.typ].groesse ?? 1;
-    const start = rohre.some((r) => r.x >= h.x - 1 && r.x <= h.x + g && r.y >= h.y - 1 && r.y <= h.y + g && !(r.x >= h.x && r.x < h.x + g && r.y >= h.y && r.y < h.y + g));
+    const start = starthaeuser.has(h.y * N + h.x);
     add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true, ...(start ? { station: passendeStation(bedarf).id } : { ohne_station: true }) });
   });
   for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt', ohne_station: true });
