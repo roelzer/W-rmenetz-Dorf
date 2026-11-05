@@ -94,3 +94,12 @@ describe('A92 / DESIGN 12.17 – Meldung trennt Leitungsnamen nicht am Bindestri
     expect(css).toMatch(/#toast \.am-stueck\{white-space:nowrap\}/);
   });
 });
+
+describe('A92 / DESIGN 12.16 – Manrope 800 wird geladen', () => {
+  // Die Maße in 12.16/12.18 sind mit dem echten 800er-Schnitt gemessen; ohne ihn rendert der Browser 700 (Designer-Prüfung (b)).
+  it('a92: main.ts bindet Manrope 800 wie 500/600/700 ein, und die Datei liegt im Paket', () => {
+    const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
+    for (const schnitt of [500, 600, 700, 800]) expect(main, `Manrope ${schnitt}`).toContain(`import '@fontsource/manrope/latin-${schnitt}.css';`);
+    expect(readFileSync(new URL('../node_modules/@fontsource/manrope/latin-800.css', import.meta.url), 'utf8')).toContain('font-weight: 800');
+  });
+});

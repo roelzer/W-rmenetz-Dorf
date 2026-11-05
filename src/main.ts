@@ -1,6 +1,7 @@
 import '@fontsource/manrope/latin-500.css';
 import '@fontsource/manrope/latin-600.css';
 import '@fontsource/manrope/latin-700.css';
+import '@fontsource/manrope/latin-800.css';
 import './ui/stil.css';
 
 import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL, speichernErlaubt } from './core/speichern';
