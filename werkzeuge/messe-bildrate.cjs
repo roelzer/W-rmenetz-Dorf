@@ -281,19 +281,21 @@ async function zoomenDrehen(s, ende) {
   }
 }
 
-/** Z6: Bilder unter dem Vorspann und laufende CSS-Animationen 1 s nach dem Start. */
+/** Z6: Bilder unter dem Vorspann und laufende CSS-Animationen 1 s nach dem Start.
+ *  `vorspann_da` hält fest, ob #vorspann nach 1 s überhaupt im Dokument war – ohne ihn zählt die Messung null Bilder und wäre zu Unrecht grün. */
 async function vorspannMessen(s, url) {
   await s.p.goto(url, { waitUntil: 'load' });
   await s.p.waitForFunction(() => performance.now() >= 1000, null, { polling: 'raf', timeout: 10000 });
   const anim = await s.p.evaluate(() => ({
     nach_ms: Math.round(performance.now()),
+    vorspann_da: !!document.getElementById('vorspann'),
     namen: [...new Set(document.getAnimations().filter((a) => a.playState === 'running' && a.animationName).map((a) => a.animationName))].sort(),
   }));
   await s.p.waitForFunction(() => { const v = document.getElementById('vorspann'); return !v || v.classList.contains('aus'); }, null, { timeout: 30000, polling: 'raf' });
   // ein Bildaufruf mehr, damit die Befehle des letzten verdeckten Bildes gezählt sind
   await s.p.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
   const bilder = await s.p.evaluate(() => window.__mess.bilder.filter((b) => b[2] && b[1] > 0).length);
-  return { bilder_verdeckt: bilder, weitere_bilder: Math.max(0, bilder - 1), animationen_nach_1s: anim.namen, animationen_gemessen_ms: anim.nach_ms };
+  return { bilder_verdeckt: bilder, weitere_bilder: Math.max(0, bilder - 1), animationen_nach_1s: anim.namen, animationen_gemessen_ms: anim.nach_ms, vorspann_da: anim.vorspann_da };
 }
 
 /** Z10: Gebäude antippen, auf dem die Kamera nach dem Start steht (Heizzentrale 30 px unter der Bildmitte, kamera.ts `zentrieren`;
@@ -304,6 +306,7 @@ async function antippenMessen(s) {
     const k = document.getElementById('karte'), r = k.getBoundingClientRect();
     const x = r.left + r.width / 2, y = r.top + r.height / 2 + 30, f = k.width / r.width;
     const lesen = () => window.__mess.original.getImageData.call(k.getContext('2d'), Math.round((x - r.left - kante / 2) * f), Math.round((y - r.top - kante / 2) * f), Math.round(kante * f), Math.round(kante * f)).data;
+    let blattVorher = null;
     const vergleichen = (a) => {
       let n = 0;
       const warten = () => requestAnimationFrame(() => {
@@ -313,12 +316,14 @@ async function antippenMessen(s) {
           const b = lesen();
           let anders = 0;
           for (let i = 0; i < a.length; i += 4) if (a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2] || a[i + 3] !== b[i + 3]) anders++;
-          fertig({ punkt: [Math.round(x), Math.round(y)], pixel: a.length / 4, geaendert: anders, blatt: document.querySelector('.blatt h2')?.textContent ?? null });
+          fertig({ punkt: [Math.round(x), Math.round(y)], pixel: a.length / 4, geaendert: anders, blatt: document.querySelector('.blatt h2')?.textContent ?? null, blatt_vorher: blattVorher });
         }, 0);
       });
       warten();
     };
     if (!mitTipp) { vergleichen(lesen()); return; }
+    // Ist schon vor dem Tipp ein Blatt offen, sagt ein offenes Blatt danach nichts über den Tipp.
+    blattVorher = document.querySelector('.blatt h2')?.textContent ?? null;
     // Vorher-Bild genau beim Loslassen lesen, bevor das Spiel den Tipp verarbeitet (Zuhörer im Einfangschritt am Fenster).
     window.addEventListener('pointerup', () => vergleichen(lesen()), { capture: true, once: true });
     setTimeout(() => fehlschlag(new Error('Kein pointerup innerhalb von 5 s – der Tipp kam nicht an.')), 5000);
@@ -407,10 +412,14 @@ function zielePruefen(erg, vorher) {
   hoechstens('Z3', 'Ruhe, normal, 1×', f['1x Ruhe normal (Zählung)'].befehle_auswahl_je_bild, GRENZE.z3_befehle, 'Zeichenbefehle (11 Arten) je gezeichnetem Bild');
   hoechstens('Z4', 'Ruhe, normal, 4×', f['4x Ruhe'].js_p95_ms, GRENZE.z4_js_p95_ms, 'ms JS je Bild p95');
   hoechstens('Z5', 'Verschieben, normal, 4×', f['4x Verschieben'].js_p95_ms, GRENZE.z5_js_p95_ms, 'ms JS je Bild p95');
-  hoechstens('Z6', 'Vorspann, 1×', erg.z6.weitere_bilder, GRENZE.z6_weitere_bilder, 'weitere Bilder unter dem Vorspann');
+  const vorspannDa = erg.z6.vorspann_da === true;
+  z.push({ id: 'Z6', fall: 'Vorspann, 1×', grenze: `≤ ${zahlText(GRENZE.z6_weitere_bilder)} weitere Bilder unter dem Vorspann`,
+    wert: vorspannDa ? `${zahlText(erg.z6.weitere_bilder)} weitere Bilder unter dem Vorspann` : 'kein #vorspann beim Messen',
+    ok: vorspannDa && erg.z6.weitere_bilder != null && erg.z6.weitere_bilder <= GRENZE.z6_weitere_bilder });
   const fremd = erg.z6.animationen_nach_1s.filter((n) => !Z6_ERLAUBT.includes(n));
   z.push({ id: 'Z6', fall: `Vorspann, 1×, ${erg.z6.animationen_gemessen_ms} ms nach Start`, grenze: `≤ ${GRENZE.z6_animationen} laufende Animationen, nur ${Z6_ERLAUBT.join('/')}`,
-    wert: `${erg.z6.animationen_nach_1s.length}: ${erg.z6.animationen_nach_1s.join(', ') || '–'}`, ok: erg.z6.animationen_nach_1s.length <= GRENZE.z6_animationen && !fremd.length });
+    wert: vorspannDa ? `${erg.z6.animationen_nach_1s.length}: ${erg.z6.animationen_nach_1s.join(', ') || '–'}` : 'kein #vorspann beim Messen',
+    ok: vorspannDa && erg.z6.animationen_nach_1s.length <= GRENZE.z6_animationen && !fremd.length });
   hoechstens('Z7', 'Leinwand 844×390 @3', px(erg.info.handy_1x), GRENZE.z7_handy_px, 'Pixel');
   hoechstens('Z7', 'Leinwand 1920×1000 @2', px(erg.info.laptop), GRENZE.z7_laptop_px, 'Pixel');
   hoechstens('Z7', 'Leinwand Sparmodus 844×390 @3', px(erg.info.spar), GRENZE.z7_spar_px, 'Pixel');
@@ -426,8 +435,12 @@ function zielePruefen(erg, vorher) {
   relativ('Z9', 'Ruhe, 1×', f['1x Ruhe'].abstand_p95_ms, v?.z9.ruhe_1x.abstand_p95_ms, 'ms Bildabstand p95', BILDINTERVALL_MS);
   relativ('Z9', 'Verschieben, 1×', f['1x Verschieben'].abstand_p95_ms, v?.z9.verschieben_1x.abstand_p95_ms, 'ms Bildabstand p95', BILDINTERVALL_MS);
   const t = erg.z10.tipp;
+  // Ohne ruhige Leerprobe kann eine Animation die Änderung erzeugt haben; ohne zuvor geschlossenes Blatt beweist ein offenes Blatt nichts.
+  const leerUnruhig = erg.z10.leer.geaendert !== 0, blattSchonOffen = !!t.blatt_vorher;
+  const z10Gruende = [leerUnruhig && 'Leerprobe unruhig', blattSchonOffen && 'Blatt schon offen'].filter(Boolean);
   z.push({ id: 'Z10', fall: `Gebäude antippen (${t.punkt.join('|')}), Weniger Bewegung, 1×`, grenze: `Stichprobe ${Z10_KANTE_PX}×${Z10_KANTE_PX} ändert sich in ${Z10_BILDAUFRUFE} Bildaufrufen`,
-    wert: `${t.geaendert} von ${t.pixel} Pixeln anders, Blatt „${t.blatt ?? '–'}“ (ohne Tipp: ${erg.z10.leer.geaendert} anders)`, ok: t.geaendert > 0 && !!t.blatt });
+    wert: `${t.geaendert} von ${t.pixel} Pixeln anders, Blatt „${t.blatt ?? '–'}“ (ohne Tipp: ${erg.z10.leer.geaendert} anders)${z10Gruende.length ? ` – ${z10Gruende.join(' / ')}` : ''}`,
+    ok: t.geaendert > 0 && erg.z10.leer.geaendert === 0 && !t.blatt_vorher && !!t.blatt });
   return z;
 }
 
