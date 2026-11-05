@@ -1,9 +1,9 @@
-<!-- Stand 2026-11-05 mittags: A67–A70 fertig, Prüfrunde A45–A66 (Fachprüfer, Reviewer, Designer) ausgewertet und umgesetzt; 233 Tests grün -->
+<!-- Stand 2026-11-05: A67–A70 fertig und nachgeprüft (Reviewer-Nachprüfung W1/W2 behoben), 237 Tests grün, main aktualisiert -->
 # Status
 
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-05
 
-> **Jetzt:** Nachprüfung durch frischen Reviewer · **Zuletzt fertig:** A67 Reduzierung nur am Abzweig, A68 Fachprüfungs-Befunde, A69 T-Stück mit Vorsehung/Anbohrung, A70 Kartenoptik; Reviewer-Befunde 1–9 · **Als Nächstes:** Nachprüfung auswerten, Artefakt neu, main aktualisieren; Antworten auf Q2–Q5 · **Fortschritt:** 233 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us (main = Stand von heute Morgen)
+> **Jetzt:** warten auf Simons Antworten Q2–Q5, F2–F3 · **Zuletzt fertig:** A67 Reduzierung nur am Abzweig, A68 Fachprüfungs-Befunde, A69 T-Stück mit Vorsehung/Anbohrung, A70 Kartenoptik; Reviewer-Befunde 1–9 · **Als Nächstes:** Designer-Reste O2, O5, O6, O8, O9, V1/V2; kleine Reviewer-Punkte K4, K5 · **Fortschritt:** 237 Tests grün, Schranke projektleiter OK · **Arbeitsbranch:** claude/keen-mccarthy-f4p5us (main = gleicher Stand)
 
 ## Ampel
 🟢 läuft
