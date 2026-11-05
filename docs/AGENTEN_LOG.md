@@ -216,3 +216,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:34 | ▶ | tester | Tester-Vorarbeit NR16-B2a |
 | 2026-11-05 18:34 | ■ 🟢 | architekt | 🟢 **Alle Punkte aus der Kritiker-Nachprüfung zu Fassung 3 sind in den Bauplan eingearbeitet. Die neuen Testaufbauten habe ich am heutigen Code nachgerechnet ([Bericht](docs/pruefberichte/20261105-183431-architekt-a374edc01fcade7c3.md)) |
 | 2026-11-05 18:36 | ■ 🟢 | tester | 🟢 **P0 (A91-Vergleichswerkzeug) ist gebaut und committet. Heute sind alle Tests grün, und kein Test ist rot.** Die Gegenprobe mit dem Prototyp verhält sich ([Bericht](docs/pruefberichte/20261105-183600-tester-a2e5b1711fe10c6e3.md)) |
+| 2026-11-05 18:37 | ▶ | entwickler | NR15-P1 bauen |
