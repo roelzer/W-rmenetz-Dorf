@@ -193,3 +193,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:52 | ■ 🔴 | entwickler | ## Status: BLOCKIERT 🔴  ([Bericht](docs/pruefberichte/20261105-175209-entwickler-a1d46bb04aba4bb1d.md)) |
 | 2026-11-05 17:52 | ▶ | reviewer | Review NR16-B1 |
 | 2026-11-05 17:52 | ■ 🔴 | architekt | 🔴 **BLOCKIERT – Grund „Kontext voll“.** Fassung 3 von NR15/A91 ist **noch nicht geschrieben**. Im Projekt ist nichts verändert und nichts committet. ` ([Bericht](docs/pruefberichte/20261105-175237-architekt-af759d489bbe0f3c0.md)) |
+| 2026-11-05 17:53 | ▶ | architekt | NR15 Fassung 3 schreiben |
