@@ -209,3 +209,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:20 | ▶ | fachpruefer | Fachprüfung Sperrtexte 12.20 |
 | 2026-11-05 18:21 | ■ 🟢 | fachpruefer | 🟢 **Die Regel ist fachlich vertretbar. Ich bestätige sie, mit zwei kleinen Hinweisen zum Text.**  ([Bericht](docs/pruefberichte/20261105-182111-fachpruefer-a2dc4328a956d05ad.md)) |
 | 2026-11-05 18:22 | ■ 🟡 | fachpruefer | 🟡 **Gelb: Fachlich ist keiner der Texte falsch. Zwei Punkte musst du vor dem Bau noch klären.**  ([Bericht](docs/pruefberichte/20261105-182244-fachpruefer-a5bcca73116a9a28c.md)) |
+| 2026-11-05 18:23 | ▶ | tester | Tester-Vorarbeit NR16-B2 |
