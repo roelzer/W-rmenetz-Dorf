@@ -9,7 +9,7 @@ import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
-import { chip, erklaerKnopf, knopf } from './ui/bausteine';
+import { chip, knopf, sperren } from './ui/bausteine';
 import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { eur, h } from './ui/dom';
 import { sprecherZeigen } from './ui/sprecher';
@@ -17,7 +17,7 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
-import { Kontext, leitungsKnoepfe, OHNE_ABSCHNITT, tStueckHinweis } from './ui/kontext';
+import { Kontext, kurzGrund, leitungsKnoepfe, OHNE_ABSCHNITT, OHNE_ABSCHNITT_HINWEIS, tStueckHinweis } from './ui/kontext';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { toast } from './ui/toast';
@@ -147,23 +147,24 @@ export class Steuerung implements Ui {
   stempeln(typ: TypId, radieren = false, vorsehen = false): void {
     this.katalogUi.schliessen(); this.kontextUi.schliessen();
     this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
-    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); }, this.spiel.abschnitt?.phase === 'offen' ? null : OHNE_ABSCHNITT);
+    this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); }, this.spiel.abschnitt?.phase === 'offen' ? null : { grund: OHNE_ABSCHNITT, hinweis: OHNE_ABSCHNITT_HINWEIS });
     // Durchmesser direkt wählen (Designer-Mangel 10)
     // A88: nur freigeschaltete Durchmesser plus ein deaktivierter Knopf für die dickeren – der Kern entscheidet; kurzer Grund, weil die Leiste eng ist
     const wahl = h('div', { class: 'durchmesser' }, ...leitungsKnoepfe(this.spiel, null, (t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { klein: true }), true));
     const sperreTStueck = this.spiel.sperrgrund('vorsehung');
     const werkzeug = h('div', { class: 'knopfreihe' },
       knopf(radieren ? 'Radierer an – tippe Leitungen weg' : 'Radierer', () => this.stempeln(typ, !radieren), radieren ? 'gewaehlt' : '', { klein: true }),
-      erklaerKnopf(knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, unter: sperreTStueck ?? eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true }), () => this.toast(tStueckHinweis())),
+      // enge Leiste: kurzer Grund „ab Stufe X“ (DESIGN.md 12.15); der Hinweis beim Antippen erklärt ausführlich
+      knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, hinweis: tStueckHinweis() }),
       knopf('Letzte zurück', () => { this.spiel.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); }, '', { klein: true }));
     this.modusBlatt?.inhalt.append(wahl, werkzeug);
   }
 
-  /** `sperre`: Grund, warum der Bestätigen-Knopf gerade nichts tun kann (deaktiviert, Grund in Zeile 2). */
-  private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void, sperre: string | null = null): void {
+  /** `sperre`: warum der Bestätigen-Knopf gerade nichts tun kann – Grund in Zeile 2, Hinweis beim Antippen (DESIGN.md 12.19). */
+  private modusBlattOeffnen(titel: string, text: string, ja: string, bei: () => void, sperre: { grund: string; hinweis: string } | null = null): void {
     this.modusBlatt?.zu();
     this.modusBlatt = blattOeffnen({ titel, beiZu: () => { this.modusBlatt = null; this.modusZuruecksetzen(); } });
-    const reihe = h('div', { class: 'knopfreihe' }, knopf(ja, bei, 'los', sperre ? { aus: true, unter: sperre } : {}));
+    const reihe = h('div', { class: 'knopfreihe' }, knopf(ja, bei, 'los', sperre ? { aus: true, unter: sperre.grund, hinweis: sperre.hinweis } : {}));
     if (this.modus !== 'stempel') reihe.append(knopf('Abbrechen', () => this.abbrechen()));
     this.modusBlatt.inhalt.append(h('p', {}, text), reihe);
   }
@@ -213,7 +214,7 @@ export class Steuerung implements Ui {
     this.besuch = v; this.auswahl = null;
     this.hud.sichtbar({ eigene: false });
     const gemocht = !!this.spiel.stand.gemocht[v.name];
-    const gefaellt = knopf(gemocht ? 'Gefällt dir' : 'Gefällt mir', () => { this.spiel.moegen(v.name); gefaellt.textContent = 'Gefällt dir'; gefaellt.disabled = true; toast(`${v.name} gefällt dir!`); }, 'taler', { klein: true, aus: gemocht });
+    const gefaellt = knopf(gemocht ? 'Gefällt dir' : 'Gefällt mir', () => { this.spiel.moegen(v.name); gefaellt.textContent = 'Gefällt dir'; sperren(gefaellt); toast(`${v.name} gefällt dir!`); }, 'taler', { klein: true, aus: gemocht });
     this.banner = h('div', { class: 'banner' },
       h('span', { class: 'wer' }, v.name, h('small', {}, `Dorf von ${v.besitzer} · Heizzentrale ${v.stufe}`)), gefaellt,
       knopf('Nach Hause', () => this.besuchEnde(), 'los', { klein: true }));

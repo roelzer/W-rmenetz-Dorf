@@ -1,5 +1,6 @@
 import { h } from './dom';
 import { SYMBOLE, type SymbolName } from './symbole';
+import { toast } from './toast';
 
 /** Symbol als SVG-Element. Per DOMParser als SVG geparst: keine Zeichenfolge gelangt je als HTML ins Dokument. */
 export function symbol(name: SymbolName, klasse = 'sym'): HTMLSpanElement {
@@ -7,29 +8,41 @@ export function symbol(name: SymbolName, klasse = 'sym'): HTMLSpanElement {
   return h('span', { class: klasse, 'aria-hidden': 'true' }, document.importNode(doc.documentElement, true));
 }
 
-/** Knopfarten nach DESIGN.md 12.5: kostenlos = los, kostet € = geld, kostet Taler = taler, nicht umkehrbar = gefahr, Auswahl an = gewaehlt. */
+/** „Weniger Bewegung“ aus der Einstellung (Klasse am body, steuerung.ts) oder vom System – dann wackelt nichts. */
+const ruhig = (): boolean => document.body.classList.contains('weniger-bewegung') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** DESIGN.md 12.19: Ein gesperrter Knopf trägt `aria-disabled="true"` statt `disabled`, damit Tippen, Enter und Leertaste
+ *  ankommen und Tastatur-Nutzer ihn per Tab erreichen. Ein Klick führt dann nie die Aktion aus: Der Knopf wackelt kurz
+ *  (stil.css, nicht bei „Weniger Bewegung“ – sonst käme nie ein animationend und die Klasse bliebe hängen) und zeigt den
+ *  Hinweis, falls es einen gibt. Der Zustand wird beim Klick gelesen, damit auch `sperren` nachträglich wirkt. */
+function sperrbar(k: HTMLButtonElement, bei: () => void, aus: boolean, hinweis: string | undefined): HTMLButtonElement {
+  if (aus) sperren(k);
+  k.addEventListener('click', () => {
+    if (!k.hasAttribute('aria-disabled')) { bei(); return; }
+    if (!ruhig()) k.classList.add('wackelt');
+    if (hinweis) toast(hinweis);
+  });
+  k.addEventListener('animationend', () => k.classList.remove('wackelt'));
+  return k;
+}
+
+/** Sperrt einen schon gebauten Knopf (DESIGN.md 12.19), z. B. „Gefällt dir“ nach dem Tippen. */
+export function sperren(k: HTMLButtonElement): void { k.setAttribute('aria-disabled', 'true'); }
+
+/** Knopfarten nach DESIGN.md 12.5: kostenlos = los, kostet € = geld, kostet Taler = taler, nicht umkehrbar = gefahr, Auswahl an = gewaehlt.
+ *  `hinweis`: Meldung beim Antippen des gesperrten Knopfs (Grund + was man tun kann, DESIGN.md 12.19). */
 type Variante = '' | 'los' | 'geld' | 'taler' | 'gefahr' | 'blau' | 'gewaehlt';
-export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string; schloss?: boolean } = {}): HTMLButtonElement {
-  const k = h('button', { type: 'button', class: `knopf ${variante} ${zusatz.klein ? 'klein' : ''}`.trim(), disabled: zusatz.aus || undefined, onclick: bei, 'data-id': zusatz.id }, text);
+export function knopf(text: string | Node, bei: () => void, variante: Variante = '', zusatz: { klein?: boolean; aus?: boolean; unter?: string; id?: string; schloss?: boolean; hinweis?: string } = {}): HTMLButtonElement {
+  const k = sperrbar(h('button', { type: 'button', class: `knopf ${variante} ${zusatz.klein ? 'klein' : ''}`.trim(), 'data-id': zusatz.id }, text), bei, !!zusatz.aus, zusatz.hinweis);
   // Preiszeile mit Münze bzw. Taler davor: Der Preis ist so auch ohne Farbe als Preis erkennbar (gesperrt steht dort ein Grund, kein Preis)
   // `schloss`: gesperrter Knopf mit Schloss vor dem Grund (DESIGN.md 12.19)
   if (zusatz.unter) k.append(h('small', {}, (variante === 'geld' || variante === 'taler') && !zusatz.aus ? symbol(variante, 'sym preis-sym') : zusatz.aus && zusatz.schloss ? symbol('schloss', 'sym schloss-klein') : null, zusatz.unter));
   return k;
 }
 
-/** Gesperrter Knopf, der sich beim Antippen erklärt (A92). Ein deaktivierter Knopf meldet im Browser kein Tippen; deshalb
- *  liegt er in einer gleich großen Hülle, die das Tippen auffängt (stil.css: der Knopf darin lässt Zeigerereignisse durch).
- *  Ein freier Knopf bleibt unverändert. */
-export function erklaerKnopf(k: HTMLButtonElement, erklaeren: () => void): HTMLElement {
-  if (!k.hasAttribute('disabled')) return k;
-  // DESIGN.md 12.19: Antippen wackelt kurz (stil.css, entfällt bei „Weniger Bewegung“) und erklärt; nach der Animation wieder ruhig
-  const huelle: HTMLElement = h('span', { class: 'sperr-tipp', onclick: () => { huelle.classList.add('wackelt'); erklaeren(); }, onanimationend: () => huelle.classList.remove('wackelt') }, k);
-  return huelle;
-}
-
 /** Stufenknopf (48×48) mit gezeichnetem Plus/Minus; der Text für Vorlesen steht in `label`. */
 export function stepper(art: 'plus' | 'minus', label: string, bei: () => void, aus = false): HTMLButtonElement {
-  return h('button', { type: 'button', class: 'knopf stepper', 'aria-label': label, disabled: aus || undefined, onclick: bei }, symbol(art));
+  return sperrbar(h('button', { type: 'button', class: 'knopf stepper', 'aria-label': label }, symbol(art)), bei, aus, undefined);
 }
 
 /** Gesperrte Hinweiszeile (DESIGN.md 12.15): gedämpft, Schloss davor – überall gleich, damit Sperren auf einen Blick erkennbar sind. */

@@ -18,14 +18,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .knopf{min-width:var(--groesse-px-tippflaeche-min)}
 .knopfreihe{display:flex;flex-wrap:wrap}
 .knopfreihe>.knopf{flex:1 1 130px}
-/* A92: Hülle eines gesperrten Knopfs, die das Tippen auffängt – nimmt in der Reihe den Platz des Knopfs ein */
-.knopfreihe>.sperr-tipp{flex:1 1 130px;display:flex}
-.sperr-tipp>.knopf{flex:1;pointer-events:none}
-/* DESIGN.md 12.19: gesperrter Knopf wackelt beim Antippen waagrecht, zwei Mal */
-.sperr-tipp.wackelt{animation:wackeln var(--menue-zeit-ms-wackeln) ease-in-out}
+/* DESIGN.md 12.19: gesperrter Knopf (aria-disabled, kein disabled) wackelt beim Antippen waagrecht, zwei Mal */
+.knopf[aria-disabled="true"].wackelt{animation:wackeln var(--menue-zeit-ms-wackeln) ease-in-out}
 @keyframes wackeln{25%{transform:translateX(calc(-1 * var(--menue-mass-px-wackeln-weg)))}50%{transform:translateX(var(--menue-mass-px-wackeln-weg))}75%{transform:translateX(calc(-1 * var(--menue-mass-px-wackeln-weg)))}100%{transform:none}}
-.weniger-bewegung .sperr-tipp.wackelt{animation:none}
-@media (prefers-reduced-motion:reduce){.sperr-tipp.wackelt{animation:none}}
+.weniger-bewegung .knopf[aria-disabled="true"].wackelt{animation:none}
+@media (prefers-reduced-motion:reduce){.knopf[aria-disabled="true"].wackelt{animation:none}}
 .knopf small .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein);margin-right:4px;vertical-align:-2px}
 .schliessen{display:grid;place-items:center;flex:none}
 .sym{display:inline-block}
@@ -115,7 +112,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   background:var(--f);color:var(--t);font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-knopf);letter-spacing:.02em;line-height:1.1;
   box-shadow:inset 0 calc(-1 * var(--menue-mass-px-sockel)) 0 var(--u),inset 0 3px 0 var(--menue-farbe-glanz),0 3px 0 var(--k);
   transition:transform var(--menue-zeit-ms-loslassen) var(--menue-kurve-plopp),box-shadow var(--menue-zeit-ms-loslassen)}
-.knopf:active:not(:disabled){transform:translateY(3px);box-shadow:inset 0 -1px 0 var(--u),inset 0 2px 0 rgba(0,0,0,.12),0 0 0 var(--k);transition-duration:var(--menue-zeit-ms-druck)}
+.knopf:active:not(:disabled):not([aria-disabled="true"]){transform:translateY(3px);box-shadow:inset 0 -1px 0 var(--u),inset 0 2px 0 rgba(0,0,0,.12),0 0 0 var(--k);transition-duration:var(--menue-zeit-ms-druck)}
 /* weiße Schrift mit Kontur (Fläche erreicht auch ohne Kontur >= 4,5:1) */
 .knopf.los,.knopf.taler,.knopf.blau,.knopf.gefahr{--t:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-knopf) var(--k);paint-order:stroke fill;text-shadow:0 2px 0 var(--k)}
 .knopf.los{--f:var(--menue-knopf-haupt-0);--u:var(--menue-knopf-haupt-1)}
@@ -125,10 +122,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .knopf.blau{--f:var(--menue-knopf-info-0);--u:var(--menue-knopf-info-1)}
 /* gewählt = eingedrückt (kein Sockel) + helles Gold: nie nur Farbe */
 .knopf.gewaehlt{--f:var(--menue-knopf-gewaehlt-0);--u:var(--menue-knopf-gewaehlt-1);transform:translateY(3px);box-shadow:inset 0 3px 0 rgba(59,29,10,.18),0 0 0 var(--k)}
-.knopf:disabled{--f:var(--menue-knopf-aus-0);--u:var(--menue-knopf-aus-1);--t:var(--menue-knopf-aus-text);opacity:1;cursor:not-allowed;border-color:var(--menue-knopf-aus-rand);-webkit-text-stroke:0;text-shadow:none;box-shadow:inset 0 -3px 0 var(--u),0 3px 0 var(--menue-knopf-aus-rand);transform:none}
+.knopf:disabled,.knopf[aria-disabled="true"]{--f:var(--menue-knopf-aus-0);--u:var(--menue-knopf-aus-1);--t:var(--menue-knopf-aus-text);opacity:1;cursor:not-allowed;border-color:var(--menue-knopf-aus-rand);-webkit-text-stroke:0;text-shadow:none;box-shadow:inset 0 -3px 0 var(--u),0 3px 0 var(--menue-knopf-aus-rand);transform:none}
 .knopf.klein{min-height:var(--menue-mass-px-knopf-hoehe-klein);font-size:var(--menue-schrift-groesse-px-knopf-klein);padding:4px 10px 6px}
 .knopf small{display:block;margin-top:2px;font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-knopf-unter);letter-spacing:0;-webkit-text-stroke:0;text-shadow:none;opacity:1;font-variant-numeric:tabular-nums}
 .knopf.los small,.knopf.taler small,.knopf.blau small,.knopf.gefahr small{text-shadow:0 1px 0 var(--k)}
+/* gesperrt sieht bei jeder Knopfart gleich aus (DESIGN.md 12.19): auch Zeile 2 ohne den Schatten der weißen Varianten */
+.knopf[aria-disabled="true"] small{text-shadow:none}
 .knopf.stepper{width:48px;min-width:48px;flex:none;padding:0}
 .knopf.stepper .sym{width:22px;height:22px}
 .knopfreihe{gap:10px;margin-top:12px}
@@ -260,11 +259,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 @media (prefers-reduced-motion:reduce){
   .blatt,.blatt.popup{animation:none}
   .knopf,.bkarte,.schliessen,.schalter input::after{transition:none}
-  .knopf:active:not(:disabled),.bkarte:active,.schliessen:active,.rund:active .kreis{transform:none;background:var(--u)}
+  .knopf:active:not(:disabled):not([aria-disabled="true"]),.bkarte:active,.schliessen:active,.rund:active .kreis{transform:none;background:var(--u)}
 }
 .weniger-bewegung .blatt,.weniger-bewegung .blatt.popup{animation:none}
 .weniger-bewegung .knopf,.weniger-bewegung .bkarte,.weniger-bewegung .schliessen,.weniger-bewegung .schalter input::after{transition:none}
-.weniger-bewegung .knopf:active:not(:disabled),.weniger-bewegung .bkarte:active,.weniger-bewegung .schliessen:active,.weniger-bewegung .rund:active .kreis{transform:none;background:var(--u)}
+.weniger-bewegung .knopf:active:not(:disabled):not([aria-disabled="true"]),.weniger-bewegung .bkarte:active,.weniger-bewegung .schliessen:active,.weniger-bewegung .rund:active .kreis{transform:none;background:var(--u)}
 
 /* Solange ein Blatt offen ist, treten Rundbuttons und Zoom zurück (M3) */
 .blatt-offen .runde,.blatt-offen .zoom{display:none}
