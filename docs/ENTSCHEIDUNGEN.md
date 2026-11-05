@@ -64,3 +64,5 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-05 – A77: Zoom- und Drehknöpfe entfernt, kW-Schalter bleibt; am Rechner Mausrad, mittlere Maustaste, Q/E (Q/E drehen weich um 45°) – Simon
 - 2026-11-05 – A78: Ladebild in ruhendes Bild + kleine bewegte Ebene geteilt (eine Animation im großen SVG malte jedes Bild das ganze Dorf neu); Sonnenstrahlen stehen still; Ladebalken per transform – Simon: „läuft nicht ganz flüssig“
 - 2026-11-05 – A79: Namensfenster nur bei neuen Spielständen (Merker `namen_gefragt: false`), alte Stände werden nicht gefragt; kein Schließen-Knopf, leere Felder behalten den Vorschlag – Simon
+- 2026-11-05 – A73 nach Fachprüfung: Knopf und Fertig-Meldung zeigen den tatsächlichen Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf-Grenze 40 °C), nicht den Nennwert; ist die Grenze erreicht: „Rücklauf schon bei 40 °C“, dazu „braucht X K weniger Vorlauf“ – Fachprüfer-Befund 2, Reviewer N1
+- 2026-11-05 – A80: Trefferprüfung über die gezeichnete Gebäudeform; ein altes Fenster darf beim Schließen das neue nicht mehr leeren – Simon

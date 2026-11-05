@@ -1146,7 +1146,18 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     expect(s.hauspufferEinbauen(haus.id).ok).toBe(false); expect(haus.hauspuffer).toBeFalsy();
     const quelle = readFileSync(new URL('../src/core/spiel.ts', import.meta.url), 'utf8');
     expect(quelle).not.toContain('das Gebäude braucht ${bedarf} kW');
-    expect(quelle).toContain('braucht ${u.senkung_k} K weniger Vorlauf'); // Fertig-Meldung ohne Nennwert-Spreizung
+  });
+  it('A73: Fertig-Meldung eines Upgrades nennt den tatsächlichen Spreizungsgewinn', () => {
+    const fertigText = (vorlauf: number, vorUpgrades: number): string => {
+      let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+      s.stand.geld_eur = 1e6; s.vorlaufSetzen(vorlauf);
+      const haus = s.stand.objekte.find((o) => o.x === 12 && o.y === 14)!; haus.upgrade = vorUpgrades;
+      expect(s.upgradeKaufen(haus.id).ok).toBe(true);
+      s.ereignisse.length = 0; t = haus.upgrade_auftrag!.ende_ms; s.bis(t);
+      return s.ereignisse.map((e) => ('text' in e ? e.text : '')).join(' | ');
+    };
+    expect(fertigText(85, 0)).toContain('Spreizung +5 K');
+    expect(fertigText(60, 0)).toContain('Rücklauf schon bei 40 °C'); // 60 − 40 = 20 K, Grundwert schon erreicht
   });
   it('A74: Startnetz – 40er bis vor das letzte Haus, dort T-Stück mit Vorsehung geradeaus, 25er zum Haus', () => {
     const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');

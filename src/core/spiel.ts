@@ -1,8 +1,8 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, MIN_VORLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
+  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
 } from './netz';
 import type { Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen, STANDARD_ORT } from './orte';
@@ -874,9 +874,11 @@ export class Spiel {
       geaendert = true;
     }
     for (const o of s.objekte) if (o.upgrade_auftrag && o.upgrade_auftrag.ende_ms <= t) {
-      const u = UPGRADES[o.upgrade ?? 0];
-      this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (braucht ${u.senkung_k} K weniger Vorlauf)`);
-      o.upgrade = (o.upgrade ?? 0) + 1; delete o.upgrade_auftrag; o._pop = t; geaendert = true;
+      const u = UPGRADES[o.upgrade ?? 0], vorher_k = spreizungHaus_k(o, this.vorlauf_c);
+      o.upgrade = (o.upgrade ?? 0) + 1;
+      // A73 + Fachprüfung: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
+      const gewinn_k = Math.round(spreizungHaus_k(o, this.vorlauf_c) - vorher_k);
+      this.hinweis(`${o.upgrade_auftrag.helfer} ist fertig: ${u.name} (${gewinn_k > 0 ? `Spreizung +${gewinn_k} K` : `Rücklauf schon bei ${MIN_RUECKLAUF_C} °C`} · braucht ${u.senkung_k} K weniger Vorlauf)`); delete o.upgrade_auftrag; o._pop = t; geaendert = true;
       this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     }
     for (const [typ, g] of Object.entries(s.antraege) as Array<[TypId, NonNullable<Spielstand['antraege'][TypId]>]>) {
