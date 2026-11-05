@@ -238,3 +238,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 19:44 | ▶ | reviewer | Review NR15-P2 |
 | 2026-11-05 19:57 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Der Code ist inhaltlich richtig gebaut, die Schranke ist grün. Zwei Punkte blockieren den Merge:  ([Bericht](docs/pruefberichte/20261105-195736-reviewer-a8ded01c3b1f6bd63.md)) |
 | 2026-11-05 19:58 | ▶ | entwickler | NR15-P2 Fix-Runde 1 |
+| 2026-11-05 20:03 | ■ 🟡 | tester | 🟡 Die Tester-Vorarbeit für NR16-B2b (A92) ist fertig. Gelb, weil 30 Tests absichtlich rot sind: Sie beschreiben, was der Entwickler noch baut. Kein grüner  ([Bericht](docs/pruefberichte/20261105-200307-tester-a5ff7567654cf85ab.md)) |
