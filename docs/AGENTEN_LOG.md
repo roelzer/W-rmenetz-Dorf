@@ -92,3 +92,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 13:50 | ■ 🟡 | designer | 🟡 **Treue-Prüfung A88 P2 (Freischalt-Leiter), Stand 2a48954**  ([Bericht](docs/pruefberichte/20261105-135053-designer-ac0af0f853da5ed04.md)) |
 | 2026-11-05 13:51 | ▶ | entwickler | Designer-Befunde A88 P2 umsetzen |
 | 2026-11-05 13:51 | ■ 🟡 | kritiker | 🟡 Gelb: Der Plan ist im Kern richtig und kann gebaut werden, wenn vorher sieben Muss-Punkte im Bauplan geändert werden.  ([Bericht](docs/pruefberichte/20261105-135143-kritiker-a32a3e06ad022d458.md)) |
+| 2026-11-05 13:53 | ■ 🔴 | architekt | 🔴 BLOCKIERT, Grund: mein Kontext ist voll. Ich habe die Überarbeitung von `docs/bauplaene/NR12-fluessig.md` nicht begonnen. Der Bauplan und `tests/architekt ([Bericht](docs/pruefberichte/20261105-135352-architekt-a7334af60b08cfac4.md)) |
+| 2026-11-05 13:54 | ▶ | architekt | NR12-Bauplan überarbeiten (frisch) |
