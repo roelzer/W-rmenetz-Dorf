@@ -140,3 +140,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 14:45 | ▶ | reviewer | Review NR12 P4 Messwerkzeug |
 | 2026-11-05 14:48 | ■ 🟡 | entwickler | 🟡 **FERTIG_MIT_BEDENKEN.** Paket P1 ist gebaut und alles ist grün. An drei Stellen weiche ich bewusst vom Bauplan ab (Abschnitt 8). Eine davon betrifft eine ([Bericht](docs/pruefberichte/20261105-144823-entwickler-a499012680a5887a6.md)) |
 | 2026-11-05 14:48 | ▶ | reviewer | Review NR12 P1 Takt/Sparmodus |
+| 2026-11-05 14:51 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** Es gibt einen wichtigen Befund (W1). Er ist mit einer einzigen Zeile behoben und sollte vor dem Merge noch rein.  ([Bericht](docs/pruefberichte/20261105-145108-reviewer-a744174efe3495787.md)) |
