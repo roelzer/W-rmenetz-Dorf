@@ -192,3 +192,5 @@ button{font:inherit;color:inherit;cursor:pointer}
 .sprecher-blase strong{font-size:12px;color:var(--farbe-ui-hud-etikett-text)}
 @media (prefers-reduced-motion:reduce){.sprecher-karte{transition:none}}
 .blatt-offen #sprecher{left:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left));transform:none;width:min(52%,380px)}
+.dorfschild{position:relative}
+.dorfschild .zahnrad{position:absolute;right:8px;top:6px;font-size:16px;line-height:1;color:var(--farbe-ui-dorfschild-untertext);opacity:.8}

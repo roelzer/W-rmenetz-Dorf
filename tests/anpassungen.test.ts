@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { bedarfKw } from '../src/core/netz';
+import { ortHolen } from '../src/core/orte';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStation } from '../src/core/katalog';
 
@@ -636,5 +637,15 @@ describe('A52 Wärmepreis in der Heizzentrale', () => {
     s.preisSetzen(0); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7);
     s.preisSetzen(99); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7); // außerhalb wird ignoriert
     s.preisSetzen(PREISSTUFEN.length - 1); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(15);
+  });
+});
+
+describe('A53 Optik: Straßen und Gärten', () => {
+  it('A53: Das Straßennetz ist dicht genug für Asphalt mit Kreuzungen (mindestens 100 Felder, mehrere Einmündungen)', () => {
+    const ort = ortHolen('hilpoltstein');
+    expect(ort.strassen.length).toBeGreaterThan(100);
+    const feld = new Set(ort.strassen.map(([x, y]) => y * 24 + x));
+    const kreuzungen = ort.strassen.filter(([x, y]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => feld.has((y + dy) * 24 + x + dx)).length >= 3);
+    expect(kreuzungen.length).toBeGreaterThanOrEqual(6);
   });
 });

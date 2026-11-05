@@ -96,28 +96,105 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       }
     }
   }
-  // Straßen (A44): helle Bänder mit feinem Rand und gestrichelter Mitte; Leitungen liegen darüber
+  // Straßen (A53): Asphalt zwischen Gehwegen mit Bordstein, Mittelmarkierung, Zebrastreifen, Laternen und parkenden Autos; Leitungen liegen darüber
   if (s.strassen?.length) {
     const feld = new Set(s.strassen.map(([sx, sy]) => sy * N + sx));
+    const strasse = (x: number, y: number): boolean => feld.has(y * N + x);
+    const hash = (x: number, y: number): number => { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v); };
+    const arme = (x: number, y: number): number => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => strasse(x + dx, y + dy)).length;
+    const sichtbar = (cx: number, cy: number): boolean => !(cx < -tw || cx > W + tw || cy < -th || cy > H + tw);
+    const poly = (sx: number, sy: number, pts: Array<[number, number]>, fuell: string): void => {
+      X.beginPath(); pts.forEach(([gx, gy], i) => { const [px, py] = k.mitte(sx + gx, sy + gy); if (i) X.lineTo(px, py); else X.moveTo(px, py); }); X.closePath(); X.fillStyle = fuell; X.fill();
+    };
+    const BR = 0.31; // halbe Fahrbahnbreite in Feldern
+    // 1. Gehweg + Bordstein (volle Felder)
     for (const [sx, sy] of s.strassen) {
       const [cx, cy] = k.mitte(sx, sy);
-      if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
-      m.raute(cx, cy, 1.03); X.fillStyle = KARTE.strasse; X.fill();
+      if (!sichtbar(cx, cy)) continue;
+      m.raute(cx, cy, 1.03); X.fillStyle = KARTE.gehweg; X.fill();
     }
-    X.strokeStyle = KARTE.strasse_rand; X.lineWidth = 1;
+    // 2. Asphalt: Mitte plus Arme zu Nachbarstraßen; Bordsteinlinie als etwas hellerer Rand
+    const asphalt = (breite: number, farbe: string): void => {
+      for (const [sx, sy] of s.strassen!) {
+        const [cx, cy] = k.mitte(sx, sy);
+        if (!sichtbar(cx, cy)) continue;
+        poly(sx, sy, [[-breite, -breite], [breite, -breite], [breite, breite], [-breite, breite]], farbe);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          if (!strasse(sx + dx, sy + dy)) continue;
+          const px = dy === 0 ? 0.52 * dx : breite, py = dx === 0 ? 0.52 * dy : breite;
+          const x0 = dx === 0 ? -breite : Math.min(0, 0.52 * dx), x1 = dx === 0 ? breite : Math.max(0, 0.52 * dx);
+          const y0 = dy === 0 ? -breite : Math.min(0, 0.52 * dy), y1 = dy === 0 ? breite : Math.max(0, 0.52 * dy);
+          void px; void py;
+          poly(sx, sy, [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], farbe);
+        }
+      }
+    };
+    asphalt(BR + 0.035, KARTE.bordstein);
+    asphalt(BR, KARTE.strasse);
+    // 3. Markierungen, Zebrastreifen, Risse
     for (const [sx, sy] of s.strassen) {
       const [cx, cy] = k.mitte(sx, sy);
-      if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
-      // Randlinie nur dort, wo kein Straßenfeld anschließt
-      const ecken: Array<[number, number, [number, number], [number, number]]> = [
-        [0, -1, [0, -th / 2], [tw / 2, 0]], [1, 0, [tw / 2, 0], [0, th / 2]], [0, 1, [0, th / 2], [-tw / 2, 0]], [-1, 0, [-tw / 2, 0], [0, -th / 2]],
-      ];
-      for (const [dx0, dy0] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
-        const [dx, dy] = [dx0, dy0];
-        if (feld.has((sy + dy) * N + sx + dx)) continue;
-        const [rx, ry] = k.dreheVektor(dx, dy);
-        const [, , a, b] = ecken.find((e) => e[0] === rx && e[1] === ry) as (typeof ecken)[number];
-        X.beginPath(); X.moveTo(cx + a[0], cy + a[1]); X.lineTo(cx + b[0], cy + b[1]); X.stroke();
+      if (!sichtbar(cx, cy) || tw < 24) continue;
+      const n = arme(sx, sy), waag = strasse(sx + 1, sy) && strasse(sx - 1, sy), senk = strasse(sx, sy + 1) && strasse(sx, sy - 1);
+      const gerade = n === 2 && (waag !== senk);
+      if (gerade) {
+        // gestrichelte Mittellinie, auf jedem zweiten Feld
+        if ((sx + sy) % 2 === 0) { const l = 0.22; poly(sx, sy, waag ? [[-l, -0.018], [l, -0.018], [l, 0.018], [-l, 0.018]] : [[-0.018, -l], [0.018, -l], [0.018, l], [-0.018, l]], KARTE.markierung); }
+      }
+      // Zebrastreifen auf Feldern direkt neben einer Kreuzung/Einmündung
+      const naheKreuzung = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => strasse(sx + dx, sy + dy) && arme(sx + dx, sy + dy) >= 3);
+      if (gerade && naheKreuzung) {
+        for (let i = -2; i <= 2; i++) { const o = i * 0.11; poly(sx, sy, waag ? [[-0.13, o - 0.035], [0.13, o - 0.035], [0.13, o + 0.035], [-0.13, o + 0.035]] : [[o - 0.035, -0.13], [o + 0.035, -0.13], [o + 0.035, 0.13], [o - 0.035, 0.13]], 'rgba(255,255,255,.82)'); }
+      }
+      // Flicken im Asphalt
+      if (hash(sx, sy) > 0.8) { const o = (hash(sy, sx) - 0.5) * 0.3; poly(sx, sy, [[o - 0.07, o * 0.5 - 0.05], [o + 0.07, o * 0.5 - 0.05], [o + 0.07, o * 0.5 + 0.05], [o - 0.07, o * 0.5 + 0.05]], 'rgba(0,0,0,.09)'); }
+    }
+    // 4. Laternen am Rand, Gullydeckel und parkende Autos (feste Verteilung nach Feldposition)
+    for (const [sx, sy] of s.strassen) {
+      const [cx, cy] = k.mitte(sx, sy);
+      if (!sichtbar(cx, cy) || tw < 30) continue;
+      const waag = strasse(sx + 1, sy) && strasse(sx - 1, sy), senk = strasse(sx, sy + 1) && strasse(sx, sy - 1);
+      if (!(waag !== senk)) continue;
+      const seite = hash(sy, sx) > 0.5 ? 1 : -1;
+      if ((sx * 3 + sy * 5) % 4 === 0) {
+        const [lx, ly] = k.mitte(sx + (waag ? 0 : seite * 0.43), sy + (waag ? seite * 0.43 : 0));
+        X.strokeStyle = '#3b3f44'; X.lineWidth = Math.max(1, tw * 0.02); X.beginPath(); X.moveTo(lx, ly); X.lineTo(lx, ly - tw * 0.2); X.stroke();
+        m.kreis(lx, ly - tw * 0.21, Math.max(1.5, tw * 0.026), '#ffe9a6');
+      } else if (hash(sx + 3, sy + 7) > 0.84) {
+        const [px, py] = k.mitte(sx + (waag ? 0 : seite * 0.17), sy + (waag ? seite * 0.17 : 0));
+        const farben = ['#c0392b', '#2f6db3', '#e9e9e9', '#2a2a2e', '#d9a12a', '#3d8b5a'];
+        const f = farben[Math.floor(hash(sx, sy + 9) * farben.length)];
+        const a = m.quader(px, py, 0.34, tw * 0.05, f, true);
+        void a; m.quader(px, py - tw * 0.02, 0.2, tw * 0.035, 'rgba(180,215,235,.95)', true);
+      }
+    }
+  }
+  // Hausanschlussweg und Garten (A53): Plattenweg vom Haus zur nächsten Straße, abgesetzter Garten mit Zaun
+  if (s.strassen?.length) {
+    const feld = new Set(s.strassen.map(([sx, sy]) => sy * N + sx));
+    for (const o of s.objekte) {
+      const kat = KATALOG[o.typ].kategorie;
+      if (kat !== 'haus' || o.bau) continue;
+      const kk = groesse(o);
+      let weg: [number, number, number, number] | null = null;
+      for (let i = 0; i < kk && !weg; i++) {
+        if (feld.has((o.y - 1) * N + o.x + i)) weg = [o.x + i, o.y, 0, -1];
+        else if (feld.has((o.y + kk) * N + o.x + i)) weg = [o.x + i, o.y + kk - 1, 0, 1];
+        else if (feld.has((o.y + i) * N + o.x - 1)) weg = [o.x, o.y + i, -1, 0];
+        else if (feld.has((o.y + i) * N + o.x + kk)) weg = [o.x + kk - 1, o.y + i, 1, 0];
+      }
+      const [gcx, gcy] = k.mitte(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2);
+      if (gcx < -tw || gcx > W + tw || gcy < -th || gcy > H + tw) continue;
+      // Garten: leicht abgesetzte Grünfläche mit hellem Zaunrand
+      m.raute(gcx, gcy, kk + 0.55); X.fillStyle = 'rgba(96,142,64,.30)'; X.fill();
+      X.strokeStyle = 'rgba(214,196,150,.85)'; X.lineWidth = Math.max(1, tw * 0.014); X.stroke();
+      if (weg) {
+        const [wx, wy, dx, dy] = weg, hw = 0.12;
+        const pts: Array<[number, number]> = dx === 0
+          ? [[-hw, 0], [hw, 0], [hw, 0.55 * dy], [-hw, 0.55 * dy]]
+          : [[0, -hw], [0, hw], [0.55 * dx, hw], [0.55 * dx, -hw]];
+        X.beginPath(); pts.forEach(([gx, gy], i) => { const [px, py] = k.mitte(wx + gx, wy + gy); if (i) X.lineTo(px, py); else X.moveTo(px, py); }); X.closePath();
+        X.fillStyle = KARTE.gehweg; X.fill(); X.strokeStyle = KARTE.bordstein; X.lineWidth = 1; X.stroke();
       }
     }
   }
