@@ -168,3 +168,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 16:54 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN 🟡**. Kann 1 ist fertig, getestet und committet. Kann 2 habe ich nicht gebaut: Bestehende Tests schreiben genau den heutigen Tex ([Bericht](docs/pruefberichte/20261105-165444-entwickler-afe58d124cfa3cf27.md)) |
 | 2026-11-05 16:54 | ▶ | reviewer | Review Designer-Kann 1 |
 | 2026-11-05 16:56 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Paket „Designer-Kann 1“ (Basis c20ec80 bis ad33a86, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-afe58d124cfa3cf27)  ([Bericht](docs/pruefberichte/20261105-165619-reviewer-ad5795e7620662ba1.md)) |
+| 2026-11-05 16:58 | ■ 🟢 | tester | 🟢 Die A90-Abnahmetests stehen und sind grün, die Schranke ist „OK“, die Lastenheft-Zeile heißt jetzt A90. Committet, nicht gepusht.  ([Bericht](docs/pruefberichte/20261105-165820-tester-a03a884ac86603f2d.md)) |
