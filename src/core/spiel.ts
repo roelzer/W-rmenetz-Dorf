@@ -885,7 +885,6 @@ export class Spiel {
     if (jetzt_ms - s.zuletzt_ms > MAX_OFFLINE_S * 1000) s.zuletzt_ms = jetzt_ms - MAX_OFFLINE_S * 1000;
     // A38/A81: Bei längerer Abwesenheit gibt es statt vieler Einzelmeldungen eine Sammelmeldung.
     this.abwesend = jetzt_ms - s.zuletzt_ms > OFFLINE_SCHWELLE_S * 1000;
-    this.offline_anfragen = 0;
     // Review A81 W2: Monate vor der gekürzten Abwesenheit werden nicht nachträglich abgerechnet
     s.abrechnung_monat = Math.max(s.abrechnung_monat ?? 0, Math.floor(s.zuletzt_ms / SPIELMONAT_MS));
     const offline = { monate: 0, eur: 0, voll: false };
