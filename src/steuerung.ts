@@ -9,7 +9,7 @@ import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
 import { chip, knopf } from './ui/bausteine';
 import { blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
-import { h } from './ui/dom';
+import { eur, h } from './ui/dom';
 import { sprecherZeigen } from './ui/sprecher';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
@@ -36,6 +36,8 @@ export class Steuerung implements Ui {
   private stempelLetzte: [number, number] | null = null;
   private stempelAchse: 'h' | 'v' | null = null;
   private radieren = false;
+  /** A69: Werkzeug „T-Stück mit Vorsehung“: Tippen auf eine geplante Leitung setzt/entfernt die Vorsehung */
+  private vorsehen = false;
   private modusBlatt: Blatt | null = null;
   private katalogUi: Katalog;
   private kontextUi: Kontext;
@@ -129,14 +131,15 @@ export class Steuerung implements Ui {
     this.geist = { typ: o.typ, x: o.x, y: o.y, kante }; this.verschiebeId = id; this.modus = 'verschieben';
     this.modusBlattOeffnen(`${KATALOG[o.typ].name} verschieben`, 'Tippe auf die Wiese oder zieh das Gebäude an seinen neuen Platz.', 'Hier hin', () => this.bestaetigen());
   }
-  stempeln(typ: TypId, radieren = false): void {
+  stempeln(typ: TypId, radieren = false, vorsehen = false): void {
     this.katalogUi.schliessen(); this.kontextUi.schliessen();
-    this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren;
+    this.stempelTyp = typ; this.modus = 'stempel'; this.geist = null; this.radieren = radieren; this.vorsehen = vorsehen && !radieren;
     this.modusBlattOeffnen(`${KATALOG[typ].name} einzeichnen`, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss. Bezahlt wird erst, wenn Laura das Material bestellt.', 'Abschnitt abschließen', () => { const r = this.spiel.abschnittAbschliessen(); this.abbrechen(); this.geaendert(); if (r.ok) this.katalog('netz'); else this.hinweiseZeigen(); });
     // Durchmesser direkt wählen (Designer-Mangel 10)
     const wahl = h('div', { class: 'durchmesser' }, ...LEITUNGEN.filter((t) => this.spiel.grenze(t) > 0).map((t) => knopf(KATALOG[t].name.replace('-Leitung', ''), () => this.stempeln(t), t === typ ? 'los' : '', { klein: true })));
     const werkzeug = h('div', { class: 'knopfreihe' },
       knopf(radieren ? 'Radierer an – tippe Leitungen weg' : 'Radierer', () => this.stempeln(typ, !radieren), radieren ? 'heiss' : '', { klein: true }),
+      knopf(this.vorsehen ? 'T-Stück an – tippe auf eine geplante Leitung' : 'T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'heiss' : '', { klein: true, unter: eur(KONSTANTEN.vorsehung_eur) }),
       knopf('Letzte zurück', () => { this.spiel.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); }, '', { klein: true }));
     this.modusBlatt?.inhalt.append(wahl, werkzeug);
   }
@@ -148,7 +151,7 @@ export class Steuerung implements Ui {
     if (this.modus !== 'stempel') reihe.append(knopf('Abbrechen', () => this.abbrechen()));
     this.modusBlatt.inhalt.append(h('p', {}, text), reihe);
   }
-  private modusZuruecksetzen(): void { this.modus = 'normal'; this.geist = null; this.verschiebeId = null; this.stempelTyp = null; this.stempelLetzte = null; this.stempelAchse = null; this.radieren = false; }
+  private modusZuruecksetzen(): void { this.modus = 'normal'; this.geist = null; this.verschiebeId = null; this.stempelTyp = null; this.stempelLetzte = null; this.stempelAchse = null; this.radieren = false; this.vorsehen = false; }
   private abbrechen(): void { if (this.modusBlatt) { const b = this.modusBlatt; this.modusBlatt = null; b.zu(); } this.modusZuruecksetzen(); }
 
   private geistOk(): boolean {
@@ -293,6 +296,13 @@ export class Steuerung implements Ui {
     const [x, y] = this.kamera.feld(mx, my);
     if (x < 0 || y < 0 || x >= N || y >= N) return;
     if (this.radieren) { if (this.spiel.geplanteLeitungEntfernen(x, y).ok) this.geaendert(); return; }
+    if (this.vorsehen) {
+      if (this.stempelLetzte?.[0] === x && this.stempelLetzte?.[1] === y) return; // beim Ziehen nicht mehrfach umschalten
+      this.stempelLetzte = [x, y];
+      const o = this.spiel.stand.objekte.find((a) => a.geplant && a.x === x && a.y === y);
+      if (o && this.spiel.vorsehungUmschalten(o.id).ok) this.geaendert(); else this.hinweiseZeigen();
+      return;
+    }
     // A47: Die Leitung läuft gerade durch. Ein Knick entsteht nur, wenn der Finger deutlich (2 Felder) zur Seite zieht.
     const l = this.stempelLetzte;
     let felder: Array<[number, number]> = [[x, y]];

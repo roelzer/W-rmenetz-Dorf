@@ -171,7 +171,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   for (const k of reihenfolge) {
     const p = eltern.get(k) as number;
     if (p < 0 || LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) continue;
-    if ((kinderzahl.get(p) ?? 0) >= 2 || angebunden.has(p)) continue;
+    if ((kinderzahl.get(p) ?? 0) >= 2 || angebunden.has(p) || (leitungAn(p) as Objekt).vorsehung) continue; // A69: T-Stück mit Vorsehung ist ein Abzweig
     reduzierung.add(k); reduzierung.add(p);
   }
 

@@ -380,6 +380,17 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     X.strokeStyle = 'rgba(255,255,255,.45)'; X.lineWidth = Math.max(1, w * 0.3); X.beginPath();
     for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
     X.stroke();
+    // A69: T-Stück mit Vorsehung: kurzer Abgang quer zur Leitung mit dunkler Verschlusskappe
+    if (o.vorsehung) {
+      const quer = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !(n && istLeitung(n.typ)); });
+      const lauf = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !!n && istLeitung(n.typ); });
+      const senkrecht = quer.filter(([dx, dy]) => lauf.every(([lx, ly]) => lx * dx + ly * dy === 0));
+      const [rx, ry] = senkrecht.find(([dx, dy]) => !nachFeld.has((o.y + dy) * N + o.x + dx)) ?? senkrecht[0] ?? quer[0] ?? [0, 1];
+      const [ax, ay] = k.mitte(o.x + rx, o.y + ry), ex = cx + (ax - cx) * 0.32, ey = cy + (ay - cy) * 0.32;
+      for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, rohr]] as const) { X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(cx, cy); X.lineTo(ex, ey); X.stroke(); }
+      X.beginPath(); X.arc(ex, ey, Math.max(2.5, w * 0.75), 0, Math.PI * 2); X.fillStyle = '#2d2a26'; X.fill();
+      X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1; X.stroke();
+    }
     if (netz.engpass.has(key) || netz.reduzierung.has(key)) {
       m.bahn([[cx, cy - tw * 0.32], [cx + tw * 0.13, cy - tw * 0.07], [cx - tw * 0.13, cy - tw * 0.07]]);
       X.fillStyle = '#d8392f'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2; X.fill(); X.stroke();

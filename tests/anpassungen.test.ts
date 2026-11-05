@@ -846,3 +846,66 @@ describe('A68 Fachprüfung A45–A66 umgesetzt', () => {
     expect(leer.strom_kw).toBe(0); // ohne Wärmeabnahme kein BHKW-Strom
   });
 });
+
+describe('A69 Vorsehung und Anbohrung', () => {
+  const N = KONSTANTEN.feldanzahl;
+  const offen = () => { const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000; s.stand.abschnitt = { phase: 'offen', bau: null }; return s; };
+  /** gebaute Leitung bei (x|y) und ein freier Nachbar, auf den eine Leitung passt */
+  const andock = (s: Spiel, x: number, y: number) => {
+    const ziel = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === x && o.y === y)!;
+    const frei = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [x + dx, y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b))!;
+    return { ziel, frei };
+  };
+  it('A69: Vorsehung nur auf geplanten Leitungen im offenen Abschnitt; sie kostet und lässt sich wieder entfernen', () => {
+    const s = offen();
+    const gebaut = s.stand.objekte.find((o) => istLeitung(o.typ))!;
+    expect(s.vorsehungUmschalten(gebaut.id).ok).toBe(false);
+    const { frei } = andock(s, 10, 12);
+    expect(s.platzieren('d25', frei[0], frei[1]).ok).toBe(true);
+    const plan = s.stand.objekte.find((o) => o.geplant)!;
+    const vorher = s.abschnittKosten_eur();
+    expect(s.vorsehungUmschalten(plan.id).ok).toBe(true);
+    expect(s.abschnittKosten_eur()).toBe(vorher + KONSTANTEN.vorsehung_eur);
+    expect(s.vorsehungUmschalten(plan.id).ok).toBe(true);
+    expect(s.abschnittKosten_eur()).toBe(vorher);
+    s.stand.abschnitt = { phase: 'bestellen', bau: null };
+    expect(s.vorsehungUmschalten(plan.id).ok).toBe(false);
+  });
+  it('A69: Seitlich an eine laufende Leitung ohne Vorsehung andocken kostet eine Anbohrung', () => {
+    const s = offen();
+    const { ziel, frei } = andock(s, 10, 12);
+    s.platzieren('d25', frei[0], frei[1]);
+    expect(s.anbohrungsFelder()).toEqual([ziel.y * N + ziel.x]);
+    expect(s.abschnittKosten_eur()).toBe((KATALOG.d25.kosten_eur as number[])[0] + s.gestattung_eur() + s.bohrung_eur() + KONSTANTEN.anbohrung_eur);
+  });
+  it('A69: An einer Vorsehung entfällt die Anbohrung; mit der Bestellung ist die Vorsehung belegt', () => {
+    const s = offen();
+    const { ziel, frei } = andock(s, 10, 12);
+    ziel.vorsehung = true;
+    s.platzieren('d25', frei[0], frei[1]);
+    expect(s.anbohrungsFelder()).toEqual([]);
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    expect(s.materialBestellen().ok).toBe(true);
+    expect(ziel.vorsehung).toBeUndefined();
+  });
+  it('A69: Am Leitungsende weiterbauen braucht keine Anbohrung', () => {
+    const s = offen();
+    const ende = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 11 && o.y === 14)!;
+    const frei = ([[1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [ende.x + dx, ende.y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b));
+    expect(frei).toBeDefined();
+    s.platzieren('d25', frei![0], frei![1]);
+    expect(s.anbohrungsFelder()).toEqual([]);
+  });
+  it('A69: Der automatische Hausanschluss rechnet die Anbohrung ein und nutzt eine Vorsehung, wenn eine nah liegt', () => {
+    const kosten = (mitVorsehung: boolean) => {
+      const s = offen();
+      if (mitVorsehung) for (const o of s.stand.objekte) if (istLeitung(o.typ)) o.vorsehung = true;
+      const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 15)!;
+      expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
+      return { anbohrungen: s.anbohrungsFelder().length, eur: s.abschnittKosten_eur() };
+    };
+    const ohne = kosten(false), mit = kosten(true);
+    expect(mit.anbohrungen).toBe(0);
+    expect(mit.eur).toBeLessThanOrEqual(ohne.eur);
+  });
+});

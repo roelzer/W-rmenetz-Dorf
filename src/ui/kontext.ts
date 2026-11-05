@@ -224,6 +224,12 @@ export class Kontext {
     else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
     else if (o.geplant) c.append(h('p', {}, 'Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung (abseits der Straße samt Gestattung). Zählt noch nicht fürs Netz.'));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
+    // A69: T-Stück mit Vorsehung (verschlossener Abgang für einen späteren Anschluss)
+    if (o.vorsehung) c.append(h('p', {}, o.geplant
+      ? `T-Stück mit Vorsehung geplant (${eur(KONSTANTEN.vorsehung_eur)}): Hier kann später ein Anschluss andocken, ohne die laufende Leitung anzubohren. Die Leitung darf hier auch dünner werden.`
+      : 'T-Stück mit Vorsehung: Ein späterer Anschluss dockt hier ohne Anbohrung an – die Leitung läuft dabei weiter.'));
+    else if (!o.geplant && n.tiefe.has(key)) c.append(h('p', { class: 'gedaempft' }, `Ohne Vorsehung muss für einen neuen Abzweig die laufende Leitung angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}). Am Leitungsende geht es ohne.`));
+    if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'los', { klein: true, unter: o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}` })));
     const tausch = o.geplant ? [] : LEITUNGEN.filter((t) => t !== o.typ && sp.grenze(t) > 0);
     if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch.map((t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, '', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }))));
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));

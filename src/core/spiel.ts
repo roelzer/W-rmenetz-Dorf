@@ -545,9 +545,52 @@ export class Spiel {
   bohrungsFelder(): number[] { return this.stand.objekte.filter((o) => o.geplant && this.istFluss(o.x, o.y)).map((o) => o.y * N + o.x); }
   bohrung_eur(): number { return this.bohrungsFelder().length * KONSTANTEN.bohrung_eur_je_feld; }
   gestattung_eur(): number { return this.gestattungsFelder().length * KONSTANTEN.gestattung_eur_je_feld; }
-  /** Summe der Leitungskosten des Abschnitts in € (Material und Gestattungen). */
+  /** Summe der Leitungskosten des Abschnitts in € (Material, Gestattungen, Spülbohrung, Vorsehungen, Anbohrungen). */
   abschnittKosten_eur(): number {
-    return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur() + this.bohrung_eur();
+    return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur() + this.bohrung_eur()
+      + this.vorsehungen_eur() + this.anbohrung_eur();
+  }
+  /** A69: geplante Vorsehungen (T-Stück mit verschlossenem Abgang) im Abschnitt. */
+  vorsehungen_eur(): number { return this.stand.objekte.filter((o) => o.geplant && o.vorsehung).length * KONSTANTEN.vorsehung_eur; }
+  anbohrung_eur(): number { return this.anbohrungsFelder().length * KONSTANTEN.anbohrung_eur; }
+  /** Gebaute Leitungsnachbarn eines Feldes (die Heizzentrale zählt mit). */
+  private gebauteNachbarn(f: number): number {
+    const x = f % N, y = (f - x) / N, bel = belegungskarte(this.stand.objekte);
+    let z = 0;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      const o = this.objekt(bel[ny * N + nx]);
+      if (o && ((istLeitung(o.typ) && !o.geplant) || o.typ === 'hz')) z++;
+    }
+    return z;
+  }
+  /** A69: Muss hier an eine laufende Leitung angebohrt werden? Ja, wenn sie durchläuft (kein Leitungsende) und keine Vorsehung hat. */
+  private brauchtAnbohrung(o: Objekt): boolean {
+    return istLeitung(o.typ) && !o.geplant && !o.vorsehung && this.gebauteNachbarn(o.y * N + o.x) >= 2;
+  }
+  /** A69: Gebaute, durchlaufende Leitungen ohne Vorsehung, an die eine geplante Leitung des Abschnitts andockt. */
+  anbohrungsFelder(): number[] {
+    const bel = belegungskarte(this.stand.objekte), felder = new Set<number>();
+    for (const g of this.stand.objekte) {
+      if (!g.geplant) continue;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = g.x + dx, ny = g.y + dy;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+        const o = this.objekt(bel[ny * N + nx]);
+        if (o && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
+      }
+    }
+    return [...felder];
+  }
+  /** A69: Im offenen Bauabschnitt auf eine geplante Leitung ein T-Stück mit Vorsehung setzen oder wieder wegnehmen. */
+  vorsehungUmschalten(id: number): Ergebnis {
+    const o = this.objekt(id);
+    if (!o || !istLeitung(o.typ)) return { ok: false };
+    if (!o.geplant || this.stand.abschnitt?.phase !== 'offen') return this.nein('Eine Vorsehung kommt beim Bau der Leitung mit hinein – zeichne die Leitung im offenen Bauabschnitt');
+    if (o.vorsehung) delete o.vorsehung; else o.vorsehung = true;
+    o._pop = this.uhr();
+    return ok();
   }
   abschnittLeitungen(): number { return this.stand.objekte.filter((o) => o.geplant).length; }
   /** A47: Kosten, eine Leitung auf dieses Feld zu legen (Material, Gestattung, Spülbohrung); Grundlage der automatischen Wegsuche. */
@@ -595,12 +638,23 @@ export class Spiel {
       });
     }
     let ziel = -1;
+    // A69: Andocken an eine durchlaufende Leitung ohne Vorsehung kostet eine Anbohrung – die Wegsuche bevorzugt Vorsehungen und Leitungsenden.
+    const bel = belegungskarte(this.stand.objekte);
+    const andockKosten = (f: number): number => Math.min(...nachbarn(f).filter((n) => leit.has(n)).map((n) => {
+      const o = this.objekt(bel[n]);
+      return o && this.brauchtAnbohrung(o) ? KONSTANTEN.anbohrung_eur : 0;
+    }));
+    const erledigt = new Set<number>();
     while (offen.length) {
       offen.sort((a, b) => a[0] - b[0]);
       const [c, z] = offen.shift() as [number, number];
+      if (z < 0) { ziel = -z - 1; break; } // günstigstes Ziel samt Andockkosten
       if (c > (dist.get(z) as number)) continue;
       const f = Math.floor(z / 4), r = z % 4;
-      if (nachbarn(f).some((n) => leit.has(n))) { ziel = z; break; }
+      if (nachbarn(f).some((n) => leit.has(n))) {
+        if (!erledigt.has(z)) { erledigt.add(z); offen.push([c + andockKosten(f), -z - 1]); }
+        continue;
+      }
       richtungen.forEach(([rx, ry], r2) => {
         const nx = f % N + rx, ny = Math.floor(f / N) + ry;
         if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
@@ -660,6 +714,7 @@ export class Spiel {
     const b = this.bezahlen({ eur: kost });
     if (!b.ok) return b;
     a.material_eur = kost;
+    this.vorsehungenVerbrauchen();
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
     a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
     const w = this.lieferwochen();
@@ -667,6 +722,14 @@ export class Spiel {
     return ok();
   }
 
+  /** A69: Gebaute Vorsehungen, an die dieser Abschnitt andockt, sind ab jetzt belegt (normaler Abzweig). */
+  private vorsehungenVerbrauchen(): void {
+    const plan = new Set(this.stand.objekte.filter((o) => o.geplant).map((o) => o.y * N + o.x));
+    for (const o of this.stand.objekte) {
+      if (!o.vorsehung || o.geplant) continue;
+      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => plan.has((o.y + dy) * N + o.x + dx))) delete o.vorsehung;
+    }
+  }
   /** A62: Aufpreis für die Expresslieferung des laufenden Bauabschnitts. */
   expresskosten_eur(): number {
     const m = this.stand.abschnitt?.material_eur ?? 0;

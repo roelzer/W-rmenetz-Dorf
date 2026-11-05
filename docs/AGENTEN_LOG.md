@@ -26,3 +26,11 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-04 20:47 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig – Prüfung über den ganzen Abschnitt (Modus `gesamt`, `31e0198..46b0041`)  ([Bericht](docs/pruefberichte/20261104-204721-reviewer-a41d64712c92aaa95.md)) |
 | 2026-11-05 07:01 | ▶ | rechercheur | Recherche Übergabestationen HP/ÜP |
 | 2026-11-05 07:02 | ■ 🟡 | rechercheur | GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/stationen-hp-up.md  ([Bericht](docs/pruefberichte/20261105-070235-rechercheur-a98bdfab09e67b36f.md)) |
+| 2026-11-05 09:27 | ▶ | fachpruefer | Fachprüfung A45–A66 |
+| 2026-11-05 09:27 | ▶ | designer | Designer-Treue und Kartenoptik |
+| 2026-11-05 09:27 | ▶ | reviewer | Gesamt-Review A45–A66 |
+| 2026-11-05 09:32 | ■ 🟡 | fachpruefer | 🟡 GELB: Kein Verstoß gegen eine bestätigte Regel. Es gibt aber einen Rechenfehler beim BHKW-Strom, drei Texte, die so nicht stimmen, und mehrere Spielzahle ([Bericht](docs/pruefberichte/20261105-093203-fachpruefer-ad2c0e37fc939894d.md)) |
+| 2026-11-05 09:32 | ▶ | rechercheur | Recherche Vorsehung, Gestattung, Bohrung |
+| 2026-11-05 09:34 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig** (Modus gesamt, A45–A66, geprüfter Stand: Commits 87c8e65~1..8a9fdcd, dazu cbfd8d1, das nur die *.whl-Dateien entfernt)  ([Bericht](docs/pruefberichte/20261105-093429-reviewer-a3da02cf7c2069181.md)) |
+| 2026-11-05 09:36 | ■ 🟡 | designer | 🟡 **Logo und Ladebildschirm sind gut. Die Spielkarte spricht eine andere Bildsprache als der Ladebildschirm, und an der Bedienung am Handy sind mehrere Punkt ([Bericht](docs/pruefberichte/20261105-093630-designer-aeebd4e32905af725.md)) |
+| 2026-11-05 09:37 | ■ 🟡 | rechercheur | Ampel GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/vorsehung_anbohrung.md (Modus recherche, keine Gegenprüfung).  ([Bericht](docs/pruefberichte/20261105-093749-rechercheur-a936115a8abd69953.md)) |

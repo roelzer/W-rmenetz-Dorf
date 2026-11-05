@@ -299,3 +299,10 @@ describe('A67 Reduzierung nur am Abzweig (T-Stück)', () => {
     expect(n.reduzierung.size).toBe(0);
   });
 });
+
+describe('A69 T-Stück mit Vorsehung', () => {
+  it('A69: Ein T-Stück mit Vorsehung zählt als Abzweig – dort darf die Leitung dünner werden', () => {
+    const n = berechneNetz(dorf(neu('d50', 12, 10), neu('d50', 13, 10, { vorsehung: true }), neu('d25', 14, 10), neu('efh', 15, 10)), [quelle('kessel')], 2);
+    expect(n.reduzierung.size).toBe(0);
+  });
+});

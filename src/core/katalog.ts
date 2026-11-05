@@ -378,6 +378,10 @@ export const KONSTANTEN = {
   interessent_nachlass: 0.2,
   /** A46: Spülbohrung unter dem Fluss je Feld; teuer, Spielwert */
   bohrung_eur_je_feld: 8000,
+  /** A69: T-Stück mit verschlossenem Abgang (Vorsehung), beim Bau der Leitung eingesetzt; Spielwert, Recherche R7 offen */
+  vorsehung_eur: 300,
+  /** A69: Abzweig nachträglich an eine laufende Leitung ohne Vorsehung (Absperren/Anbohren); Spielwert, Recherche R7 offen */
+  anbohrung_eur: 2500,
   starttaler: 100,
   hoechststufe: 5,
 } as const;

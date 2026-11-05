@@ -36,6 +36,8 @@ export interface Objekt {
   station?: string;
   /** Gebäude des Ortes (A21): zählen nicht gegen die Baugrenzen der Heizzentralen-Stufe */
   bestand?: boolean;
+  /** A69: Leitungsfeld mit T-Stück und verschlossenem Abgang (Vorsehung) für einen späteren Anschluss */
+  vorsehung?: boolean;
   /** A41: Leitung gehört zum laufenden Bauabschnitt und ist erst nach dem Bau Teil des Netzes */
   geplant?: boolean;
   /** Sekunden als warmer Kunde / Sekunden dauerhaft sehr zufrieden (A34, Aufstockung) */
