@@ -22,3 +22,8 @@
 - iPhone: zum Home-Bildschirm hinzufügen, sonst kann Safari Daten nach längerer Nichtnutzung löschen.
 - Einstellungen → „Spielstand sichern/laden“ als Rettung bei Handywechsel.
 - Sammelt das Spiel später Daten (Ranglisten, Konten, Auswertung): vorher Sicherheits- und Datenschutzprüfung (Besetzung Kunde).
+
+## Stand 2026-11-05 (für eine Sitzung mit Cloudflare-Plugin)
+- Simon hat versehentlich einen **Worker** `w-rmenetz-dorf` angelegt (Repo verbunden, Deploy command `npx wrangler deploy`). Der soll weg.
+- Ziel: **Pages-Projekt `heatville`** aus Repo `roelzer/W-rmenetz-Dorf`, Production branch `main`, Build `npm run build`, Output `dist`, Umgebungsvariable `NODE_VERSION=22`, Preview-Deployments an → Adresse `heatville.pages.dev`.
+- Worker löschen und Projekt anlegen nur nach ausdrücklicher Bestätigung durch Simon. Danach ersten Build prüfen (Protokoll, Seite lädt, Service Worker, `_headers`).
