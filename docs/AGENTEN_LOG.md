@@ -173,3 +173,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 17:03 | ▶ | entwickler | NR16-A Anschlussweg klarer |
 | 2026-11-05 17:04 | ▶ | designer | NR16-B Designvorgabe Reiter/Toast |
 | 2026-11-05 17:11 | ■ 🟢 | designer | 🟢 **Vorgaben fertig.** Für alle drei Mängel und den gesperrten Knopf gibt es jetzt eine baubare Vorgabe mit Maßen, Zuständen und Prüfkriterium. Sie steh ([Bericht](docs/pruefberichte/20261105-171119-designer-a69fef3873825425f.md)) |
+| 2026-11-05 17:12 | ▶ | fachpruefer | Fachprüfung T-Stück-Hinweistext |
+| 2026-11-05 17:12 | ■ 🟡 | fachpruefer | 🟡 Fast richtig, ein Halbsatz führt aber in die Irre. Ich habe nur gelesen, nichts ausgeführt: den Text, A47, A69 und A88 im Lastenheft, src/core/spiel.ts ( ([Bericht](docs/pruefberichte/20261105-171257-fachpruefer-a2e8dcb79efb4e8f4.md)) |
