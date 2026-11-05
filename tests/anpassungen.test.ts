@@ -1426,3 +1426,22 @@ describe('A85 Spielname Heatville (Simon 2026-11-05)', () => {
     expect(m.SPEICHER_SCHLUESSEL).toBe('waermedorf-spielstand-v1');
   });
 });
+
+describe('A86 Fiktiver Dorfname statt Hilpoltstein (Simon, Review-Chat NR5)', () => {
+  it('A86: Kein „Hilpoltstein“ mehr in angezeigten Texten; neues Spiel heißt Wärmlingen', () => {
+    for (const f of ['../src/core/orte.ts', '../src/core/spiel.ts', '../src/core/auftraege.ts', '../src/core/katalog.ts', '../src/ui/kontext.ts', '../src/ui/katalog.ts', '../src/ui/hud.ts', '../src/main.ts', '../index.html']) {
+      const q = readFileSync(new URL(f, import.meta.url), 'utf8').replace(/id: 'hilpoltstein'|STANDARD_ORT = 'hilpoltstein'/g, '');
+      expect(q, f).not.toMatch(/Hilpoltstein/);
+    }
+    expect(neuerSpielstand(0).name).toBe('Wärmlingen');
+  });
+  it('A86: Alte Spielstände laden weiter; nur der alte Vorgabename wird ersetzt, eigene Namen bleiben', () => {
+    const alt = neuerSpielstand(0); alt.name = 'Hilpoltstein';
+    const r = ladenMitBefund(serialisieren(alt), 0);
+    expect(r.befund).toBe('migriert');
+    expect(r.stand.name).toBe('Wärmlingen');
+    expect(r.stand.objekte.length).toBe(alt.objekte.length);
+    const eigen = neuerSpielstand(0); eigen.name = 'Simonsdorf';
+    expect(ladenMitBefund(serialisieren(eigen), 0).stand.name).toBe('Simonsdorf');
+  });
+});

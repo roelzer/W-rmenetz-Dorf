@@ -6,8 +6,8 @@ import { KATALOG, KONSTANTEN } from '../src/core/katalog';
 const T0 = 1_000_000_000_000;
 
 describe('A21 Orte', () => {
-  it('A21/A44: Es gibt genau einen Ort (Hilpoltstein), die Ortswahl entfällt', () => {
-    expect(ORTE.map((o) => o.name)).toEqual(['Hilpoltstein']);
+  it('A21/A44/A86: Es gibt genau einen Ort (fiktiv: Wärmlingen), die Ortswahl entfällt', () => {
+    expect(ORTE.map((o) => o.name)).toEqual(['Wärmlingen']);
     expect(ortHolen('gibtesnicht').id).toBe('hilpoltstein');
   });
   it('A21: jeder Ort hat Häuser und ein Hallenbad, alles liegt auf der Karte, nichts überlappt', () => {

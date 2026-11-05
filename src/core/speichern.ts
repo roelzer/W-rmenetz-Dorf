@@ -114,6 +114,8 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
     }
     if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
       if (karteAnpassen(d as Spielstand)) migriert = true;
+      // A86: Wer den alten Vorgabenamen behalten hat, bekommt den fiktiven Dorfnamen (selbst gewählte Namen bleiben)
+      if ((d as Spielstand).name === 'Hilpoltstein') { (d as Spielstand).name = ortHolen((d as Spielstand).ort).name; migriert = true; }
       return { stand: d as Spielstand, befund: migriert ? 'migriert' : 'ok' };
     }
   } catch (fehler) {

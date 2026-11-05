@@ -99,7 +99,8 @@ function platzhalterOrt(p: Plan): Ort {
 }
 
 export const ORTE: ReadonlyArray<Ort> = [
-  platzhalterOrt({ id: 'hilpoltstein', name: 'Hilpoltstein', beschreibung: 'Kreisstadt: viele Wohnhäuser, Hallenbad, Klinik und ein Sägewerk als Großabnehmer.', seed: 91, anzahl: 40, mfhAnteil: 0.25, klinik: true }),
+  // A86: fiktiver Name (echte Orte verworfen); die interne Id bleibt, damit alte Spielstände ihre Karte behalten
+  platzhalterOrt({ id: 'hilpoltstein', name: 'Wärmlingen', beschreibung: 'Dorf: viele Wohnhäuser, Hallenbad, Klinik und ein Sägewerk als Großabnehmer.', seed: 91, anzahl: 40, mfhAnteil: 0.25, klinik: true }),
 ];
 
 export const STANDARD_ORT = 'hilpoltstein';
