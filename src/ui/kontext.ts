@@ -4,7 +4,7 @@ import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, zeile, type Sperre } from './bausteine';
-import { ANSCHLUSS_GEPLANT, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
+import { ANSCHLUSS_GEPLANT, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -214,7 +214,7 @@ export class Kontext {
   /** A92 (NR16): Knöpfe zum Anschließen eines Hauses ohne Anschluss. Ohne offenen Bauabschnitt sind beide gesperrt und nennen den Grund;
    *  gibt es noch gar keinen Abschnitt, lässt er sich hier gleich planen (dieselbe Aktion und derselbe Preis wie im Baumenü). */
   private anschlussWeg(o: Objekt): HTMLElement[] {
-    const sp = this.ui.spiel, sperre = abschnittSperre(sp, () => this.ui.jetzt_ms());
+    const sp = this.ui.spiel, sperre = abschnittSperreKurz(sp, () => this.ui.jetzt_ms());
     const reihen: HTMLElement[] = [];
     if (!sp.abschnitt) {
       const preis = KONSTANTEN.abschnitt_planung_eur;
