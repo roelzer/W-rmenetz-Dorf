@@ -1,5 +1,5 @@
 import { ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
-import { bedarfKw, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
+import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
@@ -183,7 +183,9 @@ export class Kontext {
       return;
     }
     if (!an) c.append(h('p', {}, 'Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.'), ...this.anschlussWeg(o));
-    else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
+    else if (n.kalt.get(o.id) === 'leitung') c.append(h('p', {}, eigenerAnschlussZuDuenn(n, o)
+      ? 'Sein Hausanschluss ist zu dünn für dieses Haus. Ersetze ihn durch eine dickere Leitung – das Haus bekommt seine Wärme nur über diesen Anschluss.'
+      : 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
     if (o.ohne_station || o.station) this.stationswahl(c, o);
     this.pufferBereich(c, o);
