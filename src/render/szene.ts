@@ -5,7 +5,7 @@ import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz'
 import type { Spiel } from '../core/spiel';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
-import { BodenEbene, type FlaechenFabrik } from './ebenen';
+import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
 import { zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
@@ -463,8 +463,9 @@ function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number): void {
       const X = m.X, breite = k.breite, hoehe = k.hoehe;
       // Erst die ganze Fläche in Gerätepixeln füllen: bei gebrochener CSS-Größe deckt die Hintergrundfläche von zeichneBoden
       // den aufgerundeten letzten Pixelstreifen nur teilweise, er bliebe sonst halb durchsichtig.
+      const flaeche = flaechenGroesse(breite_px, hoehe_px, rand_x_px, rand_y_px);
       FX.setTransform(1, 0, 0, 1, 0, 0); FX.fillStyle = KARTE.hintergrund_rand;
-      FX.fillRect(0, 0, Math.ceil(breite_px) + 2 * rand_x_px, Math.ceil(hoehe_px) + 2 * rand_y_px);
+      FX.fillRect(0, 0, flaeche.breite_px, flaeche.hoehe_px);
       m.X = FX; k.breite += (2 * rand_x_px) / pv; k.hoehe += (2 * rand_y_px) / pv;
       try { zeichneBoden(m, k, s); } finally { m.X = X; k.breite = breite; k.hoehe = hoehe; }
     });

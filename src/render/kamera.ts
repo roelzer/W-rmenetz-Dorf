@@ -22,7 +22,8 @@ export class Kamera {
 
   groesseSetzen(breite: number, hoehe: number, dpr: number): boolean {
     this.breite = breite; this.hoehe = hoehe;
-    this.pixelverhaeltnis = Math.min(2, dpr || 1);
+    // Der wirksame Faktor kommt gedeckelt aus zeichenAufloesung; ein zweiter Deckel hier ließe Kamera und Leinwand auseinanderlaufen.
+    this.pixelverhaeltnis = dpr || 1;
     this.basis = Math.min(breite / (N + 2), hoehe / (N / 2 + 3));
     if (!this.initial && breite > 0) {
       this.initial = true;

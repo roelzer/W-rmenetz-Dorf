@@ -6,6 +6,11 @@
 export interface Flaeche { width: number; height: number; getContext(t: '2d'): CanvasRenderingContext2D | null }
 export type FlaechenFabrik = (breite_px: number, hoehe_px: number) => Flaeche;
 
+/** Größe der Fläche in Gerätepixeln: aufgerundete Bildgröße (gebrochene CSS-Größen) plus Rand auf beiden Seiten. */
+export function flaechenGroesse(breite_px: number, hoehe_px: number, rand_x_px: number, rand_y_px: number): { breite_px: number; hoehe_px: number } {
+  return { breite_px: Math.ceil(breite_px) + 2 * rand_x_px, hoehe_px: Math.ceil(hoehe_px) + 2 * rand_y_px };
+}
+
 export class BodenEbene {
   private flaeche: Flaeche | null = null;
   private schluessel = '';
@@ -30,7 +35,7 @@ export class BodenEbene {
    */
   neu(schluessel: string, breite_px: number, hoehe_px: number, rand_x_px: number, rand_y_px: number,
     schiebe_x_px: number, schiebe_y_px: number, malen: (X: CanvasRenderingContext2D) => void): void {
-    const b = Math.ceil(breite_px) + 2 * rand_x_px, h = Math.ceil(hoehe_px) + 2 * rand_y_px;
+    const { breite_px: b, hoehe_px: h } = flaechenGroesse(breite_px, hoehe_px, rand_x_px, rand_y_px);
     if (this.flaeche && (this.flaeche.width !== b || this.flaeche.height !== h)) this.freigeben();
     if (!this.flaeche) this.flaeche = this.fabrik(b, h);
     const X = this.flaeche.getContext('2d');
