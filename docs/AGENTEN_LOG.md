@@ -163,3 +163,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 16:51 | ■ 🟢 | architekt | 🟢 **Der Bauplan steht: docs/bauplaene/NR15-netzmodell.md.** NR15 lässt sich lösen, ohne den Spielstand anzufassen. Eine Annahme aus NR15 stimmt aber nur zu ([Bericht](docs/pruefberichte/20261105-165106-architekt-a6f6104c2d9e6dbd4.md)) |
 | 2026-11-05 16:51 | ▶ | kritiker | Kritik NR15-Bauplan |
 | 2026-11-05 16:51 | ▶ | fachpruefer | Fachprüfung NR15-Regeln |
+| 2026-11-05 16:53 | ■ 🟡 | kritiker | **Ampel: 🟡** – Die Ursachenanalyse ist gut und mit Messungen belegt. Die neue Anschlussregel kann aber alte Spielstände verschlechtern, und genau dafür f ([Bericht](docs/pruefberichte/20261105-165336-kritiker-a99142be428465094.md)) |
+| 2026-11-05 16:53 | ■ 🟡 | fachpruefer | 🟡 **Fachprüfung Bauplan NR15 (Modus plan): Die drei Vereinfachungen behaupten im Spiel nichts fachlich Falsches. Zwei Dinge sollten trotzdem angepasst werde ([Bericht](docs/pruefberichte/20261105-165342-fachpruefer-a1361f478c619bd17.md)) |
