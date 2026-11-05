@@ -87,3 +87,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 13:35 | ▶ | designer | Designer-Fotos A88 P2 |
 | 2026-11-05 13:44 | ■ 🟡 | architekt | 🟡 **NR12: gemessen, Bauplan liegt bereit, noch nichts gebaut.** Die Ursachen sind belegt und die Maßnahmen bauklar. Gelb aus zwei Gründen: Safari/WebKit li ([Bericht](docs/pruefberichte/20261105-134458-architekt-a7334af60b08cfac4.md)) |
 | 2026-11-05 13:46 | ▶ | kritiker | Kritiker prüft NR12-Bauplan |
+| 2026-11-05 13:47 | ■ 🟡 | entwickler | 🟡 **Status: BRAUCHT_KONTEXT.** A89 ist nicht gebaut. K1, K3 und K4 sind fertig und committet. K2 und der Rückbau von T6 wurden vom Wächter gesperrt.  ([Bericht](docs/pruefberichte/20261105-134718-entwickler-a61d535f33edc91bf.md)) |
+| 2026-11-05 13:47 | ▶ | tester | Tester passt Tests für A89 an |
