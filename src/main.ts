@@ -155,7 +155,7 @@ function bild(jetzt: number): void {
   if (r.zeichnen) {
     maler.zeit_s = maler.reduziert ? 0 : (jetzt - t0) / 1000;
     const start = performance.now();
-    zeichneSzene(maler, kamera, szene, steuerung.effekte, abschluss.dt_s);
+    zeichneSzene(maler, kamera, szene, steuerung.effekte, abschluss.dt_s, steuerung.fingerAufKarte());
     zeichen_ms = performance.now() - start;
   }
   letztGezeichnet = abschluss.letzt_gezeichnet_ms; erzwingen = abschluss.erzwingen;

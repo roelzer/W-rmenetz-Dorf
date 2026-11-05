@@ -60,6 +60,8 @@ export class Steuerung implements Ui {
   private mitteDreh: { x: number } | null = null;
 
   jetzt_ms(): number { return this.uhr(); }
+  /** Läuft gerade eine Geste auf der Karte (Finger oder gedrückte Mitteltaste)? Die Bildschleife reicht es an die Bodenebene weiter. */
+  fingerAufKarte(): boolean { return this.zeiger.size > 0 || this.mitteDreh !== null; }
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
     this.katalogUi = new Katalog(this);
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });

@@ -215,6 +215,11 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
 
 /** Ruhezeit nach Zoomen/Drehen, bevor die Bodenebene neu aufgebaut wird (während der Geste wäre jedes Bild ein Neuaufbau). */
 const BODEN_RUHE_S = 0.15;
+/**
+ * Nach einer Fingergeste zusätzlich so viele gezeichnete Bilder ohne Kameraänderung und ohne Finger: ein einzelnes langes Bild
+ * (Ruckler) erfüllt die Ruhezeit allein, und der Neuaufbau (2,25-fache Fläche) machte aus einem Ruckler zwei.
+ */
+const BODEN_RUHE_BILDER = 3;
 /** Rand der Bodenebene je Seite als Anteil der Bildgröße: Verschieben bis hierhin kopiert nur (Fläche 1,5² = 2,25-fach). */
 const BODEN_RAND_ANTEIL = 0.25;
 
@@ -222,12 +227,19 @@ let bodenEbene: BodenEbene | null = null;
 let letzte_tw = NaN;
 let letzter_winkel_rad = NaN;
 let ruhe_s = Infinity;
+/** Ruhige Bilder in Folge (ohne Kameraänderung, ohne Finger auf der Karte). */
+let ruhe_bilder = 0;
+/** Zoomen/Drehen ist passiert, der Boden wurde seitdem noch nicht neu aufgebaut. */
+let ruhe_ausstehend = false;
+/** Seit der ausstehenden Kameraänderung lag ein Finger auf der Karte: dann gilt zusätzlich BODEN_RUHE_BILDER. */
+let ruhe_nach_geste = false;
 
 /** Zwischenspeicher für den Boden einschalten (Fabrik) oder ausschalten (null, Standard: direkt zeichnen wie bisher). */
 export function bodenEbeneEinrichten(fabrik: FlaechenFabrik | null): void {
   bodenEbene?.freigeben();
   bodenEbene = fabrik ? new BodenEbene(fabrik) : null;
   letzte_tw = NaN; letzter_winkel_rad = NaN; ruhe_s = Infinity; // das erste Bild baut sofort auf
+  ruhe_bilder = 0; ruhe_ausstehend = false; ruhe_nach_geste = false;
 }
 
 /** Fläche freigeben; das nächste Bild malt den Boden neu (Rückkehr in die App, Leinwand-Verlust). */
@@ -235,11 +247,12 @@ export function bodenEbeneVerwerfen(): void {
   bodenEbene?.freigeben();
 }
 
-export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt_s: number): void {
+/** `finger_auf_karte`: liegt gerade ein Finger (oder die gedrückte Mitteltaste) auf der Karte – liefert die Steuerung. */
+export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt_s: number, finger_auf_karte = false): void {
   const { X } = m;
   m.tw = k.tw; m.th = k.th; m.dreh_cos = Math.cos(k.winkel_rad); m.dreh_sin = Math.sin(k.winkel_rad);
   const tw = k.tw, th = k.th;
-  bodenAuflegen(m, k, s, dt_s);
+  bodenAuflegen(m, k, s, dt_s, finger_auf_karte);
   zeichneGlitzern(m, k, s);
 
   zeichneLeitungen(m, k, s);
@@ -444,16 +457,29 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   X.globalAlpha = 1;
 }
 
-/** Boden direkt oder über die Bodenebene. Umgehen bei Zoomen/Drehen bis BODEN_RUHE_S Ruhe, sonst wäre jedes Bild ein Neuaufbau. */
-function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number): void {
+/**
+ * Boden direkt oder über die Bodenebene. Nach Zoomen/Drehen direkt, bis echte Ruhe herrscht (sonst wäre jedes Bild ein Neuaufbau):
+ * kein Finger auf der Karte, ≥ BODEN_RUHE_S ohne Kameraänderung und – nach einer Fingergeste – ≥ BODEN_RUHE_BILDER ruhige Bilder.
+ * Ohne Geste (Mausrad, Tasten) genügt die Ruhezeit. Das Sicherheitsbild des Takts liefert die Bilder auch ohne Animation.
+ */
+function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number, finger_auf_karte: boolean): void {
   const ebene = bodenEbene, pv = k.pixelverhaeltnis;
   if (!ebene) { zeichneBoden(m, k, s); return; }
   if (k.tw !== letzte_tw || k.winkel_rad !== letzter_winkel_rad) {
-    if (!Number.isNaN(letzte_tw)) ruhe_s = 0;
+    if (!Number.isNaN(letzte_tw)) { ruhe_s = 0; ruhe_bilder = 0; ruhe_ausstehend = true; }
     letzte_tw = k.tw; letzter_winkel_rad = k.winkel_rad;
-  } else ruhe_s += dt_s;
+  } else {
+    ruhe_s += dt_s;
+    ruhe_bilder = finger_auf_karte ? 0 : ruhe_bilder + 1;
+  }
+  if (ruhe_ausstehend) {
+    if (finger_auf_karte) ruhe_nach_geste = true;
+    // „Kein Finger auf der Karte“ steckt im Bildzähler: ein Finger setzt ihn auf 0 und markiert die Geste.
+    const ruhig = ruhe_s >= BODEN_RUHE_S && (!ruhe_nach_geste || ruhe_bilder >= BODEN_RUHE_BILDER);
+    if (ruhig) { ruhe_ausstehend = false; ruhe_nach_geste = false; }
+  }
   const breite_px = k.breite * pv, hoehe_px = k.hoehe * pv;
-  if (ruhe_s < BODEN_RUHE_S || breite_px <= 0 || hoehe_px <= 0) { zeichneBoden(m, k, s); return; }
+  if (ruhe_ausstehend || breite_px <= 0 || hoehe_px <= 0) { zeichneBoden(m, k, s); return; }
   const schiebe_x_px = k.schiebe_x * pv, schiebe_y_px = k.schiebe_y * pv, schluessel = bodenSchluessel(s, k);
   if (ebene.braucht(schluessel, schiebe_x_px, schiebe_y_px)) {
     const rand_x_px = Math.round(BODEN_RAND_ANTEIL * breite_px), rand_y_px = Math.round(BODEN_RAND_ANTEIL * hoehe_px);
