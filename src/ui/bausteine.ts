@@ -21,6 +21,9 @@ export function stepper(art: 'plus' | 'minus', label: string, bei: () => void, a
   return h('button', { type: 'button', class: 'knopf stepper', 'aria-label': label, disabled: aus || undefined, onclick: bei }, symbol(art));
 }
 
+/** Gesperrte Hinweiszeile (DESIGN.md 12.15): gedämpft, Schloss davor – überall gleich, damit Sperren auf einen Blick erkennbar sind. */
+export const sperrHinweis = (text: string): HTMLParagraphElement => h('p', { class: 'gedaempft sperrhinweis' }, symbol('schloss'), text);
+
 export const chip = (text: string, farbe: '' | 'rot' | 'gruen' | 'blau' = ''): HTMLSpanElement => h('span', { class: `chip ${farbe}`.trim() }, text);
 
 export function kasten(titel: string | null, ...inhalt: Array<Node | string>): HTMLDivElement {

@@ -75,12 +75,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 .reiter{display:flex;overflow-x:auto;touch-action:pan-x;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);flex:none}
 .reiter .knopf{flex:none}
 .raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--groesse-px-katalog-karte-min-breite),46%),1fr));gap:var(--abstand-px-1)}
-.bkarte{display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;min-height:var(--groesse-px-tippflaeche-min)}
+.bkarte{display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;min-height:var(--groesse-px-tippflaeche-min);min-width:0}
 .bkarte canvas,.bkarte .bild{width:100%;height:var(--groesse-px-katalog-bild-hoehe);object-fit:cover;background:var(--farbe-karte-wiese-a);display:block}
 .bkarte.gesperrt canvas,.bkarte.gesperrt .bild{opacity:.45}
-.bkarte .titel{line-height:1.15}
+/* A88 Treue: lange Einzelwörter (Hackschnitzelkessel) drückten bei 667 px die Spalten auf – Titel trennen (lang="de"), notfalls hart umbrechen */
+.bkarte .titel{line-height:1.15;overflow-wrap:anywhere;hyphens:auto;-webkit-hyphens:auto}
 .bkarte .werte{font-size:var(--schrift-groesse-px-klein);color:var(--farbe-ui-text-gedaempft);font-weight:700}
-.bkarte .grund{display:flex;align-items:center;gap:4px;font-size:var(--schrift-groesse-px-klein);font-weight:700}
+.bkarte .grund{display:flex;align-items:center;gap:4px;font-size:var(--schrift-groesse-px-klein);font-weight:700;color:var(--menue-farbe-text)}
 .bkarte .preis .sym,.bkarte .grund .sym{flex:none;width:14px;height:14px}
 .bkarte .abzeichen{align-self:flex-start}
 
@@ -156,6 +157,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .zeile>span:first-child{color:var(--menue-farbe-text-gedaempft);font-weight:600}
 .zeile>span:last-child:not(:first-child){color:var(--k);font-weight:800;font-size:var(--menue-schrift-groesse-px-zeile-wert);font-variant-numeric:tabular-nums;text-align:right}
 .zeile+.zeile{border-top:2px dotted var(--menue-farbe-tafel-linie)}
+
+/* ---------- Gesperrte Hinweiszeile (DESIGN.md 12.15) ---------- */
+.blatt .sperrhinweis{display:flex;align-items:center;gap:6px;margin-top:8px}
+.sperrhinweis .sym{flex:none;width:14px;height:14px}
 
 /* ---------- Chip (nur Anzeige) ---------- */
 .chip{display:inline-flex;align-items:center;gap:4px;height:var(--menue-mass-px-chip-hoehe);padding:0 10px;border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:999px;background:var(--menue-chip-neutral-0);color:var(--menue-chip-neutral-1);font-weight:800;font-size:var(--menue-schrift-groesse-px-chip);box-shadow:0 2px 0 rgba(59,29,10,.35)}
@@ -270,7 +275,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   .blatt{width:min(46%,400px);max-width:none;height:100%;max-height:100%;margin:0;border-radius:var(--radius-px-popup) 0 0 var(--radius-px-popup);border-right:0}
   .blatt.hoch{max-height:100%}
   .blatt.popup{width:min(92%,640px);height:auto;max-height:94%;border-radius:var(--radius-px-popup);border-right:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand)}
-  .raster{grid-template-columns:repeat(2,1fr)}
+  .raster{grid-template-columns:repeat(2,minmax(0,1fr))}
   #ebene>.blatt{align-self:flex-end}
   .banner{top:auto;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom))}
 }
