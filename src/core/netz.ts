@@ -158,6 +158,8 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // davor bis zur Heizzentrale die Last tragen. rest_kw = kleinste freie Kapazität von diesem Feld bis zur Heizzentrale.
   // A91: Dieselbe Funktion entscheidet über Wechsel und Endergebnis – eine Summierreihenfolge, kein Gleitkomma-Widerspruch.
   // Der Baum `el` muss Elternfelder vor ihren Kindern in `reihenfolge` haben (gilt, weil nur zu kleinerer Tiefe umgehängt wird).
+  // Achtung: `nachSummieren` im Netzbaum-Block unten summiert die Last in genau derselben Reihenfolge nach – wer hier die
+  // Summierung ändert, muss sie dort gleich ändern, sonst entscheidet das Umhängen mit anderen Zahlen als das Endergebnis.
   const endpruefung = (an: ReadonlyMap<number, { feld: number }>, el: ReadonlyMap<number, number>): { ok: Map<number, boolean>; last_kw: Map<number, number>; rest_kw: Map<number, number> } => {
     const last = new Map<number, number>();
     for (const k of reihenfolge) last.set(k, 0);

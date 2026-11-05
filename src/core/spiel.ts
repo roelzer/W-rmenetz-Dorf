@@ -669,16 +669,8 @@ export class Spiel {
       return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => a >= 0 && b >= 0 && a < N && b < N).map(([a, b]) => b * N + a);
     };
     const imHaus = (f: number): boolean => { const x = f % N, y = Math.floor(f / N); return x >= haus.x && x < haus.x + g && y >= haus.y && y < haus.y + g; };
-    // A89: Felder direkt neben der Heizzentrale bleiben frei – sonst nimmt das Netzmodell die dünne Hausleitung als Abgang der
-    // Heizzentrale und speist die Hauptleitung darüber, und die Häuser dahinter werden kalt.
-    const hz = this.hz, hzG = groesse(hz), nebenHz = new Set<number>();
-    for (let i = 0; i < hzG; i++) {
-      for (const [a, b] of [[hz.x + i, hz.y - 1], [hz.x + i, hz.y + hzG], [hz.x - 1, hz.y + i], [hz.x + hzG, hz.y + i]]) {
-        if (a >= 0 && b >= 0 && a < N && b < N) nebenHz.add(b * N + a);
-      }
-    }
-    const frei = (f: number, flussOk: boolean, nebenHzOk: boolean): boolean =>
-      !belegung[f] && !leit.has(f) && (nebenHzOk || !nebenHz.has(f)) && (flussOk || !this.istFluss(f % N, Math.floor(f / N)));
+    const frei = (f: number, flussOk: boolean): boolean =>
+      !belegung[f] && !leit.has(f) && (flussOk || !this.istFluss(f % N, Math.floor(f / N)));
     // Schon angeschlossen? (Haus grenzt an eine Leitung)
     for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) if (nachbarn((haus.y + dy) * N + haus.x + dx).some((n) => leit.has(n))) return this.nein('Das Haus liegt schon an einer Leitung');
     /** Felder des Weges vom Andockfeld zurück bis zum Haus (Zustand = Feld · 4 + Richtung, Start hat Vorgänger -1). */
@@ -690,29 +682,43 @@ export class Spiel {
     // A89: Ein Weg zählt nur, wenn danach kein Haus neu wegen der Leitung kalt ist – sonst hinge der Anschluss an einer zu dünnen
     // Leitung oder änderte den Baum, den das Netzmodell ab der Heizzentrale bildet. Gerechnet wird mit dem Haus als Kunde; berechneNetz
     // wertet „geplant“ nicht aus, die übrigen Leitungen des offenen Abschnitts zählen also schon wie gebaut.
+    // A91: Mit Warnprüfung zählt ein Weg außerdem nur, wenn keine Planungsfehler-Warnung (W1-Engpass, A67-Reduzierung,
+    // A76-Aufteilung) neu dazukommt – die Planung soll dem Spieler keine Fehler einbauen, die er dann selbst beheben muss.
     const probeObjekte = this.stand.objekte.map((o): Objekt => o.id === haus.id ? { ...o, ohne_station: undefined } : o);
-    const leitungKalt = (objekte: Objekt[]): Set<number> => {
+    const probe = (objekte: Objekt[]): { kalt: Set<number>; warnungen: Set<string> } => {
       const netz = berechneNetz(objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur);
-      return new Set([...netz.kalt].filter(([, grund]) => grund === 'leitung').map(([id]) => id));
+      return {
+        kalt: new Set([...netz.kalt].filter(([, grund]) => grund === 'leitung').map(([id]) => id)),
+        warnungen: new Set([
+          ...[...netz.engpass].map((f) => `engpass ${f}`),
+          ...[...netz.reduzierung].map((f) => `reduzierung ${f}`),
+          ...[...netz.aufteilung].map((f) => `aufteilung ${f}`),
+        ]),
+      };
     };
-    const kaltVorher = leitungKalt(probeObjekte);
-    // Die Ersatzsuchen für den Hinweis (über den Fluss, neben der Heizzentrale) finden meist dieselben Wege – jede Probe nur einmal rechnen.
-    const geprueft = new Map<string, boolean>();
-    const traegt = (weg: number[]): boolean => {
+    const vorher = probe(probeObjekte);
+    // Die zweite Suche (Rückfall ohne Warnprüfung) und die Ersatzsuche für den Hinweis (über den Fluss) finden meist dieselben
+    // Wege – jede Probe nur einmal rechnen und beide Antworten merken.
+    const geprueft = new Map<string, { kaltOk: boolean; warnOk: boolean }>();
+    const traegt = (weg: number[], warnpruefung: boolean): boolean => {
       const schluessel = weg.join(',');
-      let ja = geprueft.get(schluessel);
-      if (ja === undefined) {
+      let antwort = geprueft.get(schluessel);
+      if (antwort === undefined) {
         const mit = [...probeObjekte, ...weg.map((f, i): Objekt => ({ id: -1 - i, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0 }))];
-        ja = [...leitungKalt(mit)].every((id) => kaltVorher.has(id));
-        geprueft.set(schluessel, ja);
+        const nachher = probe(mit);
+        antwort = {
+          kaltOk: [...nachher.kalt].every((id) => vorher.kalt.has(id)),
+          warnOk: [...nachher.warnungen].every((w) => vorher.warnungen.has(w)),
+        };
+        geprueft.set(schluessel, antwort);
       }
-      return ja;
+      return antwort.kaltOk && (!warnpruefung || antwort.warnOk);
     };
     // Dijkstra über freie Felder (Zustand = Feld + Richtung). Jede Biegung kostet einen Aufschlag, damit der Anschluss gerade läuft.
     const BIEGUNG_EUR = 900;
     const richtungen: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     // A88: Ohne Spülbohrung sind Flussfelder unpassierbar; gibt es nur den Weg über den Fluss, sagt der Hinweis das (kein stilles „kein Weg“).
-    const suche = (flussOk: boolean, nebenHzOk = false): { ziel: number; von: Map<number, number>; verworfen: number } => {
+    const suche = (flussOk: boolean, warnpruefung: boolean): { ziel: number; von: Map<number, number>; verworfen: number } => {
       const zustand = (f: number, r: number): number => f * 4 + r;
       const dist = new Map<number, number>(), von = new Map<number, number>();
       const offen: Array<[number, number]> = [];
@@ -722,7 +728,7 @@ export class Spiel {
           const nx = feld % N + rx, ny = Math.floor(feld / N) + ry;
           if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
           const n = ny * N + nx;
-          if (imHaus(n) || !frei(n, flussOk, nebenHzOk)) return;
+          if (imHaus(n) || !frei(n, flussOk)) return;
           const c = this.feldKosten_eur(typ, nx, ny), z = zustand(n, r);
           if (c < (dist.get(z) ?? Infinity)) { dist.set(z, c); von.set(z, -1); offen.push([c, z]); }
         });
@@ -742,7 +748,7 @@ export class Spiel {
         offen.sort((a, b) => a[0] - b[0]);
         const [c, z] = offen.shift() as [number, number];
         if (z < 0) { // günstigstes Ziel samt Andockkosten – wenn der Weg das Netz trägt, sonst das nächstgünstige
-          if (traegt(wegAus(-z - 1, von))) { ziel = -z - 1; break; }
+          if (traegt(wegAus(-z - 1, von), warnpruefung)) { ziel = -z - 1; break; }
           verworfen++;
           continue;
         }
@@ -756,7 +762,7 @@ export class Spiel {
           const nx = f % N + rx, ny = Math.floor(f / N) + ry;
           if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
           const n = ny * N + nx;
-          if (imHaus(n) || !frei(n, flussOk, nebenHzOk)) return;
+          if (imHaus(n) || !frei(n, flussOk)) return;
           const nc = c + this.feldKosten_eur(typ, nx, ny) + (r2 === r ? 0 : BIEGUNG_EUR), nz = zustand(n, r2);
           if (nc < (dist.get(nz) ?? Infinity)) { dist.set(nz, nc); von.set(nz, z); offen.push([nc, nz]); }
         });
@@ -764,9 +770,11 @@ export class Spiel {
       return { ziel, von, verworfen };
     };
     const spuel = freigeschaltet(this.stand, 'spuelbohrung');
-    const { ziel, von, verworfen } = suche(spuel);
-    if (ziel < 0 && !spuel && suche(true).ziel >= 0) return this.nein(this.flussGesperrt());
-    if (ziel < 0 && suche(spuel, true).ziel >= 0) return this.nein('Kein Weg zu einer Leitung gefunden – direkt neben der Heizzentrale darf der Hausanschluss nicht liegen');
+    let { ziel, von, verworfen } = suche(spuel, true);
+    // Rückfall (A91, Projektleiter): Gibt es keinen Weg ohne neue Warnung, gilt der Weg wie vor A91 – anschließbar geht vor,
+    // die Warnung zeigt die Planungsfehler-Anzeige.
+    if (ziel < 0) ({ ziel, von, verworfen } = suche(spuel, false));
+    if (ziel < 0 && !spuel && suche(true, false).ziel >= 0) return this.nein(this.flussGesperrt());
     if (ziel < 0 && verworfen) return this.nein('Kein Weg gefunden, bei dem alle Häuser warm bleiben');
     if (ziel < 0) return this.nein('Kein Weg zu einer Leitung gefunden');
     const weg = wegAus(ziel, von);

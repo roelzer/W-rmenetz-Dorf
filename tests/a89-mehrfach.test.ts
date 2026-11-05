@@ -57,8 +57,14 @@ describe('A89 mehrere Hausanschlüsse in einem Bauabschnitt', () => {
     // Hauptleitung: 25er (15 kW) rechts an der Heizzentrale, (13|10) bis (17|10), gebaut.
     // Einfamilienhaus: 15.000 kWh/a ÷ 1.500 h = 10 kW → die Leitung trägt genau ein Haus, zwei (20 kW) nicht.
     for (let x = 13; x <= 17; x++) neu('d25', x, 10);
-    const a = neu('efh', 15, 12, { ohne_station: true });
-    const b = neu('efh', 17, 12, { ohne_station: true });
+    // A unter dem Leitungsende: kürzester Anschluss (17|11) an das Ende (17|10), ohne Anbohrung – so läuft A nicht an B vorbei.
+    const a = neu('efh', 17, 12, { ohne_station: true });
+    const b = neu('efh', 15, 12, { ohne_station: true });
+    // Alle übrigen Felder rund um die Heizzentrale mit Felsbrocken zustellen: links (10|10),(10|11), oben (11|9),(12|9),
+    // unten (11|12),(12|12), rechts (13|11) – (13|10) ist die Hauptleitung. So kann kein Hausanschluss einen eigenen Abgang an
+    // der Heizzentrale bilden; jeder Weg zu B endet an der 25er (bzw. an der Hausleitung von A, die an ihr hängt). Der Test
+    // hängt damit nicht von einer Sperre „nicht neben der Heizzentrale“ ab (entfällt mit A91, NR15-P3).
+    for (const [x, y] of [[10, 10], [10, 11], [11, 9], [12, 9], [11, 12], [12, 12], [13, 11]]) neu('stein', x, y);
     expect(bedarfKw(a)).toBe(10);
     s.neuBerechnen();
     expect(kaltWegenLeitung(s)).toEqual([]);
@@ -72,7 +78,7 @@ describe('A89 mehrere Hausanschlüsse in einem Bauabschnitt', () => {
     // Anschluss 2 planen: jeder Weg endet an derselben, mit Haus 1 schon vollen 25er → abgelehnt, nichts geplant.
     const rB = s.hausanschlussPlanen(b.id);
     expect(rB.ok).toBe(false);
-    expect(rB.hinweis ?? '').not.toBe('');
+    expect(rB.hinweis).toBe('Kein Weg gefunden, bei dem alle Häuser warm bleiben'); // abgelehnt wegen der vollen Leitung, nicht mangels Weg
     expect(s.stand.objekte.filter((o) => o.geplant)).toEqual(wegA);
 
     abschnittBauen(s, vor);

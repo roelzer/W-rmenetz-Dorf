@@ -51,14 +51,4 @@ describe('A89 Hausanschluss – Hinweis, wenn jeder Weg ein Haus kalt machen wü
     expect(s.netz.warm.has(haus.id)).toBe(true);
     expect([...s.netz.kalt].filter(([, grund]) => grund === 'leitung').map(([id]) => id).sort()).toEqual(kaltVorher);
   });
-
-  it('A89: geht es nur über ein Feld neben der Heizzentrale, nennt der Hinweis die Heizzentrale als Grund', () => {
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
-    s.ersteQuelleWaehlen('kessel');
-    s.stand.abschnitt = { phase: 'offen', bau: null };
-    const haus = s.stand.objekte.find((o) => o.x === 13 && o.y === 12)!;
-    // Freie Nachbarn von (13|12) außer denen neben der Heizzentrale: (14|12), (13|13).
-    for (const [x, y] of [[14, 12], [13, 13]]) s.stand.objekte.push({ id: s.stand.naechste_id++, typ: 'stein', x, y, stufe: 1, bau: null, kasse_eur: 0 });
-    expect(s.hausanschlussPlanen(haus.id).hinweis).toBe('Kein Weg zu einer Leitung gefunden – direkt neben der Heizzentrale darf der Hausanschluss nicht liegen');
-  });
 });
