@@ -247,3 +247,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 20:23 | ▶ | reviewer | Nachprüfung NR15-P2 Fix 1 |
 | 2026-11-05 20:34 | ■ 🟢 | reviewer | 🟢 **NR15-P2, Fix-Runde 1: freigegeben**  ([Bericht](docs/pruefberichte/20261105-203432-reviewer-aac4f7144750d9959.md)) |
 | 2026-11-05 20:35 | ▶ | entwickler | Baue NR15-P3 |
+| 2026-11-05 20:37 | ■ 🔴 | entwickler | ## 🔴 Status: BLOCKIERT. Ein einziger Test ist noch rot. Grund: Er erwartet einen falschen Preis.  ([Bericht](docs/pruefberichte/20261105-203755-entwickler-aadf80f49674e59ed.md)) |
+| 2026-11-05 20:38 | ▶ | tester | Tester-Fix Preis B2b |

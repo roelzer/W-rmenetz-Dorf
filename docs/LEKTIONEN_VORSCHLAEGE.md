@@ -6,3 +6,4 @@
 - [Tests] Für Regeln mit eingebauter Absicherung (Probe mit Rücknahme) zeigen Fehlerproben am Vorfilter oft nichts – Gegenproben über Wegwerf-Varianten im Generator suchen (alter gegen neuer Stand). (NR15-P2, 2026-11-05)
 - [Tests] Für schrittweise Rechnungen eine Wegwerf-Gleichheitsprüfung gegen den alten Stand fahren und Wegwerf-Varianten (je eine Nachführung weglassen) über den Generator suchen lassen – liefert gezielte Testfälle. (NR15-P2 Fix 1, 2026-11-05)
 - [Prozess] Fix-Runden und Fortsetzungen: Agenten können nicht im Worktree eines anderen Agenten arbeiten (Wächter). Immer isolation: worktree und im Auftrag `git checkout -B <neu> <letzter Commit>` vorgeben. (NR15-P2/NR16-B2b, 2026-11-05)
+- [Tests] Erwartete Preise im Spiel immer nach dem Kostenfaktor (KONSTANTEN.kosten_faktor) von Hand rechnen, nicht den Rohwert aus katalog.ts nehmen; gilt auch für Beispiele in DESIGN.md. (NR16-B2b, 2026-11-05)
