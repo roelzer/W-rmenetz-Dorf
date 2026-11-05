@@ -11,9 +11,11 @@ export class Effekte {
   private funken_: Funke[] = [];
   private muenzen_: Muenze[] = [];
   private texte: Schwebtext[] = [];
+  /** Sparmodus: weniger Teilchen für ältere Handys (6 statt 24 Funken, höchstens 2 Münzen). */
+  sparsam = false;
 
   funken(cx: number, cy: number, tw: number, farbe?: string): void {
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0, n = this.sparsam ? 6 : 24; i < n; i++) {
       const a = Math.random() * 7, v = 2 + Math.random() * 4;
       this.funken_.push({
         x: cx, y: cy - tw * 0.4, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4, r: 2 + Math.random() * 3, t: 0, leben: 0.8 + Math.random() * 0.5,
@@ -22,7 +24,7 @@ export class Effekte {
     }
   }
   muenzen(x0: number, y0: number, x1: number, y1: number, betrag_eur: number): void {
-    const n = Math.min(8, 2 + Math.floor(betrag_eur / 40));
+    const n = Math.min(this.sparsam ? 2 : 8, 2 + Math.floor(betrag_eur / 40));
     for (let i = 0; i < n; i++) this.muenzen_.push({ x0: x0 + (Math.random() - 0.5) * 20, y0, x1, y1, t: -i * 0.05, dauer: 0.7 });
   }
   schwebtext(feldX: number, feldY: number, text: string, farbe = '#ffe14d'): void {

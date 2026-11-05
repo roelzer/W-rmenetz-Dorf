@@ -70,6 +70,13 @@ export class Kamera {
     this.schiebe_x += um_x - sx; this.schiebe_y += um_y - sy;
     this.begrenzen();
   }
+  /** Alles, was das Bild verschiebt oder verzerrt; gerundet, damit Gleitkomma-Rauschen kein Neuzeichnen auslöst. */
+  schluessel(): string {
+    const r4 = (v: number): number => Math.round(v * 1e4) / 1e4, r2 = (v: number): number => Math.round(v * 100) / 100;
+    return `${this.breite},${this.hoehe},${this.pixelverhaeltnis},${r4(this.zoom)},${r4(this.winkel_rad)},${r2(this.schiebe_x)},${r2(this.schiebe_y)}`;
+  }
+  /** Läuft gerade eine weiche Drehung? */
+  inBewegung(): boolean { return this.dreh_rest_rad !== 0; }
   /** Tasten Q/E: weich um eine Achteldrehung (+1 = im Uhrzeigersinn) weiterdrehen. */
   drehen(richtung: 1 | -1): void { this.dreh_rest_rad += richtung * Math.PI / 4; }
   /** Pro Bild aufrufen: baut eine weiche Drehung ab (etwa 0,3 s). */
