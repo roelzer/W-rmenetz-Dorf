@@ -112,8 +112,8 @@ describe('NR12 P5 Kamera und Bodenfläche', () => {
   });
 
   it('NR12 P5: Größe der Bodenfläche aus einer Quelle – aufgerundete Bildgröße plus Rand auf beiden Seiten', () => {
-    // 1688,6 → 1689 + 2·422 = 2533; 780,4 → 781 + 2·195 = 1171.
-    expect(flaechenGroesse(1688.6, 780.4, 422, 195)).toEqual({ breite_px: 2533, hoehe_px: 1171 });
+    // 1688,4 → 1689 + 2·422 = 2533; 780,4 → 781 + 2·195 = 1171 (aufrunden, nicht runden).
+    expect(flaechenGroesse(1688.4, 780.4, 422, 195)).toEqual({ breite_px: 2533, hoehe_px: 1171 });
     // Ganzzahlige Größe bleibt: 1688 + 844 = 2532; 780 + 390 = 1170.
     expect(flaechenGroesse(1688, 780, 422, 195)).toEqual({ breite_px: 2532, hoehe_px: 1170 });
   });
