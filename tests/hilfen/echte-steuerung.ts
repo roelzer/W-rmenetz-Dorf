@@ -15,6 +15,8 @@ export type EchteUmgebung = {
   };
   /** Text der aktuell stehenden Meldung (#toast), leer wenn keine */
   meldung(): string;
+  /** alle Meldungen in Aufrufreihenfolge (auch zweimal derselbe Text) – die echte Meldung läuft trotzdem */
+  meldungen: string[];
   /** alle Knöpfe im Dokument */
   knoepfe(): El[];
   /** gespeicherte Werte im Ersatz-localStorage */
@@ -28,16 +30,19 @@ export const tippe = (k: El): void => k.click();
  * Oberflächen-Module frisch laden und eine echte Steuerung bauen. `speicher` erlaubt einen vorbelegten localStorage
  * (z. B. Einstellungen); der Spielstand selbst kommt immer über `spiel`.
  */
-export async function echteSteuerung(spiel: Spiel, arbeit: (u: EchteUmgebung) => Promise<void> | void, opt: { speicher?: Map<string, string>; breite?: number; hoehe?: number; uhr?: () => number } = {}): Promise<void> {
+export async function echteSteuerung(spiel: Spiel, arbeit: (u: EchteUmgebung) => Promise<void> | void, opt: { speicher?: Map<string, string>; breite?: number; hoehe?: number; uhr?: () => number; bewegung?: 'normal' | 'einstellung' | 'system' } = {}): Promise<void> {
   const dom = domAttrappe();
   const speicher = opt.speicher ?? new Map<string, string>();
+  // „Weniger Bewegung“: aus der Einstellung (gespeichert wie src/ui/einstellungen.ts) oder vom System (prefers-reduced-motion)
+  if (opt.bewegung === 'einstellung') speicher.set('waermedorf-einstellungen-v1', JSON.stringify({ weniger_bewegung: true }));
+  const meldungen: string[] = [];
   vi.resetModules();
   vi.stubGlobal('document', dom.doc);
   vi.stubGlobal('DOMParser', dom.Parser);
   vi.stubGlobal('HTMLElement', El);
   vi.stubGlobal('HTMLButtonElement', El);
   vi.stubGlobal('localStorage', { getItem: (k: string) => speicher.get(k) ?? null, setItem: (k: string, v: string) => { speicher.set(k, String(v)); }, removeItem: (k: string) => { speicher.delete(k); } });
-  const matchMedia = (q: string) => ({ matches: false, media: q, addEventListener: () => {}, removeEventListener: () => {} });
+  const matchMedia = (q: string) => ({ matches: opt.bewegung === 'system' && q.includes('prefers-reduced-motion') && q.includes('reduce'), media: q, addEventListener: () => {}, removeEventListener: () => {} });
   vi.stubGlobal('matchMedia', matchMedia);
   vi.stubGlobal('requestAnimationFrame', (f: (t: number) => void) => fensterSetTimeout(() => f(0), 0));
   vi.stubGlobal('cancelAnimationFrame', (id: ReturnType<typeof setTimeout>) => fensterClearTimeout(id));
@@ -53,6 +58,11 @@ export async function echteSteuerung(spiel: Spiel, arbeit: (u: EchteUmgebung) =>
   const fensterClearTimeout = (id: ReturnType<typeof setTimeout>): void => { zeitgeber.delete(id); globalThis.clearTimeout(id); };
   vi.stubGlobal('window', { matchMedia, setTimeout: fensterSetTimeout, clearTimeout: fensterClearTimeout, devicePixelRatio: 2, innerWidth: opt.breite ?? 844, innerHeight: opt.hoehe ?? 390, addEventListener: () => {}, removeEventListener: () => {} });
   vi.doMock('../../src/ui/bild', () => ({ katalogBild: () => new El('canvas') }));
+  // Meldungen mitschreiben, ohne sie zu ersetzen: die echte Funktion läuft weiter (echtes #toast im DOM).
+  vi.doMock('../../src/ui/toast', async (original) => {
+    const m = await original<typeof import('../../src/ui/toast')>();
+    return { ...m, toast: (t: string, ...rest: unknown[]) => { meldungen.push(t); return (m.toast as (t: string, ...r: unknown[]) => void)(t, ...rest); } };
+  });
   try {
     const { Steuerung } = await import('../../src/steuerung');
     const leinwand = new El('canvas');
@@ -64,11 +74,12 @@ export async function echteSteuerung(spiel: Spiel, arbeit: (u: EchteUmgebung) =>
       const t = dom.doc.getElementById('toast');
       return t ? t.textContent : '';
     };
-    await arbeit({ dom, st, meldung, knoepfe: () => dom.html.querySelectorAll('button'), speicher });
+    await arbeit({ dom, st, meldung, meldungen, knoepfe: () => dom.html.querySelectorAll('button'), speicher });
   } finally {
     for (const id of zeitgeber) globalThis.clearTimeout(id);
     zeitgeber.clear();
     vi.unstubAllGlobals();
     vi.doUnmock('../../src/ui/bild');
+    vi.doUnmock('../../src/ui/toast');
   }
 }
