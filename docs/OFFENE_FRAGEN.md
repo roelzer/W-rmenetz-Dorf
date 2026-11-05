@@ -62,3 +62,7 @@ Q2: 10 m · Q3: 40 °C Mindest-Rücklauf (A73) · Q4: passt · Q5: ja, weiter so
 - **Q10 (blockiert: nein):** Netzverluste laufen auch im Sommer weiter; im Spiel sinken die Erzeugungskosten im Juli fast auf null. Vorschlag: fester Anteil Verlustkosten übers Jahr. – Empfehlung: später, zusammen mit den Netzverlusten.
 - **Rechercheaufträge (Fachprüfer):** L1 echte Nahwärme-Tarife Dorf/Biomasse (Arbeits-, Grund-, Messpreis); L2 Warmwasser-Anteil EFH; L3 „Heize dein Dorf klimaneutral“ rechtlich vor Store-Veröffentlichung (EU-Richtlinie 2024/825, UWG) – an Sicherheitsprüfer/rechtliche Prüfung; L4 aktuelle Norm der Gradtagszahlen-Tabelle und AVBFernwärmeV zur monatlichen Abrechnung.
 - Q11 (2026-11-05, NR13 Tutorial): Was meint Simon mit „Abgleich“ im Pflicht-Tutorial – hydraulischen Abgleich (z. B. Übergabestation/Volumenstrom einstellen) oder etwas anderes? Und: Bild von Simon für die Anleiter-Figur (kommt).
+
+## 2026-11-05 – NR17 Engstelle (Bauplan docs/bauplaene/NR17-engstelle.md)
+- **E1:** Station an einer Leitung, die die zusätzliche Wärme nicht trägt: sperren (Knopf gesperrt „Leitung zu dünn“, Hinweis nennt die Engstelle, Karte markiert sie) – Empfehlung – oder mit Warnung erlauben (dann werden andere Häuser kalt)?
+- **E2:** Der automatische Hausanschluss legt neue 25er-Abgänge direkt an der Heizzentrale; daraus werden später Engstellen. Lieber an die vorhandene Hauptleitung andocken, oder an der Heizzentrale gleich dicker bauen? (eigenes NR, nicht Teil von NR17)
