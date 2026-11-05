@@ -219,3 +219,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 18:37 | ▶ | entwickler | NR15-P1 bauen |
 | 2026-11-05 18:46 | ■ 🟡 | tester | 🟡 Vorarbeit fertig. Die angepassten Alttests sind mit einer groben Probe-Umsetzung geprüft: alle 114 Tests in den vier Dateien liefen grün. Die Probe ist d ([Bericht](docs/pruefberichte/20261105-184639-tester-a4f0a0705a6db633e.md)) |
 | 2026-11-05 18:47 | ▶ | entwickler | NR16-B2a bauen |
+| 2026-11-05 18:59 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN 🟡**  ([Bericht](docs/pruefberichte/20261105-185919-entwickler-a60f7da285d13d8a5.md)) |
+| 2026-11-05 18:59 | ▶ | reviewer | Review NR15-P1 |
