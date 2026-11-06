@@ -348,3 +348,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:22 | ▶ | tester | Tester P0b NR19-Vorarbeit |
 | 2026-11-06 09:22 | ▶ | designer | Designer Sichtprüfung NR18 |
 | 2026-11-06 09:33 | ■ 🟡 | designer | 🟡 **Sichtprüfung NR18 (Stand e99e48f)**  ([Bericht](docs/pruefberichte/20261106-093307-designer-a94ed031ff6a1184e.md)) |
+| 2026-11-06 09:33 | ▶ | entwickler | NR18-D Designer-Nacharbeit |
