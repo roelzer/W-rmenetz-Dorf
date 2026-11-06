@@ -494,3 +494,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 16:10 | ▶ | produktpruefer | Produktabnahme NR13 Tutorial |
 | 2026-11-06 16:26 | ■ 🟡 | produktpruefer | 🟡 NR13 ist fast abnahmereif, aber es gibt einen Muss-Befund: Wer das Spiel in T12 oder T13 schließt und neu öffnet, kommt nicht mehr weiter.  ([Bericht](docs/pruefberichte/20261106-162619-produktpruefer-a8910269e2fad0a58.md)) |
 | 2026-11-06 16:26 | ▶ | entwickler | Fix Neuladen T12/T13 Tutorial |
+| 2026-11-06 16:46 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Der Fehler ist behoben und alles ist geprüft. Das Bedenken betrifft nur den Ort der neuen Browser-Prüfung: Sie steht in  ([Bericht](docs/pruefberichte/20261106-164639-entwickler-ad0feb0e39a82eaa0.md)) |
+| 2026-11-06 16:46 | ▶ | reviewer | Review Fix Neuladen T12 |
+| 2026-11-06 16:46 | ▶ | produktpruefer | Nachprüfung M1 Neuladen |
