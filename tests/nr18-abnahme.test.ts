@@ -29,6 +29,11 @@ const TEXT_C = 'Die 25er an der Heizzentrale ist zu dünn, es fehlen 5 kW. Zeich
 const SPUR: ReadonlyArray<readonly [number, number]> = [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]];
 /** Felder, die die Last beider Häuser tragen (Abnahme c). */
 const ENGSTELLE = [11 * N + 10, 12 * N + 10, 13 * N + 10];
+/** Engstelle im Test „mehrere Häuser“: Dort liegt zusätzlich eine 25er auf (11|12) und (12|12). (11|12) liegt direkt unter der
+ *  Heizzentrale (11|10)–(12|11) und ist damit eine eigene Einspeisung direkt an der Heizzentrale (Netzmodell, vor NR18).
+ *  Die Last beider Häuser (9|13) und (12|14) fließt deshalb über (11|12) → (10|12) → (10|13); (10|11) trägt dann 0 kW.
+ *  Geprüft im Debuglauf 06.11. (Probe-Netz: (11|12) Tiefe 1 Last 20, (10|12) Tiefe 2 Last 20, (10|13) Tiefe 3 Last 20). */
+const ENGSTELLE_MEHRERE = [12 * N + 11, 12 * N + 10, 13 * N + 10];
 
 type EngstelleEreignis = { art: 'engstelle'; felder: number[] };
 const engstellen = (s: Spiel): EngstelleEreignis[] =>
@@ -219,6 +224,6 @@ describe('NR18 Abnahme auf dem leeren Dorf (Bauplan Abschnitt 1 (a)–(d), rot b
     expect(liste.length).toBeGreaterThan(0);
     expect(liste[0]).toContain('25er');
     expect(engstellen(s).length, 'Markierung auf der Karte').toBe(1);
-    expect(engstellen(s)[0].felder).toEqual(expect.arrayContaining(ENGSTELLE));
+    expect([...engstellen(s)[0].felder].sort((a, b) => a - b)).toEqual([...ENGSTELLE_MEHRERE].sort((a, b) => a - b));
   });
 });
