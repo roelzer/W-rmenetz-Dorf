@@ -345,3 +345,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:18 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, nur an der Schranke.** Die Review-Befunde W1 und W2 sind behoben, die Vorsehung steht im Schlüssel, alles ist committet. Die Schranke ([Bericht](docs/pruefberichte/20261106-091841-entwickler-a94ebfcbac706398d.md)) |
 | 2026-11-06 09:18 | ▶ | reviewer | Nachprüfung NR18-W |
 | 2026-11-06 09:20 | ■ 🟢 | reviewer | 🟢 Nachprüfung NR18-W (Fix 17b68e1 auf e1969dc): freigegeben. Ein kleiner Punkt wird nur gesammelt und blockiert nicht.  ([Bericht](docs/pruefberichte/20261106-092049-reviewer-a1bbd5e8f154c4b35.md)) |
+| 2026-11-06 09:22 | ▶ | tester | Tester P0b NR19-Vorarbeit |
+| 2026-11-06 09:22 | ▶ | designer | Designer Sichtprüfung NR18 |
