@@ -600,9 +600,15 @@ describe('NR13 Abnahme – Neu laden nach Tabelle 13.7', () => {
   it('test_nr13_a_kein_willkommen_zurueck_im_tutorial', () => {
     // main.ts ist ohne Browser nicht ladbar (Bauplan P4: dann Quelltext-Prüfung). Die A38-Meldung muss an tutorialAktiv() hängen.
     const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8');
-    const i = main.indexOf('Willkommen zurück');
-    expect(i, 'A38 bleibt außerhalb des Tutorials').toBeGreaterThan(0);
-    expect(main.slice(Math.max(0, i - 700), i), '„Willkommen zurück“ hängt an spiel.tutorialAktiv()').toMatch(/tutorialAktiv\(\)/);
+    // Anker ist das Meldungs-Literal (Text in Anführungszeichen/Backtick), nicht eine Erwähnung im Kommentar.
+    const literal = /[`'"]Willkommen zurück/.exec(main);
+    expect(literal, 'A38-Meldungstext steht als Literal in main.ts').not.toBeNull();
+    const i = literal!.index;
+    // Die Bedingung, die die Meldung umschließt: das letzte `if (` vor dem Literal bis zu seiner öffnenden Klammer `{`.
+    const ifStart = main.lastIndexOf('if (', i);
+    expect(ifStart, 'Meldung steht in einer if-Bedingung').toBeGreaterThan(0);
+    const bedingung = main.slice(ifStart, main.indexOf('{', ifStart));
+    expect(bedingung, '„Willkommen zurück“ hängt an !spiel.tutorialAktiv() in derselben Bedingung').toMatch(/!\s*spiel\.tutorialAktiv\(\)/);
   });
 });
 
