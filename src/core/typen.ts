@@ -38,6 +38,9 @@ export interface Objekt {
   bestand?: boolean;
   /** Geplante Leitungen eines automatischen Hausanschlusses (gemeinsam zurücknehmbar) */
   gruppe?: number;
+  /** NR18 (AE-NR18-4): gebaute Leitung, die im laufenden Bauabschnitt durch eine dickere ersetzt wird; `nr` ordnet „Zurück“
+   *  (aus `naechste_id`). Bis zum Bauende rechnet das Netz mit dem alten Typ. */
+  ersatz?: { typ: TypId; nr: number };
   /** A69: Leitungsfeld mit T-Stück und verschlossenem Abgang (Vorsehung) für einen späteren Anschluss */
   vorsehung?: boolean;
   /** A41: Leitung gehört zum laufenden Bauabschnitt und ist erst nach dem Bau Teil des Netzes */

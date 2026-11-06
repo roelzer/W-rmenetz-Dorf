@@ -1,13 +1,13 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, START_PREISSTUFE, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
-import { ortHolen, STANDARD_ORT } from './orte';
+import { ortHolen } from './orte';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
-import { zufall } from './zufall';
+import type { Schritt } from './tutorial-vertrag';
 
 const N = KONSTANTEN.feldanzahl;
 /** A38: So lange wird eine Abwesenheit höchstens nachgerechnet (7 Tage). */
@@ -23,7 +23,11 @@ export type Ereignis =
   | { art: 'muenzen'; objekt_id: number; betrag_eur: number }
   | { art: 'schwebtext'; x: number; y: number; text: string; farbe?: string }
   /** A51: Eine Figur (Philipp, Laura, ein Techniker) kommt kurz ins Bild und sagt etwas */
-  | { art: 'sprecher'; figur: string; text: string };
+  | { art: 'sprecher'; figur: string; text: string }
+  /** NR18 (AE-NR18-6): zu dünne Leitungsfelder (y·N + x) markieren; die Darstellung entscheidet über Puls oder fest */
+  | { art: 'engstelle'; felder: number[] }
+  /** NR13 (AE-NR13-2): eine Handlung ist gelungen; ein Tutorial kann darauf warten (Namen in tutorial-vertrag.ts) */
+  | { art: 'schritt'; schritt: Schritt; objekt_id?: number };
 
 export interface Ergebnis { ok: boolean; hinweis?: string }
 const ok = (): Ergebnis => ({ ok: true });
@@ -32,49 +36,7 @@ const ok = (): Ergebnis => ({ ok: true });
 const SPIELTAG_MS = SPIELJAHR_MS / 365;
 const tageText = (t: number): string => `${t} ${t === 1 ? 'Tag' : 'Tage'}`;
 
-export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT): Spielstand {
-  const ort = ortHolen(ortId);
-  const objekte: Objekt[] = [];
-  let id = 1;
-  const add = (typ: TypId, x: number, y: number, extra: Partial<Objekt> = {}) =>
-    objekte.push({ id: id++, typ, x, y, stufe: 1, bau: null, kasse_eur: 0, ...extra });
-  // Start (A22/A29): Heizhaus, Büro, ein Monteurhäuschen, 30.000 €. Die Häuser des Ortes (A21) heizen noch mit Öl.
-  add('hz', 11, 10); add('buero', 7, 10); add('huette', 11, 7);
-  // A29/A59: zwei Starthäuser sind von Anfang an angeschlossen. Die Hauptleitung (40er) liegt in der Straße neben dem Heizhaus,
-  // die Hausanschlüsse (25er) führen von dort zu den Häusern; alle weiteren Häuser heizen noch mit Öl.
-  // A67/A74 (Simon): Die 40er läuft bis vor das letzte Haus, weil in diese Richtung absehbar weitergebaut wird. Dort sitzt ein T-Stück:
-  // geradeaus eine Vorsehung für den Weiterbau, seitlich die 25er zum Haus (12|14). 9|13 schließt bei 10|13 seitlich an.
-  for (let y = 10; y <= 14; y++) add('d40', 10, y, y === 14 ? { vorsehung: true } : {});
-  add('d25', 11, 14);
-  // Die beiden Starthäuser haben eine Übergabestation; alle anderen müssen eine kaufen (A32, Simon 2026-11-05).
-  const starthaeuser = new Set([13 * N + 9, 14 * N + 12]);
-  ort.haeuser.forEach((h) => {
-    const bedarf = KATALOG[h.typ].bedarf_kw as number;
-    const start = starthaeuser.has(h.y * N + h.x);
-    add(h.typ, h.x, h.y, { zufriedenheit_pct: 80, bestand: true, ...(start ? { station: passendeStation(bedarf).id } : { ohne_station: true }) });
-  });
-  for (const g of ort.gross) add(g.typ, g.x, g.y, { zustand: 'gesperrt', ohne_station: true });
-  const strassenFelder = new Set([...ort.strassen, ...ort.fluss].map(([sx, sy]) => sy * N + sx));
-  const r = zufall(9 + ortId.length);
-  for (let i = 0; i < 46; i++) {
-    const x = Math.floor(r() * N), y = Math.floor(r() * N);
-    if (x > 5 && x < 17 && y > 5 && y < 17) continue;
-    if (strassenFelder.has(y * N + x)) continue;
-    { const typ = r() < 0.45 ? 'stein' : r() < 0.55 ? 'busch' : 'baum'; add(typ, x, y, typ === 'baum' ? { landschaft: true } : {}); }
-  }
-  const behalten: Objekt[] = [];
-  for (const a of objekte) if (!behalten.some((b) => ueberlappt(a, b))) behalten.push(a);
-  return {
-    version: 3, name: ort.name, ort: ort.id, namen_gefragt: false, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
-    objekte: behalten, naechste_id: id, innen: [], preisstufe: START_PREISSTUFE, antraege: {},
-    karte: 2, zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: false, deko_anzahl: 0,
-  };
-}
-
-function ueberlappt(a: Objekt, b: Objekt): boolean {
-  const sa = groesse(a), sb = groesse(b);
-  return a.x < b.x + sb && b.x < a.x + sa && a.y < b.y + sb && b.y < a.y + sa;
-}
+export { neuerSpielstand } from './start';
 
 export class Spiel {
   stand: Spielstand;
@@ -102,6 +64,17 @@ export class Spiel {
     const grund = sperrgrund(this.stand, m);
     return grund ? this.nein(`${merkmalName(m)} ${grund}`) : null;
   }
+
+  // NR18/NR13-Vertrag (Bauplan NR18 Fassung 3, P1): Die Namen stehen fest, damit Oberfläche und Darstellung parallel bauen
+  // können. Den Inhalt liefert P2; bis dahin melden die Aktionen laut, statt still etwas Falsches zu tun.
+  /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind. */
+  erreichteHaeuser(): number[] { throw new Error('NR18-P2 noch nicht gebaut'); }
+  /** NR18: gebaute Leitung im offenen Bauabschnitt durch eine dickere ersetzen (bezahlt mit der Materialbestellung). */
+  ersatzPlanen(id: number, neu: TypId): Ergebnis { throw new Error('NR18-P2 noch nicht gebaut'); }
+  /** NR18: eingezeichnete Leitung im offenen Bauabschnitt bekommt einen anderen Typ. */
+  geplanteLeitungTyp(id: number, neu: TypId): Ergebnis { throw new Error('NR18-P2 noch nicht gebaut'); }
+  /** NR18: Warnsätze „Nach dem Bau zu dünn“ des abgeschlossenen Bauabschnitts (Phase bestellen). */
+  abschnittWarnungen(): string[] { return []; }
   /** A88: kleinste freigeschaltete Leitung, die den Bedarf trägt, sonst die dickste freigeschaltete. */
   passendeLeitung(bedarf_kw: number): TypId | undefined {
     const frei = LEITUNGEN.filter((l) => freigeschaltet(this.stand, l));
