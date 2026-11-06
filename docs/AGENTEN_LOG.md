@@ -492,3 +492,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 15:41 | ▶ | entwickler | Bildrate bei Kamerafahrt untersuchen |
 | 2026-11-06 16:09 | ■ 🔴 | entwickler | ## Status: BRAUCHT_KONTEXT 🔴  ([Bericht](docs/pruefberichte/20261106-160906-entwickler-a14047287abb1a9ba.md)) |
 | 2026-11-06 16:10 | ▶ | produktpruefer | Produktabnahme NR13 Tutorial |
+| 2026-11-06 16:26 | ■ 🟡 | produktpruefer | 🟡 NR13 ist fast abnahmereif, aber es gibt einen Muss-Befund: Wer das Spiel in T12 oder T13 schließt und neu öffnet, kommt nicht mehr weiter.  ([Bericht](docs/pruefberichte/20261106-162619-produktpruefer-a8910269e2fad0a58.md)) |
