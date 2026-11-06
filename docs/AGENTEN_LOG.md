@@ -390,3 +390,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 11:16 | ■ 🟢 | entwickler | 🟢 Status: FERTIG  ([Bericht](docs/pruefberichte/20261106-111632-entwickler-a8174d9af0fc83568.md)) |
 | 2026-11-06 11:16 | ▶ | reviewer | Review NR19-K |
 | 2026-11-06 11:19 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Plan-Treue: ✅  ([Bericht](docs/pruefberichte/20261106-111910-reviewer-aca9637d518dc1638.md)) |
+| 2026-11-06 11:20 | ▶ | architekt | Architekt Bauplan NR13 |
