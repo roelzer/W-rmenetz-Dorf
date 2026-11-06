@@ -305,3 +305,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:14 | ▶ | entwickler | NR18-P1 Fix-Runde 1 |
 | 2026-11-06 08:16 | ■ 🟢 | kritiker | ## Freigabe NR18-P0 (Testlöschung / Testzahl): 🟢 freigegeben, aber nur für den geprüften Teil  ([Bericht](docs/pruefberichte/20261106-081657-kritiker-a0b6134cb98540576.md)) |
 | 2026-11-06 08:17 | ▶ | tester | NR18-P0 Ersatz-Teil abtrennen |
+| 2026-11-06 08:18 | ■ 🟢 | tester | 🟢 Erledigt. Die Tests, die nur wegen der noch fehlenden Ersatz-Funktion abbrachen, laufen jetzt bis zum Ende durch und sind grün. An keiner Erwartung habe i ([Bericht](docs/pruefberichte/20261106-081828-tester-ad4bd2e782d9b8163.md)) |
