@@ -272,3 +272,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 21:31 | ▶ | fachpruefer | Fachprüfung NR17-Texte |
 | 2026-11-06 06:49 | ▶ | rechercheur | Recherche Puffer-Übergabestation |
 | 2026-11-06 06:49 | ▶ | architekt | Bauplan NR18 ohne Auto-Anschluss |
+| 2026-11-06 06:50 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Grund ist nur die Test-Schranke, nicht der Fix. Der Code ist fertig und committet, alle Tests sind grün, und das Foto zeigt die Kurzfor ([Bericht](docs/pruefberichte/20261106-065025-entwickler-a64389abad7b6bdc6.md)) |
+| 2026-11-06 06:50 | ▶ | reviewer | Review B2b Fix1 + Kurzform |
