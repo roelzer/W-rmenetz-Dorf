@@ -464,3 +464,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 14:23 | ▶ | reviewer | Nachprüfung NR13 P4-Fix |
 | 2026-11-06 14:23 | ■ 🔴 | entwickler | 🔴 BLOCKIERT: Der Test ist fertig und committet. Er findet aber einen Fehler im Spiel und ist deshalb rot. Den Test habe ich nicht abgeschwächt, den Spielcod ([Bericht](docs/pruefberichte/20261106-142327-entwickler-aa2f2fac9233afc29.md)) |
 | 2026-11-06 14:23 | ▶ | entwickler | NR13 Fix Anleiter-Karte über Loch |
+| 2026-11-06 14:24 | ■ 🟢 | reviewer | 🟢 Freigegeben. Alle 4 Befunde sind behoben. Die Nachbesserung ändert nur die Testdatei tests/nr13-einbindung.test.ts (4 neue Tests), keinen Spielcode. Fehle ([Bericht](docs/pruefberichte/20261106-142441-reviewer-a9c24e35a4781e8b5.md)) |
