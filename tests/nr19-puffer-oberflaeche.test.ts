@@ -57,7 +57,8 @@ async function karte(s: Spiel, o: Objekt, antippen?: (k: Knopf[]) => Knopf | und
     return { text: a.text(c), knoepfe, absaetze, ueberschriften, toasts };
   } finally { vi.unstubAllGlobals(); vi.doUnmock('../src/ui/blatt'); vi.doUnmock('../src/ui/toast'); }
 }
-const puffer = (k: { knoepfe: Knopf[] }) => k.knoepfe.filter((x) => x.z1.startsWith('Puffer-Übergabestation'));
+/** Puffer-Knöpfe an der Kurzform „Puffer HP 800“ / „Puffer ÜP 1000“ (DESIGN 12.23, geschütztes Leerzeichen vor der Zahl). */
+const puffer = (k: { knoepfe: Knopf[] }) => k.knoepfe.filter((x) => /^Puffer (HP|ÜP)\u00a0\d+$/.test(x.z1));
 const MIT = 'Mit Puffer: 15.000\u00a0kWh ÷ 2.000\u00a0h = 7,5\u00a0kW aus dem Netz. Der Speicher fängt die Spitze ab.';
 const OHNE = 'Ohne Puffer: 15.000\u00a0kWh ÷ 1.500\u00a0h = 10\u00a0kW – das Netz muss die Spitze liefern.';
 const KEIN_PUFFER_REICHT = 'Keine Puffer-Station reicht mehr. Mit der Wandstation fällt der Puffer weg.';
@@ -73,7 +74,7 @@ describe('NR19 Hausblatt – Stationswahl mit zwei Reihen', () => {
     const s = altesDorf(1), k = await karte(s, ohneStation(s));
     expect(k.text).toContain('Übergabestation wählen');
     const p = puffer(k);
-    expect(p.map(({ z1, z2, aus }) => ({ z1, z2, aus }))).toEqual([{ z1: 'Puffer-Übergabestation HP 800', z2: z2('7,5', '5.570'), aus: false }]);
+    expect(p.map(({ z1, z2, aus }) => ({ z1, z2, aus }))).toEqual([{ z1: 'Puffer HP\u00a0800', z2: z2('7,5', '5.570'), aus: false }]);
     expect(p[0].klasse.split(' ')).toContain('geld');
     const wand = k.knoepfe.filter((x) => x.z1 === 'Station einbauen');
     expect(wand.map((x) => x.z2)).toEqual(['Wandstation Typ 15 · 2.400 €']);
@@ -86,8 +87,8 @@ describe('NR19 Hausblatt – Stationswahl mit zwei Reihen', () => {
     const s = altesDorf(2), k = await karte(s, ohneStation(s));
     const p = puffer(k);
     expect(p.map((x) => [x.z1, x.z2])).toEqual([
-      ['Puffer-Übergabestation HP 800', z2('7,5', '5.570')],
-      ['Puffer-Übergabestation HP 1000', z2('7,5', '6.570')],
+      ['Puffer HP\u00a0800', z2('7,5', '5.570')],
+      ['Puffer HP\u00a01000', z2('7,5', '6.570')],
     ]);
     expect(p.map((x) => x.klasse.split(' ').includes('geld'))).toEqual([true, false]);
     expect(k.knoepfe.filter((x) => x.z1.startsWith('Wandstation')).map((x) => x.z1)).toEqual(['Wandstation Typ 15 · 15 kW', 'Wandstation Typ 25 · 25 kW', 'Wandstation Typ 40 · 40 kW']);
@@ -149,10 +150,11 @@ describe('NR19 Hausblatt – Stationswahl mit zwei Reihen', () => {
     expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
     const k = await karte(s, h);
     expect(k.text).toContain('Übergabestation tauschen');
+    expect(k.absaetze.some((t) => t.startsWith('Aktuell: Puffer HP\u00a0800 (14 kW), das Gebäude braucht 7,5 kW.'))).toBe(true);
     // Rückkauf der HP 800 zu 50 %: 6.570 − 2.785 = 3.785 €, 7.570 − 2.785 = 4.785 €
     expect(puffer(k).map((x) => [x.z1, x.z2])).toEqual([
-      ['Puffer-Übergabestation HP 1000', z2('7,5', '3.785')],
-      ['Puffer-Übergabestation ÜP 1000', z2('7,5', '4.785')],
+      ['Puffer HP\u00a01000', z2('7,5', '3.785')],
+      ['Puffer ÜP\u00a01000', z2('7,5', '4.785')],
     ]);
     expect(reihen(k)).toEqual(['Mit Pufferspeicher']);
     expect(k.knoepfe.filter((x) => x.z1.startsWith('Wandstation') || x.z2.startsWith('Wandstation'))).toEqual([]);
@@ -164,9 +166,8 @@ describe('NR19 Hausblatt – Stationswahl mit zwei Reihen', () => {
     h.vollversorgung = true; h.aufgestockt = true; s.neuBerechnen(); // 15,75 kW Netz > 14 kW, 21 kW Spitze > 19 kW
     const k = await karte(s, h);
     expect(k.text).toContain('Station zu klein');
-    // Nur Name und Preis: 15,75 kW zeigt kw() wegen der Gleitkommazahl 15,749… als „15,7“ (eigener Befund, nicht Teil dieser Regel).
-    expect(puffer(k).map((x) => x.z1)).toEqual(['Puffer-Übergabestation HP 1000']);
-    expect(puffer(k)[0].z2.endsWith('\u00a0· 3.785\u00a0€')).toBe(true);
+    // 15,75 kW liegt als Gleitkommazahl bei 15,749…; die Anzeige rundet trotzdem kaufmännisch auf „15,8“.
+    expect(puffer(k).map((x) => [x.z1, x.z2])).toEqual([['Puffer HP\u00a01000', z2('15,8', '3.785')]]);
     expect(k.knoepfe.filter((x) => x.z1 === 'Größere Station einbauen')).toEqual([]);
     expect(reihen(k)).toEqual(['Mit Pufferspeicher']);
   });

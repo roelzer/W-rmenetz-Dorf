@@ -7,8 +7,9 @@ import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, 
 import { ANSCHLUSS_GEPLANT, OHNE_ABSCHNITT_HINWEIS_HAUS, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
-/** kW mit einer Nachkommastelle (8,3 kW) */
-const kw = (n: number): string => n.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+/** kW mit einer Nachkommastelle (8,3 kW). Erst auf 12 gültige Stellen glätten, dann auf eine Nachkommastelle runden: 15,75 kW
+ *  entsteht als 15,7499…, und toLocaleString allein zeigte dann „15,7“. */
+const kw = (n: number): string => (Math.round(Number(n.toPrecision(12)) * 10) / 10).toLocaleString('de-DE', { maximumFractionDigits: 1 });
 /** Kurzname einer Leitung ohne „-Leitung“ („40er“), wie in den NR18-Sätzen (Bauplan NR18 Abschnitt 6). */
 const kurzname = (t: TypId): string => KATALOG[t].name.replace(/-Leitung$/, '');
 import type { Ui } from './schnittstelle';
@@ -310,7 +311,7 @@ export class Kontext {
     const frei = sp.freigeschaltet('stationstypen');
     const k = kasten(alt ? 'Übergabestation tauschen' : 'Übergabestation wählen');
     k.append(h('p', { class: 'gedaempft' }, alt
-      ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${kw(bedarf)} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
+      ? `Aktuell: ${istPufferStation(alt) ? pufferKurzname(alt) : alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${kw(bedarf)} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
       : `Das Gebäude braucht ${kw(bedarf)} kW.${frei ? ' Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.' : ''}`));
     const zuKlein = !!alt && !stationReicht(alt, o);
     if (zuKlein) k.append(chip('Station zu klein', 'rot'));
@@ -358,7 +359,7 @@ export class Kontext {
     if (!wahl.length) return null;
     return h('div', { class: 'knopfreihe' }, ...wahl.map((st) => {
       const preis = sp.stationspreis_eur(o, st);
-      return knopf(st.name, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen?.id ? 'geld' : '',
+      return knopf(pufferKurzname(st), () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen?.id ? 'geld' : '',
         { klein: true, unter: `${kw(netz_kw)}\u00a0kW\u00a0vom\u00a0Netz\u00a0· ${eurGebunden(preis)}`, sperre: geldSperre(sp, preis) });
     }));
   }
