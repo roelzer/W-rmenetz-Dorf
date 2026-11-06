@@ -470,3 +470,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 14:40 | ▶ | tester | NR13 Abnahme-Probelauf 2 |
 | 2026-11-06 14:41 | ■ 🟢 | tester | 🟢 Probelauf der verdeckten NR13-Abnahme auf dem neuesten Stand: alles grün (getestet).  ([Bericht](docs/pruefberichte/20261106-144132-tester-a7135dfe2f6eb8003.md)) |
 | 2026-11-06 14:45 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig. Es fehlt ein Test, sonst ist die Fix-Runde in Ordnung. Plan-Treue: ⚠️ (die Kamera-Regel wird bewusst erweitert, siehe unten).  ([Bericht](docs/pruefberichte/20261106-144528-reviewer-a6a1eaeee93232dc2.md)) |
+| 2026-11-06 14:45 | ▶ | entwickler | NR13 P4 Fix-Runde 3 |
