@@ -36,7 +36,19 @@ describe('NR18 engstellenFinden', () => {
     expect(engstellenFinden(netz, kundenIds(objekte))).toEqual([erwartet]);
   });
 
-  it('test_nr18_engstelle_erste_von_zwei: zwei zu volle Stücke – nach Tiefe sortiert (32er an der Heizzentrale zuerst, obwohl die 25er die kleinere Feldnummer hat)', () => {
+  it('test_nr18_engstelle_erste_von_zwei: 32er dann 25er hintereinander, beide zu voll – zwei Einträge, 32er zuerst', () => {
+    // (12|10), (13|10) 32er, (14|10), (15|10) 25er, drei EFH am Ende (15|10) → überall 30 kW: 30 > 25 und 30 > 15.
+    const objekte = dorf(
+      neu('d32', 12, 10), neu('d32', 13, 10), neu('d25', 14, 10), neu('d25', 15, 10),
+      neu('efh', 16, 10), neu('efh', 15, 11), neu('efh', 15, 9),
+    );
+    expect(engstellenFinden(netzAus(objekte), kundenIds(objekte))).toEqual([
+      { felder: [f(12, 10), f(13, 10)], typ: 'd32', last_kw: 30, kapazitaet_kw: 25, an_heizzentrale: true, geplant: false, empfohlen: 'd40' },
+      { felder: [f(14, 10), f(15, 10)], typ: 'd25', last_kw: 30, kapazitaet_kw: 15, an_heizzentrale: false, geplant: false, empfohlen: 'd40' },
+    ]);
+  });
+
+  it('test_nr18_sortierung_nach_tiefe: zwei zu volle Stücke auf getrennten Ästen – nach Tiefe sortiert (32er an der Heizzentrale zuerst, obwohl die 25er die kleinere Feldnummer hat)', () => {
     const objekte = dorf(
       // rechts: 32er (12|10), (13|10) mit drei EFH am Ende → 30 kW > 25 kW
       neu('d32', 12, 10), neu('d32', 13, 10), neu('efh', 14, 10), neu('efh', 13, 9), neu('efh', 13, 11),
@@ -74,7 +86,7 @@ describe('NR18 engstellenFinden', () => {
     expect(engstellenFinden(ueber, ids).map((s) => s.felder)).toEqual([[f(12, 10)]]);
   });
 
-  it('test_nr18_verzweigt: hinter dem ersten Feld verzweigt – der erste Kunde bestimmt die Fortsetzung', () => {
+  it('test_nr18_verzweigt: hinter dem ersten Feld verzweigt – beide Äste gehören zum Stück, nach Tiefe und Feldnummer geordnet', () => {
     // 25er (12|10), (13|10); Abzweig nach rechts (14|10) mit zwei EFH, nach unten (13|11), (13|12) mit zwei EFH:
     // Abzweige je 20 kW, Stamm 40 kW – alle Felder über 15 kW.
     const objekte = dorf(
@@ -84,18 +96,69 @@ describe('NR18 engstellenFinden', () => {
     const netz = netzAus(objekte);
     expect(netz.last_kw.get(f(12, 10))).toBe(40);
     const [r1, r2, u1, u2] = kundenIds(objekte);
-    expect(engstellenFinden(netz, [r1, u1, r2, u2]).map((s) => s.felder)).toEqual([[f(12, 10), f(13, 10), f(14, 10)]]);
-    expect(engstellenFinden(netz, [u2, r1]).map((s) => s.felder)).toEqual([[f(12, 10), f(13, 10), f(13, 11), f(13, 12)]]);
+    // Tiefe: (12|10) 1, (13|10) 2, (14|10) und (13|11) 3, (13|12) 4; bei Tiefe 3 die kleinere Feldnummer 254 vor 277.
+    const alle = [f(12, 10), f(13, 10), f(14, 10), f(13, 11), f(13, 12)];
+    expect(engstellenFinden(netz, [r1, u1, r2, u2]).map((s) => s.felder)).toEqual([alle]);
+    expect(engstellenFinden(netz, [u2, r1]).map((s) => s.felder)).toEqual([alle]);
   });
 
-  it('test_nr18_typwechsel_trennt_stueck: 32er dann 25er, beide zu voll – das Stück endet am Typwechsel', () => {
+  it('test_nr18_verzweigt_reihenfolge: das Ergebnis hängt nicht von der Reihenfolge der Kunden ab (alle 24 Reihenfolgen)', () => {
+    // Aufbau wie test_nr18_verzweigt, der untere Ast (13|11), (13|12) ist aber eine 32er: 20 kW ≤ 25 kW, nicht zu voll.
+    // Hinter der 32er liegt noch eine 25er (13|13) mit einem EFH – 10 kW, passt. Stamm und rechter Ast: ein Stück.
     const objekte = dorf(
-      neu('d32', 12, 10), neu('d32', 13, 10), neu('d25', 14, 10), neu('d25', 15, 10),
+      neu('d25', 12, 10), neu('d25', 13, 10), neu('d25', 14, 10), neu('d32', 13, 11), neu('d32', 13, 12),
+      neu('efh', 15, 10), neu('efh', 14, 9), neu('efh', 13, 13), neu('efh', 12, 12),
+    );
+    const netz = netzAus(objekte);
+    const erwartet: Engstelle[] = [
+      { felder: [f(12, 10), f(13, 10), f(14, 10)], typ: 'd25', last_kw: 40, kapazitaet_kw: 15, an_heizzentrale: true, geplant: false, empfohlen: 'd40' },
+    ];
+    const reihenfolgen = (r: number[]): number[][] => r.length <= 1 ? [r] : r.flatMap((x, i) => reihenfolgen([...r.slice(0, i), ...r.slice(i + 1)]).map((rest) => [x, ...rest]));
+    const alle = reihenfolgen(kundenIds(objekte));
+    expect(alle).toHaveLength(24);
+    for (const k of alle) expect(engstellenFinden(netz, k)).toEqual(erwartet);
+  });
+
+  it('test_nr18_typwechsel_trennt_stueck: 25er, 32er, 25er, 25er alle zu voll – jeder Typwechsel beginnt ein neues Stück; eine passende Leitung dazwischen auch', () => {
+    // Drei EFH am Ende (15|10) → überall 30 kW. 25er: 30 > 15, 32er: 30 > 25, 40er: 30 ≤ 40.
+    const mitte = (typ: TypId): Objekt[] => dorf(
+      neu('d25', 12, 10), neu(typ, 13, 10), neu('d25', 14, 10), neu('d25', 15, 10),
       neu('efh', 16, 10), neu('efh', 15, 11), neu('efh', 15, 9),
     );
-    expect(engstellenFinden(netzAus(objekte), kundenIds(objekte))).toEqual([
-      { felder: [f(12, 10), f(13, 10)], typ: 'd32', last_kw: 30, kapazitaet_kw: 25, an_heizzentrale: true, geplant: false, empfohlen: 'd40' },
+    const o32 = mitte('d32');
+    expect(engstellenFinden(netzAus(o32), kundenIds(o32)).map((s) => [s.typ, s.felder])).toEqual([
+      ['d25', [f(12, 10)]], ['d32', [f(13, 10)]], ['d25', [f(14, 10), f(15, 10)]],
     ]);
+    const o40 = mitte('d40');
+    expect(engstellenFinden(netzAus(o40), kundenIds(o40)).map((s) => [s.typ, s.felder])).toEqual([
+      ['d25', [f(12, 10)]], ['d25', [f(14, 10), f(15, 10)]],
+    ]);
+  });
+
+  it('test_nr18_luecke_trennt: ein passendes Feld gleichen Typs zwischen zwei zu vollen trennt die Stücke (künstliche Last)', () => {
+    // strang25: (12|10)…(14|10) je 20 kW. (13|10) künstlich auf 10 kW ≤ 15 kW – zwei Stücke (12|10) und (14|10).
+    const objekte = strang25();
+    const netz = netzAus(objekte);
+    const last_kw = new Map(netz.last_kw);
+    last_kw.set(f(13, 10), 10);
+    expect(engstellenFinden({ ...netz, last_kw }, kundenIds(objekte)).map((s) => s.felder)).toEqual([[f(12, 10)], [f(14, 10)]]);
+  });
+
+  it('test_nr18_last_am_ersten_feld: Last nimmt im Stück nach außen ab – last_kw, fehlende kW und Empfehlung vom ersten Feld', () => {
+    // 25er (12|10)…(15|10). EFH (12|9) an (12|10), EFH (13|11) an (13|10), EFH (16|10) und (15|11) an (15|10).
+    // Last: (12|10) 40, (13|10) 30, (14|10) 20, (15|10) 20 kW – alle über 15 kW, ein Stück.
+    const objekte = dorf(
+      neu('d25', 12, 10), neu('d25', 13, 10), neu('d25', 14, 10), neu('d25', 15, 10),
+      neu('efh', 12, 9), neu('efh', 13, 11), neu('efh', 16, 10), neu('efh', 15, 11),
+    );
+    const netz = netzAus(objekte);
+    expect([f(12, 10), f(13, 10), f(14, 10), f(15, 10)].map((x) => netz.last_kw.get(x))).toEqual([40, 30, 20, 20]);
+    const e = engstellenFinden(netz, kundenIds(objekte));
+    expect(e).toEqual([
+      { felder: [f(12, 10), f(13, 10), f(14, 10), f(15, 10)], typ: 'd25', last_kw: 40, kapazitaet_kw: 15, an_heizzentrale: true, geplant: false, empfohlen: 'd40' },
+    ]);
+    // 40 − 15 = 25 kW; die 32er (25 kW) trägt 40 kW nicht, die 40er (40 kW) genau.
+    expect(engstelleText(e[0], null)).toBe('Die 25er an der Heizzentrale ist zu dünn, es fehlen 25 kW. Zeichne eine 40er darüber.');
   });
 
   it('test_nr18_doppelt_einmal: mehrere Kunden hinter demselben Stück (und doppelte Ids) ergeben einen Eintrag', () => {
@@ -153,8 +216,11 @@ describe('NR18 engstellenFinden', () => {
     const last_kw = new Map(netz.last_kw);
     last_kw.set(f(12, 10), 300); last_kw.set(f(13, 10), 300);
     const e = engstellenFinden({ ...netz, last_kw }, [kunde.id]);
-    expect(e).toHaveLength(1);
-    expect(e[0]).toEqual({ felder: [f(12, 10)], typ: 'd25', last_kw: 300, kapazitaet_kw: 15, an_heizzentrale: true, geplant: false, empfohlen: null });
+    // Die 110er trägt mit 300 kW ebenfalls zu viel (> 290 kW) und ist ein eigenes Stück hinter der 25er.
+    expect(e).toEqual([
+      { felder: [f(12, 10)], typ: 'd25', last_kw: 300, kapazitaet_kw: 15, an_heizzentrale: true, geplant: false, empfohlen: null },
+      { felder: [f(13, 10)], typ: 'd110', last_kw: 300, kapazitaet_kw: 290, an_heizzentrale: false, geplant: false, empfohlen: null },
+    ]);
     // genau auf der Grenze: 290 kW trägt die 110er noch
     last_kw.set(f(12, 10), 290);
     expect(engstellenFinden({ ...netz, last_kw }, [kunde.id])[0].empfohlen).toBe('d110');
@@ -186,16 +252,16 @@ describe('NR18 engstelleText (Abschnitt 6, Fassung 3)', () => {
     for (const [ort, satz1] of orte) {
       expect(engstelleText(mit({ ...ort, empfohlen: 'd32' }), null)).toBe(`${satz1} Zeichne eine 32er darüber.`);
       expect(engstelleText(mit({ ...ort, empfohlen: 'd50' }), 2)).toBe(`${satz1} Die 50er gibt es ab Stufe 2.`);
-      expect(engstelleText(mit({ ...ort, empfohlen: null }), null)).toBe(`${satz1} Leg eine getrennte zweite Leitung.`);
+      expect(engstelleText(mit({ ...ort, empfohlen: null }), null)).toBe(`${satz1} Leg einen getrennten Abgang.`);
     }
     expect(engstelleText(basis, null)).toBe('Die 25er an der Heizzentrale ist zu dünn, es fehlen 5 kW. Zeichne eine 32er darüber.');
   });
 
-  it('test_nr18_text_reihenfolge: ohne Empfehlung „Leg eine getrennte zweite Leitung.“, auch wenn eine Stufe übergeben wird; eingezeichnet geht vor Heizzentrale', () => {
-    expect(engstelleText(mit({ empfohlen: null, an_heizzentrale: false }), 3)).toBe('Eine 25er auf dem Weg ist zu dünn, es fehlen 5 kW. Leg eine getrennte zweite Leitung.');
+  it('test_nr18_text_reihenfolge: ohne Empfehlung „Leg einen getrennten Abgang.“, auch wenn eine Stufe übergeben wird; eingezeichnet geht vor Heizzentrale', () => {
+    expect(engstelleText(mit({ empfohlen: null, an_heizzentrale: false }), 3)).toBe('Eine 25er auf dem Weg ist zu dünn, es fehlen 5 kW. Leg einen getrennten Abgang.');
     expect(engstelleText(mit({ geplant: true, an_heizzentrale: true }), null)).toBe('Die eingezeichnete 25er ist zu dünn, es fehlen 5 kW. Zeichne eine 32er darüber.');
     expect(engstelleText(mit({ typ: 'd110', empfohlen: null, an_heizzentrale: false, last_kw: 300, kapazitaet_kw: 290 }), null))
-      .toBe('Eine 110er auf dem Weg ist zu dünn, es fehlen 10 kW. Leg eine getrennte zweite Leitung.');
+      .toBe('Eine 110er auf dem Weg ist zu dünn, es fehlen 10 kW. Leg einen getrennten Abgang.');
   });
 
   it('test_nr18_text_fehlende_kw: aufgerundet, mindestens 1', () => {
@@ -214,10 +280,8 @@ describe('NR18 engstelleText (Abschnitt 6, Fassung 3)', () => {
     expect(ENGPASS_ERSATZ.length).toBeLessThanOrEqual(90);
   });
 
-  it('test_nr18_text_laenge: alle Typpaare × Last 1…9999 × Orte × Stufe – höchstens 90 Zeichen (Ausnahme siehe Kommentar)', () => {
-    // Offene Frage an Projektleiter/Fachprüfer: „Die {t} an der Heizzentrale …“ + „Leg eine getrennte zweite Leitung.“ hat schon
-    // mit 1 kW 92 Zeichen, „Die eingezeichnete 110er …“ + derselbe Satz ab 1.000 kW 91. Diese Kombinationen prüft der Test
-    // nicht, bis die Texte entschieden sind; alle anderen müssen passen.
+  it('test_nr18_text_laenge: alle Typpaare × Last 1…9999 × Orte × Stufe – höchstens 90 Zeichen, ohne Ausnahme', () => {
+    // Längster Fall genau 90: „Die 110er an der Heizzentrale ist zu dünn, es fehlen 9709 kW. Leg einen getrennten Abgang.“
     const kap: Record<string, number> = { d25: 15, d32: 25, d40: 40, d50: 60, d63: 95, d75: 135, d90: 195, d110: 290 };
     const orte: Array<Pick<Engstelle, 'an_heizzentrale' | 'geplant'>> = [
       { an_heizzentrale: true, geplant: false }, { an_heizzentrale: false, geplant: false }, { an_heizzentrale: false, geplant: true },
@@ -227,10 +291,8 @@ describe('NR18 engstelleText (Abschnitt 6, Fassung 3)', () => {
       const enden: Array<TypId | null> = [...LEITUNGEN.slice(i + 1), null];
       for (const empfohlen of enden) {
         for (const ort of orte) {
-          if (empfohlen === null && ort.an_heizzentrale) continue;
           for (const stufe of empfohlen === null ? [null] : [null, 4]) {
             for (let last_kw = 1; last_kw <= 9999; last_kw++) {
-              if (empfohlen === null && ort.geplant && t === 'd110' && last_kw - kap[t] >= 1000) continue;
               const text = engstelleText({ felder: [0], typ: t, last_kw, kapazitaet_kw: kap[t], empfohlen, ...ort }, stufe);
               laengste = Math.max(laengste, text.length); geprueft++;
             }
@@ -239,7 +301,7 @@ describe('NR18 engstelleText (Abschnitt 6, Fassung 3)', () => {
       }
     });
     expect(geprueft).toBeGreaterThan(1_000_000);
-    expect(laengste).toBeLessThanOrEqual(90);
+    expect(laengste).toBe(90);
   });
 });
 

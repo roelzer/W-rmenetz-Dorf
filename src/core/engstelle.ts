@@ -41,13 +41,17 @@ function zuVoll(netz: Netz, feld: number): boolean {
 }
 
 /**
- * Je Kunde der Weg von seinem Anschlussfeld über `netz.eltern` zur Heizzentrale; das Stück beginnt am ersten zu vollen Feld
- * ab der Heizzentrale und reicht über die anschließenden zu vollen Felder gleichen Typs. Gleiches erstes Feld = ein Eintrag
- * (der erste Kunde bestimmt die Fortsetzung). Kunden ohne Anschluss oder direkt an der Heizzentrale (Feld −1) haben keinen
- * Weg. Sortiert nach Tiefe des ersten Felds, dann Feldnummer.
+ * Je Kunde der Weg von seinem Anschlussfeld über `netz.eltern` zur Heizzentrale. Jeder zusammenhängende Abschnitt aus zu
+ * vollen Feldern gleichen Typs auf diesem Weg ist ein Stück – alle, nicht nur das erste: Wer nur das erste verdickt, hat
+ * dahinter weiter kalte Häuser. Im Netzbaum hat jedes Feld genau ein Elternfeld; ein Stück beginnt deshalb für alle Kunden
+ * am selben Feld, und Stücke mit gleichem erstem Feld werden vereinigt (Äste einer Verzweigung). Felder im Stück nach Tiefe,
+ * dann Feldnummer geordnet, damit das Ergebnis nicht von der Reihenfolge der Kunden abhängt. Kunden ohne Anschluss oder
+ * direkt an der Heizzentrale (Feld −1) haben keinen Weg. Stücke sortiert nach Tiefe des ersten Felds, dann Feldnummer.
  */
 export function engstellenFinden(netz: Netz, kunden: Iterable<number>): Engstelle[] {
-  const stuecke = new Map<number, Engstelle>();
+  const tiefe = (feld: number): number => netz.tiefe.get(feld) as number;
+  const ordnung = (x: number, y: number): number => tiefe(x) - tiefe(y) || x - y;
+  const stuecke = new Map<number, Set<number>>();
   for (const id of kunden) {
     const a = netz.anschluss.get(id);
     if (!a) continue;
@@ -55,25 +59,33 @@ export function engstellenFinden(netz: Netz, kunden: Iterable<number>): Engstell
     const weg: number[] = [];
     for (let feld = a.feld; feld >= 0; feld = netz.eltern.get(feld) ?? -1) weg.push(feld);
     weg.reverse();
-    const start = weg.findIndex((feld) => zuVoll(netz, feld));
-    if (start < 0 || stuecke.has(weg[start])) continue;
-    const typ = leitungsTyp(netz, weg[start]) as TypId;
-    const felder = [weg[start]];
-    for (let i = start + 1; i < weg.length && zuVoll(netz, weg[i]) && leitungsTyp(netz, weg[i]) === typ; i++) felder.push(weg[i]);
-    const last_kw = netz.last_kw.get(weg[start]) as number;
-    stuecke.set(weg[start], {
+    let felder: Set<number> | null = null;
+    for (let i = 0; i < weg.length; i++) {
+      if (!zuVoll(netz, weg[i])) { felder = null; continue; }
+      if (felder === null || leitungsTyp(netz, weg[i]) !== leitungsTyp(netz, weg[i - 1])) {
+        felder = stuecke.get(weg[i]) ?? new Set<number>();
+        stuecke.set(weg[i], felder);
+      }
+      felder.add(weg[i]);
+    }
+  }
+  const ergebnis: Engstelle[] = [];
+  for (const [erstes, menge] of stuecke) {
+    const felder = [...menge].sort(ordnung);
+    const typ = leitungsTyp(netz, erstes) as TypId;
+    const last_kw = netz.last_kw.get(erstes) as number;
+    ergebnis.push({
       felder,
       typ,
       last_kw,
       kapazitaet_kw: kapazitaet(netz, typ),
-      an_heizzentrale: netz.tiefe.get(weg[start]) === 1,
+      an_heizzentrale: tiefe(erstes) === 1,
       geplant: felder.some((feld) => { const o = netz.nachId.get(netz.belegung[feld]); return !!(o?.geplant || o?.ersatz); }),
       // Das Stück ist zu voll, die Katalogkapazität steigt mit dem Durchmesser: Jede Leitung, die die Last trägt, ist dicker.
       empfohlen: LEITUNGEN.find((l) => kapazitaet(netz, l) >= last_kw) ?? null,
     });
   }
-  const tiefe = (e: Engstelle): number => netz.tiefe.get(e.felder[0]) as number;
-  return [...stuecke.values()].sort((x, y) => tiefe(x) - tiefe(y) || x.felder[0] - y.felder[0]);
+  return ergebnis.sort((x, y) => ordnung(x.felder[0], y.felder[0]));
 }
 
 /** „25er-Leitung“ → „25er“ (Bauplan Abschnitt 6: Kurzname ohne „-Leitung“). */
@@ -92,7 +104,7 @@ export function engstelleText(e: Engstelle, empfohlenAbStufe: number | null): st
       ? `Die ${t} an der Heizzentrale ist zu dünn, es fehlen ${fehlt_kw} kW.`
       : `Eine ${t} auf dem Weg ist zu dünn, es fehlen ${fehlt_kw} kW.`;
   const satz2 = e.empfohlen === null
-    ? 'Leg eine getrennte zweite Leitung.'
+    ? 'Leg einen getrennten Abgang.'
     : empfohlenAbStufe === null
       ? `Zeichne eine ${kurzname(e.empfohlen)} darüber.`
       : `Die ${kurzname(e.empfohlen)} gibt es ab Stufe ${empfohlenAbStufe}.`;
