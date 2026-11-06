@@ -313,3 +313,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:31 | ▶ | entwickler | NR18-P3 Oberfläche bauen |
 | 2026-11-06 08:31 | ▶ | entwickler | NR18-P5 Spielstart bauen |
 | 2026-11-06 08:37 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT (Kontext zu knapp für ein schweres Paket). Ich habe keinen Code geschrieben und nichts committet.  ([Bericht](docs/pruefberichte/20261106-083708-entwickler-ab305ff8c29c7ea0b.md)) |
+| 2026-11-06 08:37 | ▶ | entwickler | NR18-P2 Kern, Lauf 2 |
