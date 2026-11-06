@@ -728,12 +728,12 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 | Nr | Art | Text (Simon) | Licht / Finger | Weiter mit | Kamera, Sonstiges |
 |---|---|---|---|---|---|
 | T01 | H | „Hallo {Name}! Ich bin Simon und zeige dir, wie dein Dorf warm wird. Tippe auf die Heizzentrale.“ | Loch Heizzentrale, Finger | Heizzentrale antippen (öffnet hier **kein** Blatt) | Kamera steht auf der Heizzentrale (Zoom 3, Ziel 38 % Höhe). Karte blendet nach dem Namensfenster ein. Nach dem Tippen: kurzes Federn der Heizzentrale, Rauch wird für 2 s kräftiger |
-| T02 | W | „Hier steht dein **Wärmeerzeuger**, ein **Hackschnitzelkessel**. Er verbrennt Holz aus Waldresten und macht damit Wasser heiß.“ **[F]** | Loch Heizzentrale | [Weiter] | – |
-| T03 | W | „Wie viel Wärme er auf einmal schafft, misst man in **Kilowatt (kW)**. Dein Kessel schafft {kessel_kw} kW.“ **[F]** (60) | Löcher Heizzentrale **und** Wärme-Pille („0 / 60 kW“) | [Weiter] | Die Wärme-Pille hüpft einmal (240 ms, 12.9) |
+| T02 | W | „Hier steht dein **Wärmeerzeuger**, ein **Hackschnitzelkessel**. Er verbrennt Holzreste und macht damit Wasser heiß.“ **[F]** | Loch Heizzentrale | [Weiter] | – |
+| T03 | W | „Wie viel Wärme er in jedem Moment schafft, misst man in **Kilowatt (kW)**. Dein Kessel schafft {kessel_kw} kW.“ **[F]** (60) | Löcher Heizzentrale **und** Wärme-Pille („0 / 60 kW“) | [Weiter] | Die Wärme-Pille hüpft einmal (240 ms, 12.9) |
 | T04 | W | „Das heiße Wasser fließt durch Rohre unter der Straße zu den Häusern. Das nennt man **Wärmenetz** oder **Nahwärme**.“ **[F]** | Loch Heizzentrale | [Weiter] | Nach [Weiter] fährt die Kamera (13.6) |
 | T05 | W | „Diese Häuser heizen noch mit Öl – siehst du den grauen Rauch? Du willst die ersten zwei anschließen.“ | Löcher um beide Tutorial-Häuser | [Weiter] | **Kamerafahrt** zur Mitte der beiden Häuser, 1.200 ms. Abdunkeln erst nach der Ankunft |
-| T06 | W | „Ein Haus braucht im Jahr {kwh} Wärme. An kalten Tagen zieht es bis zu {kw_ohne} auf einmal.“ **[F]** (15.000 kWh / 10 kW) | Loch Haus 1; darüber eine Info-Kapsel (Chip `neutral`, 26 px) „15.000 kWh im Jahr · bis 10 kW“ | [Weiter] | **kWh** wird hier eingeführt (fett) |
-| T07 | W | „**kW** ist, wie weit der Wasserhahn offen ist. **kWh** ist, wie voll der Eimer am Ende ist.“ **[F]** | wie T06 | [Weiter] | Kein Bild nötig; der Vergleich steht für sich |
+| T06 | W | „Ein Haus braucht im Jahr {kwh} Wärme. An den kältesten Tagen braucht es bis zu {kw_ohne} gleichzeitig.“ **[F]** (15.000 kWh / 10 kW) | Loch Haus 1; darüber eine Info-Kapsel (Chip `neutral`, 26 px) „15.000 kWh im Jahr · bis 10 kW“ | [Weiter] | **kWh** wird hier eingeführt (fett) |
+| T07 | W | „**kW** ist, wie viel Wasser gerade aus dem Hahn läuft. **kWh** ist, wie voll der Eimer am Ende ist.“ **[F]** | wie T06 | [Weiter] | Kein Bild nötig; der Vergleich steht für sich |
 
 **Kapitel 2 – Planen mit Philipp**
 | Nr | Art | Text | Licht / Finger | Weiter mit | Kamera, Sonstiges |
@@ -755,8 +755,8 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 | Nr | Art | Text | Licht / Finger | Weiter mit | Kamera, Sonstiges |
 |---|---|---|---|---|---|
 | T15 | H | „Damit ein Haus die Wärme nehmen kann, braucht es eine **Übergabestation**. Tippe auf das erste Haus.“ | Loch Haus 1, Finger | Haus 1 antippen → Hausblatt öffnet | Kamera: Haus 1 in die Mitte der freien Fläche (12.21 Punkt 4, aber 38 % Höhe) |
-| T16 | W | „Sie holt die Wärme aus dem Netz ins Haus. Das Wasser des Netzes bleibt dabei in seinen eigenen Rohren.“ **[F]** | Loch Kasten „Übergabestation wählen“ | [Weiter] | Das Blatt scrollt so, dass der Kasten ganz sichtbar ist |
-| T17 | H | „Nimm die mit **Pufferspeicher**: Der Tank sammelt Wärme vorab. So braucht das Haus nur {kw_puffer} statt {kw_ohne} aus dem Netz.“ **[F]** (7,5 / 10 kW) | Loch Knopf „Puffer-Übergabestation“ (Variante `geld`, Preis in Zeile 2); zweites Loch ohne Finger um Haus 1 auf der Karte | Knopf antippen (Kauf) | Wandstation sichtbar, aber gesperrt nach 12.19 mit Zeile 2 „später wählbar“ und Hinweis „Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.“ (siehe Frage T-F2). Nach dem Kauf schließt das Blatt von selbst (200 ms) |
+| T16 | W | „Sie holt die Wärme aus dem Netz ins Haus. Ein **Wärmetauscher** trennt dabei das Netzwasser vom Heizwasser im Haus.“ **[F]** | Loch Kasten „Übergabestation wählen“ | [Weiter] | Das Blatt scrollt so, dass der Kasten ganz sichtbar ist |
+| T17 | H | „Nimm die mit **Pufferspeicher**: Der Tank sammelt Wärme vorab. So zieht das Haus nur {kw_puffer} statt {kw_ohne} aus dem Netz – warm wird es genauso.“ **[F]** (7,5 / 10 kW) | Loch Knopf „Puffer-Übergabestation“ (Variante `geld`, Preis in Zeile 2); zweites Loch ohne Finger um Haus 1 auf der Karte | Knopf antippen (Kauf) | Wandstation sichtbar, aber gesperrt nach 12.19 mit Zeile 2 „später wählbar“ und Hinweis „Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.“ (siehe Frage T-F2). Nach dem Kauf schließt das Blatt von selbst (200 ms) |
 | T18 | H | „Prima! Jetzt bekommt das zweite Haus auch eine. Tippe darauf.“ | Loch Haus 2, Finger | Haus 2 antippen | Kamera: Haus 2 in die Mitte der freien Fläche |
 | T19 | H | „Wieder die Puffer-Übergabestation, bitte.“ | Loch Knopf „Puffer-Übergabestation“ | Kauf | Blatt schließt von selbst |
 
@@ -766,7 +766,7 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 | T20 | H | „Fehlt nur noch das Material. Tippe auf Bauen.“ | Loch [Bauen] | [Bauen] antippen | Baumenü öffnet auf „Leitungen“ (zuletzt gewählter Reiter); sonst Zwischenschritt wie T09 |
 | T21 | H | „Tippe auf Laura. Sie bestellt Rohre und Stationen, dann wird gebaut.“ | Loch Knopf „Laura: Material bestellen · {Preis}“ | Knopf antippen | Laura (A51) meldet sich auf dem Platz der Anleiter-Karte. Danach schließt das Baumenü von selbst; Kamera fährt auf die Mitte der Baustelle (1.200 ms) |
 | T22 | W | „In echt dauert so ein Bau einige Wochen. Für dich geht es heute schneller.“ **[F]** | kein Abdunkeln; Gerüst, Monteur und Bautimer laufen | [Weiter] | Bauzeit im Tutorial: **20 s** (Vorschlag). „Sofort fertig“ gesperrt |
-| T23 | W | „Deine Kunden zahlen für jede kWh, die bei ihnen ankommt, und eine kleine Grundgebühr. Das ist deine Einnahme.“ **[F]** | Loch Geld-Pille | [Weiter] erscheint erst, **wenn der Bau fertig ist**; bis dahin gedämpft „Gebaut wird … noch {Restzeit}“ | verbindet kWh mit Geld |
+| T23 | W | „Deine Kunden zahlen für jede kWh, die bei ihnen ankommt, und eine feste Grundgebühr. Das ist deine Einnahme.“ **[F]** | Loch Geld-Pille | [Weiter] erscheint erst, **wenn der Bau fertig ist**; bis dahin gedämpft „Gebaut wird … noch {Restzeit}“ | verbindet kWh mit Geld |
 
 **Kapitel 6 – Warm!**
 | Nr | Art | Text | Licht / Finger | Weiter mit | Kamera, Sonstiges |
@@ -843,6 +843,9 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 - **Wo Tutorial-Logik liegt:** Schrittfolge und „Weiter mit“-Bedingungen sind Spiellogik ohne Grafik (Architekturregel) und damit ohne Bild testbar; die Oberfläche liest nur „aktueller Schritt, Ziel(e), Text, gesperrt“.
 - **Begriffsliste für NR3:** Die fett markierten Sätze aus 13.5 sind gleichzeitig die Erklärsätze für die Begriffsliste im Kern (eine Quelle, nicht zweimal schreiben): Wärmeerzeuger/Hackschnitzelkessel (T02), kW (T03, T07), Wärmenetz/Nahwärme (T04), kWh (T06, T07), Bauabschnitt (T08), Übergabestation (T16), Pufferspeicher (T17), Vorlauf/Rücklauf (T25).
 - **Für den Fachprüfer** (alle **[F]**): T02 „Holz aus Waldresten“ (Hackschnitzel stammen auch aus Sägeresten und Landschaftspflege – reicht die Vereinfachung?), T03/T07 kW als „wie viel auf einmal“ und Wasserhahn/Eimer-Vergleich, T04 „Wärmenetz oder Nahwärme“, T06 „bis zu 10 kW an kalten Tagen“ (= Jahresverbrauch ÷ 1.500 h als Spitze gedeutet), T11 dickere Leitung für mehr kW, T12 „trägt im Spiel bis 15 kW“, T16 Übergabestation trennt Netz- und Hauswasser (gilt für indirekten Anschluss mit Wärmetauscher, wie die Puffer-Station nach NR19), T17 Puffer senkt die nötige Netzleistung, T22 „in echt einige Wochen“, T23 Arbeitspreis je kWh plus Grundgebühr, T25 zwei Rohre Vorlauf/Rücklauf.
+- **Fachprüfung übernommen (2026-11-06, vom Projektleiter angenommen):** T02, T03, T06, T07, T16, T17, T23 und PtH-Blase 2 sind auf den geprüften Wortlaut gebracht; T16 ist zugleich der Erklärsatz „Übergabestation“ der Begriffsliste. T06/T17: Der Puffer senkt nur die **Netzleistung**, nicht den Bedarf des Hauses – {kw_ohne} bleibt der Bedarf, {kw_puffer} ist das, was aus dem Netz kommt.
+- **Beispielwerte erst nach NR19:** 7,5 kW (Puffer) und die 25er in T12/T17 gelten erst, wenn NR19 umgesetzt ist (Puffer-Station mit 2.000 Volllaststunden). Bis dahin sind es nur Beispiele; die Texte nehmen immer die Platzhalter aus dem Kern.
+- **Tests dazu:** (1) „T17-Zahl {kw_puffer} = Jahresverbrauch ÷ `mit_puffer_h`“. (2) „Die in T12 genannte {leitung} trägt 2 × Bedarf mit Puffer **ohne** NR18-Warnung.“
 - **Abgleich (Q11):** nicht eingeplant, bis Simon die Bedeutung klärt (Frage T-F4).
 
 ### 13.10 Neue Werte (Vorschlag für `design/tokens.json`, Gruppe `menue`)
@@ -925,8 +928,8 @@ Katalogkarte (quer, 2 Spalten, Bild 64 px – 12.7):
 | Gut für | „Gut für: Zeiten mit viel billigem Ökostrom und schnelles Zuheizen an Spitzentagen.“ | 82 |
 | Nicht gut für | „Nicht gut für: Dauerbetrieb – aus 1 kWh Strom wird nur 1 kWh Wärme, das wird teuer.“ | 83 |
 | Mini-Tutorial Blase 1 | „Neu: der **Power-to-Heat-Kessel**. Er macht aus Strom Wärme, ähnlich wie ein Tauchsieder.“ | 85 |
-| Mini-Tutorial Blase 2 | „Lohnt sich, wenn Strom gerade günstig ist. Dauernd laufen lassen wird teuer – dafür ist dein Holzkessel da.“ | 107 |
-| „Wusstest du?“ | „Manche Wärmenetze nutzen so Windstrom, der sonst abgeregelt würde, weil das Stromnetz ihn gerade nicht aufnimmt.“ | 112 |
+| Mini-Tutorial Blase 2 | „Lohnt sich bei billigem Strom, etwa vom PV-Dach. Dauernd laufen lassen wird teuer – dafür ist dein Holzkessel da.“ | 113 |
+| „Wusstest du?“ | „Manche Wärmenetze nutzen so Windstrom, der sonst abgeregelt würde, weil das Stromnetz ihn gerade nicht aufnimmt.“ **Erst mit Quelle (Recherche R2) freigeben.** | 112 |
 Fachprüfer bitte prüfen: Wirkungsgrad „1 kWh Strom → 1 kWh Wärme“ (Elektrodenkessel nahe 100 %), „billiger Ökostrom“ als Vorteil, Abregelung von Windstrom als Praxisbezug, und ob „Dauerbetrieb teuer“ zur Spielregel `betriebskosten_eur_je_kw_min` passt.
 
 ### 13.14 Offene Fragen an Simon (mit Empfehlung)
