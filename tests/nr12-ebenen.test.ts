@@ -298,7 +298,8 @@ describe('NR12 P3a Bodenebene (A90)', () => {
       ['Abschnitt planen', () => { ok(sp.abschnittPlanen()); return spielSzene(sp, BILD_MS); }],
       ['Abschnitt offen', () => { lauf(600_000); expect(sp.abschnitt?.phase).toBe('offen'); return spielSzene(sp, BILD_MS); }],
       ['Leitung eingezeichnet', () => { ok(sp.platzieren('d50', 12, 12)); return spielSzene(sp, BILD_MS); }],
-      ['Hausanschluss geplant', () => { ok(sp.hausanschlussPlanen(haus().id)); return spielSzene(sp, BILD_MS); }],
+      // NR18-P0 (4.13): keine automatische Wegsuche mehr – der Spieler zeichnet das Verbindungsstück zur Start-40er (10|12) selbst.
+      ['Leitung zum Netz gezeichnet', () => { ok(sp.platzieren('d25', 11, 12)); return spielSzene(sp, BILD_MS); }],
       ['Vorsehung umgeschaltet', () => { const l = sp.stand.objekte.find((o) => o.geplant && o.x === 12 && o.y === 12)!; ok(sp.vorsehungUmschalten(l.id)); return spielSzene(sp, BILD_MS); }],
       ['Abschnitt abgeschlossen', () => { ok(sp.abschnittAbschliessen()); return spielSzene(sp, BILD_MS); }],
       ['Material bestellt', () => { ok(sp.materialBestellen()); return spielSzene(sp, BILD_MS); }],
