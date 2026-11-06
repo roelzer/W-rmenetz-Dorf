@@ -399,3 +399,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 11:47 | ▶ | fachpruefer | Fachprüfer T17-Wortlaut |
 | 2026-11-06 11:47 | ▶ | architekt | Architekt NR13 Fassung 2 |
 | 2026-11-06 11:48 | ■ 🟢 | fachpruefer | 🟢 **Gesamt: Die neue Fassung von T17 ist fachlich gleich viel wert wie die freigegebene und nicht falsch. Auch die anderen Texte in 13.15 enthalten nichts fa ([Bericht](docs/pruefberichte/20261106-114816-fachpruefer-a324980113fdbfad4.md)) |
+| 2026-11-06 12:00 | ■ 🟢 | architekt | 🟢 Bauplan NR13 Fassung 2 ist fertig. Alle 8 Muss-Punkte des Kritikers und alle Rückfragen P0–P4 sind im Plan beantwortet, DESIGN 13.15 (K1–K10) ist eing ([Bericht](docs/pruefberichte/20261106-120016-architekt-a154c3c8f27d9db17.md)) |
