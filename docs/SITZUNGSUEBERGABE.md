@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: Entwickler P4-2b (nr13-p4-2b ab a1d7f6f): Ursache T01→T02, 12 Tests grün, geldmangel-Test. P0–P3 gemergt. Danach P4-3 (Namensfenster „Ohne Tutorial“, Fokus, Tests nr13-ablauf/klickweg, Federn nach T26), Review P4 gesamt (Basis 001b1c1), P4b Browser-Durchklick, Aufdecken Abnahme, Designer-Fotos, Produktprüfer, main.
+Laufende Agenten: Entwickler P4-3 (nr13-p4-3 ab 4646f62 = P4-2b): Namensfenster „Ohne Tutorial“, Fokus, Federn nach T26, Spur bis Haus 2, Tests nr13-ablauf/klickweg. P0–P3 gemergt. Danach Review P4 gesamt (Basis 001b1c1 → Stand P4-3), P4b Browser-Durchklick, Aufdecken Abnahme, Designer-Fotos, Produktprüfer, main.
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.
