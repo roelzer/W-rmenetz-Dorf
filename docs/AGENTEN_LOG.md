@@ -398,3 +398,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 11:46 | ■ 🟢 | designer | 🟢 Alle 10 Punkte sind entschieden und in `docs/DESIGN.md` festgehalten. Ich habe nur diese Datei geändert. Nicht festgelegt habe ich, was technisch zu entsc ([Bericht](docs/pruefberichte/20261106-114651-designer-a15e0205f2dd11f6a.md)) |
 | 2026-11-06 11:47 | ▶ | fachpruefer | Fachprüfer T17-Wortlaut |
 | 2026-11-06 11:47 | ▶ | architekt | Architekt NR13 Fassung 2 |
+| 2026-11-06 11:48 | ■ 🟢 | fachpruefer | 🟢 **Gesamt: Die neue Fassung von T17 ist fachlich gleich viel wert wie die freigegebene und nicht falsch. Auch die anderen Texte in 13.15 enthalten nichts fa ([Bericht](docs/pruefberichte/20261106-114816-fachpruefer-a324980113fdbfad4.md)) |
