@@ -356,3 +356,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:52 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle 8 Punkte sind gebaut, getestet und fotografiert. Die Test-Schranke meldet trotzdem „NICHT OK“: 12 bestehende Test ([Bericht](docs/pruefberichte/20261106-095223-entwickler-ad1803d60037f8d93.md)) |
 | 2026-11-06 09:52 | ▶ | tester | Tester: Texte-Tests NR18-D umbauen |
 | 2026-11-06 09:52 | ▶ | reviewer | Review NR18-D |
+| 2026-11-06 09:57 | ■ 🟡 | reviewer | 🟡 **NR18-D (Designer-Nacharbeit), Stand 7277b66 auf Basis 7e275ba: freigegeben, mit einem Punkt, den der Tester beim Umbau mitnehmen muss.** Es ist kein Fehl ([Bericht](docs/pruefberichte/20261106-095721-reviewer-a63dbce6771d802dd.md)) |
