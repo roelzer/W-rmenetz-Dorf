@@ -47,7 +47,7 @@ export function lochRand(l: Loch): Rechteck {
   return { x: u.x, y: u.y, b: u.b, h: u.h };
 }
 
-const rechteckPfad =(r: Rechteck): string => `M${zahl(r.x)} ${zahl(r.y)}H${zahl(r.x + r.b)}V${zahl(r.y + r.h)}H${zahl(r.x)}Z`;
+const rechteckPfad = (r: Rechteck): string => `M${zahl(r.x)} ${zahl(r.y)}H${zahl(r.x + r.b)}V${zahl(r.y + r.h)}H${zahl(r.x)}Z`;
 
 function lochPfad(l: Loch): string {
   const u = umriss(l);

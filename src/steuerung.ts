@@ -726,13 +726,33 @@ export class Steuerung implements Ui {
       z = { ...k.einpassenZiel(this.rahmen(os), frei, EINPASS_RAND_PX, ZIEL_ZOOM_MAX), ziel_x: frei.x + frei.b / 2, ziel_y: frei.y + frei.h / 2 };
     }
     if (a.kamera === 'fahrt') {
+      // Das Freistellen (13.3) gehört schon ins Ziel der Fahrt – sonst springt das Bild nach der Fahrt ohne Übergang zur
+      // Seite. Darum die Endlage einmal probehalber einnehmen, freistellen, merken und von der alten Lage aus hinfahren.
+      const von = { x: k.schiebe_x, y: k.schiebe_y, zoom: k.zoom };
+      k.zoom = z.zoom;
+      k.zentrierenBei(z.mitte_x, z.mitte_y, 1, z.ziel_x, z.ziel_y);
+      const kartenHoehe_px = this.anleiterHoehe();
+      const ziele = a.ziele.map((zn) => ({ l: this.zielLoch(a, zn) }));
+      const loecher = ziele.flatMap((e) => (e.l ? [lochRand(e.l.loch)] : []));
+      if (!anleiterPlatzFrei(frei, loecher, { breite: k.breite, hoehe: k.hoehe }, kartenHoehe_px)) {
+        this.zieleFreistellen(ziele, frei, kartenHoehe_px, this.freistellLage(a, frei, kartenHoehe_px));
+      }
+      const mitte_px = [k.breite / 2, k.hoehe / 2] as const, [fx, fy] = k.feldGenau(mitte_px[0], mitte_px[1]), zoom = k.zoom;
+      k.schiebe_x = von.x; k.schiebe_y = von.y; k.zoom = von.zoom;
       const jetzt = this.bildzeit();
-      k.fahrtZu(z.mitte_x, z.mitte_y, 1, z.ziel_x, z.ziel_y, z.zoom, this.ruhig() ? 0 : T.menue.zeit_ms.kamera_fahrt, jetzt);
+      k.fahrtZu(fx, fy, 1, mitte_px[0], mitte_px[1], zoom, this.ruhig() ? 0 : T.menue.zeit_ms.kamera_fahrt, jetzt);
       this.fahrtJetzt = k.fahrtLaeuft(jetzt);
       return;
     }
     k.zoom = z.zoom;
     k.zentrierenBei(z.mitte_x, z.mitte_y, 1, z.ziel_x, z.ziel_y);
+  }
+  /** Höhe der stehenden Karte (aus dem letzten Bild): ändert sie sich mit dem Text, wird der Platz neu gewählt (13.3). */
+  private anleiterHoehe(): number { return Math.max(anleiterRechteck()?.h ?? 0, T.menue.mass_px.anleiter_hoehe); }
+  /** Lage, für die höchstens einmal freigestellt wird: Schritt, freie Breite und Kartenhöhe. Ohne diese Sperre riefe sich
+   *  das Anwenden bei gekappter Verschiebung (Kamera-Grenze) immer wieder auf und verkleinerte den Zoom jedes Mal weiter. */
+  private freistellLage(a: TutorialAnsicht, frei: Rechteck, kartenHoehe_px: number): string {
+    return `${a.schritt}|${a.wiedereinstieg}|${frei.b}|${kartenHoehe_px}`;
   }
   /** 13.3 „nie über dem Ziel“: Liegt die Anleiter-Karte auf beiden Plätzen über einem Kartenziel, schiebt (und wenn nötig
    *  verkleinert) die Kamera die Kartenziele sofort in die nächste Lücke neben der Karte – wie das Ausrichten ohne Fahrt.
@@ -807,14 +827,13 @@ export class Steuerung implements Ui {
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
     const loecher = ziele.flatMap((e) => (e.l ? [e.l.loch] : []));
     const rest_s = a.warte_bis_ms === undefined ? 0 : Math.ceil((a.warte_bis_ms - this.uhr()) / 1000);
-    // Höhe der stehenden Karte (aus dem letzten Bild): ändert sie sich mit dem Text, wird der Platz neu gewählt (13.3)
-    const kartenHoehe_px = Math.max(anleiterRechteck()?.h ?? 0, T.menue.mass_px.anleiter_hoehe);
+    const kartenHoehe_px = this.anleiterHoehe();
     const schluessel = JSON.stringify([a, k.schluessel(), frei.b, loecher, this.fahrtJetzt, rest_s, sprecherAktiv(), kartenHoehe_px]);
     this.angewendet = { schritt, frei_b: frei.b, schluessel };
     if (vorher?.schluessel === schluessel) return;
     const bild = { breite: k.breite, hoehe: k.hoehe };
     const freierPlatz = anleiterPlatzFrei(frei, loecher.map(lochRand), bild, kartenHoehe_px);
-    if (!freierPlatz && a.kamera !== 'frei' && !this.fahrtJetzt && this.zieleFreistellen(ziele, frei, kartenHoehe_px, `${schritt}|${frei.b}|${kartenHoehe_px}`)) {
+    if (!freierPlatz && a.kamera !== 'frei' && !this.fahrtJetzt && this.zieleFreistellen(ziele, frei, kartenHoehe_px, this.freistellLage(a, frei, kartenHoehe_px))) {
       this.anleitungAnwenden();
       return;
     }

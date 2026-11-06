@@ -808,3 +808,82 @@ describe('NR13 P4 Einbindung – Teil 5', () => {
     });
   }
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Teil 6: Freistellen der Kartenziele (13.3) – höchstens einmal je Lage, und in T05 schon im Ziel der Fahrt (Review Fix 3).
+// Die Kartenhöhe ist wie in Teil 5 fest 178 px; die Bildzeit läuft von Hand, damit Kamerafahrten sicher enden.
+describe('NR13 P4 Einbindung – Teil 6', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  const KARTE_H = 178;
+  type Fahrt = { nach_x: number; nach_y: number; nach_zoom: number };
+  type KamIntern = Kam & { begrenzen(): void; zentrierenBei(...a: number[]): void; fahrtZu(...a: number[]): void; fahrt: Fahrt | null };
+  function karteHoch(u: U, h = KARTE_H): void {
+    const k = u.dom.doc.getElementById('anleiter') as El | null;
+    if (k) k.rechteck = { left: 0, top: 0, right: 0, bottom: h, width: 0, height: h, x: 0, y: 0 };
+  }
+  /** Zählt die Kamerabewegungen über zentrierenBei (Ausrichten, Freistellen und Fahrtziel laufen alle darüber). */
+  function bewegungenZaehlen(k: KamIntern): { n: number } {
+    const z = { n: 0 }, zentrieren = k.zentrierenBei.bind(k);
+    k.zentrierenBei = (...a: number[]): void => { z.n++; zentrieren(...a); };
+    return z;
+  }
+
+  it('test_nr13_freistellen_einmal_je_lage: kappt eine Grenze die Verschiebung, bewegt sich die Kamera je Lage genau einmal und der Zoom bleibt', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    let bild = 10_000;
+    vi.spyOn(performance, 'now').mockImplementation(() => bild);
+    await echteSteuerung(spiel, (u) => {
+      const s = s2(u), k = s.kamera as KamIntern;
+      bisT01(u, uhr);
+      tippePunkt(u, objektMitte(u, spiel.hz));
+      for (const id of ['T02', 'T03']) { karteHoch(u); s.tick(uhr.t); expect(schrittJetzt(u)).toBe(id); weiterTippen(u); }
+      for (let i = 0; i < 3; i++) { bild += 1300; karteHoch(u); s.tick(uhr.t); }
+      expect(schrittJetzt(u), 'Testaufbau').toBe('T04');
+      // Grenze, die gar keine Verschiebung zulässt: jede Verschiebung wird auf die Lage von eben zurückgekappt
+      const fest = { x: k.schiebe_x, y: k.schiebe_y };
+      k.begrenzen = (): void => { k.schiebe_x = fest.x; k.schiebe_y = fest.y; };
+      const bewegt = bewegungenZaehlen(k);
+      // Die Karte wächst auf 200 px (neue Lage): unten steht sie ab 390 − 12 − 200 = 178, oben bis 64 + 200 = 264 – über
+      // bzw. unter ihr bleiben je 113 px, weniger als der Lochrand der Heizzentrale hoch ist. Das Freistellen muss also
+      // verkleinern (Faktor < 1); ohne die Sperre je Lage riefe es sich bei gekappter Verschiebung immer wieder auf
+      // und verkleinerte den Zoom jedes Mal weiter.
+      const zoomVorher = k.zoom;
+      karteHoch(u, 200); bild += 1300; s.tick(uhr.t);
+      expect(bewegt.n, 'Kamera genau einmal bewegt').toBe(1);
+      expect(k.zoom, 'Testaufbau: das Freistellen hat verkleinert').toBeLessThan(zoomVorher);
+      const zoom = k.zoom;
+      for (let i = 0; i < 5; i++) { bild += 1300; karteHoch(u, 200); s.tick(uhr.t); }
+      expect(schrittJetzt(u)).toBe('T04');
+      expect(bewegt.n).toBe(1);
+      expect(k.zoom).toBe(zoom);
+    }, { uhr: () => uhr.t });
+  });
+
+  for (const [breite, hoehe] of [[844, 390], [667, 375]] as const) {
+    it(`test_nr13_t05_kein_ruck_nach_fahrt (${breite}×${hoehe}): die Fahrt endet dort, wo die Kamera danach bleibt`, async () => {
+      const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+      let bild = 10_000;
+      vi.spyOn(performance, 'now').mockImplementation(() => bild);
+      await echteSteuerung(spiel, (u) => {
+        const s = s2(u), k = s.kamera as KamIntern;
+        bisT01(u, uhr);
+        tippePunkt(u, objektMitte(u, spiel.hz));
+        for (const id of ['T02', 'T03', 'T04']) { karteHoch(u); s.tick(uhr.t); expect(schrittJetzt(u)).toBe(id); if (id !== 'T04') weiterTippen(u); }
+        // Der Schrittwechsel (und mit ihm die Fahrt) geschieht schon beim Tipp auf [Weiter]
+        const ziele: Fahrt[] = [], fahrtZu = k.fahrtZu.bind(k);
+        k.fahrtZu = (...a: number[]): void => { fahrtZu(...a); if (k.fahrt) ziele.push({ ...k.fahrt }); };
+        karteHoch(u); weiterTippen(u); s.tick(uhr.t);
+        expect(schrittJetzt(u)).toBe('T05');
+        expect(ziele, 'Testaufbau: T05 fährt').toHaveLength(1);
+        const bewegt = bewegungenZaehlen(k);
+        for (let i = 0; i < 4; i++) { bild += 1300; karteHoch(u); s.tick(uhr.t); }
+        expect(bewegt.n, 'nach der Fahrt keine weitere Kamerabewegung').toBe(0);
+        expect(k.schiebe_x).toBeCloseTo(ziele[0].nach_x, 6);
+        expect(k.schiebe_y).toBeCloseTo(ziele[0].nach_y, 6);
+        expect(k.zoom).toBeCloseTo(ziele[0].nach_zoom, 9);
+      }, { uhr: () => uhr.t, breite, hoehe });
+    });
+  }
+});

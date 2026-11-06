@@ -151,6 +151,18 @@ const fehltippPunkt = (p) => p.evaluate(() => {
   return null;
 });
 
+/** DESIGN 13.3 „nie über dem Ziel“: Lochränder (.spot-ring), die die stehende Anleiter-Karte schneidet (leer = frei) */
+const karteUeberLoch = (p) => p.evaluate(() => {
+  const k = document.getElementById('anleiter');
+  if (!k || k.getClientRects().length === 0) return { karte: null, treffer: [] };
+  const q = (r) => `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}×${Math.round(r.height)}`;
+  const kr = k.getBoundingClientRect();
+  const treffer = [...document.querySelectorAll('.spot-ring')].map((e) => e.getBoundingClientRect())
+    .filter((r) => (r.width > 0 || r.height > 0) && r.left < kr.right && kr.left < r.right && r.top < kr.bottom && kr.top < r.bottom)
+    .map(q);
+  return { karte: q(kr), treffer };
+});
+
 /** Bildrate im Browser: eigener requestAnimationFrame-Zähler (nur Messhilfe), Start und Stopp getrennt */
 const BILDRATE_MIN = 50;
 const bildrateStart = (p) => p.evaluate(() => {
@@ -245,6 +257,9 @@ async function schritt(s, ort, id, handeln, nach) {
   const l = await lage(p);
   muss(ort, `Schritt ${id} erreicht`, l.schritt === id && !l.intro, `${l.schritt}${l.intro ? ' (Wiedereinstieg)' : ''}`);
   pruefe(ort, `${id}: Anleiter-Karte zeigt den Text der Ansicht`, l.text === l.ansichtText.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim(), `„${l.text}“`);
+  const ueber = await karteUeberLoch(p);
+  pruefe(ort, `${id}: Anleiter-Karte schneidet keinen Lochrand`, ueber.treffer.length === 0,
+    ueber.karte ? `Karte ${ueber.karte}${ueber.treffer.length ? `; Lochrand ${ueber.treffer.join(' / ')}` : ''}` : 'keine Karte sichtbar');
   if (id === 'T13') await fehltipp(p, ort, await mitteVon(p, '[data-ziel="geld_pille"]'), 'auf die Geld-Pille');
   else await fehltipp(p, ort, await fehltippPunkt(p), 'außerhalb');
   await handeln(l);
@@ -442,6 +457,9 @@ async function kurzlauf667(browser, url) {
     await ruhe(s.p);
     const l = await lage(s.p);
     pruefe(ort, 'T05 erreicht, Anleiter-Karte zeigt seinen Text', l.schritt === 'T05' && (l.text || '').startsWith('Diese Häuser heizen noch mit Öl'), `${l.schritt} · „${l.text}“`);
+    const ueber = await karteUeberLoch(s.p);
+    pruefe(ort, 'T05: Anleiter-Karte schneidet keinen Lochrand', ueber.treffer.length === 0,
+      ueber.karte ? `Karte ${ueber.karte}${ueber.treffer.length ? `; Lochrand ${ueber.treffer.join(' / ')}` : ''}` : 'keine Karte sichtbar');
   } catch (f) {
     if (!(f instanceof LaufAbbruch)) throw f;
     const l = await lage(s.p).catch(() => null);
