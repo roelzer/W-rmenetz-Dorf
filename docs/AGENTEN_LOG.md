@@ -283,3 +283,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 07:09 | ▶ | architekt | NR18-Plan Fassung 2 |
 | 2026-11-06 07:14 | ■ 🟢 | designer | 🟢 Grün: Der Entwurf für das Pflicht-Tutorial NR13 ist fertig, dazu das Muster für Mini-Tutorials und den Info-Knopf aus Simons NR3-Ergänzung.  ([Bericht](docs/pruefberichte/20261106-071454-designer-a4f11f4b199d7a907.md)) |
 | 2026-11-06 07:15 | ▶ | fachpruefer | Fachprüfung Tutorial-Texte |
+| 2026-11-06 07:18 | ■ 🟡 | fachpruefer | 🟡 GELB – Fachprüfung der Tutorial-Texte, DESIGN.md Abschnitt 13 (Modus: plan, nur gelesen, nichts geändert)  ([Bericht](docs/pruefberichte/20261106-071829-fachpruefer-ad07ce0c947c71945.md)) |
+| 2026-11-06 07:18 | ▶ | designer | Tutorial-Texte nachschärfen |
