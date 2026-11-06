@@ -12,3 +12,13 @@ Stand auf e99e48f (als `.test.ts` ausgeführt): 34 Tests, 30 rot bis P6 (jeweils
 4 grün als Gegenproben (Wandstationen unverändert, Großabnehmer ohne Puffer-Station, zwei Wandstationen an einer 25er warnen,
 keine Puffer-Reihe für Großabnehmer/Wandhaus/zu großes MFH). `npx tsc --noEmit` mit der Datei als `.test.ts`: fehlerfrei
 (neue Kern-Namen über Typumweg).
+
+Anpassung 2026-11-06 (Branch nr19-abnahme-texte, auf c122461), Grundlage DESIGN 12.23 und ENTSCHEIDUNGEN (Designer-Fotoprüfung, W1 Weg a):
+Knopf-Zeile 1 „Puffer HP 800 / HP 1000 / ÜP 1000“, Zeile 2 „{x} kW vom Netz · {Preis}“, Stationszeile zweizeilig
+(„Übergabestation“ → „Puffer HP 800“, „Leistung Station“ → „14 kW Netz · 19 kW Haus“), Wandreihe „Wandstation (ohne Puffer)“
+oder wie bisher. Texte normalisiert verglichen; geschützte Leerzeichen an den Stellen geprüft, die 12.23 nennt (Kürzel–Zahl,
+Zahl–kW, vom–Netz, Preis–€, normales Leerzeichen nach „·“ als Umbruchstelle; Zahl–kW in Erklär- und Stationszeile).
+Neu: 4 Tests test_nr19_w1_* (Puffer-Haus tauscht nicht auf Wandstation; keine Wandreihe, solange eine Puffer-Station reicht;
+reicht keine, Wandstation nach Bedarf bei 1.500 h und hauspuffer weg; Altstand Puffer + Wandstation unverändert). 38 Tests.
+Katalogname „Puffer-Übergabestation HP 800“ und Ablehnungssatz bleiben (12.23 ändert nur Knopf- und Stationszeile).
+Prüfsumme: keine – die Liste docs/ABNAHME_PRUEFSUMMEN.txt erfasst nur .dev-team/verdeckt im Hauptordner, nicht diese Datei.
