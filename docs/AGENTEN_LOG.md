@@ -425,3 +425,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:35 | ▶ | entwickler | NR13 Paket P1 tutorial.ts |
 | 2026-11-06 12:35 | ▶ | entwickler | NR13 Paket P2 Kern |
 | 2026-11-06 12:35 | ▶ | entwickler | NR13 Paket P3 ui+render |
+| 2026-11-06 12:41 | ■ 🔴 | entwickler | 🔴 BLOCKIERT (Kontext voll). P3 ist nicht gebaut: kein Code, kein Commit.  ([Bericht](docs/pruefberichte/20261106-124103-entwickler-a37709dcdca040e9e.md)) |
