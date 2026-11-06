@@ -349,3 +349,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:22 | ▶ | designer | Designer Sichtprüfung NR18 |
 | 2026-11-06 09:33 | ■ 🟡 | designer | 🟡 **Sichtprüfung NR18 (Stand e99e48f)**  ([Bericht](docs/pruefberichte/20261106-093307-designer-a94ed031ff6a1184e.md)) |
 | 2026-11-06 09:33 | ▶ | entwickler | NR18-D Designer-Nacharbeit |
+| 2026-11-06 09:36 | ■ 🟢 | tester | 🟢 **Tester-Vorarbeit NR19-P0b ist fertig.** Genau die 5 Tests aus der P0b-Liste sind jetzt rot. Kein anderer Test ist rot geworden, und Produktivcode habe ic ([Bericht](docs/pruefberichte/20261106-093617-tester-ae04a18c9ef23be24.md)) |
+| 2026-11-06 09:36 | ▶ | kritiker | Kritiker Freigabe P0b-Löschung |

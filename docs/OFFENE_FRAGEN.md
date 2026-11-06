@@ -4,6 +4,8 @@ Der Projektleiter rät nicht, sondern notiert hier – vollständig ausgeschrieb
 Die Team-Tafel zeigt, wie viele Punkte offen sind.
 
 ## Fragen an Simon
+- **(06.11., NR19 Hinweis, nicht blockierend)** Die getrennte Spitzenleistung im Haus (19/27/54 kW) entscheidet im Spiel nie selbst: Mit 2.000 h/1.500 h ist die Hausspitze immer 4/3 des Netzbedarfs, und alle drei Stationen haben ein Verhältnis Spitze/Netz über 4/3 – es fehlt immer zuerst die Netzleistung. Fachlich kein Fehler; soll die Spitze eine eigene Wirkung haben (z. B. Warmwasser-Spitze), bräuchte es eine andere Regel. Bis dahin bleibt es so.
+- **(06.11., NR18-W/NR18-D, Info)** Projektleiter hat entschieden: wartende Häuser verlieren nach dem Abschließen keine Zufriedenheit; Bedientexte Start-Hinweis und kurzer Mehrfach-Hinweis. Widerspruch jederzeit möglich.
 Je Frage: was zu entscheiden ist, die Empfehlung des Teams, was ohne Antwort passiert. Erledigte Fragen mit ✅ und Antwort markieren.
 
 - **Q1 (blockiert: ja/nein):** [Frage in einem Satz] – Empfehlung: [ … ] – ohne Antwort: [ … ]
