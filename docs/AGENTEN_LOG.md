@@ -434,3 +434,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:49 | ■ 🟢 | entwickler | 🟢 FERTIG: Paket P1 (Tutorial-Schrittlogik) ist gebaut, auf Branch nr13-p1, Commit d5c5725088072553b548196ae3a7bd8696d8d9ac (nicht gepusht, Worktree sauber).  ([Bericht](docs/pruefberichte/20261106-124913-entwickler-ab880a9ca9b702f8c.md)) |
 | 2026-11-06 12:49 | ▶ | reviewer | Review NR13 P1 |
 | 2026-11-06 12:52 | ■ 🟢 | reviewer | 🟢 Freigegeben. Plan-Treue ✅: Im Diff sind genau die zwei geplanten Dateien (src/core/tutorial.ts mit 396 Zeilen, tests/nr13-tutorial-logik.test.ts). Es feh ([Bericht](docs/pruefberichte/20261106-125249-reviewer-acd1933dfa97531a1.md)) |
+| 2026-11-06 13:00 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Branch nr13-p3a, Commit 674a7a6312b266cc41b96ba1cc2788d2f23ecacf, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a68bc7d3e ([Bericht](docs/pruefberichte/20261106-130019-entwickler-a68bc7d3ef5a56f3c.md)) |
+| 2026-11-06 13:00 | ▶ | reviewer | Review NR13 P3a |
