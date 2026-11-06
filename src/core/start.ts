@@ -12,6 +12,14 @@ const N = KONSTANTEN.feldanzahl;
  *  Heizzentrale nach Süden gezogene Leitung sie erreicht: (9|13) über (10|13), (12|14) über (11|14). */
 export const ERSTE_HAEUSER: ReadonlyArray<readonly [number, number]> = [[9, 13], [12, 14]];
 
+/** NR13 (NR18 5.2): Felder der Tutorial-Spur in Zugrichtung – von der Heizzentrale nach Süden an Haus 1 vorbei, dann zu Haus 2. */
+export const TUTORIAL_SPUR: ReadonlyArray<readonly [number, number]> = [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]];
+
+/** AE-NR13-1: Jeder Produktionsweg zu einem neuen Spiel startet hier – das Startdorf plus die Tutorial-Merke, sonst nichts. */
+export function neuesSpielMitTutorial(jetzt_ms: number, ortId?: string): Spielstand {
+  return { ...neuerSpielstand(jetzt_ms, ortId), tutorial: { kapitel: 1 } };
+}
+
 export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT): Spielstand {
   const ort = ortHolen(ortId);
   const objekte: Objekt[] = [];

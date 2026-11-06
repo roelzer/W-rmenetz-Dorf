@@ -1,7 +1,7 @@
 import { KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
 import { belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
-import { neuerSpielstand } from './spiel';
+import { neuesSpielMitTutorial } from './start';
 import type { Spielstand } from './typen';
 
 export const SPEICHER_SCHLUESSEL = 'waermedorf-spielstand-v1';
@@ -129,7 +129,7 @@ export function karteAnpassen(stand: Spielstand): boolean {
  * (Befund 'defekt', damit die Oberfläche den Spieler informiert und den alten Text sichern kann).
  */
 export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: Spielstand; befund: LadeBefund } {
-  if (!text) return { stand: neuerSpielstand(jetzt_ms), befund: 'neu' };
+  if (!text) return { stand: neuesSpielMitTutorial(jetzt_ms), befund: 'neu' };
   try {
     const d = JSON.parse(text) as Omit<Partial<Spielstand>, 'version'> & { version?: number };
     let migriert = false;
@@ -155,7 +155,7 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
   } catch (fehler) {
     console.warn('Spielstand nicht lesbar', fehler);
   }
-  return { stand: neuerSpielstand(jetzt_ms), befund: 'defekt' };
+  return { stand: neuesSpielMitTutorial(jetzt_ms), befund: 'defekt' };
 }
 
 export function laden(text: string | null, jetzt_ms: number): Spielstand {

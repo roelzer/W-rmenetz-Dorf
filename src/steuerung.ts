@@ -3,13 +3,14 @@ import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/k
 import { groesse } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
+import type { Bedienung, TippMeldung } from './core/tutorial-vertrag';
 import { Effekte } from './render/effekte';
 import { Kamera } from './render/kamera';
 import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
-import { chip, knopf, sperren, symbol } from './ui/bausteine';
+import { chip, knopf, sperren, symbol, type Sperre } from './ui/bausteine';
 import { blattBreite_px, blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { eur, h } from './ui/dom';
 import { sprecherZeigen } from './ui/sprecher';
@@ -137,6 +138,9 @@ export class Steuerung implements Ui {
     this.leisteAufbauen();
   }
   toast(text: string): void { toast(text); }
+  // NR13: Bis die Tutorial-Verdrahtung kommt, hört niemand zu und nichts ist gesperrt.
+  tutorialMelden(_m: TippMeldung): void {}
+  tutorialSperreKnopf(_b: Bedienung): Sperre | null { return null; }
   katalog(kategorie?: string): void { this.abbrechen(); this.kontextUi.schliessen(); this.katalogUi.oeffnen(kategorie); }
   kontext(id: number | null): void {
     if (id == null) { this.kontextUi.schliessen(); return; }
