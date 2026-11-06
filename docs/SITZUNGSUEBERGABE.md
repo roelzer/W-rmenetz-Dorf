@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: Entwickler Design-Fix M1 T13 + K4 (nr13-design-fix), Kritiker Freigabe Aufdecken (29159da). Danach: Freigabe eintragen + Merge 29159da (--freigabe "NR13-Abnahme aufgedeckt"), Review Design-Fix, Leistungs-Untersuchung Kamerafahrt (fps), Designer-Nachfoto T13, Produktprüfer, main.
+Laufende Agenten: Entwickler Design-Fix M1 T13 + K4 (nr13-design-fix). Erledigt: Aufdecken 29159da gemergt (Freigabe 🟢). Danach: Review Design-Fix, Leistungs-Untersuchung Kamerafahrt (fps), Designer-Nachfoto T13, Produktprüfer, main.
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.
