@@ -436,3 +436,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:52 | ■ 🟢 | reviewer | 🟢 Freigegeben. Plan-Treue ✅: Im Diff sind genau die zwei geplanten Dateien (src/core/tutorial.ts mit 396 Zeilen, tests/nr13-tutorial-logik.test.ts). Es feh ([Bericht](docs/pruefberichte/20261106-125249-reviewer-acd1933dfa97531a1.md)) |
 | 2026-11-06 13:00 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Branch nr13-p3a, Commit 674a7a6312b266cc41b96ba1cc2788d2f23ecacf, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a68bc7d3e ([Bericht](docs/pruefberichte/20261106-130019-entwickler-a68bc7d3ef5a56f3c.md)) |
 | 2026-11-06 13:00 | ▶ | reviewer | Review NR13 P3a |
+| 2026-11-06 13:00 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Commit c47bb9e333b9f46f36fb82e7872ad6721d233eb8 auf Branch nr13-p3b (Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-ab4906 ([Bericht](docs/pruefberichte/20261106-130037-entwickler-ab4906391fe4e95d5.md)) |
+| 2026-11-06 13:00 | ▶ | reviewer | Review NR13 P3b |
