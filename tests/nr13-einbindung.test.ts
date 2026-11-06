@@ -745,3 +745,66 @@ describe('NR13 P4 Einbindung – Teil 4', () => {
     }, { uhr: () => uhr.t });
   });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Teil 5: DESIGN 13.3 „nie über dem Ziel“ – die Anleiter-Karte überdeckt in keinem Schritt einen Lochrand (Browser-Fund
+// F3.1: in T24/T25 lag die Karte bei 844×390 über dem Loch). Die Nachbildung rechnet kein Layout: Die Karte bekommt die
+// Höhe einer Blase mit „Wusstest du?“-Chip und drei Zeilen (178 px, im Browser in T25 gemessen); die Lochränder liest der
+// Test aus der Lage der `.spot-ring`-Elemente, die Karte aus ihrem `left/top/bottom/width`.
+describe('NR13 P4 Einbindung – Teil 5', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  const KARTE_H = 178;
+  type Kasten = { x: number; y: number; b: number; h: number };
+  const zahlAus = (v: unknown): number => parseFloat(String(v));
+  const ueberlappt = (a: Kasten, b: Kasten): boolean => a.x < b.x + b.b && b.x < a.x + a.b && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  function kartenKasten(u: U, hoehe: number): Kasten | null {
+    const k = u.dom.doc.getElementById('anleiter') as El | null;
+    if (!k) return null;
+    const st = k.style as Record<string, unknown>;
+    const oben = String(st.top ?? ''), unten = /(-?[\d.]+)px/.exec(String(st.bottom ?? ''));
+    const y = oben !== '' ? zahlAus(oben) : hoehe - zahlAus(unten?.[1]) - KARTE_H;
+    return { x: zahlAus(st.left), y, b: zahlAus(st.width), h: KARTE_H };
+  }
+  const ringe = (u: U): Kasten[] => u.dom.html.querySelectorAll('.spot-ring').filter((r) => r.isConnected).map((r) => {
+    const st = r.style as Record<string, unknown>;
+    return { x: zahlAus(st.left), y: zahlAus(st.top), b: zahlAus(st.width), h: zahlAus(st.height) };
+  });
+
+  for (const [breite, hoehe] of [[844, 390], [667, 375]] as const) {
+    it(`test_nr13_anleiter_nie_ueber_loch (${breite}×${hoehe}): in allen Schritten T01–T26 überschneiden sich Karte und Lochränder nicht`, async () => {
+      const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+      let bild = 10_000;
+      vi.spyOn(performance, 'now').mockImplementation(() => bild);
+      const geprueft: string[] = [], funde: string[] = [];
+      await echteSteuerung(spiel, (u) => {
+        const s = s2(u), tick = s.tick.bind(s);
+        // Nach jedem Bild wie im Spiel weitere Bilder: Kamerafahrten enden (Bildzeit), die gemessene Kartenhöhe wirkt
+        s.tick = (t: number): void => {
+          tick(t);
+          for (let i = 0; i < 3; i++) {
+            const k = u.dom.doc.getElementById('anleiter') as El | null;
+            if (k) k.rechteck = { left: 0, top: 0, right: 0, bottom: KARTE_H, width: 0, height: KARTE_H, x: 0, y: 0 };
+            bild += 1300; tick(t);
+          }
+          const id = schrittJetzt(u), karte = kartenKasten(u, hoehe), rs = ringe(u);
+          if (!id || !karte || rs.length === 0) return;
+          geprueft.push(id);
+          for (const r of rs) if (ueberlappt(karte, r)) funde.push(`${id}: Karte ${JSON.stringify(karte)} über Loch ${JSON.stringify(r)}`);
+        };
+        bisT22(u, spiel, uhr);
+        for (let i = 0; i < 60 && schrittJetzt(u) !== 'T26'; i++) {
+          if (u.dom.doc.getElementById('anleiter-weiter')) weiterTippen(u);
+          // Laura spricht nach der Bestellung auf der Fensteruhr (src/ui/sprecher.ts), der Bau läuft auf der Spieluhr
+          else { vi.advanceTimersByTime(1000); uhr.t += 1000; }
+          s.tick(uhr.t);
+        }
+        expect(schrittJetzt(u)).toBe('T26');
+      }, { uhr: () => uhr.t, breite, hoehe });
+      expect(geprueft, 'Testaufbau: Schritte mit Loch geprüft').toEqual(expect.arrayContaining(['T01', 'T05', 'T17', 'T24', 'T25']));
+      expect(funde).toEqual([]);
+    });
+  }
+});

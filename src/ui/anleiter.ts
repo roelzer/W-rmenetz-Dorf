@@ -32,6 +32,66 @@ export function anleiterPlatz(frei: Rechteck, ziel: Rechteck | null, bild: { bre
   return { links, unten: rand, breite, figur_px };
 }
 
+/** Die beiden Plätze aus 13.3 in Reihenfolge der Wahl: unten links, dann oben links unter der Anzeigenreihe. */
+export function anleiterPlaetze(frei: Rechteck, bild: { breite: number; hoehe: number }): AnleiterPlatz[] {
+  const { links, breite, figur_px } = anleiterPlatz(frei, null, bild);
+  return [{ links, unten: M.anleiter_rand, breite, figur_px }, { links, oben: T.groesse_px.blatt_oben_quer, breite, figur_px }];
+}
+
+/** Bildschirm-Rechteck der Karte auf einem Platz bei gegebener Höhe. */
+export function anleiterKasten(p: AnleiterPlatz, hoehe_px: number, bild: { breite: number; hoehe: number }): Rechteck {
+  const y = p.oben !== undefined ? p.oben : bild.hoehe - (p.unten ?? M.anleiter_rand) - hoehe_px;
+  return { x: p.links, y, b: p.breite, h: hoehe_px };
+}
+
+const ueberlappen = (a: Rechteck, b: Rechteck): boolean => a.x < b.x + b.b && b.x < a.x + a.b && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** 13.3 „nie über dem Ziel“: erster Platz, dessen Karte (mit echter Höhe) keinen Lochrand berührt; `null`, wenn keiner frei ist –
+ *  dann muss die Kamera die Ziele aus dem Weg nehmen. `loecher` sind die gezeichneten Lochränder inklusive Abstand. */
+export function anleiterPlatzFrei(frei: Rechteck, loecher: Rechteck[], bild: { breite: number; hoehe: number }, hoehe_px: number): AnleiterPlatz | null {
+  return anleiterPlaetze(frei, bild).find((p) => {
+    const k = anleiterKasten(p, hoehe_px, bild);
+    return !loecher.some((l) => ueberlappen(k, l));
+  }) ?? null;
+}
+
+/** Abstand zur Karte gegen Rundungsfehler der Kamera-Rechnung: so berühren sich Lochrand und Karte nie wieder knapp. */
+const FREI_SICHERHEIT_PX = 1;
+
+/** Wohin die Kamera die Lochränder `loch` (Umriss aller Kartenziele) schieben muss, damit sie neben einer der Karten in `karten`
+ *  und innerhalb von `flaeche` liegen. Geprüft werden die Lücken über, unter und rechts neben jeder Karte; liegt das Loch schon
+ *  teils außerhalb der Fläche (z. B. unter der Anzeigenreihe), zählt diese Lage mit, wird aber nicht verschlimmert.
+ *  Passt es nirgends in voller Größe, wird so wenig wie nötig verkleinert: `faktor` gilt für den Zoom; `zugabe_px` ist der Teil
+ *  des Umrisses, der nicht mitwächst (Abstand des Lochrands, beide Seiten). Gewählt wird die Lücke mit dem kleinsten Weg plus
+ *  Verkleinerung (1 − faktor, gemessen in Flächenbreiten). `von` → `nach`: Bildpunkt der Lochmitte vorher und nachher.
+ *  `null`, wenn neben keiner Karte Platz ist. */
+export function zielFlaecheNebenKarte(loch: Rechteck, karten: Rechteck[], flaeche: Rechteck, zugabe_px: number):
+  { faktor: number; von: [number, number]; nach: [number, number] } | null {
+  const x0 = Math.min(flaeche.x, loch.x), y0 = Math.min(flaeche.y, loch.y);
+  const x1 = Math.max(flaeche.x + flaeche.b, loch.x + loch.b), y1 = Math.max(flaeche.y + flaeche.h, loch.y + loch.h);
+  const cx = loch.x + loch.b / 2, cy = loch.y + loch.h / 2;
+  const anteil = (platz: number, groesse: number): number => (groesse > zugabe_px ? (platz - zugabe_px) / (groesse - zugabe_px) : Infinity);
+  const klemmen = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
+  let beste: { faktor: number; von: [number, number]; nach: [number, number] } | null = null, besteKosten = Infinity;
+  for (const k of karten) {
+    const luecken: Rechteck[] = [
+      { x: x0, y: y0, b: x1 - x0, h: k.y - y0 },
+      { x: x0, y: k.y + k.h, b: x1 - x0, h: y1 - (k.y + k.h) },
+      { x: k.x + k.b, y: y0, b: x1 - (k.x + k.b), h: y1 - y0 },
+    ];
+    for (const l of luecken) {
+      const r = { x: l.x + FREI_SICHERHEIT_PX, y: l.y + FREI_SICHERHEIT_PX, b: l.b - 2 * FREI_SICHERHEIT_PX, h: l.h - 2 * FREI_SICHERHEIT_PX };
+      const faktor = Math.min(1, anteil(r.b, loch.b), anteil(r.h, loch.h));
+      if (!(faktor > 0)) continue;
+      const b = faktor * (loch.b - zugabe_px) + zugabe_px, h = faktor * (loch.h - zugabe_px) + zugabe_px;
+      const nx = klemmen(cx, r.x + b / 2, r.x + r.b - b / 2), ny = klemmen(cy, r.y + h / 2, r.y + r.h - h / 2);
+      const kosten = Math.hypot(nx - cx, ny - cy) + (1 - faktor) * flaeche.b;
+      if (kosten < besteKosten) { besteKosten = kosten; beste = { faktor, von: [cx, cy], nach: [nx, ny] }; }
+    }
+  }
+  return beste;
+}
+
 let wurzel: HTMLElement | null = null;
 let warteZeile: HTMLElement | null = null;
 let gebaut = '';

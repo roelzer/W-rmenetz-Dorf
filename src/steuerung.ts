@@ -18,8 +18,8 @@ import { chip, knopf, sperren, symbol, type Sperre } from './ui/bausteine';
 import { blattBreite_px, blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { eur, h } from './ui/dom';
 import { sprecherAktiv, sprecherZeigen } from './ui/sprecher';
-import { anleiterAusblenden, anleiterPlatz, anleiterRechteck, anleiterZeigen } from './ui/anleiter';
-import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
+import { anleiterAusblenden, anleiterKasten, anleiterPlaetze, anleiterPlatz, anleiterPlatzFrei, anleiterRechteck, anleiterZeigen, zielFlaecheNebenKarte } from './ui/anleiter';
+import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
@@ -100,6 +100,9 @@ export class Steuerung implements Ui {
   private fokusFuer: string | null = null;
   /** Ziele im Blatt, die in diesem Schritt schon ins Bild gescrollt wurden (K9) */
   private gescrollt = new Set<string>();
+  /** Schritt, freie Breite und Kartenhöhe, für die die Kamera die Ziele schon neben die Anleiter-Karte geschoben hat – je Lage
+   *  höchstens einmal, damit eine an der Kartengrenze gekappte Verschiebung nicht in jedem Bild neu ansetzt. */
+  private freigestelltFuer = '';
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
   private erreichtSeit = new Map<number, number>();
   private szeneTutorial: Pick<Szene, 'tutorial_spur' | 'erreicht'> = {};
@@ -731,6 +734,26 @@ export class Steuerung implements Ui {
     k.zoom = z.zoom;
     k.zentrierenBei(z.mitte_x, z.mitte_y, 1, z.ziel_x, z.ziel_y);
   }
+  /** 13.3 „nie über dem Ziel“: Liegt die Anleiter-Karte auf beiden Plätzen über einem Kartenziel, schiebt (und wenn nötig
+   *  verkleinert) die Kamera die Kartenziele sofort in die nächste Lücke neben der Karte – wie das Ausrichten ohne Fahrt.
+   *  Bedienelemente liegen fest und bleiben, wo sie sind. Gibt zurück, ob sich die Kamera bewegt hat. */
+  private zieleFreistellen(ziele: Array<{ l: { loch: Loch; el: HTMLElement | null } | null }>, frei: Rechteck, kartenHoehe_px: number, lage: string): boolean {
+    const karten = ziele.flatMap((e) => (e.l && !e.l.el ? [lochRand(e.l.loch)] : []));
+    if (!karten.length || this.freigestelltFuer === lage) return false;
+    this.freigestelltFuer = lage;
+    const k = this.kamera, M = T.menue.mass_px, bild = { breite: k.breite, hoehe: k.hoehe };
+    // Erlaubte Fläche: unter der Anzeigenreihe, über dem unteren Rand, links vom Blatt bzw. links vom [Bauen]-Knopf (13.3)
+    const blattOffen = frei.x + frei.b < k.breite, rechts = blattOffen ? frei.x + frei.b : k.breite - M.anleiter_platz_bauen;
+    const oben = T.groesse_px.blatt_oben_quer, flaeche = { x: frei.x, y: oben, b: rechts - frei.x, h: k.hoehe - M.anleiter_rand - oben };
+    const x = Math.min(...karten.map((r) => r.x)), y = Math.min(...karten.map((r) => r.y));
+    const umriss = { x, y, b: Math.max(...karten.map((r) => r.x + r.b)) - x, h: Math.max(...karten.map((r) => r.y + r.h)) - y };
+    const ziel = zielFlaecheNebenKarte(umriss, anleiterPlaetze(frei, bild).map((p) => anleiterKasten(p, kartenHoehe_px, bild)), flaeche, 2 * M.spot_abstand_karte);
+    if (!ziel) return false;
+    const [fx, fy] = k.feldGenau(ziel.von[0], ziel.von[1]);
+    k.zoom *= ziel.faktor;
+    k.zentrierenBei(fx, fy, 1, ziel.nach[0], ziel.nach[1]);
+    return true;
+  }
   /** Weg des Fingers in T13: die Spur und weiter auf Haus 2. Der letzte Spurschritt geht nur ein Feld zur Seite; nach A47
    *  knickt die Leitung erst bei 2 Feldern – wer genau nachfährt, legt das letzte Feld erst mit dem Zug auf das Haus. */
   private fingerSpur(a: TutorialAnsicht): Array<[number, number]> {
@@ -784,9 +807,17 @@ export class Steuerung implements Ui {
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
     const loecher = ziele.flatMap((e) => (e.l ? [e.l.loch] : []));
     const rest_s = a.warte_bis_ms === undefined ? 0 : Math.ceil((a.warte_bis_ms - this.uhr()) / 1000);
-    const schluessel = JSON.stringify([a, k.schluessel(), frei.b, loecher, this.fahrtJetzt, rest_s, sprecherAktiv()]);
+    // Höhe der stehenden Karte (aus dem letzten Bild): ändert sie sich mit dem Text, wird der Platz neu gewählt (13.3)
+    const kartenHoehe_px = Math.max(anleiterRechteck()?.h ?? 0, T.menue.mass_px.anleiter_hoehe);
+    const schluessel = JSON.stringify([a, k.schluessel(), frei.b, loecher, this.fahrtJetzt, rest_s, sprecherAktiv(), kartenHoehe_px]);
     this.angewendet = { schritt, frei_b: frei.b, schluessel };
     if (vorher?.schluessel === schluessel) return;
+    const bild = { breite: k.breite, hoehe: k.hoehe };
+    const freierPlatz = anleiterPlatzFrei(frei, loecher.map(lochRand), bild, kartenHoehe_px);
+    if (!freierPlatz && a.kamera !== 'frei' && !this.fahrtJetzt && this.zieleFreistellen(ziele, frei, kartenHoehe_px, `${schritt}|${frei.b}|${kartenHoehe_px}`)) {
+      this.anleitungAnwenden();
+      return;
+    }
 
     const ruhig = this.ruhig();
     for (const { z, l } of ziele) {
@@ -805,7 +836,7 @@ export class Steuerung implements Ui {
     spotlightSetzen({ loecher, abdunkeln: this.fahrtJetzt ? 'nichts' : a.abdunkeln, finger, ruhig, hud: [{ x: hud.left, y: hud.top, b: hud.width, h: hud.height }] });
     // 13.3: Spricht Philipp oder Laura, macht Simon Platz und kommt danach zurück
     if (sprecherAktiv()) anleiterAusblenden();
-    else anleiterZeigen(a, anleiterPlatz(frei, erstes, { breite: k.breite, hoehe: k.hoehe }), { weiter: () => this.tutorialMelden({ art: 'tipp', tipp: 'weiter' }) }, this.uhr());
+    else anleiterZeigen(a, freierPlatz ?? anleiterPlatz(frei, erstes, bild), { weiter: () => this.tutorialMelden({ art: 'tipp', tipp: 'weiter' }) }, this.uhr());
     const haus1 = this.spiel.objekt(a.objekt_ids.haus1);
     infoKapsel(a.info_kapsel ?? null, a.info_kapsel && haus1 ? this.objektRechteck(haus1, true) : null);
     this.sperrLage = { fahrt: this.fahrtJetzt, anleiter: null, abdunkeln: a.abdunkeln, art: a.art, loecher: loecher.map((l) => l.r) };
