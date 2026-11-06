@@ -266,7 +266,7 @@ export function zeitText(s: number): string {
 }
 
 /** Ungefähre Dauer für Fließtext („etwa 15 Min.“, DESIGN 12.22) – nicht für die Restzeit-Anzeigen, die `zeitText` kurz hält.
- *  Ab einer Minute auf ganze Minuten gerundet. */
+ *  Ab einer Minute auf ganze Minuten gerundet. Endet immer mit dem Abkürzungspunkt – am Satzende keinen zweiten setzen. */
 export function dauerText(s: number): string {
   s = Math.ceil(s);
   if (s < 60) return `${s} Sek.`;

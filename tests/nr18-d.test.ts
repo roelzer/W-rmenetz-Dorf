@@ -316,6 +316,7 @@ describe('NR18-D (8) Bauzeit „etwa 15 Min.“', () => {
       const t = blattText(u);
       expect(t).toContain('Nach der Bestellung dauert der Bau etwa 15 Min.');
       expect(t).not.toContain('15m');
+      expect(t, 'kein doppelter Punkt am Satzende').not.toContain('Min..');
     });
   });
 });
