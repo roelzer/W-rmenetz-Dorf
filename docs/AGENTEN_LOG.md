@@ -460,3 +460,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 14:08 | ■ 🟢 | tester | 🟢 Test repariert: Die verdeckte NR13-Abnahme läuft jetzt mit 38 von 38 Tests grün.  ([Bericht](docs/pruefberichte/20261106-140807-tester-a7245f70907d65348.md)) |
 | 2026-11-06 14:13 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig (zwei kleine Testlücken, der Code selbst ist in Ordnung). Plan-Treue ⚠️: alles aus dem Bauplan ist gebaut. Es fehlt aber der gepl ([Bericht](docs/pruefberichte/20261106-141339-reviewer-ab2d96111a860a9f8.md)) |
 | 2026-11-06 14:13 | ▶ | entwickler | NR13 P4 Fix-Runde Tests |
+| 2026-11-06 14:23 | ■ 🟢 | entwickler | 🟢 FERTIG. Branch nr13-p4-fix, Commit fa88eb6be0f026876ca38ddcbcb8017e61fe849b. Worktree: /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a56fc6f73fa01d37e. ([Bericht](docs/pruefberichte/20261106-142319-entwickler-a56fc6f73fa01d37e.md)) |
+| 2026-11-06 14:23 | ▶ | reviewer | Nachprüfung NR13 P4-Fix |
+| 2026-11-06 14:23 | ■ 🔴 | entwickler | 🔴 BLOCKIERT: Der Test ist fertig und committet. Er findet aber einen Fehler im Spiel und ist deshalb rot. Den Test habe ich nicht abgeschwächt, den Spielcod ([Bericht](docs/pruefberichte/20261106-142327-entwickler-aa2f2fac9233afc29.md)) |
+| 2026-11-06 14:23 | ▶ | entwickler | NR13 Fix Anleiter-Karte über Loch |
