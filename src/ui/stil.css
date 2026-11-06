@@ -23,6 +23,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes wackeln{25%{transform:translateX(calc(-1 * var(--menue-mass-px-wackeln-weg)))}50%{transform:translateX(var(--menue-mass-px-wackeln-weg))}75%{transform:translateX(calc(-1 * var(--menue-mass-px-wackeln-weg)))}100%{transform:none}}
 .weniger-bewegung .knopf[aria-disabled="true"].wackelt{animation:none}
 @media (prefers-reduced-motion:reduce){.knopf[aria-disabled="true"].wackelt{animation:none}}
+/* Tutorial: Schließen-Knopf des Blatts wackelt kurz, wenn Schließen gerade nicht erlaubt ist (gleiches Wackeln wie 12.19) */
+.blatt .schliessen.wackelt{animation:wackeln var(--menue-zeit-ms-wackeln) ease-in-out}
+.weniger-bewegung .blatt .schliessen.wackelt{animation:none}
+@media (prefers-reduced-motion:reduce){.blatt .schliessen.wackelt{animation:none}}
 .knopf small .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein);margin-right:4px;vertical-align:-2px}
 .schliessen{display:grid;place-items:center;flex:none}
 .sym{display:inline-block}

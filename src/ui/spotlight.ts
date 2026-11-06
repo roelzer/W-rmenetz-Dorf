@@ -199,6 +199,9 @@ let sperrEmpfaenger: ((ev: Event) => void) | null = null;
 const durchFinger = new Set<number>();
 /** Diese Berührung wurde schon beim Aufsetzen beurteilt: touchstart und click derselben Berührung melden kein zweites daneben. */
 let beruehrungBeurteilt = false;
+/** Ein Dreh am Mausrad schickt viele wheel-Ereignisse; höchstens eines je 200 ms zählt als Fehltipp. */
+const RAD_DANEBEN_ABSTAND_MS = 200;
+let letztesRadDaneben = -Infinity;
 
 function punkt(ev: Event): [number, number] {
   const t = (ev as TouchEvent).touches?.[0];
@@ -214,6 +217,14 @@ function imHud(ev: Event): boolean {
 
 function abfangen(ev: Event): void { ev.preventDefault(); ev.stopPropagation(); }
 
+/** Liegt das Ziel des Ereignisses auf der Anleiter-Karte oder in einem erlaubten Tab-Ziel? Nur damit dürfen Tastatur-Klicks
+ *  durch, denn sie tragen keine Lage (13.11: Enter/Leertaste auf [Weiter] und auf dem Ziel im Loch). */
+function tastaturZielErlaubt(s: SperrQuelle, ev: Event): boolean {
+  const z = ev.target as Element | null;
+  if (!z || typeof z.closest !== 'function') return false;
+  return z.closest('#anleiter') !== null || s.tab_ziele().some((t) => t.contains(z));
+}
+
 function tabWeiter(ev: KeyboardEvent, ziele: HTMLElement[]): void {
   ev.preventDefault();
   if (ziele.length === 0) return;
@@ -227,9 +238,11 @@ function sperrEreignis(s: SperrQuelle, ev: Event): void {
   if (typ === 'keydown') {
     const k = (ev as KeyboardEvent).key;
     if (k === 'Tab') tabWeiter(ev as KeyboardEvent, s.tab_ziele());
-    else if (k !== 'Enter') abfangen(ev);
+    else if (k !== 'Enter' && !(k === ' ' && tastaturZielErlaubt(s, ev))) abfangen(ev);
     return;
   }
+  // Von Enter/Leertaste ausgelöster click: detail 0 und Lage 0|0 – entscheidend ist das Ziel, nicht die Lage.
+  if (typ === 'click' && (ev as MouseEvent).detail === 0 && tastaturZielErlaubt(s, ev)) return;
   const id = (ev as PointerEvent).pointerId;
   if (typ === 'pointerup' || typ === 'pointercancel') { durchFinger.delete(id); return; }
   if (typ === 'pointermove' && durchFinger.has(id)) return;
@@ -242,7 +255,14 @@ function sperrEreignis(s: SperrQuelle, ev: Event): void {
   if (urteil === 'durch') { if (typ === 'pointerdown') durchFinger.add(id); return; }
   abfangen(ev);
   if (urteil !== 'daneben' || typ === 'pointermove') return;
-  if (typ === 'pointerdown' || typ === 'wheel' || !schonBeurteilt) s.daneben();
+  if (typ === 'wheel') {
+    const jetzt = Date.now();
+    if (jetzt - letztesRadDaneben < RAD_DANEBEN_ABSTAND_MS) return;
+    letztesRadDaneben = jetzt;
+    s.daneben();
+    return;
+  }
+  if (typ === 'pointerdown' || !schonBeurteilt) s.daneben();
 }
 
 /** Schaltet die Eingabesperre ein (mit Quelle) oder aus (`null`). Die Lage wird bei jedem Ereignis frisch gelesen;
@@ -253,6 +273,7 @@ export function eingabeSperre(s: SperrQuelle | null): void {
   sperre = s;
   durchFinger.clear();
   beruehrungBeurteilt = false;
+  letztesRadDaneben = -Infinity;
   if (!s) return;
   const f = (ev: Event): void => sperrEreignis(s, ev);
   sperrEmpfaenger = f;

@@ -1,6 +1,7 @@
 // NR13 P3 (Teil a): Bausteine des Tutorials ohne Browser – Anleiter-Karte, Spotlight, Eingabesperre, Finger, Ersatz-Ziel,
 // Info-Kapsel, Blatt-Scrollen, Simon-Figur. Bauplan docs/bauplaene/NR13-tutorial.md, P3 und AE-NR13-6; DESIGN 13.2/13.3/13.15.
 // Alle erwarteten Zahlen sind von Hand aus DESIGN 13.3/13.10 hergeleitet (Rechnung jeweils im Kommentar).
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { domAttrappe, El, sichtbar, sichtbarerText, TextKnoten, type DomAttrappe } from './hilfen/dom-attrappe';
 import type { TutorialAnsicht } from '../src/core/tutorial-vertrag';
@@ -565,5 +566,149 @@ describe('NR13 Spotlight', () => {
     const fertig4 = vi.fn();
     zielSichtbarMachen(frei as unknown as HTMLElement, false, fertig4);
     expect(fertig4).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Fix-Runde P3a: Tastatur-Klicks, Finger-Aufnahme nur bei pointerdown, Mausrad-Takt, Ausblenden mit Blende, Wackeln des
+// Schließen-Knopfs. Erwartete Werte von Hand: Blende 200 ms (menue.zeit_ms.anleiter_wechsel), Mausrad höchstens ein
+// „daneben“ je 200 ms.
+describe('NR13 Fix-Runde P3a', () => {
+  const lage = (teil: Partial<import('../src/ui/spotlight').SperrLage> = {}): import('../src/ui/spotlight').SperrLage => ({
+    fahrt: false, anleiter: { x: 12, y: 216, b: 460, h: 162 }, abdunkeln: 'alles', art: 'H', loecher: [{ x: 300, y: 100, b: 60, h: 40 }], ...teil,
+  });
+
+  it('test_nr13_fix_enter_auf_weiter_ruft_weiter_kein_daneben', async () => {
+    const { anleiterZeigen } = await anleiter();
+    const { eingabeSperre } = await spotlight();
+    const weiter = vi.fn(), daneben = vi.fn();
+    anleiterZeigen(ansicht({ weiter: 'weiter' }), PLATZ, { weiter }, 0);
+    const knopf = a.doc.getElementById('anleiter-weiter') as El;
+    // tab_ziele ohne den Knopf: hier entscheidet allein, dass er in #anleiter liegt
+    eingabeSperre({ lage: () => lage({ art: 'W' }), daneben, tab_ziele: () => [] });
+    // Enter auf dem Knopf: Chromium schickt einen click mit detail 0 an Lage 0|0 (außerhalb der Karte)
+    const r = fenster.feuern('click', { detail: 0, clientX: 0, clientY: 0, target: knopf });
+    expect(r).toEqual({ angekommen: true, verhindert: false });
+    if (r.angekommen) knopf.click();
+    expect(weiter).toHaveBeenCalledTimes(1);
+    expect(daneben).not.toHaveBeenCalled();
+    // Leertaste auf dem Knopf darf nicht schon beim Drücken abgefangen werden, sonst kommt gar kein click
+    expect(fenster.feuern('keydown', { key: ' ', target: knopf }).angekommen).toBe(true);
+    // Ein echter Mausklick an 0|0 (detail 1) bleibt daneben
+    expect(fenster.feuern('click', { detail: 1, clientX: 0, clientY: 0, target: knopf }).angekommen).toBe(false);
+    expect(daneben).toHaveBeenCalledTimes(1);
+  });
+
+  it('test_nr13_fix_enter_auf_ziel_knopf_kein_daneben', async () => {
+    const { eingabeSperre } = await spotlight();
+    const daneben = vi.fn();
+    const ziel = a.doc.createElement('button'), innen = a.doc.createElement('span'), fremd = a.doc.createElement('button');
+    ziel.append(innen); a.app.append(ziel, fremd);
+    eingabeSperre({ lage: () => lage(), daneben, tab_ziele: () => [ziel] as unknown as HTMLElement[] });
+    expect(fenster.feuern('click', { detail: 0, clientX: 0, clientY: 0, target: ziel }).angekommen).toBe(true);
+    // Auch ein Kind des Ziel-Knopfs zählt zum Ziel
+    expect(fenster.feuern('click', { detail: 0, clientX: 0, clientY: 0, target: innen }).angekommen).toBe(true);
+    expect(fenster.feuern('keydown', { key: ' ', target: ziel }).angekommen).toBe(true);
+    expect(daneben).not.toHaveBeenCalled();
+    // Tastatur-Klick auf ein fremdes Element bleibt gesperrt, ebenso die Leertaste dort
+    expect(fenster.feuern('click', { detail: 0, clientX: 0, clientY: 0, target: fremd }).angekommen).toBe(false);
+    expect(daneben).toHaveBeenCalledTimes(1);
+    expect(fenster.feuern('keydown', { key: ' ', target: fremd }).angekommen).toBe(false);
+  });
+
+  it('test_nr13_fix_nur_pointerdown_nimmt_finger_auf', async () => {
+    const { eingabeSperre } = await spotlight();
+    const daneben = vi.fn();
+    let aktuell = lage();
+    eingabeSperre({ lage: () => aktuell, daneben, tab_ziele: () => [] });
+    const t = a.app;
+    // touchstart und wheel im Loch gehen durch, tragen aber keinen Finger ein
+    expect(fenster.feuern('touchstart', { pointerId: 7, touches: [{ clientX: 330, clientY: 120 }], target: t }).angekommen).toBe(true);
+    expect(fenster.feuern('wheel', { pointerId: 8, clientX: 330, clientY: 120, target: t }).angekommen).toBe(true);
+    aktuell = lage({ loecher: [{ x: 700, y: 300, b: 40, h: 40 }] });
+    expect(fenster.feuern('pointermove', { pointerId: 7, clientX: 500, clientY: 50, target: t }).angekommen).toBe(false);
+    expect(fenster.feuern('pointermove', { pointerId: 8, clientX: 500, clientY: 50, target: t }).angekommen).toBe(false);
+    expect(daneben).not.toHaveBeenCalled();
+  });
+
+  it('test_nr13_fix_mausrad_hoechstens_ein_daneben_je_200ms', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10000);
+    const { eingabeSperre } = await spotlight();
+    const daneben = vi.fn();
+    eingabeSperre({ lage: () => lage(), daneben, tab_ziele: () => [] });
+    const rad = () => fenster.feuern('wheel', { clientX: 600, clientY: 50, target: a.app });
+    expect(rad().angekommen).toBe(false);
+    expect(daneben).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(100);
+    expect(rad().angekommen).toBe(false);
+    vi.advanceTimersByTime(99); // 199 ms nach dem ersten: noch gesperrt
+    expect(rad().angekommen).toBe(false);
+    expect(daneben).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1); // genau 200 ms: wieder eins
+    expect(rad().angekommen).toBe(false);
+    expect(daneben).toHaveBeenCalledTimes(2);
+    // Ein Fingertipp daneben zählt unabhängig vom Mausrad-Takt
+    expect(fenster.feuern('pointerdown', { pointerId: 1, clientX: 600, clientY: 50, target: a.app }).angekommen).toBe(false);
+    expect(daneben).toHaveBeenCalledTimes(3);
+    // Neu einschalten vergisst den Takt
+    eingabeSperre(null);
+    eingabeSperre({ lage: () => lage(), daneben, tab_ziele: () => [] });
+    expect(rad().angekommen).toBe(false);
+    expect(daneben).toHaveBeenCalledTimes(4);
+  });
+
+  it('test_nr13_fix_anleiter_ausblenden_mit_blende', async () => {
+    vi.useFakeTimers();
+    const { anleiterZeigen, anleiterAusblenden, anleiterRechteck } = await anleiter();
+    anleiterZeigen(ansicht(), PLATZ, { weiter() {} }, 0);
+    const alt = karte();
+    animiert.length = 0;
+    anleiterAusblenden();
+    // Sofort nicht mehr die Karte (keine Kennung, keine Lage), aber noch sichtbar beim Ausblenden
+    expect(a.doc.getElementById('anleiter')).toBeNull();
+    expect(anleiterRechteck()).toBeNull();
+    expect(alt.parentNode === a.app).toBe(true);
+    const blende = animiert.find((x) => x.el === alt)!;
+    expect(blende.kf).toEqual([{ opacity: 1 }, { opacity: 0 }]);
+    expect(blende.opt).toMatchObject({ duration: 200 });
+    // Eine neue Karte während der Blende ist die einzige mit Kennung
+    anleiterZeigen(ansicht({ schritt: 'T02' }), PLATZ, { weiter() {} }, 0);
+    expect(a.doc.querySelectorAll('#anleiter')).toHaveLength(1);
+    expect(karte() === alt).toBe(false);
+    vi.advanceTimersByTime(199);
+    expect(alt.parentNode === a.app).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(alt.parentNode === null).toBe(true);
+    expect(karte()).not.toBeNull();
+  });
+
+  it('test_nr13_fix_anleiter_ausblenden_weniger_bewegung_sofort', async () => {
+    vi.useFakeTimers();
+    const { anleiterZeigen, anleiterAusblenden } = await anleiter();
+    a.body.classList.add('weniger-bewegung');
+    anleiterZeigen(ansicht(), PLATZ, { weiter() {} }, 0);
+    let alt = karte();
+    animiert.length = 0;
+    anleiterAusblenden();
+    expect(alt.parentNode === null).toBe(true);
+    expect(animiert).toHaveLength(0);
+    // Systemeinstellung „Bewegung reduzieren“ genauso
+    a.body.classList.remove('weniger-bewegung');
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    anleiterZeigen(ansicht(), PLATZ, { weiter() {} }, 0);
+    alt = karte();
+    anleiterAusblenden();
+    expect(alt.parentNode === null).toBe(true);
+    expect(animiert).toHaveLength(0);
+  });
+
+  it('test_nr13_fix_schliessen_wackelt_css', () => {
+    const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
+    const regel = /\.blatt \.schliessen\.wackelt\{animation:([^;}]+)/.exec(css);
+    expect(regel).not.toBeNull();
+    expect(regel![1]).toContain('wackeln');
+    expect(regel![1]).toContain('var(--menue-zeit-ms-wackeln)');
+    expect(css).toMatch(/\.weniger-bewegung \.blatt \.schliessen\.wackelt\{animation:none\}/);
+    expect(css).toMatch(/@media \(prefers-reduced-motion:reduce\)\{\.blatt \.schliessen\.wackelt\{animation:none\}\}/);
   });
 });

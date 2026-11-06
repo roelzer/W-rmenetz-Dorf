@@ -9,7 +9,9 @@ import { T } from './tokens';
 /** Anleiter-Karte des Tutorials: Simon mit Blase, Kapitel-Punkten und [Weiter] (DESIGN 13.2, 13.3, 13.11). Kennt weder Spiel
  *  noch Tutorial – sie zeigt nur, was die Ansicht sagt. */
 
-const M = T.menue.mass_px;
+const M = T.menue.mass_px, Z = T.menue.zeit_ms;
+/** Gleiche Bedingung wie die CSS-Regeln `.weniger-bewegung …` und `prefers-reduced-motion` für das Erscheinen der Karte. */
+const wenigerBewegung = (): boolean => document.body.classList.contains('weniger-bewegung') || matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** Das Tutorial hat sechs Kapitel (DESIGN 13.5). */
 const KAPITEL_ANZAHL = 6;
 
@@ -90,8 +92,19 @@ export function anleiterRechteck(): Rechteck | null {
   return { x: r.left, y: r.top, b: r.width, h: r.height };
 }
 
-/** Nimmt die Karte weg, z. B. solange eine Sprecher-Karte auf ihrem Platz steht (13.3). */
+/** Nimmt die Karte weg, z. B. solange eine Sprecher-Karte auf ihrem Platz steht (13.3: blendet in 200 ms aus).
+ *  Die alte Karte verliert sofort Kennung und Lage, damit eine neue Karte während der Blende die einzige `#anleiter` ist und
+ *  die Eingabesperre die verblassende Karte nicht mehr als Karte zählt. Bei „Weniger Bewegung“ verschwindet sie sofort. */
 export function anleiterAusblenden(): void {
-  wurzel?.remove();
+  const alt = wurzel;
   wurzel = null; warteZeile = null; gebaut = '';
+  if (!alt) return;
+  if (wenigerBewegung()) { alt.remove(); return; }
+  alt.removeAttribute('id');
+  alt.removeAttribute('role');
+  alt.removeAttribute('aria-live');
+  alt.setAttribute('aria-hidden', 'true');
+  alt.style.pointerEvents = 'none';
+  alt.animate([{ opacity: 1 }, { opacity: 0 }], { duration: Z.anleiter_wechsel, fill: 'forwards' });
+  window.setTimeout(() => alt.remove(), Z.anleiter_wechsel);
 }
