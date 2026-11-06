@@ -333,3 +333,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:01 | ■ 🔴 | reviewer | **Ampel: 🔴 Nachbesserung nötig.** Es fehlt nur eine kleine Korrektur in der neuen Testdatei. Der Spielcode selbst ist in Ordnung.  ([Bericht](docs/pruefberichte/20261106-090110-reviewer-a7f1c914068081b5c.md)) |
 | 2026-11-06 09:02 | ■ 🔴 | entwickler | 🔴 **Status: BRAUCHT_KONTEXT.** Ich habe nichts committet. Beide Ursachen sind nachgestellt und belegt. Für keine von beiden gibt es einen kleinen Code-Fix,  ([Bericht](docs/pruefberichte/20261106-090238-entwickler-a94ebfcbac706398d.md)) |
 | 2026-11-06 09:03 | ▶ | tester | Tester: Abnahme-Felder korrigieren |
+| 2026-11-06 09:04 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, aber nur formal.** Alle vier Review-Befunde sind behoben und jeweils mit einer Fehlerprobe belegt. Die Test-Schranke meldet trotzdem � ([Bericht](docs/pruefberichte/20261106-090410-entwickler-abd8188371b4e73b1.md)) |
+| 2026-11-06 09:04 | ▶ | reviewer | Nachprüfung NR18-P4 |
