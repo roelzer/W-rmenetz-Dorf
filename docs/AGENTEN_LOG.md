@@ -448,3 +448,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 13:24 | ■ 🔴 | entwickler | 🔴 BLOCKIERT (Kontext voll). Ein Zwischenstand ist committet, alle Tests sind grün. P4 ist damit aber nur etwa zu einem Fünftel gebaut.  ([Bericht](docs/pruefberichte/20261106-132413-entwickler-a7c2401e76cab0b27.md)) |
 | 2026-11-06 13:24 | ▶ | entwickler | NR13 Paket P4-2 Ansicht/Sperre/Kamera |
 | 2026-11-06 13:38 | ■ 🔴 | entwickler | 🔴 BLOCKIERT (Kontext voll). Der Code für Teil 2 ist eingecheckt, aber noch ungetestet: Für meine neuen Teile gibt es keinen einzigen grünen Test.  ([Bericht](docs/pruefberichte/20261106-133859-entwickler-a801d110f58ebd80c.md)) |
+| 2026-11-06 13:39 | ▶ | entwickler | NR13 P4-2b Tests grün |
