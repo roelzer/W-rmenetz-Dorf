@@ -50,7 +50,7 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
 
   it('A84: Was Euro kostet, ist ein Geld-Knopf (Regel 12.5)', () => {
     const k = lies('src/ui/kontext.ts');
-    for (const a of ['`Wegräumen', '`Ausbauen auf Stufe', '`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen', "'Zurückgewinnen'", "'Baugebiet erschließen'", '`${st.name}', '`PV aufs Dach', "'Puffer einbauen'", 'frei ? `${frei} beauftragen']) {
+    for (const a of ['`Wegräumen', '`Ausbauen auf Stufe', '`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen', "'Zurückgewinnen'", "'Baugebiet erschließen'", '`${st.name}', '`PV aufs Dach', 'frei ? `${frei} beauftragen']) {
       expect(knopfZeile(k, a), a).toMatch(/'geld'/);
     }
     const kat = lies('src/ui/katalog.ts');

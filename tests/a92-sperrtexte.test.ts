@@ -476,19 +476,9 @@ describe('A92 / 12.20 H1–H5 – Haus und Großabnehmer', () => {
       const helfer = b.einer('Helfer beauftragen');
       expect(zeile2(b.a, helfer), 'Seitenblatt: normales Leerzeichen').toBe('ab Heizzentrale Stufe 3');
       pruefeZeile(b, helfer, { schloss: true, hinweis: 'Rücklauf-Helfer gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.' }, 'H2');
-      const p = b.einer('Puffer einbauen');
-      expect(zeile2(b.a, p)).toBe('ab Heizzentrale Stufe 3');
-      pruefeZeile(b, p, { schloss: true, hinweis: 'Puffer im Haus gibt es ab Heizzentrale Stufe 3. Baue die Heizzentrale aus.' }, 'H5');
+      // NR19-P0b (P0b Punkt 3): Puffer-Teil (H5) gestrichen – „Puffer einbauen“ entfällt, die Puffer-Übergabestation ist ab Stufe 1 frei. Rot bis P6.
+      expect(b.mit("Puffer einbauen")).toHaveLength(0);
     });
-  });
-
-  it('A92 H5: Stufe 3, 1.799 € statt 1.800 € – Preis, kein Schloss, Fehlbetrag „1 €“', async () => {
-    const uhr = { t: T0 }, s = neu(3, uhr);
-    s.stand.geld_eur = 1_799;
-    await karte(s, haus(s), uhr, (b) => {
-      pruefeZeile(b, b.einer('Puffer einbauen'), { zeile2: '1.800 €', schloss: false, hinweis: GELD_HINWEIS('1 €') }, 'H5 Geld');
-    });
-    expect(haus(s).hauspuffer).toBeFalsy();
   });
 
   it('A92 H3: alle Helfer beschäftigt – „nächster frei in {Zeit}“, kein Schloss, Hinweis mit der kürzesten Restzeit beim Antippen', async () => {

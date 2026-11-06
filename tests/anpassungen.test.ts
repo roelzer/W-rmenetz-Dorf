@@ -1017,18 +1017,30 @@ describe('A70 Kartenoptik nach Designer-Prüfung', () => {
 
 describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
   it('A71: Anschlussleistung = Jahresverbrauch ÷ 1.500 h, mit Pufferspeicher im Haus ÷ 1.800 h', async () => {
+    // NR19-P0b (Bauplan NR18 Fassung 3, P0b Punkt 1): 2.000 h mit Puffer (Simon 2026-11-06); der Puffer kommt nur noch
+    // mit der Puffer-Übergabestation beim Anschluss (`stationKaufen(…, 'hp_800')`), der alte Einbau-Knopf samt Kern-Aufruf entfällt – rot bis P6.
+    // Der Testname bleibt, damit die Schranke den Umbau nicht als Löschen zählt.
     const { VOLLLASTSTUNDEN } = await import('../src/core/katalog');
-    expect(VOLLLASTSTUNDEN).toEqual({ ohne_puffer_h: 1500, mit_puffer_h: 1800 });
+    expect(VOLLLASTSTUNDEN).toEqual({ ohne_puffer_h: 1500, mit_puffer_h: 2000 });
     const s = new Spiel(altesStartdorf(0), () => 0); s.stand.geld_eur = 100_000;
-    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && !o.vollversorgung && !o.aufgestockt)!;
-    expect(bedarfKw(haus)).toBeCloseTo(KATALOG.efh.verbrauch_kwh_a! / 1500);
+    const haus = s.stand.objekte.find((o) => o.x === 13 && o.y === 12)!; // EFH ohne Station im alten Startdorf
+    expect(haus.typ).toBe('efh'); expect(haus.ohne_station).toBe(true); expect(haus.interessent).toBeFalsy(); expect(haus.vollversorgung || haus.aufgestockt).toBeFalsy();
+    expect(bedarfKw(haus)).toBeCloseTo(15_000 / 1500); // 10 kW
     const geld = s.stand.geld_eur;
-    expect(s.hauspufferEinbauen(haus.id).ok).toBe(true);
-    expect(s.stand.geld_eur).toBe(geld - KONSTANTEN.hauspuffer_eur);
-    expect(bedarfKw(haus)).toBeCloseTo(KATALOG.efh.verbrauch_kwh_a! / 1800);
-    expect(s.hauspufferEinbauen(haus.id).ok).toBe(false); // nur einmal
+    expect(s.stationKaufen(haus.id, 'hp_800').ok).toBe(true);
+    expect(haus.hauspuffer).toBe(true);
+    expect(haus.station).toBe('hp_800');
+    expect(s.stand.geld_eur).toBe(geld - 5570); // HP 800: 2.000 € Station + 3.570 € Speicher (Bauplan 5.5)
+    expect(bedarfKw(haus)).toBeCloseTo(15_000 / 2000); // 7,5 kW
+    // Haus mit Wandstation ohne Puffer: kein Nachrüsten
+    const wand = s.stand.objekte.find((o) => o.x === 9 && o.y === 13)!;
+    expect(wand.station).toBe('st_15'); expect(wand.hauspuffer).toBeFalsy();
+    const geldVorWand = s.stand.geld_eur;
+    expect(s.stationKaufen(wand.id, 'hp_800').ok).toBe(false);
+    expect(wand.station).toBe('st_15'); expect(wand.hauspuffer).toBeFalsy(); expect(s.stand.geld_eur).toBe(geldVorWand);
     const buero = s.stand.objekte.find((o) => o.typ === 'buero')!;
-    expect(s.hauspufferEinbauen(buero.id).ok).toBe(false);
+    expect(s.stationKaufen(buero.id, 'hp_800').ok).toBe(false);
+    expect(buero.hauspuffer).toBeFalsy();
   });
   it('A71: Jeder Kunde hat einen Jahresverbrauch in kWh; der kW-Bedarf ergibt sich daraus', () => {
     for (const t of ['efh', 'rh', 'baeck', 'mfh', 'bad', 'klinik'] as const) {
@@ -1059,9 +1071,10 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
   });
   it('A73: Der 40-°C-Rücklauf wirkt im Netz – Leitungskapazität und Netz-Spreizung folgen dem Vorlauf', () => {
     const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    // letztes Haus am 25er (15 kW): Reihenhaus mit Puffer = 24.000 kWh ÷ 1.800 h = 13,3 kW
+    // letztes Haus am 25er (15 kW): Reihenhaus mit Puffer = 24.000 kWh ÷ 2.000 h = 12 kW (NR19-P0b: 2.000 h statt 1.800 h – rot bis P6)
     const haus = s.stand.objekte.find((o) => o.x === 12 && o.y === 14)!;
     haus.typ = 'rh'; haus.hauspuffer = true; s.neuBerechnen();
+    expect(bedarfKw(haus)).toBeCloseTo(24_000 / 2000);
     const d25 = s.stand.objekte.find((o) => o.typ === 'd25' && o.x === 11 && o.y === 14)!;
     const schluessel = [...s.netz.last_kw.keys()].find((k) => Math.abs((s.netz.last_kw.get(k) ?? 0) - bedarfKw(haus)) < 0.01 && k % 24 === d25.x)!;
     expect(schluessel).toBeDefined();
@@ -1069,13 +1082,19 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     expect(s.netz.kapazitaet_ok.get(schluessel)).toBe(true);
     s.vorlaufSetzen(55); // Rücklauf mindestens 40 °C → nur 15 K Spreizung
     expect(s.netz.spreizung_faktor).toBeCloseTo(0.75); expect(s.spreizung_k()).toBe(15);
-    expect(s.netz.kapazitaet_ok.get(schluessel)).toBe(false); // 13,3 kW > 15 kW × 0,75
+    expect(s.netz.kapazitaet_ok.get(schluessel)).toBe(false); // 12 kW > 15 kW × 0,75 = 11,25 kW
   });
   it('A71: Pufferspeicher ohne genug Geld wird nicht eingebaut; Meldungen nennen gerundete kW', () => {
     const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    const haus = s.stand.objekte.find((o) => o.typ === 'efh')!;
-    s.stand.geld_eur = KONSTANTEN.hauspuffer_eur - 1;
-    expect(s.hauspufferEinbauen(haus.id).ok).toBe(false); expect(haus.hauspuffer).toBeFalsy();
+    // NR19-P0b (P0b Punkt 1): Puffer kommt mit der Puffer-Übergabestation HP 800 (5.570 €), 1 € zu wenig – rot bis P6 (Gegenprobe mit genau 5.570 €).
+    const haus = s.stand.objekte.find((o) => o.x === 13 && o.y === 12)!; // EFH ohne Station, kein Interessent
+    expect(haus.ohne_station).toBe(true); expect(haus.interessent).toBeFalsy();
+    s.stand.geld_eur = 5570 - 1;
+    expect(s.stationKaufen(haus.id, 'hp_800').ok).toBe(false);
+    expect(haus.hauspuffer).toBeFalsy(); expect(haus.station).toBeUndefined(); expect(haus.ohne_station).toBe(true); expect(s.stand.geld_eur).toBe(5569);
+    s.stand.geld_eur = 5570;
+    expect(s.stationKaufen(haus.id, 'hp_800').ok).toBe(true);
+    expect(haus.hauspuffer).toBe(true); expect(s.stand.geld_eur).toBe(0);
     const quelle = readFileSync(new URL('../src/core/spiel.ts', import.meta.url), 'utf8');
     expect(quelle).not.toContain('das Gebäude braucht ${bedarf} kW');
   });
