@@ -2,7 +2,7 @@ import {
   KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht,
+  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
@@ -611,15 +611,20 @@ export class Spiel {
     if (puffer && KATALOG[o.typ].kategorie !== 'haus') return { ok: false };
     // NR19: Den Speicher gibt es nur beim Anschluss; ein Haus mit Wandstation ohne Puffer behält seine Bauart.
     if (puffer && o.station && !o.hauspuffer) return this.nein('Den Puffer gibt es nur beim Anschluss. Für dieses Haus geht nur eine Wandstation.');
-    const p = { ...o, hauspuffer: o.hauspuffer || puffer };
+    // NR19 (Review P6, Weg a): Der Speicher gehört zur Puffer-Station. Eine Wandstation statt ihrer gibt es erst, wenn keine
+    // Puffer-Station mehr reicht – dann fällt der Puffer mit der alten Station weg (sonst wirkte ein zurückgekaufter Speicher weiter).
+    const pufferWeg = !puffer && istPufferStation(stationHolen(o.station));
+    if (pufferWeg && pufferStationReicht(o)) return this.nein('Dieses Haus hat eine Puffer-Station. Tausch nur gegen eine größere Puffer-Station.');
+    const p = { ...o, hauspuffer: !pufferWeg && (o.hauspuffer || puffer) };
     // A88/NR19: Ohne freie Stationswahl gibt es je Bauart nur die kleinste passende Station (so bleibt jedes Haus versorgbar).
     const kleinste = puffer
       ? passendePufferStation(bedarfKw({ ...o, hauspuffer: true }), bedarfKw({ ...o, hauspuffer: false }))?.id
-      : passendeStation(bedarfKw(o)).id;
+      : passendeStation(bedarfKw(p)).id;
     if (st.id !== kleinste) { const sperre = this.gesperrt('stationstypen'); if (sperre) return sperre; }
     if (!stationReicht(st, p)) {
       const netz_kw = bedarfKw(p), runde = (n: number): number => Math.round(n * 10) / 10;
-      // Ohne Spitzenangabe prüft stationReicht nur die Netzleistung – reicht die, fehlt es an der Spitze im Haus.
+      // Ohne Spitzenangabe prüft stationReicht nur die Netzleistung – reicht die, fehlt es an der Spitze im Haus. Kein direkter
+      // Vergleich leistung_kw ≥ Bedarf hier: Architekturregel F3 erlaubt solche Vergleiche nur in netz.ts/katalog.ts.
       const { spitze_kw: _spitze, ...nurNetz } = st as Station & { spitze_kw?: number };
       if (puffer && stationReicht(nurNetz, p)) return this.nein(`${st.name} gibt im Haus nur ${st.spitze_kw} kW ab, das Haus braucht in der Spitze ${runde(bedarfKw({ ...p, hauspuffer: false }))} kW`);
       return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${runde(netz_kw)} kW`);
@@ -633,6 +638,7 @@ export class Spiel {
     o.station = st.id; delete o.ohne_station; o._pop = this.uhr();
     // NR19: vor neuBerechnen und vor der NR18-Warnprüfung, damit beide mit 2.000 Volllaststunden rechnen
     if (puffer) o.hauspuffer = true;
+    if (pufferWeg) delete o.hauspuffer;
     this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     this.neuBerechnen();
     this.schritt('station_gekauft', o.id);

@@ -184,12 +184,12 @@ describe('NR19 Puffer-Übergabestation – Netz und Kauf', () => {
     expect(stationReicht(st(9.5), efh)).toBe(false);
     expect(stationReicht(katalog.stationHolen('st_15')!, objekt('efh'))).toBe(true); // Wandstation: nur die Leistung
     expect(stationReicht(katalog.stationHolen('st_15')!, objekt('efh', { vollversorgung: true, aufgestockt: true }))).toBe(false);
-    const hp800 = K.PUFFER_STATIONEN[0] as { spitze_kw: number };
+    const hp800 = K.PUFFER_STATIONEN[0] as { spitze_kw: number }, spitzeVorher = hp800.spitze_kw;
     hp800.spitze_kw = 9;
     try {
       const s3 = altesDorf(2), e3 = ohneStation(s3);
       expect(s3.stationKaufen(e3.id, 'hp_800')).toEqual({ ok: false, hinweis: 'Puffer-Übergabestation HP 800 gibt im Haus nur 9 kW ab, das Haus braucht in der Spitze 10 kW' });
-    } finally { hp800.spitze_kw = 19; }
+    } finally { hp800.spitze_kw = spitzeVorher; }
   });
 
   it('NR19 test_nr19_spitze: Haus mit HP 800 wird nach Kamin aus und Aufstockung kalt „station“', () => {
@@ -202,9 +202,9 @@ describe('NR19 Puffer-Übergabestation – Netz und Kauf', () => {
     // Nur die Spitze zu klein (künstlich 9 kW < 10 kW ohne Puffer): auch dann „Station zu klein“
     h.vollversorgung = false; h.aufgestockt = false; s.neuBerechnen();
     expect(s.netz.warm.has(h.id)).toBe(true);
-    const hp800 = K.PUFFER_STATIONEN[0] as { spitze_kw: number };
+    const hp800 = K.PUFFER_STATIONEN[0] as { spitze_kw: number }, spitzeVorher = hp800.spitze_kw;
     hp800.spitze_kw = 9;
-    try { s.neuBerechnen(); expect(s.netz.kalt.get(h.id)).toBe('station'); } finally { hp800.spitze_kw = 19; }
+    try { s.neuBerechnen(); expect(s.netz.kalt.get(h.id)).toBe('station'); } finally { hp800.spitze_kw = spitzeVorher; }
   });
 
   it('NR19 test_nr19_grossabnehmer_ohne_puffer: Großabnehmer bekommen keine Puffer-Station', () => {
@@ -292,5 +292,72 @@ describe('NR19 Puffer-Übergabestation – Spielstand und Freischaltung', () => 
     expect(Object.keys(FREISCHALTUNGEN)).not.toContain('hauspuffer');
     expect(Object.keys(FUNKTION_NAME)).not.toContain('hauspuffer');
     expect(Object.keys(KONSTANTEN)).not.toContain('hauspuffer_eur');
+  });
+});
+
+describe('NR19 Tausch einer Puffer-Station (Review P6 W1, Weg a)', () => {
+  const SATZ_NUR_PUFFER = 'Dieses Haus hat eine Puffer-Station. Tausch nur gegen eine größere Puffer-Station.';
+
+  it('NR19: HP 800 → st_15 abgelehnt (15 kW > 14 kW zählt nicht), Puffer und Geld bleiben', () => {
+    const s = altesDorf(2), h = ohneStation(s);
+    expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
+    const geld = s.stand.geld_eur;
+    expect(s.stationKaufen(h.id, 'st_15')).toEqual({ ok: false, hinweis: SATZ_NUR_PUFFER });
+    expect(h.station).toBe('hp_800'); expect(h.hauspuffer).toBe(true); expect(s.stand.geld_eur).toBe(geld);
+  });
+
+  it('NR19: HP 800 nach Kamin aus und Aufstockung (15,75 kW Netz) – HP 1000 reicht, also keine Wandstation, auch ohne Stationswahl', () => {
+    for (const stufe of [1, 2]) {
+      const s = altesDorf(stufe), h = ohneStation(s);
+      expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
+      h.vollversorgung = true; h.aufgestockt = true; s.neuBerechnen();
+      expect(s.stationKaufen(h.id, 'st_25')).toEqual({ ok: false, hinweis: SATZ_NUR_PUFFER });
+      expect(h.station).toBe('hp_800'); expect(h.hauspuffer).toBe(true);
+      expect(s.stationKaufen(h.id, 'hp_1000').ok).toBe(true); // 20 kW ≥ 15,75 kW, 27 kW ≥ 21 kW
+    }
+  });
+
+  it('NR19: keine Puffer-Station reicht → Wandstation nach Bedarf ohne Puffer, der Puffer ist weg', () => {
+    // MFH 45.000 kWh × 1,5 × 1,4 = 94.500 kWh: mit Puffer 47,25 kW > 40 kW der ÜP 1000, ohne Puffer ÷ 1.500 h = 63 kW
+    const s = altesDorf(1), m = ohneStation(s);
+    m.typ = 'mfh'; s.neuBerechnen();
+    expect(s.stationKaufen(m.id, 'up_1000').ok).toBe(true); // 22,5 kW Netz, 30 kW Spitze
+    m.vollversorgung = true; m.aufgestockt = true; s.neuBerechnen();
+    // Ohne Stationswahl nur die kleinste Wandstation für 63 kW: Typ 80, nicht Typ 60
+    expect(s.stationKaufen(m.id, 'st_60').ok).toBe(false);
+    expect(m.station).toBe('up_1000'); expect(m.hauspuffer).toBe(true);
+    const geld = s.stand.geld_eur;
+    expect(s.stationKaufen(m.id, 'st_80').ok).toBe(true);
+    expect(m.station).toBe('st_80'); expect(m.hauspuffer).toBeFalsy();
+    expect(bedarfKw(m)).toBeCloseTo(63, 9);
+    expect(s.stand.geld_eur).toBe(geld - 5215); // 9.000 € − 7.570 € ÷ 2
+    expect(s.netz.kalt.has(m.id)).not.toBe(true);
+  });
+
+  it('NR19: keine Puffer-Station reicht, mit Stationswahl – Typ 60 schafft die 63 kW ohne Puffer nicht', () => {
+    const s = altesDorf(2), m = ohneStation(s);
+    m.typ = 'mfh'; s.neuBerechnen();
+    expect(s.stationKaufen(m.id, 'up_1000').ok).toBe(true);
+    m.vollversorgung = true; m.aufgestockt = true; s.neuBerechnen();
+    expect(s.stationKaufen(m.id, 'st_60')).toEqual({ ok: false, hinweis: 'Wandstation Typ 60 schafft nur 60 kW, das Gebäude braucht 63 kW' });
+    expect(m.hauspuffer).toBe(true);
+    expect(s.stationKaufen(m.id, 'st_80').ok).toBe(true);
+    expect(m.hauspuffer).toBeFalsy();
+  });
+
+  it('NR19: Altstand Puffer + Wandstation bleibt unverändert – eine größere Wandstation behält den Puffer', () => {
+    const s = altesDorf(1), w = mitWand(s);
+    w.hauspuffer = true; w.vollversorgung = true; w.aufgestockt = true; s.neuBerechnen(); // 15,75 kW > 15 kW
+    expect(s.stationKaufen(w.id, 'st_25').ok).toBe(true); // kleinste für 15,75 kW mit Puffer
+    expect(w.station).toBe('st_25'); expect(w.hauspuffer).toBe(true);
+    expect(bedarfKw(w)).toBeCloseTo(15.75, 9);
+  });
+
+  it('NR19: Altstand Puffer ohne Station – die Wandstation rechnet mit dem vorhandenen Puffer (7,5 kW), der Puffer bleibt', () => {
+    const s = altesDorf(1), h = ohneStation(s);
+    h.hauspuffer = true; s.neuBerechnen();
+    expect(s.stationKaufen(h.id, 'st_15').ok).toBe(true);
+    expect(h.station).toBe('st_15'); expect(h.hauspuffer).toBe(true);
+    expect(bedarfKw(h)).toBe(7.5);
   });
 });

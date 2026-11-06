@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, GRUNDGEBUEHR, SPIELJAHR_MS, istLeitung, istPufferStation, stationHolen,
+  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, GRUNDGEBUEHR, SPIELJAHR_MS, istLeitung, istPufferStation, stationHolen, PUFFER_STATIONEN,
   type Station, type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
@@ -461,6 +461,11 @@ export function bedarfKw(o: Objekt): number {
 export function stationReicht(st: Station, o: Objekt): boolean {
   if (st.leistung_kw < bedarfKw(o)) return false;
   return !istPufferStation(st) || st.spitze_kw >= bedarfKw({ ...o, hauspuffer: false });
+}
+
+/** NR19: Reicht für das Haus noch eine der Puffer-Stationen? Solange ja, tauscht ein Haus mit Puffer-Station nur gegen eine größere Puffer-Station. */
+export function pufferStationReicht(o: Objekt): boolean {
+  return PUFFER_STATIONEN.some((st) => stationReicht(st, { ...o, hauspuffer: true }));
 }
 
 /** Dorfwert für die Rangliste. */
