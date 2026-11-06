@@ -1,5 +1,5 @@
-import { ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, STATIONEN, hatStufen, passendeStation, stationHolen, type TypId } from '../core/katalog';
-import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k } from '../core/netz';
+import { ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type Station, type TypId } from '../core/katalog';
+import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, spreizungHaus_k, stationReicht } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
@@ -24,11 +24,18 @@ export function anfrageKasten(sp: Spiel, o: Objekt, nachAktion: () => void): HTM
     ? 'Darf ich meinen Kaminofen abschalten und ganz mit Fernwärme heizen?'
     : 'Wir bauen ein Stockwerk auf – könnt ihr mehr Wärme liefern?'),
   zeile('Anschlussleistung danach', `${kw(vorher_kw)} → ${kw(nachher_kw)} kW`));
-  if (st && st.leistung_kw < nachher_kw) k.append(chip('Station dann zu klein', 'rot'));
+  if (st && !stationReicht(st, sp.anfrageObjekt(o))) k.append(chip('Station dann zu klein', 'rot'));
   k.append(h('div', { class: 'knopfreihe' },
     knopf('Annehmen', () => { sp.anfrageAnnehmen(o.id); nachAktion(); }, 'los', { klein: true, unter: `+${kw(nachher_kw - vorher_kw)} kW Bedarf` }),
     knopf('Später', () => { sp.anfrageAblehnen(o.id); nachAktion(); }, '', { klein: true, unter: 'fragt später wieder' })));
   return k;
+}
+
+/** NR19: Zeile „Übergabestation“ der Hauskarte – Puffer-Station mit beiden Leistungen, alter Stand „Puffer + Wandstation“ mit Zusatz. */
+function stationZeile(st: Station | undefined, o: Objekt): string {
+  if (!st) return 'keine';
+  if (istPufferStation(st)) return `${st.name} · ${st.leistung_kw} kW Netz, ${st.spitze_kw} kW im Haus`;
+  return `${st.name} · ${st.leistung_kw} kW${o.hauspuffer ? ', mit Puffer' : ''}`;
 }
 
 /** A92 (NR16): Hinweis beim Antippen des gesperrten T-Stück-Knopfs – Spieler hielten das T-Stück für nötig zum Anschließen.
@@ -188,7 +195,7 @@ export class Kontext {
     c.append(chips);
     const st = stationHolen(o.station);
     const vlh = o.hauspuffer ? VOLLLASTSTUNDEN.mit_puffer_h : VOLLLASTSTUNDEN.ohne_puffer_h;
-    c.append(zeile('Jahresverbrauch', `${zahl((D.verbrauch_kwh_a ?? 0) * nutzungsfaktor(o))} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW (÷ ${zahl(vlh)} h)`), zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW` : 'keine'));
+    c.append(zeile('Jahresverbrauch', `${zahl((D.verbrauch_kwh_a ?? 0) * nutzungsfaktor(o))} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW (÷ ${zahl(vlh)} h)`), zeile('Übergabestation', stationZeile(st, o)));
     const anfrage = anfrageKasten(sp, o, () => this.ui.geaendert());
     if (anfrage) c.append(anfrage);
     if (istKunde(o) && an) this.rechnungBereich(c, o); // A81: nur angeschlossene Kunden bekommen eine Rechnung
@@ -209,7 +216,6 @@ export class Kontext {
       : 'Angeschlossen, aber eine Leitung auf dem Weg ist zu dünn. Ersetze sie durch eine dickere Leitung.'));
     else if (!warm) c.append(h('p', {}, 'Angeschlossen, aber es kommt zu wenig Wärme an. Baue eine weitere Wärmequelle oder erhöhe die Leistung.'));
     if (o.ohne_station || o.station) this.stationswahl(c, o);
-    this.pufferBereich(c, o);
     this.upgradeBereich(c, o);
     this.ausbauKnopf(c, o);
     c.append(h('p', { class: 'gedaempft' }, 'Gebäude stehen fest. Wer näher am Netz liegt, hat es leichter – wer weit weg ist, braucht eine lange Leitung.'));
@@ -231,18 +237,6 @@ export class Kontext {
       ? knopf('Hausanschluss geplant', () => undefined, '', { klein: true, sperre: ANSCHLUSS_GEPLANT })
       : knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, sperre })));
     return reihen;
-  }
-
-  /** A71: Pufferspeicher im Haus – Anschlussleistung aus 1.800 statt 1.500 Volllaststunden. */
-  private pufferBereich(c: HTMLElement, o: Objekt): void {
-    const sp = this.ui.spiel, kwh = (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o);
-    const k = kasten('Pufferspeicher im Haus');
-    if (o.hauspuffer) { k.append(h('p', { class: 'gedaempft' }, `Eingebaut. Der Puffer fängt die Spitzen ab: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} Volllaststunden = ${kw(bedarfKw(o))} kW Anschlussleistung.`)); c.append(k); return; }
-    const mit_kw = bedarfKw(o) * VOLLLASTSTUNDEN.ohne_puffer_h / VOLLLASTSTUNDEN.mit_puffer_h;
-    const sperre = sp.sperrgrund('hauspuffer'); // A88: gesperrt = Kastentitel und deaktivierter Knopf mit Grund, kein Erklärtext
-    if (!sperre) k.append(h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)} h = ${kw(bedarfKw(o))} kW. Mit Puffer reichen ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} h: ${kw(mit_kw)} kW – kleinere Station und dünnere Leitung genügen.`));
-    k.append(h('div', { class: 'knopfreihe' }, knopf('Puffer einbauen', () => { sp.hauspufferEinbauen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.hauspuffer_eur), sperre: ersteSperre(stufenSperre(sp, 'hauspuffer'), geldSperre(sp, KONSTANTEN.hauspuffer_eur)) })));
-    c.append(k);
   }
 
   /** A33: Hausupgrades senken die nötige Vorlauftemperatur (Rücklauf). */
@@ -291,7 +285,8 @@ export class Kontext {
     return Math.min(...HELFER.map((name) => sp.helferAuftrag(name)?.ende_ms ?? Infinity));
   }
 
-  /** A32: Auswahl der Übergabestation – nur Typen, die den Bedarf schaffen; die kleinste passende ist empfohlen. */
+  /** A32/NR19: Auswahl der Übergabestation – Reihe „Mit Pufferspeicher“ (nur Häuser, nur beim Anschluss) und die Wandstationen wie bisher;
+   *  nur Typen, die den Bedarf schaffen, die kleinste passende je Reihe ist empfohlen. */
   private stationswahl(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, bedarf = bedarfKw(o);
     const empfohlen = passendeStation(bedarf).id, alt = stationHolen(o.station);
@@ -300,19 +295,50 @@ export class Kontext {
     k.append(h('p', { class: 'gedaempft' }, alt
       ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${kw(bedarf)} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
       : `Das Gebäude braucht ${kw(bedarf)} kW.${frei ? ' Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.' : ''}`));
-    if (alt && alt.leistung_kw < bedarf) k.append(chip('Station zu klein', 'rot'));
-    const reihe = h('div', { class: 'knopfreihe' });
+    const zuKlein = !!alt && !stationReicht(alt, o);
+    if (zuKlein) k.append(chip('Station zu klein', 'rot'));
+    const groesser = (st: Station): boolean => !alt || st.leistung_kw > alt.leistung_kw;
+    const pufferReihe = this.pufferKnoepfe(o, frei, !alt || zuKlein, groesser);
+    const wand: HTMLButtonElement[] = [];
     // A88: Ohne freie Stationswahl gibt es nur die kleinste passende Station – so bleibt jedes Haus versorgbar.
-    if (!frei && (!alt || alt.leistung_kw < bedarf)) {
+    if (!frei && (!alt || zuKlein)) {
       const st = passendeStation(bedarf);
-      reihe.append(knopf(alt ? 'Größere Station einbauen' : 'Station einbauen', () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${st.name} · ${eur(sp.stationspreis_eur(o, st))}` }));
+      wand.push(knopf(alt ? 'Größere Station einbauen' : 'Station einbauen', () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${st.name} · ${eur(sp.stationspreis_eur(o, st))}` }));
     }
-    if (frei) for (const st of STATIONEN.filter((x) => x.leistung_kw >= bedarf && (!alt || x.leistung_kw > alt.leistung_kw)).slice(0, 3)) {
+    if (frei) for (const st of STATIONEN.filter((x) => stationReicht(x, o) && groesser(x)).slice(0, 3)) {
       const preis = sp.stationspreis_eur(o, st);
-      reihe.append(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis) }));
+      wand.push(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis) }));
     }
-    k.append(reihe);
+    if (pufferReihe) {
+      const kwh = (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o);
+      k.append(h('p', {}, 'Mit Pufferspeicher'));
+      if (!alt) k.append(h('p', { class: 'gedaempft' }, `Mit Puffer: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.mit_puffer_h)} h = ${kw(bedarfKw({ ...o, hauspuffer: true }))} kW aus dem Netz. Der Speicher fängt die Spitze ab.`));
+      k.append(pufferReihe);
+      // Ein altes Haus mit Puffer und Wandstation behält seinen Puffer auch mit einer neuen Wandstation.
+      if (wand.length) k.append(h('p', {}, o.hauspuffer ? 'Wandstation' : 'Wandstation ohne Puffer'));
+      if (!alt) k.append(h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)} kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)} h = ${kw(bedarfKw({ ...o, hauspuffer: false }))} kW – das Netz muss die Spitze liefern.`));
+    }
+    k.append(h('div', { class: 'knopfreihe' }, ...wand));
+    if (pufferReihe && !alt) k.append(h('p', { class: 'gedaempft' }, 'Den Puffer wählst du nur beim Anschluss.'));
     c.append(k);
+  }
+
+  /** NR19: Knöpfe der Reihe „Mit Pufferspeicher“ – ohne freie Stationswahl die kleinste passende, sonst höchstens zwei; `null` = keine Reihe.
+   *  Zeile 2 nennt die Leistung aus dem Netz (mit Puffer) und den Preis – kurz „vom Netz“, weil Zeile 2 höchstens 28 Zeichen hat (DESIGN 12.20); fehlt Geld, bleibt der Preis stehen und der Hinweis nennt den Fehlbetrag. */
+  private pufferKnoepfe(o: Objekt, frei: boolean, noetig: boolean, groesser: (st: Station) => boolean): HTMLDivElement | null {
+    const sp = this.ui.spiel;
+    if (KATALOG[o.typ].kategorie !== 'haus' || (o.station && !o.hauspuffer)) return null;
+    const mit = { ...o, hauspuffer: true }, netz_kw = bedarfKw(mit);
+    const empfohlen = passendePufferStation(netz_kw, bedarfKw({ ...o, hauspuffer: false }));
+    const wahl = frei
+      ? PUFFER_STATIONEN.filter((st) => stationReicht(st, mit) && groesser(st)).slice(0, 2)
+      : noetig && empfohlen && groesser(empfohlen) ? [empfohlen] : [];
+    if (!wahl.length) return null;
+    return h('div', { class: 'knopfreihe' }, ...wahl.map((st) => {
+      const preis = sp.stationspreis_eur(o, st);
+      return knopf(st.name, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen?.id ? 'geld' : '',
+        { klein: true, unter: `${kw(netz_kw)} kW vom Netz · ${eur(preis)}`, sperre: geldSperre(sp, preis) });
+    }));
   }
 
   private gross(c: HTMLElement, o: Objekt): void {

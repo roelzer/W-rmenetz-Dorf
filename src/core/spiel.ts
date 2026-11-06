@@ -1,8 +1,8 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, stationHolen, hatStufen, istLeitung, istQuelle, type TypId,
+  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde,
+  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
@@ -607,10 +607,23 @@ export class Spiel {
   stationKaufen(id: number, stationId: string): Ergebnis {
     const o = this.objekt(id), st = stationHolen(stationId);
     if (!o || !st || !(o.ohne_station || o.station) || o.bau) return { ok: false };
-    const bedarf = bedarfKw(o);
-    // A88: Ohne freie Stationswahl gibt es nur die kleinste passende Station (so bleibt jedes Haus versorgbar, Bauplan Abschnitt 5).
-    if (st.id !== passendeStation(bedarf).id) { const sperre = this.gesperrt('stationstypen'); if (sperre) return sperre; }
-    if (st.leistung_kw < bedarf) return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${Math.round(bedarf * 10) / 10} kW`);
+    const puffer = istPufferStation(st);
+    if (puffer && KATALOG[o.typ].kategorie !== 'haus') return { ok: false };
+    // NR19: Den Speicher gibt es nur beim Anschluss; ein Haus mit Wandstation ohne Puffer behält seine Bauart.
+    if (puffer && o.station && !o.hauspuffer) return this.nein('Den Puffer gibt es nur beim Anschluss. Für dieses Haus geht nur eine Wandstation.');
+    const p = { ...o, hauspuffer: o.hauspuffer || puffer };
+    // A88/NR19: Ohne freie Stationswahl gibt es je Bauart nur die kleinste passende Station (so bleibt jedes Haus versorgbar).
+    const kleinste = puffer
+      ? passendePufferStation(bedarfKw({ ...o, hauspuffer: true }), bedarfKw({ ...o, hauspuffer: false }))?.id
+      : passendeStation(bedarfKw(o)).id;
+    if (st.id !== kleinste) { const sperre = this.gesperrt('stationstypen'); if (sperre) return sperre; }
+    if (!stationReicht(st, p)) {
+      const netz_kw = bedarfKw(p), runde = (n: number): number => Math.round(n * 10) / 10;
+      // Ohne Spitzenangabe prüft stationReicht nur die Netzleistung – reicht die, fehlt es an der Spitze im Haus.
+      const { spitze_kw: _spitze, ...nurNetz } = st as Station & { spitze_kw?: number };
+      if (puffer && stationReicht(nurNetz, p)) return this.nein(`${st.name} gibt im Haus nur ${st.spitze_kw} kW ab, das Haus braucht in der Spitze ${runde(bedarfKw({ ...p, hauspuffer: false }))} kW`);
+      return this.nein(`${st.name} schafft nur ${st.leistung_kw} kW, das Gebäude braucht ${runde(netz_kw)} kW`);
+    }
     const alt = stationHolen(o.station);
     if (alt && alt.leistung_kw >= st.leistung_kw) return this.nein('Es steht schon eine gleich große oder größere Station');
     const b = this.bezahlen({ eur: this.stationspreis_eur(o, st) });
@@ -618,6 +631,8 @@ export class Spiel {
     const warOhne = !!o.ohne_station;
     delete o.interessent;
     o.station = st.id; delete o.ohne_station; o._pop = this.uhr();
+    // NR19: vor neuBerechnen und vor der NR18-Warnprüfung, damit beide mit 2.000 Volllaststunden rechnen
+    if (puffer) o.hauspuffer = true;
     this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     this.neuBerechnen();
     this.schritt('station_gekauft', o.id);
@@ -741,19 +756,6 @@ export class Spiel {
       }
     }
     return [...felder];
-  }
-  /** A71: Pufferspeicher im Haus einbauen – die Anschlussleistung sinkt (1.800 statt 1.500 Volllaststunden), der Jahresverbrauch bleibt. */
-  hauspufferEinbauen(id: number): Ergebnis {
-    const o = this.objekt(id);
-    if (!o || KATALOG[o.typ].kategorie !== 'haus' || o.hauspuffer || o.gekuendigt) return { ok: false };
-    const sperre = this.gesperrt('hauspuffer');
-    if (sperre) return sperre;
-    const b = this.bezahlen({ eur: KONSTANTEN.hauspuffer_eur });
-    if (!b.ok) return b;
-    o.hauspuffer = true; o._pop = this.uhr();
-    this.neuBerechnen();
-    this.hinweis(`${KATALOG[o.typ].name}: Pufferspeicher eingebaut – Anschlussleistung jetzt ${Math.round(bedarfKw(o) * 10) / 10} kW`);
-    return ok();
   }
   /** A69: Im offenen Bauabschnitt auf eine geplante Leitung ein T-Stück mit Vorsehung setzen oder wieder wegnehmen. */
   vorsehungUmschalten(id: number): Ergebnis {
@@ -974,10 +976,12 @@ export class Spiel {
     return ok();
   }
   /** A88/F2: Anschlussleistung nach dem Annehmen der offenen Anfrage (ohne gültige Anfrage = heutiger Bedarf). */
-  anfrageBedarf_kw(o: Objekt): number {
-    if (o.anfrage === 'vollversorgung') return bedarfKw({ ...o, vollversorgung: true });
-    if (o.anfrage === 'aufstockung') return bedarfKw({ ...o, aufgestockt: true });
-    return bedarfKw(o);
+  anfrageBedarf_kw(o: Objekt): number { return bedarfKw(this.anfrageObjekt(o)); }
+  /** NR19: das Gebäude, wie es nach dem Annehmen der offenen Anfrage wäre (ohne gültige Anfrage = unverändert) – für `stationReicht`. */
+  anfrageObjekt(o: Objekt): Objekt {
+    if (o.anfrage === 'vollversorgung') return { ...o, vollversorgung: true };
+    if (o.anfrage === 'aufstockung') return { ...o, aufgestockt: true };
+    return o;
   }
 
   foerderungBeantragen(t: TypId): Ergebnis {

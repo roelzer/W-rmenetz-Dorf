@@ -381,16 +381,16 @@ export const KONSTANTEN = {
   vorsehung_eur: 300,
   /** A69: Abzweig nachträglich an eine laufende Leitung ohne Vorsehung (Absperren/Anbohren); Spielwert (Recherche fand keine Baukosten, siehe docs/recherche/vorsehung_anbohrung.md) */
   anbohrung_eur: 2500,
-  /** A71: Pufferspeicher im Haus einbauen; Spielwert */
-  hauspuffer_eur: 1800,
   /** Q2 (Simon 2026-11-05): Ein Feld ist 10 m lang. */
   feldlaenge_m: 10,
   starttaler: 100,
   hoechststufe: 5,
 } as const;
 
-/** A71 (Simon 2026-11-05): Anschlussleistung = Jahresverbrauch ÷ Volllaststunden. Mit Pufferspeicher im Haus 1.800 h, nur Übergabestation ohne Puffer 1.500 h. */
-export const VOLLLASTSTUNDEN = { ohne_puffer_h: 1500, mit_puffer_h: 1800 } as const;
+/** A71/NR19: Anschlussleistung = Jahresverbrauch ÷ Volllaststunden. Mit Puffer-Übergabestation 2.000 h, Wandstation ohne Puffer 1.500 h. */
+export const VOLLLASTSTUNDEN = { ohne_puffer_h: 1500, mit_puffer_h: 2000 } as const;
+// Quelle: Simon 2026-11-06; mit Puffer: ENERPIPE TI 04/26 S. 18 (2.000–2.200 h, Herstellerwert);
+// ohne Puffer: üblich 1.500 h, 1.700 h mit Warmwasser (Fraunhofer UMSICHT Leitfaden Nahwärme S. 11, ohne Puffer-Bezug).
 for (const D of Object.values(KATALOG)) if (D.verbrauch_kwh_a) D.bedarf_kw = D.verbrauch_kwh_a / VOLLLASTSTUNDEN.ohne_puffer_h;
 
 // Realistische Preisklasse: Technik kostet mehr als die Rohwerte oben (A29). Deko und Hindernisse bleiben günstig.
@@ -410,9 +410,28 @@ export const STATIONEN: ReadonlyArray<Station> = [
   { id: 'st_80', name: 'Wandstation Typ 80', leistung_kw: 80, kosten_eur: 9000, beschreibung: 'Größte Wandstation, für große Mehrfamilienhäuser.' },
   { id: 'st_cad', name: 'CAD-Großabnehmerstation', leistung_kw: 150, kosten_eur: 20000, beschreibung: 'Für Hallenbad, Klinik und Industrie (ab ca. 100 kW).' }, // A87: kein Firmenname im angezeigten Text
 ];
-export const stationHolen = (id: string | undefined): Station | undefined => STATIONEN.find((s) => s.id === id);
-/** Kleinste Station, die den Bedarf übergibt. */
+/**
+ * NR19: Pufferspeicher mit angebauter Übergabestation, nur für Häuser und nur beim Anschluss. `leistung_kw` = Ladeleistung aus
+ * dem Netz, `spitze_kw` = Spitzenleistung im Haus. Leistungen: ENERPIPE „Pufferspeichersysteme“ 06/18 S. 13 Tab. 4
+ * (Netz 80/60 °C), Gegenprüfung 2026-11-06; die Ausgabe 04/26 beschriftet anders (ÜP nur 40 kW, keine Spitze genannt).
+ * Preis = Station allein nach Netz-Ladeleistung (Adelsdorf 2024: 2.000 € bis 15 kW, 3.000 € 15–25 kW, 4.000 € 25–50 kW)
+ * + Speicher-Aufpreis 3.570 € (Donauwörth Q3/2026, Variante 3 − 1), brutto, regional – Spielannahme, Simon 2026-11-06.
+ * Ohne kosten_faktor: Die Preise sind schon echte Euro.
+ */
+export interface PufferStation extends Station { spitze_kw: number; speicher_l: number }
+const SPEICHER_AUFPREIS_EUR = 3570;
+export const PUFFER_STATIONEN: ReadonlyArray<PufferStation> = [
+  { id: 'hp_800', name: 'Puffer-Übergabestation HP 800', leistung_kw: 14, spitze_kw: 19, speicher_l: 800, kosten_eur: 2000 + SPEICHER_AUFPREIS_EUR, beschreibung: '800-l-Speicher mit Rohrwendel: lädt mit 14 kW, gibt im Haus bis 19 kW ab.' },
+  { id: 'hp_1000', name: 'Puffer-Übergabestation HP 1000', leistung_kw: 20, spitze_kw: 27, speicher_l: 1000, kosten_eur: 3000 + SPEICHER_AUFPREIS_EUR, beschreibung: '1.000-l-Speicher mit Rohrwendel: lädt mit 20 kW, gibt im Haus bis 27 kW ab.' },
+  { id: 'up_1000', name: 'Puffer-Übergabestation ÜP 1000', leistung_kw: 40, spitze_kw: 54, speicher_l: 1000, kosten_eur: 4000 + SPEICHER_AUFPREIS_EUR, beschreibung: '1.000-l-Speicher mit Plattentauscher: lädt mit 40 kW, gibt im Haus bis 54 kW ab.' },
+];
+export const istPufferStation = (st: Station | undefined): st is PufferStation => !!st && 'spitze_kw' in st;
+export const stationHolen = (id: string | undefined): Station | undefined => STATIONEN.find((s) => s.id === id) ?? PUFFER_STATIONEN.find((s) => s.id === id);
+/** Kleinste Wandstation, die den Bedarf übergibt (Puffer-Stationen wählt `passendePufferStation`). */
 export const passendeStation = (bedarf_kw: number): Station => STATIONEN.find((s) => s.leistung_kw >= bedarf_kw) ?? STATIONEN[STATIONEN.length - 1];
+/** NR19: kleinste Puffer-Station, die die Netz-Ladeleistung und die Spitze im Haus schafft; `null` = keine reicht. */
+export const passendePufferStation = (netz_kw: number, spitze_kw: number): PufferStation | null =>
+  PUFFER_STATIONEN.find((s) => s.leistung_kw >= netz_kw && s.spitze_kw >= spitze_kw) ?? null;
 
 /** Vorlauftemperatur der Heizzentrale (A33). Niedriger spart Verlustkosten, ist aber für schlecht gedämmte Häuser zu kalt. Spielwerte. */
 export const VORLAUF = { min_c: 55, max_c: 85, start_c: 75, schritt_c: 5, ersparnis_je_k: 0.012 } as const;

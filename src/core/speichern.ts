@@ -1,4 +1,4 @@
-import { KATALOG, KONSTANTEN, istLeitung, type TypId } from './katalog';
+import { KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
 import { belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
 import { neuerSpielstand } from './spiel';
@@ -56,6 +56,19 @@ function nr18Aufraeumen(stand: Spielstand): void {
     const gueltigerErsatz = typeof typ === 'string' && istLeitung(typ as TypId) && istLeitung(o.typ) && !o.geplant
       && kapazitaet(typ as TypId) > kapazitaet(o.typ) && istZahl((e as { nr?: unknown }).nr);
     if (!gueltigerErsatz) delete o.ersatz;
+  }
+}
+
+/**
+ * NR19: Eine Puffer-Station bringt den Speicher mit – ein Haus mit Puffer-Station hat also immer `hauspuffer`. Großabnehmer
+ * bekommen keine Puffer-Station; steht dort trotzdem eine (veränderter Stand), fällt sie weg und der Kunde braucht eine neue.
+ * Alte Stände mit Puffer und Wandstation bleiben, wie sie sind.
+ */
+function nr19Aufraeumen(stand: Spielstand): void {
+  for (const o of stand.objekte) {
+    if (!istPufferStation(stationHolen(o.station))) continue;
+    if (KATALOG[o.typ].kategorie === 'haus') o.hauspuffer = true;
+    else { delete o.station; o.ohne_station = true; }
   }
 }
 
@@ -132,6 +145,7 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
     }
     if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
       nr18Aufraeumen(d as Spielstand);
+      nr19Aufraeumen(d as Spielstand);
       if (karteAnpassen(d as Spielstand)) migriert = true;
       // A86: Wer den alten Vorgabenamen behalten hat, bekommt den fiktiven Dorfnamen (selbst gewählte Namen bleiben).
       // Bewusst kein 'migriert': der Start-Hinweis dazu spricht von Straßen und Fluss; der neue Name wird beim nächsten Speichern geschrieben.
