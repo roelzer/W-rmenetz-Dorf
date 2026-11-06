@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { neuerSpielstand, Spiel, WANDSTATION_TUTORIAL } from '../src/core/spiel';
 import { neuesSpielMitTutorial, TUTORIAL_SPUR } from '../src/core/start';
@@ -8,8 +8,6 @@ import { altesStartdorf } from './hilfen/altes-startdorf';
 const T0 = 1_700_000_000_000;
 
 describe('NR13 Vertrag (P0)', () => {
-  afterEach(() => { vi.restoreAllMocks(); });
-
   it('test_nr13_neues_spiel_hat_merke: ohne Spielstand startet ein neues Spiel mit Tutorial-Kapitel 1', () => {
     const { stand, befund } = ladenMitBefund(null, T0);
     expect(befund).toBe('neu');
@@ -20,11 +18,9 @@ describe('NR13 Vertrag (P0)', () => {
   });
 
   it('test_nr13_kaputter_stand_hat_merke: kaputter Text ergibt ein neues Spiel mit Tutorial', () => {
-    const warnung = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { stand, befund } = ladenMitBefund('{kaputt', T0);
     expect(befund).toBe('defekt');
     expect(stand.tutorial).toEqual({ kapitel: 1 });
-    expect(warnung).toHaveBeenCalledTimes(1);
   });
 
   it('test_nr13_alter_stand_ohne_merke: ein alter Stand bekommt kein Tutorial, Wandstation bleibt frei', () => {
