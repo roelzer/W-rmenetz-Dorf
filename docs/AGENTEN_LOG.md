@@ -408,3 +408,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:16 | ▶ | designer | NR13 Knopftext 20 Zeichen |
 | 2026-11-06 12:17 | ■ 🟢 | designer | 🟢 Ich habe den Text gekürzt. Die Grenze von 18 Zeichen bleibt, ein Umbruch ist nicht erlaubt. Geändert habe ich nur /home/user/W-rmenetz-Dorf/docs/DESIGN.m ([Bericht](docs/pruefberichte/20261106-121721-designer-acc6ebc2719e320cf.md)) |
 | 2026-11-06 12:18 | ■ 🟡 | architekt | 🟡 BLOCKIERT – Kontext voll. Fassung 3 ist zu etwa 60 % fertig. Ein frischer Architekt muss den Rest einarbeiten. Nichts committet.  ([Bericht](docs/pruefberichte/20261106-121846-architekt-a74b950d980375809.md)) |
+| 2026-11-06 12:19 | ▶ | architekt | NR13 Bauplan F3 fertigstellen |
+| 2026-11-06 12:20 | ▶ | tester | NR13 Vorarbeit V1 Ersatz-Oberflächen |
+| 2026-11-06 12:20 | ▶ | tester | NR13 verdeckte Abnahme anpassen |
