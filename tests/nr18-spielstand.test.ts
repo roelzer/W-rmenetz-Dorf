@@ -76,6 +76,8 @@ describe('NR18-P2 alte und kaputte Spielstände', () => {
     bei(10, 13).ersatz = { typ: 'd40', nr: 903 }; // gleich dick
     bei(11, 14).ersatz = { typ: 'd32', nr: 904 }; // richtig: 25er → 32er
     bei(10, 14).ersatz = 'd50'; // keine Form
+    // Typ-Text, den der Katalog nicht kennt (die Leitungskarte würde daran scheitern)
+    roh.objekte.push({ id: 950, typ: 'd25', x: 9, y: 11, stufe: 1, bau: null, kasse_eur: 0, ersatz: { typ: 'xyz', nr: 905 } });
     const g = laden(roh, z);
     expect(g.befund).toBe('ok');
     expect(g.stand.objekte.filter((o) => 'ersatz' in o).map((o) => [o.x, o.y, o.ersatz])).toEqual([[11, 14, { typ: 'd32', nr: 904 }]]);

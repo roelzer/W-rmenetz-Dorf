@@ -74,8 +74,13 @@ export class Spiel {
   sperrgrund(m: Merkmal): string | null { return sperrgrund(this.stand, m); }
   /** A88: Lehnt eine Aktion mit einem gesperrten Merkmal ab (AE-A88-2: der Kern setzt die Sperre selbst durch); frei = null. */
   private gesperrt(m: Merkmal): Ergebnis | null {
+    const text = this.sperrText(m);
+    return text ? this.nein(text) : null;
+  }
+  /** Sperrsatz ohne Ereignis: Die Zeichenleiste setzt nach einer Ablehnung ihre Ereignisliste zurück und zeigt den Text selbst. */
+  private sperrText(m: Merkmal): string | null {
     const grund = sperrgrund(this.stand, m);
-    return grund ? this.nein(`${merkmalName(m)} ${grund}`) : null;
+    return grund ? `${merkmalName(m)} ${grund}` : null;
   }
 
   /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind
@@ -721,11 +726,11 @@ export class Spiel {
   ersatzPlanen(id: number, neu: TypId): Ergebnis {
     const o = this.objekt(id);
     if (!o || o.geplant || !istLeitung(o.typ) || !istLeitung(neu)) return { ok: false };
-    if (this.stand.abschnitt?.phase !== 'offen') return this.nein(ERSATZ_NUR_IM_ABSCHNITT);
+    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false, hinweis: ERSATZ_NUR_IM_ABSCHNITT };
     // Dünner oder gleich ist kein Ersatz; die Zeichenleiste überspringt solche Felder still.
     if ((KATALOG[neu].kapazitaet_kw as number) <= (KATALOG[o.ersatz?.typ ?? o.typ].kapazitaet_kw as number)) return { ok: false };
-    const sperre = this.gesperrt(neu);
-    if (sperre) return sperre;
+    const sperre = this.sperrText(neu);
+    if (sperre) return { ok: false, hinweis: sperre };
     o.ersatz = { typ: neu, nr: this.stand.naechste_id++ };
     this.schritt('leitung_gezeichnet', o.id);
     return ok();
@@ -734,8 +739,8 @@ export class Spiel {
   geplanteLeitungTyp(id: number, neu: TypId): Ergebnis {
     const o = this.objekt(id);
     if (!o || !o.geplant || !istLeitung(neu) || o.typ === neu || this.stand.abschnitt?.phase !== 'offen') return { ok: false };
-    const sperre = this.gesperrt(neu);
-    if (sperre) return sperre;
+    const sperre = this.sperrText(neu);
+    if (sperre) return { ok: false, hinweis: sperre };
     o.typ = neu; o._pop = this.uhr();
     this.schritt('leitung_gezeichnet', o.id);
     return ok();

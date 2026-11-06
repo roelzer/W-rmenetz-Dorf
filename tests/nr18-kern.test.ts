@@ -148,6 +148,11 @@ describe('NR18-P2 Ersatz einer gebauten Leitung (AE-NR18-4)', () => {
     expect(s.ersatzPlanen(geplant.id, 'd32').ok).toBe(false); // geplant: dafür gibt es geplanteLeitungTyp
     expect(s.ersatzPlanen(l.id, 'd50').ok).toBe(false); // gesperrt auf Stufe 1
     expect(l.ersatz).toBeUndefined();
+    // Die Zeichenleiste setzt nach einer Ablehnung die Ereignisliste zurück: abgelehnt wird ohne Ereignis, nur mit Ergebnis.
+    s.ereignisse.length = 0;
+    expect(s.ersatzPlanen(l.id, 'd50').hinweis).toBeTruthy();
+    expect(s.geplanteLeitungTyp(geplant.id, 'd50').ok).toBe(false);
+    expect(s.ereignisse).toEqual([]);
     const warm = [...s.netz.warm];
     const nr = s.stand.naechste_id;
     expect(s.ersatzPlanen(l.id, 'd40')).toEqual({ ok: true });
