@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
+import { Spiel, type Ereignis } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { bedarfKw } from '../src/core/netz';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { KATALOG, KONSTANTEN, PREISSTUFEN } from '../src/core/katalog';
@@ -12,7 +13,7 @@ import type { Objekt } from '../src/core/typen';
 // Kamin aus × 1,5 = 15 kW; Aufstockung × 1,4 = 14 kW; beides = 21 kW (katalog.ts KONSTANTEN).
 
 const T0 = 1_000_000_000_000;
-const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
+const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(altesStartdorf(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
 const lauf = (s: Spiel, z: { t: number }, sek: number) => { for (let i = 0; i < sek / 10; i++) { z.t += 10_000; s.bis(z.t); } };
 const startHaeuser = (s: Spiel) => s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
 const startHaus = (s: Spiel) => startHaeuser(s)[0];

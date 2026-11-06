@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { berechneNetz, bedarfKw, eigenerAnschlussZuDuenn } from '../src/core/netz';
 import { passendeStation, type TypId } from '../src/core/katalog';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { SPEICHER_SCHLUESSEL, SPEICHER_VERSION } from '../src/core/speichern';
 import type { Netz, Objekt } from '../src/core/typen';
 import { berechneNetzAlt } from './hilfen/netz-alt-a91';
@@ -223,7 +224,7 @@ function baeckereiAmEigenenEnde() {
 }
 /** Spiel mit genau diesen Objekten und Kessel Stufe 5. */
 function spielMit(objekte: Objekt[]) {
-  const s = new Spiel(neuerSpielstand(T0), () => T0);
+  const s = new Spiel(altesStartdorf(T0), () => T0);
   s.ersteQuelleWaehlen('kessel');
   s.stand.objekte = objekte;
   s.stand.naechste_id = Math.max(...objekte.map((o) => o.id)) + 1;
@@ -285,25 +286,6 @@ describe('A91 P1 – Hinweis „eigener Hausanschluss zu dünn“', () => {
 });
 
 describe('A91 P1 – Spiel', () => {
-  it('A91: test_a91_hausanschluss_4_12_ohne_umweg', () => {
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
-    s.ersteQuelleWaehlen('kessel');
-    s.stand.geld_eur = 1e7;
-    s.stand.abschnitt = { phase: 'offen', bau: null };
-    s.neuBerechnen();
-    const haus = s.stand.objekte.find((o) => o.x === 4 && o.y === 12) as Objekt;
-    expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
-    const geplant = s.stand.objekte.filter((o) => o.geplant);
-    expect(geplant.map((o) => [o.x, o.y]).sort((p, q) => p[0] - q[0])).toEqual([[5, 12], [6, 12], [7, 12], [8, 12], [9, 12]]);
-    expect(geplant.every((o) => o.typ === 'd32')).toBe(true);
-    // 5 Felder × 560 € (Material d32 14 € × Kostenfaktor 40, katalog.ts)
-    expect(s.abschnittKosten_eur()).toBe(2800);
-    expect(s.stationKaufen(haus.id, passendeStation(bedarfKw(haus)).id).ok).toBe(true);
-    for (const o of s.stand.objekte) delete o.geplant;
-    s.neuBerechnen();
-    expect([...s.netz.kalt.values()]).not.toContain('leitung');
-  });
-
   it('A91: test_a91_spielstand_format_unveraendert', () => {
     expect(SPEICHER_SCHLUESSEL).toBe('waermedorf-spielstand-v1');
     expect(SPEICHER_VERSION).toBe(3);

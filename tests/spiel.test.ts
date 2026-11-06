@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { KATALOG, KONSTANTEN, SPIELMONAT_MS } from '../src/core/katalog';
 // A88: Diese Tests prüfen Mechaniken nach den Freischalt-Stufen von vor A88 (Bauplan Abschnitt 11)
 vi.mock('../src/core/freischaltung', async (orig) => (await import('./ohne-leiter')).ohneLeiter(await orig()));
@@ -7,7 +8,7 @@ vi.mock('../src/core/freischaltung', async (orig) => (await import('./ohne-leite
 const T0 = 1_000_000_000_000;
 function start(): { s: Spiel; zeit: { t: number } } {
   const zeit = { t: T0 };
-  const s = new Spiel(neuerSpielstand(T0), () => zeit.t);
+  const s = new Spiel(altesStartdorf(T0), () => zeit.t);
   return { s, zeit };
 }
 /** Spiel mit gewählter Startquelle und einem warmen Haus. */
@@ -34,7 +35,9 @@ function frei(s: Spiel, n = 0): [number, number] {
 const finde = (s: Spiel, typ: string) => s.stand.objekte.find((o) => o.typ === typ)!;
 
 describe('A3 Startquelle', () => {
-  it('neues Spiel hat noch keine Quelle gewählt', () => {
+  // NR18-P0: Seit NR13/P5 startet ein neues Spiel mit vorgewähltem Kessel (geprüft in P5 test_nr13_start_mit_kessel).
+  // Dieser Test prüft weiter einen Stand ohne gewählte Quelle (altes Startdorf, wie alte Spielstände).
+  it('Stand ohne gewählte Quelle hat keine Wärme', () => {
     const { s } = start();
     expect(s.stand.quelle_gewaehlt).toBe(false);
     expect(s.stand.innen).toHaveLength(0);
@@ -330,11 +333,12 @@ describe('A15 Speichern und Laden', () => {
     for (const t of [null, '', '{', '[]', '{"version":3}', '{"version":2}', '{"version":1}', '{"version":2,"objekte":[],"innen":[],"geld_eur":1}']) {
       const st = laden(t, T0);
       expect(st.objekte.some((o) => o.typ === 'hz')).toBe(true);
-      expect(st.quelle_gewaehlt).toBe(false);
+      // NR18-P0: kaputte Daten ergeben genau den Spielstand eines neuen Spiels (vor NR13/P5 ohne Quelle, danach mit Kessel)
+      expect(st.quelle_gewaehlt).toBe(neuerSpielstand(T0).quelle_gewaehlt);
     }
   });
   it('H1: Alter Spielstand (Version 1 mit p1/p2/p3) wird umgeschrieben und startet', () => {
-    const alt = JSON.parse(serialisieren(neuerSpielstand(T0)));
+    const alt = JSON.parse(serialisieren(altesStartdorf(T0)));
     alt.version = 1;
     alt.objekte.push({ id: 998, typ: 'p2', x: 1, y: 1, stufe: 1, bau: null, kasse_eur: 0 });
     const r = ladenMitBefund(JSON.stringify(alt), T0);
@@ -343,13 +347,13 @@ describe('A15 Speichern und Laden', () => {
     expect(() => new Spiel(r.stand, () => T0)).not.toThrow();
   });
   it('H1: Unbekannter Objekttyp macht den Stand unbrauchbar (Befund defekt, neues Spiel, kein Absturz)', () => {
-    const s = JSON.parse(serialisieren(neuerSpielstand(T0)));
+    const s = JSON.parse(serialisieren(altesStartdorf(T0)));
     s.objekte.push({ id: 999, typ: 'gibtesnicht', x: 1, y: 1, stufe: 1, bau: null, kasse_eur: 0 });
     const r = ladenMitBefund(JSON.stringify(s), T0);
     expect(r.befund).toBe('defekt');
     expect(() => new Spiel(r.stand, () => T0)).not.toThrow();
   });
   it('H1: Ein gültiger Stand hat den Befund ok', () => {
-    expect(ladenMitBefund(serialisieren(neuerSpielstand(T0)), T0).befund).toBe('ok');
+    expect(ladenMitBefund(serialisieren(altesStartdorf(T0)), T0).befund).toBe('ok');
   });
 });

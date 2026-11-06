@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
+import { Spiel, type Ereignis } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { BAU_KATEGORIEN, KATALOG, KONSTANTEN, passendeStation, STATIONEN, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
 import { pruefeAuftraege } from '../src/core/auftraege';
@@ -18,7 +19,7 @@ import { sichtbar } from './hilfen/dom-attrappe';
 const T0 = 1_000_000_000_000;
 const neu = (stufe = 1) => {
   const z = { t: T0 };
-  const s = new Spiel(neuerSpielstand(T0), () => z.t);
+  const s = new Spiel(altesStartdorf(T0), () => z.t);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;
@@ -182,7 +183,7 @@ describe('A88 Freischalt-Leiter – Kosten vor der Freischaltung (T5)', () => {
 describe('A88 Freischalt-Leiter – Stufe 1 ist durchspielbar (T6)', () => {
   it('A88: test_a88_stufe1_durchspielbar', () => {
     const z = { t: T0 };
-    const s = new Spiel(neuerSpielstand(T0), () => z.t);
+    const s = new Spiel(altesStartdorf(T0), () => z.t);
     s.ersteQuelleWaehlen('kessel');
     const vor = (sek: number) => { for (let i = 0; i < sek / 10; i++) { z.t += 10_000; s.bis(z.t); } };
     expect(s.abschnittPlanen().ok).toBe(true);
@@ -317,7 +318,7 @@ describe('A88 Review P1 – Blase und ungültige Anfrage', () => {
     expect(blase(s, s.netz, h, true, true)).toBe('anfrage');
   });
   it('A88: ungültiger anfrage-Wert aus dem Spielstand wird beim Laden gelöscht', () => {
-    const st = neuerSpielstand(T0);
+    const st = altesStartdorf(T0);
     const h = st.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
     (h as { anfrage?: string }).anfrage = 'kaputt';
     const s = new Spiel(st, () => T0);

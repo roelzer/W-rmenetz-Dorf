@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { HELFER, KATALOG, UPGRADES } from '../src/core/katalog';
 import type { Objekt } from '../src/core/typen';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
@@ -20,7 +21,7 @@ type Handler = (e?: unknown) => void;
 const ev = { preventDefault: () => {}, stopPropagation: () => {} };
 
 const neu = (stufe: number, uhr: Uhr) => {
-  const s = new Spiel(neuerSpielstand(T0), () => uhr.t);
+  const s = new Spiel(altesStartdorf(T0), () => uhr.t);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;
@@ -147,7 +148,7 @@ describe('A92 Antwort 7 – Hinweis-Funktionen in sperrtexte.ts lesen den Stand 
 
   it('A92 Regel 5: talerSperre – Hinweis wird null, sobald die Taler genau reichen; 1 Taler zu wenig nennt „1 Dorftaler“', async () => {
     const { talerSperre } = await import('../src/ui/sperrtexte');
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
+    const s = new Spiel(altesStartdorf(T0), () => T0);
     s.stand.taler = 4;
     const sp = talerSperre(s, () => 11)!;
     expect(sp).toMatchObject({ grund: null, schloss: false });

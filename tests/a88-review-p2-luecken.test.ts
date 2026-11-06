@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { istLeitung, KATALOG, KONSTANTEN, UPGRADES, type TypId } from '../src/core/katalog';
 import type { Objekt } from '../src/core/typen';
 import { kontextKarte } from './hilfen/kontext-attrappe';
@@ -10,7 +11,7 @@ import { gesperrt } from './hilfen/gesperrt';
 
 const T0 = 1_000_000_000_000;
 const neu = (stufe = 1) => {
-  const s = new Spiel(neuerSpielstand(T0), () => T0);
+  const s = new Spiel(altesStartdorf(T0), () => T0);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;

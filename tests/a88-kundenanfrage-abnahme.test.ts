@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { bedarfKw } from '../src/core/netz';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { KATALOG, KONSTANTEN, PREISSTUFEN } from '../src/core/katalog';
@@ -21,7 +22,7 @@ type Uhr = { t: number };
 
 function spiel(preisstufe?: number): { s: Spiel; z: Uhr } {
   const z = { t: T0 };
-  const s = new Spiel(neuerSpielstand(T0), () => z.t);
+  const s = new Spiel(altesStartdorf(T0), () => z.t);
   s.ersteQuelleWaehlen('kessel');
   if (preisstufe !== undefined) s.preisSetzen(preisstufe);
   return { s, z };

@@ -134,7 +134,9 @@ describe('A92 / 12.19 – Schloss in Zeile 2 bei gesperrten Knöpfen', () => {
   it('A92: Hauskarte ohne Bauabschnitt – „Hausanschluss ziehen“ und „Leitung selbst legen“ mit Schloss vor dem Grund', async () => {
     const s = neu(1);
     const { a, c } = await karte(s, haus(s));
-    for (const name of ['Hausanschluss ziehen', 'Leitung selbst legen']) {
+    // NR18-P0 (4.17): „Hausanschluss ziehen“ entfällt, es bleibt ein Knopf „Leitung selbst legen“ – rot bis NR18-P3
+    expect(mit(a, c, 'Hausanschluss ziehen')).toHaveLength(0);
+    for (const name of ['Leitung selbst legen']) {
       const k = mit(a, c, name);
       expect(k, name).toHaveLength(1);
       expect(gesperrtMitHinweis(k[0]), name).toBe(true);
@@ -146,7 +148,9 @@ describe('A92 / 12.19 – Schloss in Zeile 2 bei gesperrten Knöpfen', () => {
     const s = neu(1);
     s.stand.abschnitt = { phase: 'offen', bau: null };
     const { a, c } = await karte(s, haus(s));
-    for (const name of ['Hausanschluss ziehen', 'Leitung selbst legen']) {
+    // NR18-P0 (4.17): „Hausanschluss ziehen“ entfällt, es bleibt ein Knopf „Leitung selbst legen“ – rot bis NR18-P3
+    expect(mit(a, c, 'Hausanschluss ziehen')).toHaveLength(0);
+    for (const name of ['Leitung selbst legen']) {
       const k = mit(a, c, name);
       expect(k, name).toHaveLength(1);
       expect('aria-disabled' in k[0].attrs, name).toBe(false);
