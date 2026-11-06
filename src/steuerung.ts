@@ -90,6 +90,8 @@ export class Steuerung implements Ui {
   /** Lage für die Eingabesperre aus der Ansicht (nicht aus dem Bild, AE-NR13-6); Fahrt und Anleiter werden frisch gelesen */
   private sperrLage: SperrLage = { fahrt: false, anleiter: null, abdunkeln: 'alles', art: 'W', loecher: [] };
   private sperreAn = false;
+  /** Tutorial-Kurzgrund von [Abschnitt abschließen], mit dem die Zeichenleiste zuletzt gebaut wurde */
+  private leisteSperreKurz: string | null = null;
   private tabZiele: HTMLElement[] = [];
   /** Ziele im Blatt, die in diesem Schritt schon ins Bild gescrollt wurden (K9) */
   private gescrollt = new Set<string>();
@@ -298,6 +300,7 @@ export class Steuerung implements Ui {
     const l = this.leiste, typ = this.stempelTyp;
     if (!l || !typ) return;
     const sp = this.spiel, D = KATALOG[typ];
+    this.leisteSperreKurz = this.tutorialSperre('abschliessen')?.kurz ?? null;
     const fokus = document.activeElement instanceof HTMLElement && l.blatt.wurzel.contains(document.activeElement) ? document.activeElement.getAttribute('data-id') : null;
     const neuAufbau = (): void => this.leisteAufbauen();
     l.frage.setAttribute('aria-expanded', String(this.hilfeOffen));
@@ -570,17 +573,24 @@ export class Steuerung implements Ui {
       if (f) toast(`${KATALOG[f.typ].name}${KATALOG[f.typ].bauzeit_s ? ' · Stufe ' + f.stufe : ''}`);
       return;
     }
+    if (this.anleitung) { this.kartentippImTutorial(mx, my); return; }
     const o = objektAmPunkt(this.kamera, this.spiel.stand.objekte, mx, my); // A80: gezeichnete Form zählt, nicht nur das Bodenfeld
-    if (this.anleitung) { this.kartentippImTutorial(o ?? null); return; }
     if (!o) { this.kontextUi.schliessen(); return; }
     this.kontext(o.id);
   }
 
-  /** Kartentipp im Tutorial: Heizzentrale/Tutorial-Haus melden; ein Blatt öffnet nur bei `normale_aktion` (T15/T18). */
-  private kartentippImTutorial(o: Objekt | null): void {
+  /**
+   * Kartentipp im Tutorial: Heizzentrale/Tutorial-Haus melden; ein Blatt öffnet nur bei `normale_aktion` (T15/T18).
+   * Getroffen werden nur Heizzentrale und die beiden Tutorial-Häuser: alle anderen Objekte sind im Tutorial ohne Wirkung
+   * und dürfen den Tipp nicht schlucken – das Dach eines Nachbarhauses vor der Heizzentrale verdeckt sonst deren untere Hälfte.
+   */
+  private kartentippImTutorial(mx: number, my: number): void {
     const a = this.anleitung?.ansicht(this.uhr());
-    if (!a || !o) return;
+    if (!a) return;
     const oeffnen = a.normale_aktion, ids = a.objekt_ids;
+    const ziele = this.spiel.stand.objekte.filter((z) => z.id === ids.heizzentrale || z.id === ids.haus1 || z.id === ids.haus2);
+    const o = objektAmPunkt(this.kamera, ziele, mx, my);
+    if (!o) return;
     if (o.id === ids.heizzentrale) { this.tutorialMelden({ art: 'tipp', tipp: 'heizzentrale' }); return; }
     if (o.id !== ids.haus1 && o.id !== ids.haus2) return;
     this.tutorialMelden({ art: 'tipp', tipp: 'haus', objekt_id: o.id });
@@ -726,6 +736,9 @@ export class Steuerung implements Ui {
       else k.grenzeSetzen({ ...g, mitte_px });
     }
     if (wechsel) this.gescrollt.clear();
+    // Zeile 2 von [Abschnitt abschließen] folgt dem Tutorial auch ohne Bedienung: Geld ändert sich ohne Ereignis (Weg b)
+    // und schaltet T13 ⇄ T14 – sonst stünde in der Blase „Geld reicht nicht“, am Knopf aber kein Grund
+    if (this.leiste && (this.tutorialSperre('abschliessen')?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
     this.tutorialSzeneSetzen(a);
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
