@@ -301,3 +301,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:06 | ▶ | reviewer | Review NR18-P1 |
 | 2026-11-06 08:13 | ■ 🟢 | tester | 🟢 **Tester-Vorarbeit NR18-P0 ist fertig: Teil A ist abgeschlossen, Teil B liegt als eigener Commit vor.** Es wurden nur Tests geändert, kein Programmcode. D ([Bericht](docs/pruefberichte/20261106-081340-tester-a46090e8b5e720efa.md)) |
 | 2026-11-06 08:13 | ▶ | kritiker | Freigabe Testlöschungen NR18-P0 |
+| 2026-11-06 08:14 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig (Paket NR18-P1, Branch nr18-p1, Commit 9892344 gegen Basis 91bbc70)  ([Bericht](docs/pruefberichte/20261106-081421-reviewer-a482e59faa49e5b47.md)) |
