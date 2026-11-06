@@ -340,3 +340,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:09 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-06 09:09 | ■ 🟡 | entwickler | 🟡 **Status: formal BLOCKIERT, aber nur an der Schranke.** Weg A ist gebaut und committet. Beide Häuser halten jetzt bis zum Bauende durch, und die Abnahme ( ([Bericht](docs/pruefberichte/20261106-090917-entwickler-a94ebfcbac706398d.md)) |
 | 2026-11-06 09:09 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten** (gilt nur für den gemeinsamen Merge mit P3; P2 allein ist erwartungsgemäß rot)  ([Bericht](docs/pruefberichte/20261106-090918-reviewer-a4db1f6e34346df3b.md)) |
+| 2026-11-06 09:09 | ▶ | reviewer | Review NR18-W wartende Häuser |
