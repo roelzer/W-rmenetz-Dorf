@@ -8,6 +8,7 @@ import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './t
 import { ortHolen } from './orte';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import type { Schritt } from './tutorial-vertrag';
+import { ENGPASS_ERSATZ, WEITERE_STELLEN, engstelleText, engstellenFinden, type Engstelle } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
 /** A38: So lange wird eine Abwesenheit höchstens nachgerechnet (7 Tage). */
@@ -35,6 +36,10 @@ const ok = (): Ergebnis => ({ ok: true });
 /** Ein Spieltag in ms (1 Spieljahr = 365 Tage). */
 const SPIELTAG_MS = SPIELJAHR_MS / 365;
 const tageText = (t: number): string => `${t} ${t === 1 ? 'Tag' : 'Tage'}`;
+/** Bauplan NR18 Abschnitt 6: Ablehnungen des Ersatzes (außerhalb des offenen Abschnitts) und des Entfernens während des Baus (W5). */
+const ERSATZ_NUR_IM_ABSCHNITT = `Dickere Leitungen entstehen nur im Bauabschnitt – lass ${ABSCHNITT_HELFER.planung} einen planen.`;
+const ERSATZ_IM_BAU = 'Diese Leitung wird gerade ersetzt – warte, bis der Abschnitt gebaut ist.';
+const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
 
 export { neuerSpielstand } from './start';
 
@@ -49,10 +54,18 @@ export class Spiel {
   private offline_anfragen = 0;
   private strassenSet?: Set<number>;
   private flussSet?: Set<number>;
+  /** AE-NR18-5: Warnsätze „Nach dem Bau zu dünn“ des abgeschlossenen Abschnitts – nur hier, nie im Spielstand. */
+  private warnliste: string[] = [];
+  /** AE-NR13-2: zuletzt erreichte Häuser; Grundlage für haus_erreicht/haus_getrennt. */
+  private erreicht: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
     this.stand = stand;
     this.anfragenPruefen();
     this.neuBerechnen();
+    // Beim Laden nur merken, nichts melden: sonst kündigt jedes Laden alle erreichten Häuser neu an.
+    const probe = this.probeNetz();
+    this.erreicht = new Set(this.erreichteIn(probe));
+    if (stand.abschnitt?.phase === 'bestellen') this.warnlisteFuellen(probe);
   }
 
   // ---------- Abfragen ----------
@@ -61,20 +74,20 @@ export class Spiel {
   sperrgrund(m: Merkmal): string | null { return sperrgrund(this.stand, m); }
   /** A88: Lehnt eine Aktion mit einem gesperrten Merkmal ab (AE-A88-2: der Kern setzt die Sperre selbst durch); frei = null. */
   private gesperrt(m: Merkmal): Ergebnis | null {
+    const text = this.sperrText(m);
+    return text ? this.nein(text) : null;
+  }
+  /** Sperrsatz ohne Ereignis: Die Zeichenleiste setzt nach einer Ablehnung ihre Ereignisliste zurück und zeigt den Text selbst. */
+  private sperrText(m: Merkmal): string | null {
     const grund = sperrgrund(this.stand, m);
-    return grund ? this.nein(`${merkmalName(m)} ${grund}`) : null;
+    return grund ? `${merkmalName(m)} ${grund}` : null;
   }
 
-  // NR18/NR13-Vertrag (Bauplan NR18 Fassung 3, P1): Die Namen stehen fest, damit Oberfläche und Darstellung parallel bauen
-  // können. Den Inhalt liefert P2; bis dahin melden die Aktionen laut, statt still etwas Falsches zu tun.
-  /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind. */
-  erreichteHaeuser(): number[] { throw new Error('NR18-P2 noch nicht gebaut'); }
-  /** NR18: gebaute Leitung im offenen Bauabschnitt durch eine dickere ersetzen (bezahlt mit der Materialbestellung). */
-  ersatzPlanen(id: number, neu: TypId): Ergebnis { throw new Error('NR18-P2 noch nicht gebaut'); }
-  /** NR18: eingezeichnete Leitung im offenen Bauabschnitt bekommt einen anderen Typ. */
-  geplanteLeitungTyp(id: number, neu: TypId): Ergebnis { throw new Error('NR18-P2 noch nicht gebaut'); }
+  /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind
+   *  (mit oder ohne Station), aufsteigend. Dieselbe Probe-Rechnung wie die Warnprüfung (AE-NR18-3). */
+  erreichteHaeuser(): number[] { return this.erreichteIn(this.probeNetz()); }
   /** NR18: Warnsätze „Nach dem Bau zu dünn“ des abgeschlossenen Bauabschnitts (Phase bestellen). */
-  abschnittWarnungen(): string[] { return []; }
+  abschnittWarnungen(): string[] { return [...this.warnliste]; }
   /** A88: kleinste freigeschaltete Leitung, die den Bedarf trägt, sonst die dickste freigeschaltete. */
   passendeLeitung(bedarf_kw: number): TypId | undefined {
     const frei = LEITUNGEN.filter((l) => freigeschaltet(this.stand, l));
@@ -208,7 +221,48 @@ export class Spiel {
     return liste.map((x) => ({ ...x, erreicht: x.ist >= x.soll }));
   }
 
-  neuBerechnen(): void { this.netz = berechneNetz(this.stand.objekte.filter((o) => !o.geplant), this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur); }
+  neuBerechnen(): void {
+    const alt = this.netz?.warm;
+    this.netz = berechneNetz(this.stand.objekte.filter((o) => !o.geplant), this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur);
+    // Die erste Rechnung (Konstruktor) meldet nichts, sonst wäre nach jedem Laden jedes warme Haus „neu warm“.
+    if (alt) for (const id of this.netz.warm) if (!alt.has(id)) this.schritt('haus_warm', id);
+  }
+  /** AE-NR18-3: Netz „wie nach dem Bau“ – alle Objekte samt eingezeichneter Leitungen, geplanter Ersatz mit seinem neuen Typ. */
+  private probeNetz(anpassen?: (o: Objekt) => Objekt): Netz {
+    const objekte = this.stand.objekte.map((o) => {
+      const a = anpassen ? anpassen(o) : o;
+      return a.ersatz ? { ...a, typ: a.ersatz.typ } : a;
+    });
+    return berechneNetz(objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur);
+  }
+  private erreichteIn(netz: Netz): number[] {
+    return this.stand.objekte.filter((o) => istHausOderGross(o) && netz.anschluss.has(o.id)).map((o) => o.id).sort((x, y) => x - y);
+  }
+  /** AE-NR13-2: erreichte Häuser mit dem letzten Stand vergleichen und Zuwachs/Verlust als Schritt melden. */
+  private erreichtAbgleichen(netz: Netz = this.probeNetz()): void {
+    const neu = new Set(this.erreichteIn(netz)), alt = this.erreicht;
+    this.erreicht = neu;
+    for (const id of neu) if (!alt.has(id)) this.schritt('haus_erreicht', id);
+    for (const id of alt) if (!neu.has(id)) this.schritt('haus_getrennt', id);
+  }
+  private schritt(schritt: Schritt, objekt_id?: number): void {
+    this.ereignisse.push(objekt_id === undefined ? { art: 'schritt', schritt } : { art: 'schritt', schritt, objekt_id });
+  }
+  /** Warnsatz zur Engstelle; Satz 2 nennt die Stufe, wenn die empfohlene Leitung noch gesperrt ist (Bauplan Abschnitt 6). */
+  private engstelleSatz(e: Engstelle): string {
+    return engstelleText(e, e.empfohlen === null || freigeschaltet(this.stand, e.empfohlen) ? null : abStufe(e.empfohlen));
+  }
+  /** Alle zu dünnen Stücke für die Kunden, die im Probe-Netz wegen der Leitung kalt sind. */
+  private engstellenIn(netz: Netz, kunden?: number[]): Engstelle[] {
+    const kalt = kunden ?? [...netz.kalt].filter(([, grund]) => grund === 'leitung').map(([id]) => id);
+    return kalt.length ? engstellenFinden(netz, kalt) : [];
+  }
+  /** AE-NR18-5: Warnliste aus dem Probe-Netz neu füllen (Abschließen, Laden, Stationskauf, Entfernen). */
+  private warnlisteFuellen(nachher: Netz): Engstelle[] {
+    const stuecke = this.engstellenIn(nachher);
+    this.warnliste = stuecke.map((e) => this.engstelleSatz(e));
+    return stuecke;
+  }
   get hz(): Objekt { return heizzentrale(this.stand.objekte); }
   get hzStufe(): number { return this.hz.stufe; }
   anzahl(t: TypId): number {
@@ -312,7 +366,10 @@ export class Spiel {
     if (istLeitung(t)) {
       // A41: Leitungen entstehen nur in einem Bauabschnitt, bezahlt wird erst bei der Materialbestellung.
       if (this.stand.abschnitt?.phase !== 'offen') return this.nein(this.stand.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : `Leitungen entstehen in Bauabschnitten – erst mit ${ABSCHNITT_HELFER.planung} einen Abschnitt planen`);
-      this.stand.objekte.push({ id: this.stand.naechste_id++, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
+      const id = this.stand.naechste_id++;
+      this.stand.objekte.push({ id, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
+      this.schritt('leitung_gezeichnet', id);
+      this.erreichtAbgleichen();
       return ok();
     }
     if (!D.sofort && !this.braucheMonteur()) return { ok: false };
@@ -434,9 +491,17 @@ export class Spiel {
     const o = this.objekt(id);
     if (!o || o.landschaft || !(istLeitung(o.typ) || KATALOG[o.typ].kategorie === 'deko')) return { ok: false };
     if (o.geplant && (this.stand.abschnitt?.phase === 'bau' || this.stand.abschnitt?.phase === 'planung')) return this.nein('Der Abschnitt ist schon bestellt oder in Planung – hier lässt sich nichts mehr entfernen');
-    if (istLeitung(o.typ) && !o.geplant) this.stand.geld_eur += this.rueckkauf_eur(o.typ, 1); // A30: 50 % zurück
+    // W5: Der Ersatz ist schon bezahlt und unterwegs; ohne die Leitung hätte er keinen Platz mehr.
+    if (o.ersatz && this.stand.abschnitt?.phase === 'bau') return this.nein(ERSATZ_IM_BAU);
+    // A30: 50 % des alten Typs zurück; ein geplanter Ersatz ist noch nicht bezahlt und verfällt mit der Leitung.
+    if (istLeitung(o.typ) && !o.geplant) this.stand.geld_eur += this.rueckkauf_eur(o.typ, 1);
     this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
     this.neuBerechnen();
+    if (istLeitung(o.typ)) {
+      const probe = this.probeNetz();
+      this.erreichtAbgleichen(probe);
+      if (this.stand.abschnitt?.phase === 'bestellen') this.warnlisteFuellen(probe);
+    }
     return ok();
   }
 
@@ -444,18 +509,32 @@ export class Spiel {
   geplanteLeitungEntfernen(x: number, y: number): Ergebnis {
     if (this.stand.abschnitt?.phase !== 'offen') return { ok: false };
     const o = this.stand.objekte.find((a) => a.geplant && a.x === x && a.y === y);
-    if (!o) return { ok: false };
-    this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
+    if (o) {
+      this.stand.objekte = this.stand.objekte.filter((a) => a !== o);
+      this.erreichtAbgleichen();
+      return ok();
+    }
+    // NR18: Ohne eingezeichnete Leitung nimmt der Radierer den geplanten Ersatz der gebauten Leitung zurück.
+    const gebaut = this.stand.objekte.find((a) => a.ersatz && a.x === x && a.y === y);
+    if (!gebaut) return { ok: false };
+    delete gebaut.ersatz;
     return ok();
   }
   /** A47: Zuletzt eingezeichnete Leitung des offenen Bauabschnitts zurücknehmen. */
   letzteLeitungZurueck(): Ergebnis {
     if (this.stand.abschnitt?.phase !== 'offen') return { ok: false };
-    const geplant = this.stand.objekte.filter((a) => a.geplant);
-    const letzte = geplant[geplant.length - 1];
+    // Leitungs-Ids und Ersatz-Nummern kommen beide aus naechste_id: die größere Zahl ist das zuletzt Gezeichnete.
+    let letzte: Objekt | undefined, nr = -Infinity;
+    for (const a of this.stand.objekte) {
+      const n = a.geplant ? a.id : a.ersatz ? a.ersatz.nr : -Infinity;
+      if (n > nr) { nr = n; letzte = a; }
+    }
     if (!letzte) return { ok: false };
-    // Review: Ein automatisch gezogener Hausanschluss wird als Ganzes zurückgenommen.
-    this.stand.objekte = this.stand.objekte.filter((a) => a !== letzte && !(letzte.gruppe !== undefined && a.geplant && a.gruppe === letzte.gruppe));
+    if (letzte.geplant) {
+      const weg = letzte;
+      this.stand.objekte = this.stand.objekte.filter((a) => a !== weg);
+      this.erreichtAbgleichen();
+    } else delete letzte.ersatz;
     return ok();
   }
   /** A47: Häuser und Großabnehmer, die an eine geplante Leitung des Bauabschnitts grenzen und noch an keiner gebauten Leitung hängen: Das sind die Hausanschlüsse dieses Abschnitts. */
@@ -491,11 +570,29 @@ export class Spiel {
     if (alt && alt.leistung_kw >= st.leistung_kw) return this.nein('Es steht schon eine gleich große oder größere Station');
     const b = this.bezahlen({ eur: this.stationspreis_eur(o, st) });
     if (!b.ok) return b;
+    const warOhne = !!o.ohne_station;
     delete o.interessent;
     o.station = st.id; delete o.ohne_station; o._pop = this.uhr();
     this.ereignisse.push({ art: 'funken', objekt_id: o.id });
     this.neuBerechnen();
-    return ok();
+    this.schritt('station_gekauft', o.id);
+    // AE-NR18-1: Die Prüfung kommt nach dem Kauf und warnt nur. Eine größere Station ändert die Last nicht, nur ein neuer Kunde.
+    const bestellen = this.stand.abschnitt?.phase === 'bestellen';
+    if (!warOhne && !bestellen) return ok();
+    const nachher = this.probeNetz();
+    let hinweis: string | undefined;
+    if (warOhne) {
+      const vorher = this.probeNetz((a) => (a === o ? { ...a, station: undefined, ohne_station: true } : a));
+      const neu = [...nachher.kalt].filter(([id, grund]) => grund === 'leitung' && vorher.kalt.get(id) !== 'leitung').map(([id]) => id);
+      if (neu.length) {
+        const stuecke = this.engstellenIn(nachher, neu);
+        hinweis = stuecke.length ? this.engstelleSatz(stuecke[0]) : ENGPASS_ERSATZ;
+        this.hinweis(hinweis);
+        this.ereignisse.push({ art: 'engstelle', felder: stuecke.flatMap((e) => e.felder) });
+      }
+    }
+    if (bestellen) this.warnlisteFuellen(nachher);
+    return hinweis === undefined ? ok() : { ok: true, hinweis };
   }
 
   /** Rückkaufpreis (50 %) einer Anlage, die bis zur Stufe `stufe` ausgebaut wurde (A30/A31). */
@@ -562,7 +659,12 @@ export class Spiel {
   /** Summe der Leitungskosten des Abschnitts in € (Material, Gestattungen, Spülbohrung, Vorsehungen, Anbohrungen). */
   abschnittKosten_eur(): number {
     return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur() + this.bohrung_eur()
-      + this.vorsehungen_eur() + this.anbohrung_eur();
+      + this.vorsehungen_eur() + this.anbohrung_eur() + this.ersatz_eur();
+  }
+  /** NR18 (E1): je Ersatz Neupreis minus 50 % des alten Typs, im Fluss dazu die Spülbohrung; eine Gestattung fällt nicht an. */
+  ersatz_eur(): number {
+    return this.stand.objekte.reduce((summe, o) => !o.ersatz ? summe
+      : summe + (KATALOG[o.ersatz.typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0), 0);
   }
   /** A69: geplante Vorsehungen (T-Stück mit verschlossenem Abgang) im Abschnitt. */
   vorsehungen_eur(): number { return this.stand.objekte.filter((o) => o.geplant && o.vorsehung).length * KONSTANTEN.vorsehung_eur; }
@@ -618,143 +720,29 @@ export class Spiel {
     o._pop = this.uhr();
     return ok();
   }
-  abschnittLeitungen(): number { return this.stand.objekte.filter((o) => o.geplant).length; }
-  /** A47: Kosten, eine Leitung auf dieses Feld zu legen (Material, Gestattung, Spülbohrung); Grundlage der automatischen Wegsuche.
-   *  A88: reines Gewicht der Wegsuche, unabhängig von der Freischaltung – der Spielerpreis kommt aus abschnittKosten_eur(). */
-  private feldKosten_eur(t: TypId, x: number, y: number): number {
-    const mat = (KATALOG[t].kosten_eur as number[])[0];
-    if (this.istFluss(x, y)) return mat + KONSTANTEN.bohrung_eur_je_feld;
-    if (this.istStrasse(x, y) || (this.stand.gestattungen ?? []).includes(y * N + x)) return mat;
-    return mat + KONSTANTEN.gestattung_eur_je_feld;
+  abschnittLeitungen(): number { return this.stand.objekte.filter((o) => o.geplant || o.ersatz).length; }
+  /** NR18: gebaute Leitung im offenen Bauabschnitt durch eine dickere ersetzen (bezahlt mit der Materialbestellung, getauscht
+   *  beim Bauende). Ein schon geplanter Ersatz wird nur durch einen noch dickeren abgelöst. Keine Flusssperre: die Querung gibt es schon. */
+  ersatzPlanen(id: number, neu: TypId): Ergebnis {
+    const o = this.objekt(id);
+    if (!o || o.geplant || !istLeitung(o.typ) || !istLeitung(neu)) return { ok: false };
+    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false, hinweis: ERSATZ_NUR_IM_ABSCHNITT };
+    // Dünner oder gleich ist kein Ersatz; die Zeichenleiste überspringt solche Felder still.
+    if ((KATALOG[neu].kapazitaet_kw as number) <= (KATALOG[o.ersatz?.typ ?? o.typ].kapazitaet_kw as number)) return { ok: false };
+    const sperre = this.sperrText(neu);
+    if (sperre) return { ok: false, hinweis: sperre };
+    o.ersatz = { typ: neu, nr: this.stand.naechste_id++ };
+    this.schritt('leitung_gezeichnet', o.id);
+    return ok();
   }
-  /** A47: Hausanschluss ziehen: vom Haus auf dem günstigsten Weg zur nächsten Leitung, im offenen Bauabschnitt (alles geplant). Gerade Hauptleitungen bleiben unberührt, der Anschluss dockt seitlich an (T-Stück). */
-  hausanschlussPlanen(hausId: number): Ergebnis {
-    const haus = this.objekt(hausId);
-    if (!haus || !['haus', 'gross'].includes(KATALOG[haus.typ].kategorie)) return { ok: false };
-    if (this.stand.abschnitt?.phase !== 'offen') return this.nein('Erst einen Bauabschnitt planen lassen und öffnen');
-    const typ = this.passendeLeitung(bedarfKw(haus));
-    if (!typ) return this.nein('Noch keine Leitung freigeschaltet');
-    const belegung = belegungskarte(this.stand.objekte);
-    const leit = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
-    const g = groesse(haus);
-    const nachbarn = (f: number): number[] => {
-      const x = f % N, y = Math.floor(f / N);
-      return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => a >= 0 && b >= 0 && a < N && b < N).map(([a, b]) => b * N + a);
-    };
-    const imHaus = (f: number): boolean => { const x = f % N, y = Math.floor(f / N); return x >= haus.x && x < haus.x + g && y >= haus.y && y < haus.y + g; };
-    const frei = (f: number, flussOk: boolean): boolean =>
-      !belegung[f] && !leit.has(f) && (flussOk || !this.istFluss(f % N, Math.floor(f / N)));
-    // Schon angeschlossen? (Haus grenzt an eine Leitung)
-    for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) if (nachbarn((haus.y + dy) * N + haus.x + dx).some((n) => leit.has(n))) return this.nein('Das Haus liegt schon an einer Leitung');
-    /** Felder des Weges vom Andockfeld zurück bis zum Haus (Zustand = Feld · 4 + Richtung, Start hat Vorgänger -1). */
-    const wegAus = (ziel: number, von: Map<number, number>): number[] => {
-      const w: number[] = [];
-      for (let z = ziel; z >= 0; z = von.get(z) as number) w.push(Math.floor(z / 4));
-      return w;
-    };
-    // A89: Ein Weg zählt nur, wenn danach kein Haus neu wegen der Leitung kalt ist – sonst hinge der Anschluss an einer zu dünnen
-    // Leitung oder änderte den Baum, den das Netzmodell ab der Heizzentrale bildet. Gerechnet wird mit dem Haus als Kunde; berechneNetz
-    // wertet „geplant“ nicht aus, die übrigen Leitungen des offenen Abschnitts zählen also schon wie gebaut.
-    // A91: Mit Warnprüfung zählt ein Weg außerdem nur, wenn keine Planungsfehler-Warnung (W1-Engpass, A67-Reduzierung,
-    // A76-Aufteilung) neu dazukommt – die Planung soll dem Spieler keine Fehler einbauen, die er dann selbst beheben muss.
-    const probeObjekte = this.stand.objekte.map((o): Objekt => o.id === haus.id ? { ...o, ohne_station: undefined } : o);
-    const probe = (objekte: Objekt[]): { kalt: Set<number>; warnungen: Set<string> } => {
-      const netz = berechneNetz(objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur);
-      return {
-        kalt: new Set([...netz.kalt].filter(([, grund]) => grund === 'leitung').map(([id]) => id)),
-        warnungen: new Set([
-          ...[...netz.engpass].map((f) => `engpass ${f}`),
-          ...[...netz.reduzierung].map((f) => `reduzierung ${f}`),
-          ...[...netz.aufteilung].map((f) => `aufteilung ${f}`),
-        ]),
-      };
-    };
-    const vorher = probe(probeObjekte);
-    // Die zweite Suche (Rückfall ohne Warnprüfung) und die Ersatzsuche für den Hinweis (über den Fluss) finden meist dieselben
-    // Wege – jede Probe nur einmal rechnen und beide Antworten merken.
-    const geprueft = new Map<string, { kaltOk: boolean; warnOk: boolean }>();
-    const traegt = (weg: number[], warnpruefung: boolean): boolean => {
-      const schluessel = weg.join(',');
-      let antwort = geprueft.get(schluessel);
-      if (antwort === undefined) {
-        const mit = [...probeObjekte, ...weg.map((f, i): Objekt => ({ id: -1 - i, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0 }))];
-        const nachher = probe(mit);
-        antwort = {
-          kaltOk: [...nachher.kalt].every((id) => vorher.kalt.has(id)),
-          warnOk: [...nachher.warnungen].every((w) => vorher.warnungen.has(w)),
-        };
-        geprueft.set(schluessel, antwort);
-      }
-      return antwort.kaltOk && (!warnpruefung || antwort.warnOk);
-    };
-    // Dijkstra über freie Felder (Zustand = Feld + Richtung). Jede Biegung kostet einen Aufschlag, damit der Anschluss gerade läuft.
-    const BIEGUNG_EUR = 900;
-    const richtungen: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-    // A88: Ohne Spülbohrung sind Flussfelder unpassierbar; gibt es nur den Weg über den Fluss, sagt der Hinweis das (kein stilles „kein Weg“).
-    const suche = (flussOk: boolean, warnpruefung: boolean): { ziel: number; von: Map<number, number>; verworfen: number } => {
-      const zustand = (f: number, r: number): number => f * 4 + r;
-      const dist = new Map<number, number>(), von = new Map<number, number>();
-      const offen: Array<[number, number]> = [];
-      for (let dy = 0; dy < g; dy++) for (let dx = 0; dx < g; dx++) {
-        const feld = (haus.y + dy) * N + haus.x + dx;
-        richtungen.forEach(([rx, ry], r) => {
-          const nx = feld % N + rx, ny = Math.floor(feld / N) + ry;
-          if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
-          const n = ny * N + nx;
-          if (imHaus(n) || !frei(n, flussOk)) return;
-          const c = this.feldKosten_eur(typ, nx, ny), z = zustand(n, r);
-          if (c < (dist.get(z) ?? Infinity)) { dist.set(z, c); von.set(z, -1); offen.push([c, z]); }
-        });
-      }
-      let ziel = -1, verworfen = 0;
-      // A69: Andocken an eine durchlaufende Leitung ohne Vorsehung kostet eine Anbohrung – die Wegsuche bevorzugt Vorsehungen und Leitungsenden.
-      const bel = belegungskarte(this.stand.objekte);
-      // Summe wie in anbohrungsFelder(): jede berührte durchlaufende Leitung ohne Vorsehung wird angebohrt.
-      const andockKosten = (f: number): number => nachbarn(f).filter((n) => leit.has(n)).reduce((summe, n) => {
-        const o = this.objekt(bel[n]);
-        // A88: Die Anbohrung zählt hier als Gewicht der Wegsuche, auch solange sie den Spieler nichts kostet –
-        // so nimmt der Hausanschluss denselben Weg wie vor A88 (tests/a88-wegsuche.test.ts).
-        return summe + (o && this.laeuftDurch(o) ? KONSTANTEN.anbohrung_eur : 0);
-      }, 0);
-      const erledigt = new Set<number>();
-      while (offen.length) {
-        offen.sort((a, b) => a[0] - b[0]);
-        const [c, z] = offen.shift() as [number, number];
-        if (z < 0) { // günstigstes Ziel samt Andockkosten – wenn der Weg das Netz trägt, sonst das nächstgünstige
-          if (traegt(wegAus(-z - 1, von), warnpruefung)) { ziel = -z - 1; break; }
-          verworfen++;
-          continue;
-        }
-        if (c > (dist.get(z) as number)) continue;
-        const f = Math.floor(z / 4), r = z % 4;
-        if (nachbarn(f).some((n) => leit.has(n))) {
-          if (!erledigt.has(z)) { erledigt.add(z); offen.push([c + andockKosten(f), -z - 1]); }
-          continue;
-        }
-        richtungen.forEach(([rx, ry], r2) => {
-          const nx = f % N + rx, ny = Math.floor(f / N) + ry;
-          if (nx < 0 || ny < 0 || nx >= N || ny >= N) return;
-          const n = ny * N + nx;
-          if (imHaus(n) || !frei(n, flussOk)) return;
-          const nc = c + this.feldKosten_eur(typ, nx, ny) + (r2 === r ? 0 : BIEGUNG_EUR), nz = zustand(n, r2);
-          if (nc < (dist.get(nz) ?? Infinity)) { dist.set(nz, nc); von.set(nz, z); offen.push([nc, nz]); }
-        });
-      }
-      return { ziel, von, verworfen };
-    };
-    const spuel = freigeschaltet(this.stand, 'spuelbohrung');
-    let { ziel, von, verworfen } = suche(spuel, true);
-    // Rückfall (A91, Projektleiter): Gibt es keinen Weg ohne neue Warnung, gilt der Weg wie vor A91 – anschließbar geht vor,
-    // die Warnung zeigt die Planungsfehler-Anzeige.
-    if (ziel < 0) ({ ziel, von, verworfen } = suche(spuel, false));
-    if (ziel < 0 && !spuel && suche(true, false).ziel >= 0) return this.nein(this.flussGesperrt());
-    if (ziel < 0 && verworfen) return this.nein('Kein Weg gefunden, bei dem alle Häuser warm bleiben');
-    if (ziel < 0) return this.nein('Kein Weg zu einer Leitung gefunden');
-    const weg = wegAus(ziel, von);
-    if (this.leitungsanzahl() + weg.length > this.grenze(typ)) return this.nein('Zu viele Leitungen für diese Heizzentralen-Stufe');
-    const gruppe = this.stand.naechste_id;
-    for (const f of weg) this.stand.objekte.push({ id: this.stand.naechste_id++, typ, x: f % N, y: Math.floor(f / N), stufe: 1, bau: null, kasse_eur: 0, geplant: true, gruppe, _pop: this.uhr() });
-    this.hinweis(`Hausanschluss geplant: ${weg.length} ${weg.length === 1 ? 'Feld' : 'Felder'}, ${KATALOG[typ].name}`);
+  /** NR18: eingezeichnete Leitung im offenen Bauabschnitt bekommt einen anderen Typ (die Leitungsgrenze ändert sich nicht). */
+  geplanteLeitungTyp(id: number, neu: TypId): Ergebnis {
+    const o = this.objekt(id);
+    if (!o || !o.geplant || !istLeitung(neu) || o.typ === neu || this.stand.abschnitt?.phase !== 'offen') return { ok: false };
+    const sperre = this.sperrText(neu);
+    if (sperre) return { ok: false, hinweis: sperre };
+    o.typ = neu; o._pop = this.uhr();
+    this.schritt('leitung_gezeichnet', o.id);
     return ok();
   }
   /** Neuen Bauabschnitt planen lassen (Philipp). */
@@ -765,6 +753,7 @@ export class Spiel {
     if (!b.ok) return b;
     this.stand.abschnitt = { phase: 'planung', bau: this.neuerBau('neu', KONSTANTEN.abschnitt_planung_s) };
     this.sagt(ABSCHNITT_HELFER.planung, `Alles klar, ${this.spielerName}, ich kümmere mich um die Planung.`);
+    this.schritt('abschnitt_geplant');
     return ok();
   }
   /** Einzeichnen beenden; als Nächstes wird Material bestellt. */
@@ -773,13 +762,21 @@ export class Spiel {
     if (a?.phase !== 'offen') return { ok: false };
     if (!this.abschnittLeitungen()) return this.nein('Zeichne erst Leitungen in den Abschnitt');
     a.phase = 'bestellen';
-    return ok();
+    // AE-NR18-1: warnen, nicht sperren – bestellt werden darf trotzdem.
+    const stuecke = this.warnlisteFuellen(this.probeNetz());
+    this.schritt('abschnitt_abgeschlossen');
+    if (!stuecke.length) return ok();
+    const hinweis = stuecke.length > 1 ? `${this.warnliste[0]} ${WEITERE_STELLEN}` : this.warnliste[0];
+    this.hinweis(hinweis);
+    this.ereignisse.push({ art: 'engstelle', felder: stuecke.flatMap((e) => e.felder) });
+    return { ok: true, hinweis };
   }
   /** Zurück zum Einzeichnen. */
   abschnittWiederOeffnen(): Ergebnis {
     const a = this.stand.abschnitt;
     if (a?.phase !== 'bestellen') return { ok: false };
     a.phase = 'offen';
+    this.warnliste = [];
     return ok();
   }
   /** Abschnitt verwerfen: alle eingezeichneten Leitungen verschwinden, die Planungsgebühr ist weg. */
@@ -787,8 +784,11 @@ export class Spiel {
     const a = this.stand.abschnitt;
     if (!a || a.phase === 'planung' || a.phase === 'bau') return { ok: false };
     this.stand.objekte = this.stand.objekte.filter((o) => !o.geplant);
+    for (const o of this.stand.objekte) delete o.ersatz;
     delete this.stand.abschnitt;
+    this.warnliste = [];
     this.neuBerechnen();
+    this.erreichtAbgleichen();
     return ok();
   }
   /** Material bestellen (Laura): bezahlt die Leitungen, danach beginnt die Wartezeit bis zum Bau. */
@@ -801,8 +801,10 @@ export class Spiel {
     a.material_eur = kost;
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
     a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
+    this.warnliste = [];
     const t = this.liefertage();
     this.sagt(ABSCHNITT_HELFER.material, `Hey ${this.spielerName}, dein Material ist bestellt. Lieferzeit: ${tageText(t)}.`);
+    this.schritt('material_bestellt');
     return ok();
   }
 
@@ -837,21 +839,6 @@ export class Spiel {
     a.bau.ende_ms = jetzt + Math.round(rest * KONSTANTEN.express_faktor);
     a.express = true;
     this.sagt(ABSCHNITT_HELFER.material, `Alles klar ${this.spielerName}, ich hab auf Express umgestellt. Dein Material kommt jetzt in ${tageText(this.resttage())}.`);
-    return ok();
-  }
-
-  leitungTauschen(id: number, neu: TypId): Ergebnis {
-    const o = this.objekt(id);
-    if (!o || o.geplant || !istLeitung(o.typ) || !istLeitung(neu) || o.typ === neu) return { ok: false };
-    // A88: nur der neue Typ zählt, nie das Feld – eine Bestandsleitung im Fluss bleibt tauschbar (Bauplan Abschnitt 5)
-    const sperre = this.gesperrt(neu);
-    if (sperre) return sperre;
-    // A30: Die alte Leitung wird zu 50 % des Preises zurückgekauft, die neue kostet den vollen Preis.
-    const rueck = Math.round((KATALOG[o.typ].kosten_eur as number[])[0] * KONSTANTEN.rueckkauf_anteil);
-    const b = this.bezahlen({ eur: (KATALOG[neu].kosten_eur as number[])[0] - rueck });
-    if (!b.ok) return b;
-    o.typ = neu; o._pop = this.uhr();
-    this.neuBerechnen();
     return ok();
   }
 
@@ -1027,11 +1014,15 @@ export class Spiel {
     for (const k of s.innen) if (k.bau && k.bau.ende_ms <= t) fertig(k, KATALOG[k.typ].name, false);
     const ab = s.abschnitt;
     if (ab?.bau && ab.bau.ende_ms <= t) {
-      if (ab.phase === 'planung') { ab.phase = 'offen'; ab.bau = null; this.hinweis('Bauabschnitt bereit – jetzt Häuser anschließen'); }
+      if (ab.phase === 'planung') { ab.phase = 'offen'; ab.bau = null; this.hinweis('Bauabschnitt bereit – jetzt Häuser anschließen'); this.schritt('abschnitt_offen'); }
       else {
-        for (const o of s.objekte) if (o.geplant) { delete o.geplant; delete o.gruppe; o._pop = t; }
+        for (const o of s.objekte) if (o.geplant) { delete o.geplant; o._pop = t; }
+        // E2: Erst jetzt wird getauscht; bis hierher lieferte die alte Leitung.
+        for (const o of s.objekte) if (o.ersatz) { o.typ = o.ersatz.typ; delete o.ersatz; o._pop = t; }
         this.vorsehungenVerbrauchen();
-        delete s.abschnitt; this.hinweis('Bauabschnitt fertig – die Leitungen liegen'); this.ereignisse.push({ art: 'funken', objekt_id: 'heizzentrale' });
+        delete s.abschnitt; this.warnliste = [];
+        this.hinweis('Bauabschnitt fertig – die Leitungen liegen'); this.ereignisse.push({ art: 'funken', objekt_id: 'heizzentrale' });
+        this.schritt('abschnitt_gebaut');
       }
       geaendert = true;
     }

@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
-import { berechneNetz, bedarfKw } from '../src/core/netz';
-import { passendeStation, type TypId } from '../src/core/katalog';
+import { berechneNetz, bedarfKw, groesse } from '../src/core/netz';
+import { istLeitung, passendeStation, type TypId } from '../src/core/katalog';
+import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import type { InnenQuelle, Objekt } from '../src/core/typen';
 import { berechneNetzAlt } from '../tests/hilfen/netz-alt-a91';
+import { altesStartdorf } from '../tests/hilfen/altes-startdorf';
 
-// A91 Laufzeitmessung M1–M5 (Bauplan docs/bauplaene/NR15-netzmodell.md, Paket P1). Je 20 Aufwärmläufe, dann Median.
-// Die Grenzen sind hart: Reißt eine, ist das ein Fall für den Projektleiter, nicht für eine größere Grenze.
-// Gezählt wird jede Netzrechnung, auch die in der Wegsuche von hausanschlussPlanen (deshalb der durchreichende Mock).
+// A91 Laufzeitmessung M1, M3, M6 (Bauplan docs/bauplaene/NR15-netzmodell.md, Paket P1) und NR18 M7–M10 (Bauplan
+// docs/bauplaene/NR18-ohne-autoanschluss.md, P2). M2, M4, M5 maßen die automatische Wegsuche, die es seit NR18 nicht mehr gibt.
+// Je 20 Aufwärmläufe, dann Median. Die Grenzen sind hart: Reißt eine, ist das ein Fall für den Projektleiter, nicht für eine
+// größere Grenze. Gezählt wird jede Netzrechnung einer Aktion (deshalb der durchreichende Mock).
 
 const zaehler = vi.hoisted(() => ({ netzrechnungen: 0 }));
 vi.mock('../src/core/netz', async (original) => {
@@ -56,6 +59,63 @@ function extremnetz(eckeFrei: boolean): Objekt[] {
   }
   return objekte;
 }
+/** Kürzester Weg über freie Felder (Breitensuche) von einem Feld neben dem Haus bis an eine Leitung oder die Heizzentrale.
+ *  [] = das Haus liegt schon daran, null = kein Weg. Nur für den Aufbau von M1/M7 – das Spiel selbst sucht keine Wege mehr. */
+function wegZurLeitung(s: Spiel, h: Objekt): number[] | null {
+  const netz = new Set<number>();
+  for (const o of s.stand.objekte) {
+    if (istLeitung(o.typ)) netz.add(o.y * N + o.x);
+    else if (o.typ === 'hz') for (let dy = 0; dy < groesse(o); dy++) for (let dx = 0; dx < groesse(o); dx++) netz.add((o.y + dy) * N + o.x + dx);
+  }
+  const nachbarn = (f: number): number[] => {
+    const x = f % N, y = Math.floor(f / N);
+    return [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]].filter(([a, b]) => a >= 0 && b >= 0 && a < N && b < N).map(([a, b]) => b * N + a);
+  };
+  const g = groesse(h), rand: number[] = [];
+  for (let i = 0; i < g; i++) rand.push((h.y - 1) * N + h.x + i, (h.y + g) * N + h.x + i, (h.y + i) * N + h.x - 1, (h.y + i) * N + h.x + g);
+  if (rand.some((f) => netz.has(f))) return [];
+  const frei = (f: number): boolean => s.kannPlatzieren('d63', f % N, Math.floor(f / N));
+  const herkunft = new Map<number, number>();
+  const offen = rand.filter((f) => f >= 0 && f < N * N && frei(f));
+  for (const f of offen) herkunft.set(f, -1);
+  for (let i = 0; i < offen.length; i++) {
+    const f = offen[i];
+    if (nachbarn(f).some((n) => netz.has(n))) {
+      const weg: number[] = [];
+      for (let k = f; k !== -1; k = herkunft.get(k) as number) weg.push(k);
+      return weg;
+    }
+    for (const n of nachbarn(f)) if (!herkunft.has(n) && frei(n)) { herkunft.set(n, f); offen.push(n); }
+  }
+  return null;
+}
+/** Volles altes Startdorf (Review P1, K2): Das Startnetz hat an der Heizzentrale nur d40 und ist nach 2–3 Häusern voll, und mit
+ *  Kessel Stufe 1 reicht die Wärme nicht. Deshalb d63 statt d40 und Kessel 5. Jedes erreichbare Haus bekommt eine selbst
+ *  gezeichnete d63 bis zur nächsten Leitung und seine Station; `ohneStation` bleibt ohne Station (für M7). Alles gebaut. */
+function vollesStartdorf(): { s: Spiel; angeschlossen: number; ohneStation: number } {
+  const s = new Spiel(altesStartdorf(T0), () => T0);
+  s.ersteQuelleWaehlen('kessel');
+  s.stand.geld_eur = 1e8;
+  s.hz.stufe = 3;
+  s.stand.abschnitt = { phase: 'offen', bau: null };
+  for (const o of s.stand.objekte) if (o.typ === 'd40') o.typ = 'd63';
+  s.stand.innen = KESSEL_5.map((q) => ({ ...q }));
+  s.neuBerechnen();
+  const haeuser: Objekt[] = [];
+  for (const h of s.stand.objekte.filter((o) => ['efh', 'rh', 'baeck', 'mfh'].includes(o.typ) && o.ohne_station)) {
+    const weg = wegZurLeitung(s, h);
+    if (weg === null) continue;
+    for (const f of weg) expect(s.platzieren('d63', f % N, Math.floor(f / N)).ok).toBe(true);
+    haeuser.push(h);
+  }
+  const ohneStation = haeuser[haeuser.length - 1].id;
+  for (const h of haeuser) if (h.id !== ohneStation) expect(s.stationKaufen(h.id, passendeStation(bedarfKw(h)).id).ok).toBe(true);
+  for (const o of s.stand.objekte) delete o.geplant;
+  delete s.stand.abschnitt;
+  s.neuBerechnen();
+  return { s, angeschlossen: haeuser.length, ohneStation };
+}
+
 /** Spiel mit dem Extremnetz (Ecke frei) plus einem Gebäude ohne Station; Kessel Stufe 5, Abschnitt offen. */
 function extremSpiel(typ: TypId, x: number, y: number, extra: Partial<Objekt> = {}): { s: Spiel; id: number } {
   const s = new Spiel(neuerSpielstand(T0), () => T0);
@@ -74,51 +134,17 @@ function extremSpiel(typ: TypId, x: number, y: number, extra: Partial<Objekt> = 
 
 describe('A91 Laufzeit', () => {
   it('M1 Startdorf voll: berechneNetz ≤ 2 ms', () => {
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
-    s.ersteQuelleWaehlen('kessel');
-    s.stand.geld_eur = 1e8;
-    s.hz.stufe = 3;
-    s.stand.abschnitt = { phase: 'offen', bau: null };
-    // Volles Startdorf (Review P1, K2): Das Startnetz hat an der Heizzentrale nur d40 und ist nach 2–3 Häusern voll, und
-    // mit Kessel Stufe 1 lehnt die Planung weitere Häuser wegen Wärmemangel ab. Deshalb d63 statt d40 und Kessel 5 schon
-    // beim Planen. Ein Haus, an dem eine schon geplante Leitung vorbeiführt, braucht nur seine Station.
-    for (const o of s.stand.objekte) if (o.typ === 'd40') o.typ = 'd63';
-    s.stand.innen = KESSEL_5.map((q) => ({ ...q }));
-    s.neuBerechnen();
-    let angeschlossen = 0;
-    for (const h of s.stand.objekte.filter((o) => ['efh', 'rh', 'baeck', 'mfh'].includes(o.typ) && o.ohne_station)) {
-      const e = s.hausanschlussPlanen(h.id);
-      if (!e.ok && e.hinweis !== 'Das Haus liegt schon an einer Leitung') continue;
-      expect(s.stationKaufen(h.id, passendeStation(bedarfKw(h)).id).ok).toBe(true);
-      angeschlossen++;
-    }
-    for (const o of s.stand.objekte) delete o.geplant;
+    const { s, angeschlossen } = vollesStartdorf();
     const objekte = s.stand.objekte;
     const neu = berechneNetz(objekte, KESSEL_5, 2), alt = berechneNetzAlt(objekte, KESSEL_5, 2);
     expect([...neu.kalt.values()]).not.toContain('station');
-    // Wirkt die neue Regel hier? Gezählt gegen die eingefrorene alte Rechnung, nur berichtet: Die geplanten Hausanschlüsse
+    // Wirkt die neue Regel hier? Gezählt gegen die eingefrorene alte Rechnung, nur berichtet: Die gezeichneten Hausanschlüsse
     // sind eigene Leitungsenden und das Netz trägt, also gibt es im Startdorf nichts zu wechseln (den schweren Fall misst M3).
     const wechsel = objekte.filter((o) => alt.anschluss.get(o.id)?.feld !== neu.anschluss.get(o.id)?.feld).length;
     const umgehaengt = [...neu.eltern].filter(([k, p]) => alt.eltern.get(k) !== p).length;
     const ms = miss(50, () => null, () => { berechneNetz(objekte, KESSEL_5, 2); });
     bericht('M1', ms, 2, `, ${angeschlossen} Anschlüsse, ${objekte.length} Objekte, ${wechsel} Anschlusswechsel, ${umgehaengt} umgehängte Felder`);
     expect(ms).toBeLessThanOrEqual(2);
-  }, 120_000);
-
-  it('M2 hausanschlussPlanen (8|18) im neuen Spiel: ≤ 10 ms', () => {
-    const vorher = (): { s: Spiel; id: number } => {
-      const s = new Spiel(neuerSpielstand(T0), () => T0);
-      s.ersteQuelleWaehlen('kessel');
-      s.stand.geld_eur = 1e8;
-      s.stand.abschnitt = { phase: 'offen', bau: null };
-      s.neuBerechnen();
-      return { s, id: (s.stand.objekte.find((o) => o.x === 8 && o.y === 18) as Objekt).id };
-    };
-    const probe = vorher();
-    expect(probe.s.hausanschlussPlanen(probe.id).ok).toBe(true);
-    const ms = miss(25, vorher, ({ s, id }) => { s.hausanschlussPlanen(id); });
-    bericht('M2', ms, 10);
-    expect(ms).toBeLessThanOrEqual(10);
   }, 120_000);
 
   it('M3 Extremnetz: berechneNetz ≤ 8 ms', () => {
@@ -128,29 +154,63 @@ describe('A91 Laufzeit', () => {
     expect(ms).toBeLessThanOrEqual(8);
   }, 120_000);
 
-  it('M4 Hausanschluss im Extremnetz: ≤ 100 ms', () => {
+  // NR18: Rechnungen je Aktion – neuBerechnen plus Probe-Netz(e) für Warnung und erreichte Häuser (AE-NR18-3).
+  it('M7 stationKaufen mit Warnprüfung im vollen alten Startdorf: ≤ 4 ms', () => {
+    const { s: voll, ohneStation } = vollesStartdorf();
+    const text = serialisieren(voll.stand);
     let rechnungen = 0, ok = false;
-    const ms = miss(9, () => extremSpiel('efh', 21, 21), ({ s, id }) => {
+    const ms = miss(25, () => new Spiel(ladenMitBefund(text, T0).stand, () => T0), (s) => {
+      const h = s.objekt(ohneStation) as Objekt;
       zaehler.netzrechnungen = 0;
-      ok = s.hausanschlussPlanen(id).ok;
+      ok = s.stationKaufen(h.id, passendeStation(bedarfKw(h)).id).ok;
       rechnungen = zaehler.netzrechnungen;
     });
-    bericht('M4', ms, 100, `, ${rechnungen} Netzrechnungen, Weg gefunden: ${ok ? 'ja' : 'nein'}`);
-    expect(ms).toBeLessThanOrEqual(100);
+    expect(ok).toBe(true);
+    bericht('M7', ms, 4, `, ${rechnungen} Netzrechnungen`);
+    expect(ms).toBeLessThanOrEqual(4);
   }, 120_000);
 
-  it('M5 Hausanschluss ohne möglichen Weg (Klinik im Extremnetz): ≤ 100 ms', () => {
-    let rechnungen = 0;
-    const hinweise = new Set<string | undefined>();
-    const ms = miss(9, () => extremSpiel('klinik', 20, 20, { zustand: 'vertrag' }), ({ s, id }) => {
+  it('M8 stationKaufen mit Warnprüfung im Extremnetz: ≤ 12 ms', () => {
+    let rechnungen = 0, ok = false;
+    // (17|17) liegt in der freien Ecke direkt an der Leitung (17|16).
+    const ms = miss(25, () => extremSpiel('efh', 17, 17), ({ s, id }) => {
       zaehler.netzrechnungen = 0;
-      const e = s.hausanschlussPlanen(id);
-      hinweise.add(e.ok ? 'Weg gefunden' : e.hinweis);
+      ok = s.stationKaufen(id, passendeStation(10).id).ok;
       rechnungen = zaehler.netzrechnungen;
     });
-    expect([...hinweise]).toEqual(['Kein Weg gefunden, bei dem alle Häuser warm bleiben']);
-    bericht('M5', ms, 100, `, ${rechnungen} Netzrechnungen`);
-    expect(ms).toBeLessThanOrEqual(100);
+    expect(ok).toBe(true);
+    bericht('M8', ms, 12, `, ${rechnungen} Netzrechnungen`);
+    expect(ms).toBeLessThanOrEqual(12);
+  }, 120_000);
+
+  it('M9 abschnittAbschliessen im Extremnetz: ≤ 8 ms', () => {
+    let rechnungen = 0, ok = false;
+    const ms = miss(25, () => extremSpiel('d32', 17, 17, { geplant: true, ohne_station: undefined }), ({ s }) => {
+      zaehler.netzrechnungen = 0;
+      ok = s.abschnittAbschliessen().ok;
+      rechnungen = zaehler.netzrechnungen;
+    });
+    expect(ok).toBe(true);
+    bericht('M9', ms, 8, `, ${rechnungen} Netzrechnungen`);
+    expect(ms).toBeLessThanOrEqual(8);
+  }, 120_000);
+
+  it('M10 eine geplante Leitung platzieren (mit Abgleich der erreichten Häuser) im Extremnetz: ≤ 4 ms', () => {
+    let rechnungen = 0, ok = false;
+    const vorher = (): Spiel => {
+      const { s } = extremSpiel('efh', 18, 18);
+      // Das Extremnetz hat mehr Leitungen, als eine Heizzentrale je erlaubt; gemessen wird die Rechnung, nicht die Grenze.
+      vi.spyOn(s, 'grenze').mockReturnValue(10_000);
+      return s;
+    };
+    const ms = miss(25, vorher, (s) => {
+      zaehler.netzrechnungen = 0;
+      ok = s.platzieren('d32', 17, 17).ok;
+      rechnungen = zaehler.netzrechnungen;
+    });
+    expect(ok).toBe(true);
+    bericht('M10', ms, 4, `, ${rechnungen} Netzrechnungen`);
+    expect(ms).toBeLessThanOrEqual(4);
   }, 120_000);
 });
 

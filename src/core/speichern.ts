@@ -1,4 +1,4 @@
-import { KATALOG, KONSTANTEN, type TypId } from './katalog';
+import { KATALOG, KONSTANTEN, istLeitung, type TypId } from './katalog';
 import { belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
 import { neuerSpielstand } from './spiel';
@@ -39,6 +39,24 @@ function gueltig(d: Partial<Spielstand>): d is Spielstand {
   }
   for (const o of d.objekte) if (o.upgrade !== undefined && !istZahl(o.upgrade)) return false;
   return d.objekte.some((o) => o.typ === 'hz');
+}
+
+/**
+ * NR18: Die automatische Wegsuche ist weg, ihr Merkmal `gruppe` (gemeinsam zurücknehmen) auch. Ein geplanter Ersatz gilt nur
+ * an einer gebauten Leitung, mit einem dickeren Leitungstyp und einer Zahl als Nummer – alles andere würde das Netz mit einem
+ * fremden Typ rechnen oder „Zurück“ verwirren. Ein kaputter Ersatz kostet nur den Plan, nicht den ganzen Stand.
+ */
+function nr18Aufraeumen(stand: Spielstand): void {
+  const kapazitaet = (t: TypId): number => KATALOG[t].kapazitaet_kw ?? 0;
+  for (const o of stand.objekte) {
+    delete (o as { gruppe?: unknown }).gruppe;
+    if (o.ersatz === undefined) continue;
+    const e = o.ersatz as { typ?: unknown; nr?: unknown } | null;
+    const typ = e && typeof e === 'object' ? e.typ : undefined;
+    const gueltigerErsatz = typeof typ === 'string' && istLeitung(typ as TypId) && istLeitung(o.typ) && !o.geplant
+      && kapazitaet(typ as TypId) > kapazitaet(o.typ) && istZahl((e as { nr?: unknown }).nr);
+    if (!gueltigerErsatz) delete o.ersatz;
+  }
 }
 
 /**
@@ -113,6 +131,7 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
       d.version = SPEICHER_VERSION; migriert = true;
     }
     if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
+      nr18Aufraeumen(d as Spielstand);
       if (karteAnpassen(d as Spielstand)) migriert = true;
       // A86: Wer den alten Vorgabenamen behalten hat, bekommt den fiktiven Dorfnamen (selbst gewählte Namen bleiben).
       // Bewusst kein 'migriert': der Start-Hinweis dazu spricht von Straßen und Fluss; der neue Name wird beim nächsten Speichern geschrieben.
