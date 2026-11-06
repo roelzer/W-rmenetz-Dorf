@@ -335,3 +335,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:03 | ▶ | tester | Tester: Abnahme-Felder korrigieren |
 | 2026-11-06 09:04 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, aber nur formal.** Alle vier Review-Befunde sind behoben und jeweils mit einer Fehlerprobe belegt. Die Test-Schranke meldet trotzdem � ([Bericht](docs/pruefberichte/20261106-090410-entwickler-abd8188371b4e73b1.md)) |
 | 2026-11-06 09:04 | ▶ | reviewer | Nachprüfung NR18-P4 |
+| 2026-11-06 09:05 | ■ 🟢 | tester | 🟢 Der Beleg stimmt. Ich habe die Erwartung im Test angepasst; der Test ist jetzt grün.  ([Bericht](docs/pruefberichte/20261106-090500-tester-aca97fba99c4fe490.md)) |
