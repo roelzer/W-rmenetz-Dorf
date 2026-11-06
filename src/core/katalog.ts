@@ -352,6 +352,10 @@ export const KONSTANTEN = {
   abschnitt_planung_eur: 2000,
   /** A41: Bauzeit eines Bauabschnitts nach der Materialbestellung (Sekunden vor Spieltempo; Laura sagt die Lieferzeit in Spieltagen an) */
   abschnitt_bau_s: 360,
+  /** NR13 (NR2 „erster Abschnitt in ca. 1 Minute“): Planung und Bau des ersten Abschnitts im Tutorial in Sekunden, ohne
+   *  bauzeit_faktor – das Vorführ-Tempo wirkt weiter über die Uhr. */
+  tutorial_planung_s: 10,
+  tutorial_bau_s: 20,
   /** A62: Expresslieferung – Aufpreis als Anteil am Material (mindestens express_min_eur), Restlieferzeit schrumpft auf express_faktor */
   express_anteil: 0.3,
   express_min_eur: 500,
