@@ -22,3 +22,5 @@ Neu: 4 Tests test_nr19_w1_* (Puffer-Haus tauscht nicht auf Wandstation; keine Wa
 reicht keine, Wandstation nach Bedarf bei 1.500 h und hauspuffer weg; Altstand Puffer + Wandstation unverändert). 38 Tests.
 Katalogname „Puffer-Übergabestation HP 800“ und Ablehnungssatz bleiben (12.23 ändert nur Knopf- und Stationszeile).
 Prüfsumme: keine – die Liste docs/ABNAHME_PRUEFSUMMEN.txt erfasst nur .dev-team/verdeckt im Hauptordner, nicht diese Datei.
+
+Aktiviert 2026-11-06 durch den Projektleiter nach Merge P6 (2fd3b56): 38/38 grün.
