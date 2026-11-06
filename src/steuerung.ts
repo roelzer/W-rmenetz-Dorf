@@ -38,6 +38,8 @@ const istKartenziel = (z: ZielName): z is keyof typeof KARTEN_VORLESENAME => z =
 /** DESIGN 13.6 / Bauplan NR13 P4 „Kamera“: Rand beim Einpassen mehrerer Ziele und höchster Zoom (= Startzoom am Handy) */
 const EINPASS_RAND_PX = 24;
 const ZIEL_ZOOM_MAX = T.karte.zoom_start_handy;
+/** DESIGN 13.16 M1: so weit darf die Kamera in T13 herauszoomen, damit Spur und Gebäude über der Anleiter-Karte Platz finden */
+const T13_ZOOM_MIN = 2;
 /** Tabelle Abschnitt 6: das Hausblatt schließt 200 ms nach dem Kauf, damit man den Kauf noch sieht */
 const BLATT_ZU_NACH_KAUF_MS = 200;
 /** Wie Kamera.groesseSetzen: kürzere Bildkante unter 500 px = Handy */
@@ -717,6 +719,7 @@ export class Steuerung implements Ui {
     const os = a.kamera_ziele.map((z) => this.kartenObjekt(a, z)).filter((o): o is Objekt => o !== null);
     if (!os.length) return;
     const k = this.kamera;
+    if (a.spur) { this.t13Einpassen(os, frei); return; }
     let z: { mitte_x: number; mitte_y: number; zoom: number; ziel_x: number; ziel_y: number };
     if (os.length === 1) {
       const o = os[0], g = groesse(o);
@@ -746,6 +749,27 @@ export class Steuerung implements Ui {
     }
     k.zoom = z.zoom;
     k.zentrierenBei(z.mitte_x, z.mitte_y, 1, z.ziel_x, z.ziel_y);
+  }
+  /** DESIGN 13.16 M1: In T13 hat die Karte kein Loch zum Ausweichen und die Spur braucht fast die ganze Höhe – darum setzt
+   *  die Kamera Spur und Gebäude (Feldmitte ± halbe Feldbreite) mit Rand zwischen Anzeigenreihe und Oberkante der unten
+   *  stehenden Karte − 16, links von der Zeichenleiste. Der Umriss wächst linear mit dem Zoom, darum genügt eine Messung bei
+   *  Zoom 1. Reicht der Platz auch bei T13_ZOOM_MIN nicht für den vollen Rand, steht der Umriss mittig – der Rand wird kleiner. */
+  private t13Einpassen(os: Objekt[], frei: Rechteck): void {
+    const k = this.kamera, flaeche = this.t13Flaeche(frei);
+    const felder = [...TUTORIAL_SPUR, ...os.map((o) => [o.x + (groesse(o) - 1) / 2, o.y + (groesse(o) - 1) / 2] as const)];
+    k.zoom = 1;
+    const pk = felder.map(([x, y]) => k.mitte(x, y)), xs = pk.map((p) => p[0]), ys = pk.map((p) => p[1]);
+    const breite1 = Math.max(...xs) - Math.min(...xs) + k.tw, hoehe1 = Math.max(...ys) - Math.min(...ys) + k.tw;
+    const passt = Math.min((flaeche.b - 2 * EINPASS_RAND_PX) / breite1, (flaeche.h - 2 * EINPASS_RAND_PX) / hoehe1);
+    const [fx, fy] = k.feldGenau((Math.max(...xs) + Math.min(...xs)) / 2, (Math.max(...ys) + Math.min(...ys)) / 2);
+    k.zoom = Math.max(T13_ZOOM_MIN, Math.min(ZIEL_ZOOM_MAX, passt));
+    k.zentrierenBei(fx, fy, 1, flaeche.x + flaeche.b / 2, flaeche.y + flaeche.h / 2);
+  }
+  /** Freie Fläche in T13: unter der Anzeigenreihe, über der Anleiter-Karte − 16, links von der Zeichenleiste. */
+  private t13Flaeche(frei: Rechteck): Rechteck {
+    const M = T.menue.mass_px, oben = T.groesse_px.blatt_oben_quer;
+    const kartenOben = this.kamera.hoehe - M.anleiter_rand - this.anleiterHoehe();
+    return { x: frei.x, y: oben, b: frei.b, h: kartenOben - M.anleiter_ziel_abstand - oben };
   }
   /** Höhe der stehenden Karte (aus dem letzten Bild): ändert sie sich mit dem Text, wird der Platz neu gewählt (13.3). */
   private anleiterHoehe(): number { return Math.max(anleiterRechteck()?.h ?? 0, T.menue.mass_px.anleiter_hoehe); }
@@ -814,7 +838,8 @@ export class Steuerung implements Ui {
     if (a.kamera_grenze && (wechsel || breiteNeu)) {
       // K5: Rahmen und zoom_min einmal beim Eintritt; ändert sich später die freie Breite, wandert nur die Bildmitte mit
       const g = k.grenze, os = a.kamera_ziele.map((z) => this.kartenObjekt(a, z)).filter((o): o is Objekt => o !== null);
-      const mitte_px = [frei.x + frei.b / 2, frei.y + frei.h / 2] as const;
+      // In T13 steht die Bildmitte der Grenze dort, wohin t13Einpassen die Ziele gesetzt hat – sonst schöbe die Grenze sie zurück
+      const mf = a.spur ? this.t13Flaeche(frei) : frei, mitte_px = [mf.x + mf.b / 2, mf.y + mf.h / 2] as const;
       if (wechsel || !g) k.grenzeSetzen({ ...this.rahmen(os), mitte_px, zoom_min: k.zoom, zoom_max: ZIEL_ZOOM_MAX });
       else k.grenzeSetzen({ ...g, mitte_px });
     }

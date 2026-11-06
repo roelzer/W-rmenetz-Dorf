@@ -12,7 +12,7 @@
 // Loch ändert nichts, dann [Weiter] (in T02 einmal per Tastatur: Enter). T13: Spur bis Haus 1 ziehen → T13b-Text, Zurück →
 // T13-Text, ab dem Leitungsende weiter bis auf Haus 2 → T14. Ende: keine Anleiter-Karte, gespeicherter Stand ohne
 // `tutorial`, beide ERSTE_HAEUSER warm (im laufenden Spiel und in Node aus dem gespeicherten Stand gerechnet), keine
-// Konsolenfehler. Zusätzlich 667×375 bis T05.
+// Konsolenfehler. Zusätzlich 667×375 bis T13 (T05: Karte über keinem Lochrand; T13: Karte über keinem Spur-/Gebäudepunkt).
 //
 // Zeit: Das Vorführ-Tempo ×10 (Speicher-Schlüssel von src/tempo.ts) lässt die Tutorial-Planung (10 s) und den Tutorial-Bau
 // (20 s) in 1 bzw. 2 s vergehen. Die Sprecher-Blasen von Philipp und Laura laufen auf der echten Fensteruhr (bis ~7 s);
@@ -330,8 +330,25 @@ async function namenEingeben(s, ort) {
   pruefe(ort, 'T01 begrüßt mit dem Namen', (l.text || '').startsWith(`Hallo ${SPIELERNAME}!`), `„${l.text}“`);
 }
 
+// DESIGN 13.16 M1: In T13 (kein Loch) darf die Anleiter-Karte keinen Bildschirmpunkt von Spur, Heizzentrale und beiden
+// Häusern schneiden – je Feldmitte ± halbe Feldbreite (Heizzentrale 2×2: Mitte des Blocks).
+async function t13KarteFrei(p, ort) {
+  await ruhe(p);
+  const r = await p.evaluate(({ spur, haeuser }) => {
+    const k = window.__kamera, sp = window.__st.spiel, c = document.querySelector('canvas').getBoundingClientRect();
+    const kr = document.getElementById('anleiter').getBoundingClientRect(), halb = k.tw / 2;
+    const hz = sp.hz;
+    const pkt = [...spur.map(([x, y]) => [`Spur ${x}|${y}`, x, y]), ['Heizzentrale', hz.x + 0.5, hz.y + 0.5], ...haeuser.map(([x, y], i) => [`Haus ${i + 1}`, x, y])];
+    const treffer = pkt.filter(([, x, y]) => { const [mx, my] = k.mitte(x, y), px = c.left + mx, py = c.top + my;
+      return px - halb < kr.right && kr.left < px + halb && py - halb < kr.bottom && kr.top < py + halb; }).map((e) => e[0]);
+    return { treffer, karte: `${Math.round(kr.left)},${Math.round(kr.top)} ${Math.round(kr.width)}x${Math.round(kr.height)}`, zoom: k.zoom };
+  }, { spur: TUTORIAL_SPUR, haeuser: ERSTE_HAEUSER });
+  pruefe(ort, 'T13: Anleiter-Karte verdeckt weder Spur noch Heizzentrale noch Haeuser', r.treffer.length === 0, `Karte ${r.karte}, Zoom ${r.zoom.toFixed(2)}${r.treffer.length ? `; verdeckt ${r.treffer.join(' / ')}` : ''}`);
+}
+
 async function t13(s, ort) {
   const { p } = s;
+  await t13KarteFrei(p, ort);
   const anfang = await lage(p);
   muss(ort, 'T13: Text vor dem Ziehen', anfang.text === TEXT_T13, `„${anfang.text}“`);
   // bis Haus 1: die Spur bis (10|13), dem Feld neben Haus 1 (9|13)
@@ -460,6 +477,13 @@ async function kurzlauf667(browser, url) {
     const ueber = await karteUeberLoch(s.p);
     pruefe(ort, 'T05: Anleiter-Karte schneidet keinen Lochrand', ueber.treffer.length === 0,
       ueber.karte ? `Karte ${ueber.karte}${ueber.treffer.length ? `; Lochrand ${ueber.treffer.join(' / ')}` : ''}` : 'keine Karte sichtbar');
+    // weiter bis T13: Anleiter-Karte darf Spur und Gebäude auch auf 667×375 nicht verdecken (DESIGN 13.16 M1)
+    for (const [id, nach] of [['T05', 'T06'], ['T06', 'T07'], ['T07', 'T08']]) await schritt(s, ort, id, weiterSchritt(s, ort, id), nach);
+    await schritt(s, ort, 'T08', lochTipp(s, ort, 'T08'), 'T10');
+    await schritt(s, ort, 'T10', lochTipp(s, ort, 'T10'), 'T11');
+    await schritt(s, ort, 'T11', weiterSchritt(s, ort, 'T11'), 'T12');
+    await schritt(s, ort, 'T12', lochTipp(s, ort, 'T12'), 'T13');
+    await t13KarteFrei(s.p, ort);
   } catch (f) {
     if (!(f instanceof LaufAbbruch)) throw f;
     const l = await lage(s.p).catch(() => null);

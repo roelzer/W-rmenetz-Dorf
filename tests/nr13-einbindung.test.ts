@@ -319,16 +319,19 @@ describe('NR13 P4 Einbindung – Teil 2', () => {
     await echteSteuerung(spiel, (u) => {
       bisT13(u, spiel, uhr);
       const k = s2(u).kamera;
-      const erwartet = k.einpassenZiel(rahmenHzHaeuser(spiel), { x: 0, y: 0, b: 844, h: 390 }, 24, 3).zoom;
+      // DESIGN 13.16 M1: Spur, HZ und Häuser brauchen 2,5 Feldbreiten Höhe (Feldsumme 20…26 → 6 × tw/4 + tw); frei sind nur
+      // 64…200 px (Karte oben 216 − 16). Bei basis 26 px passt erst Zoom 88/65 ≈ 1,35 → Kamera zoomt bis zur Untergrenze 2.
+      const erwartet = 2;
       expect(k.zoom).toBeCloseTo(erwartet, 6);
       expect(k.grenze!.zoom_min).toBeCloseTo(erwartet, 6);
       expect(k.grenze!.zoom_max).toBe(3);
-      expect(k.grenze!.mitte_px).toEqual([422, 195]);
+      // Bildmitte der freien Fläche zwischen Anzeigenreihe (64) und Kartenoberkante − 16 (200): (64 + 200) / 2 = 132
+      expect(k.grenze!.mitte_px).toEqual([422, 132]);
       k.groesseSetzen(700, 390, 2);
       s2(u).tick(uhr.t);
       expect(k.zoom).toBeCloseTo(erwartet, 6);
       expect(k.grenze!.zoom_min).toBeCloseTo(erwartet, 6);
-      expect(k.grenze!.mitte_px).toEqual([350, 195]);
+      expect(k.grenze!.mitte_px).toEqual([350, 132]);
       expect(schrittJetzt(u)).toBe('T13');
     }, { uhr: () => uhr.t });
   });
