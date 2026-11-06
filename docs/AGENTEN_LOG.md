@@ -427,3 +427,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:35 | ▶ | entwickler | NR13 Paket P3 ui+render |
 | 2026-11-06 12:41 | ■ 🔴 | entwickler | 🔴 BLOCKIERT (Kontext voll). P3 ist nicht gebaut: kein Code, kein Commit.  ([Bericht](docs/pruefberichte/20261106-124103-entwickler-a37709dcdca040e9e.md)) |
 | 2026-11-06 12:41 | ▶ | entwickler | NR13 Paket P3a Bausteine |
+| 2026-11-06 12:43 | ■ 🟢 | entwickler | 🟢 FERTIG – Paket P2 (Tutorial im Spielkern) ist gebaut, alle Prüfungen sind grün.  ([Bericht](docs/pruefberichte/20261106-124352-entwickler-a50a1428817b14a4b.md)) |
+| 2026-11-06 12:43 | ▶ | reviewer | Review NR13 P2 |
+| 2026-11-06 12:44 | ▶ | entwickler | NR13 Paket P3b Blätter/HUD/Kamera |
