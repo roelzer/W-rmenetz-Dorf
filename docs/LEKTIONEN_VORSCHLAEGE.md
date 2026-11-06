@@ -12,3 +12,5 @@
 - [Prozess] Schweres Paket bekommt frischen Lauf und knappe Bauplan-Auszüge, sonst ist der Kontext beim Lesen verbraucht (NR18-P2, 06.11.)
 - [Pläne] Beispieltexte für Knopf-Zeile 2 vor der Freigabe gegen die Zeichengrenze (≤ 28, eng ≤ 18) prüfen. (NR19 Zeile 2 hatte 29 Zeichen, 2026-11-06)
 - [Schranke] Hat ein Paket-Branch den Arbeitsbranch hereingemergt, im Auftrag den Abzweigpunkt (merge-base) als Schranken-Basis nennen. (Fixrunde P6, 2026-11-06)
+- [Tutorial] Jeder Schritt, der Wiedereinstiegs-Ziel sein kann, braucht einen Test „neu laden → Ziel da und antippbar“; Ziele in Blättern stellt die Steuerung selbst her. (NR13 M1, 2026-11-06)
+- [Leistung] Bei Bildraten aus Chromium ohne Grafikkarte zuerst im Trace das Malen (LayerTreeHost::DoUpdateLayers) gegen die JS-Zeit stellen, bevor JS optimiert wird. (NR13-fps, 2026-11-06)
