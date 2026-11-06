@@ -367,3 +367,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 10:20 | ▶ | designer | Designer Fotoprüfung Stationswahl |
 | 2026-11-06 10:24 | ■ 🔴 | reviewer | 🟡 Paket P6 (NR19 Puffer-Übergabestation, 105d4dc..960c7b8f82): Nachbesserung nötig, ein wichtiger Befund  ([Bericht](docs/pruefberichte/20261106-102416-reviewer-ac83bcc7f92d74f35.md)) |
 | 2026-11-06 10:27 | ■ 🟡 | designer | 🟡 Fotoprüfung Stationswahl NR19 (Stand 960c7b8, Branch p6-nr19)  ([Bericht](docs/pruefberichte/20261106-102737-designer-a89e129aa870d1535.md)) |
+| 2026-11-06 10:28 | ▶ | entwickler | Entwickler Fixrunde P6 |
+| 2026-11-06 10:28 | ▶ | tester | Tester NR19-Abnahme Texte |
