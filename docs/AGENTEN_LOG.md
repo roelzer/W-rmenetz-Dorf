@@ -387,3 +387,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 11:05 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Es gibt keinen Commit, keine Testdatei und keinen Schranken-Lauf. Der Worktree ist sauber.  ([Bericht](docs/pruefberichte/20261106-110518-entwickler-a8174d9af0fc83568.md)) |
 | 2026-11-06 11:05 | ▶ | tester | Tester-Vorarbeit NR19-K |
 | 2026-11-06 11:12 | ■ 🟢 | tester | 🟢 Tester-Vorarbeit NR19-K ist fertig. Es wurden nur Testdateien geändert, kein Programmcode. Die Gegenprobe ist komplett grün.  ([Bericht](docs/pruefberichte/20261106-111218-tester-ad03fe5a0d8a046ff.md)) |
+| 2026-11-06 11:16 | ■ 🟢 | entwickler | 🟢 Status: FERTIG  ([Bericht](docs/pruefberichte/20261106-111632-entwickler-a8174d9af0fc83568.md)) |
+| 2026-11-06 11:16 | ▶ | reviewer | Review NR19-K |
