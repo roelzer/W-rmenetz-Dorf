@@ -10,6 +10,10 @@ import { describe, expect, it } from 'vitest';
 // U4 (AE-NR13-1 erweitert): Sobald es neuesSpielMitTutorial gibt, ruft außer start.ts niemand neuerSpielstand auf.
 // U5 (AE-NR13-5): Tutorial-Bausteine der Oberfläche (anleiter.ts, spotlight.ts) holen aus dem Kern nur den Vertrag.
 // U6 (Projektregel): kein HTML aus Zeichenketten, SVG nur per DOMParser.
+// U7 (AE-NR13-5, Bauplan F3): Die Tutorial-Verdrahtung macht nur steuerung.ts. Werte aus ui/anleiter und ui/spotlight sowie die
+//    Schalter meldungenStumm, toastWichtig, sprecherAktiv holt sonst niemand (anleiter/spotlight dürfen sich gegenseitig nutzen),
+//    und core/tutorial importiert außerhalb des Kerns nur steuerung.ts. `import type` ist frei. Nebenwirkung gewollt: Baumenü und
+//    Hausblatt bekommen keine neuen Namen aus toast/sprecher – sieben bestehende Tests ersetzen diese Module durch feste Attrappen.
 const ohneKommentare = (t: string): string => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 const lesen = (f: string): string => ohneKommentare(readFileSync(f, 'utf8'));
 const norm = (f: string): string => f.replace(/\\/g, '/');
@@ -62,6 +66,22 @@ describe('NR13 Tutorial: Struktur', { timeout: 30000 }, () => {
     const verstoesse: string[] = [];
     for (const f of dateien('src/ui').map(norm).filter((x) => ['anleiter.ts', 'spotlight.ts'].includes(basename(x)))) {
       for (const i of importe(f)) if (/(^|\/)core\//.test(i) && !/core\/tutorial-vertrag$/.test(i)) verstoesse.push(`${f}: ${i}`);
+    }
+    expect(verstoesse).toEqual([]);
+  });
+
+  it('U7: anleiter/spotlight, meldungenStumm/toastWichtig/sprecherAktiv und core/tutorial nutzt nur steuerung.ts (Wert-Importe)', () => {
+    const verstoesse: string[] = [];
+    const TUTORIAL_UI = ['src/ui/anleiter.ts', 'src/ui/spotlight.ts'];
+    const SCHALTER = ['meldungenStumm', 'toastWichtig', 'sprecherAktiv'];
+    for (const f of dateien('src').map(norm)) {
+      if (f === 'src/steuerung.ts') continue;
+      for (const m of lesen(f).matchAll(/import\s+(?!type\b)([^'";]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
+        const namen = m[1], pfad = m[2];
+        if (/(^|\/)(anleiter|spotlight)$/.test(pfad) && !TUTORIAL_UI.includes(f)) verstoesse.push(`${f}: ${pfad}`);
+        if (/(^|\/)core\/tutorial$/.test(pfad) || (f.startsWith('src/core/') ? false : /^\.\/tutorial$/.test(pfad))) verstoesse.push(`${f}: ${pfad}`);
+        for (const n of SCHALTER) if (new RegExp(`\\b${n}\\b`).test(namen)) verstoesse.push(`${f}: ${n}`);
+      }
     }
     expect(verstoesse).toEqual([]);
   });
