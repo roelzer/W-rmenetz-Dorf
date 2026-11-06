@@ -396,3 +396,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 11:40 | ■ 🟡 | kritiker | 🟡 **Kritiker-Prüfung des Bauplans NR13 Tutorial (docs/bauplaene/NR13-tutorial.md): Gelb – bitte vor dem Bau nachbessern.**  ([Bericht](docs/pruefberichte/20261106-114059-kritiker-a46afa1f8187f3f64.md)) |
 | 2026-11-06 11:41 | ▶ | designer | Designer NR13 Klärungen |
 | 2026-11-06 11:46 | ■ 🟢 | designer | 🟢 Alle 10 Punkte sind entschieden und in `docs/DESIGN.md` festgehalten. Ich habe nur diese Datei geändert. Nicht festgelegt habe ich, was technisch zu entsc ([Bericht](docs/pruefberichte/20261106-114651-designer-a15e0205f2dd11f6a.md)) |
+| 2026-11-06 11:47 | ▶ | fachpruefer | Fachprüfer T17-Wortlaut |
+| 2026-11-06 11:47 | ▶ | architekt | Architekt NR13 Fassung 2 |
