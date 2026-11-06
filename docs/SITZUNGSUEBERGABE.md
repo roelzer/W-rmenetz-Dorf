@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: NR18-W Fix-Runde (Review 🔴 W1 nur bestellen/bau, W2 Cache-Test) auf nr18-p23-fix. Fertig/geprüft: P2 e704324 🟡, P3 c123e25 🟡, P4 08b2ede 🟢, Abnahme-Fix 0c4b716 (Vorarbeit). Nach 🟢/🟡 NR18-W: in Arbeitszweig mergen: 0c4b716 (Vorarbeit eintragen), e1969dc (enthält 939fa2a = P3+P2), 08b2ede; Schranke Basis = Stand vor Merge; dann Welle 2 P0b → P6. Simon über NR18-W informieren.
+Laufende Agenten: Nachprüfung NR18-W (17b68e1). Probe-Merge (Scratch wt-p23): Arbeitszweig + 0c4b716 + 17b68e1 + 08b2ede → 1146/1146 grün, typecheck grün. Nach 🟢: im Hauptordner genauso mergen, 0c4b716 als Vorarbeit eintragen, Schranke projektleiter, Lastenheft NR18 → A-Nummern, Simon informieren (NR18-W). Dann Welle 2 P0b → P6.
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.
