@@ -384,3 +384,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 11:01 | ■ 🟢 | fachpruefer | 🟢 Fachprüfung NR19 Puffer-Übergabestation (Stand 62b0ac9, HEAD jetzt ea740e5, nur Log-Commit)  ([Bericht](docs/pruefberichte/20261106-110143-fachpruefer-ac36ef52a95bde287.md)) |
 | 2026-11-06 11:02 | ▶ | entwickler | Entwickler NR19-K Feinschliff |
 | 2026-11-06 11:02 | ■ 🟢 | fachpruefer | 🟢 Fachprüfung NR19 Puffer-Übergabestation (Stand 62b0ac9, HEAD jetzt ea740e5, nur Log-Commit)  ([Bericht](docs/pruefberichte/20261106-110234-fachpruefer-ac36ef52a95bde287.md)) |
+| 2026-11-06 11:05 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Es gibt keinen Commit, keine Testdatei und keinen Schranken-Lauf. Der Worktree ist sauber.  ([Bericht](docs/pruefberichte/20261106-110518-entwickler-a8174d9af0fc83568.md)) |
+| 2026-11-06 11:05 | ▶ | tester | Tester-Vorarbeit NR19-K |
