@@ -419,3 +419,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:26 | ■ 🟡 | kritiker | 🟡 **NR13 Fassung 3: Gelb.** Alle fünf alten Muss-Punkte sind geschlossen und testbar. Zwei neue Lücken gehören vor dem Bau in den Plan: ein Festhänge-Weg ([Bericht](docs/pruefberichte/20261106-122652-kritiker-a65ee49795235f41d.md)) |
 | 2026-11-06 12:27 | ▶ | architekt | NR13 Plan Ergänzung A/B |
 | 2026-11-06 12:27 | ■ 🟢 | architekt | 🟢 Der Bauplan `/home/user/W-rmenetz-Dorf/docs/bauplaene/NR13-tutorial.md` steht jetzt auf Fassung 3.1. Beide Punkte sind eingetragen und mit „(F3.1)“ mar ([Bericht](docs/pruefberichte/20261106-122757-architekt-a5f2a600c4593ce31.md)) |
+| 2026-11-06 12:31 | ■ 🟢 | entwickler | 🟢 FERTIG: Paket P0 aus NR13 ist gebaut, auf Branch nr13-p0 committet und nicht gepusht.  ([Bericht](docs/pruefberichte/20261106-123147-entwickler-ab9b46551d8a9e2b6.md)) |
+| 2026-11-06 12:31 | ▶ | reviewer | Review NR13 P0 |
