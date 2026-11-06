@@ -30,6 +30,9 @@ export class Effekte {
   schwebtext(feldX: number, feldY: number, text: string, farbe = '#ffe14d'): void {
     this.texte.push({ x: feldX, y: feldY, t: 0, text, farbe });
   }
+  /** NR18 (AE-NR18-6): Markierung der zu dünnen Felder [x, y]; `ruhig` = „Weniger Bewegung“ (fest statt Puls).
+   *  Schnittstelle steht, damit Steuerung und Darstellung getrennt gebaut werden können; das Zeichnen folgt mit der Darstellung. */
+  engstelle(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {}
   aktiv(): boolean { return this.funken_.length + this.muenzen_.length + this.texte.length > 0; }
 
   /** dt_s = Sekunden seit dem letzten Bild (auf 0,1 begrenzt, damit nach Pausen nichts springt). */
