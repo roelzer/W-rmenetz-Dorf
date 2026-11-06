@@ -393,3 +393,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 11:20 | ▶ | architekt | Architekt Bauplan NR13 |
 | 2026-11-06 11:33 | ■ 🟢 | architekt | 🟢 **NR13 Bauplan steht. Das Tutorial lässt sich in 5 Paketen bauen, davon laufen 3 gleichzeitig. Es braucht keine Tester-Vorarbeit, und es ist nichts offen, ([Bericht](docs/pruefberichte/20261106-113311-architekt-a986dcfe0a223fa2b.md)) |
 | 2026-11-06 11:34 | ▶ | kritiker | Kritiker NR13-Bauplan |
+| 2026-11-06 11:40 | ■ 🟡 | kritiker | 🟡 **Kritiker-Prüfung des Bauplans NR13 Tutorial (docs/bauplaene/NR13-tutorial.md): Gelb – bitte vor dem Bau nachbessern.**  ([Bericht](docs/pruefberichte/20261106-114059-kritiker-a46afa1f8187f3f64.md)) |
+| 2026-11-06 11:41 | ▶ | designer | Designer NR13 Klärungen |
