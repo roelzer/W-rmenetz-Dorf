@@ -2,9 +2,12 @@ import { KATALOG } from '../core/katalog';
 import { groesse } from '../core/netz';
 import type { Bau, InnenQuelle, Objekt } from '../core/typen';
 import { dachfarbe, KONTUR, schatten } from './farben';
+import tokens from '../../design/tokens.json';
 import { WARM_FENSTER, type Maler } from './maler';
 
 const ALLES = Math.PI * 2;
+/** Dauer des kurzen Federns (DESIGN.md Abschnitt 3: Platzieren; 13.2: „Erreicht“-Zeichen) */
+export const FEDERN_MS = 450;
 
 /** Was ein Gebäude zum Zeichnen über das Netz wissen muss. */
 export interface Zustand {
@@ -18,7 +21,7 @@ export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Z
   const { X } = m;
   const tw = m.tw, th = m.th, t = o.typ, lv = o.stufe, D = KATALOG[t];
   const geist = o.bau?.art === 'neu';
-  const pop = o._pop ? Math.max(0, 1 - (jetzt_ms - o._pop) / 450) : 0;
+  const pop = o._pop ? Math.max(0, 1 - (jetzt_ms - o._pop) / FEDERN_MS) : 0;
   if (pop > 0) { X.save(); X.translate(cx, cy); const k = 1 + Math.sin(pop * Math.PI) * 0.18; X.scale(k, Math.max(0.8, 2 - k)); X.translate(-cx, -cy); }
   if (geist) X.globalAlpha = 0.5;
   if (t === 'hz') heizzentrale(m, o, cx, cy, st);
@@ -210,21 +213,33 @@ function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   void st;
 }
 
-export type Blase = 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot' | 'anfrage';
+export type Blase = 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot' | 'anfrage' | 'erreicht';
 
-export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase): void {
-  const { X } = m, r = m.tw * 0.17;
+/** `federn` 0…1: Rest des kurzen Federns (1 = gerade begonnen), vergrößert die Blase um bis zu `plopp_staerke`. */
+export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase, federn = 0): void {
+  const { X } = m, r = m.tw * 0.17 * (1 + Math.sin(federn * Math.PI) * tokens.karte.plopp_staerke);
   y += Math.sin(m.zeit_s * 3 + cx) * 2.5;
   X.fillStyle = '#fff'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2.5;
   X.beginPath(); X.arc(cx, y, r, 0, ALLES); X.fill(); X.stroke();
   X.beginPath(); X.moveTo(cx - r * 0.4, y + r * 0.82); X.lineTo(cx, y + r * 1.5); X.lineTo(cx + r * 0.4, y + r * 0.82); X.closePath(); X.fill(); X.stroke();
   X.beginPath(); X.arc(cx, y, r - 1.5, 0, ALLES); X.fill();
   // A88/F2: Kundenanfrage in Heat-Orange (Rohrnaht Vorlauf, DESIGN.md 12.2)
+  if (art === 'erreicht') { hakenScheibe(m, cx, y, r * 0.7); return; }
   const farbe = { stecker: '#8d99a5', kalt: '#3b86d1', wuetend: '#d8392f', weg: '#4a4038', leitung: '#e2582b', angebot: '#4caf3e', anfrage: '#ff8a1f' }[art];
   m.kreis(cx, y, r * 0.7, farbe);
   if (art === 'anfrage') { flammeMitPlus(m, cx, y, r * 0.5); return; }
   const sym = { stecker: 'ausruf', kalt: 'flocke', wuetend: 'ausruf', weg: 'kreuz', leitung: 'ausruf', angebot: 'frage' } as const;
   m.symbol(sym[art], cx, y, r * 0.5);
+}
+
+/** NR13 (DESIGN 13.2 „Erreicht“-Zeichen): grüne Scheibe (`menue.chip.gruen` Grund) mit gezeichnetem Haken in der Chip-Schrift. */
+function hakenScheibe(m: Maler, x: number, y: number, r: number): void {
+  const { X } = m, [grund, schrift] = tokens.menue.chip.gruen;
+  m.kreis(x, y, r, grund);
+  X.save(); X.lineJoin = 'round'; X.lineCap = 'round';
+  X.strokeStyle = schrift; X.lineWidth = Math.max(1.5, r * 0.22);
+  X.beginPath(); X.moveTo(x - r * 0.45, y + r * 0.02); X.lineTo(x - r * 0.12, y + r * 0.35); X.lineTo(x + r * 0.5, y - r * 0.32); X.stroke();
+  X.restore();
 }
 
 /** A88/F2: Symbol der Kundenanfrage – Flamme („mehr Wärme“) mit kleinem Plus rechts oben. */

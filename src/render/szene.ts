@@ -2,13 +2,14 @@ import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
 import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz';
+import { TUTORIAL_SPUR } from '../core/start';
 import type { Spiel } from '../core/spiel';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
-import { zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
+import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 import { bodenSchluessel } from './szene-schluessel';
@@ -260,6 +261,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   zeichneGlitzern(m, k, s);
 
   zeichneLeitungen(m, k, s);
+  // NR13 K10: Spur über den eingezeichneten Leitungen, unter den Gebäuden – nie in der zwischengespeicherten Bodenebene
+  if (s.tutorial_spur?.length) zeichneSpur(m, k, s.tutorial_spur);
 
   // Auswahlring
   const sel = s.auswahl_id != null ? s.objekte.find((o) => o.id === s.auswahl_id) : undefined;
@@ -276,6 +279,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
     .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
+  const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
   for (const o of sortiert) {
     const kante = groesse(o), D = KATALOG[o.typ], kat = D.kategorie;
     const [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
@@ -299,6 +303,11 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       const hp = tw * 0.55 * kante, bau = o.bau;
       zeichneGeruest(m, cx, cy, kante * 0.8, hp);
       oben.push(() => zeichneBalken(m, cx, cy - hp - tw * 0.15, bau, s.jetzt_ms));
+    } else if (erreicht.has(o.id)) {
+      // NR13: „Erreicht“-Zeichen statt der Kunden-Blase; Federn nach der Uhr, bei „Weniger Bewegung“ ohne
+      const seit_ms = erreicht.get(o.id)!;
+      const federn = m.reduziert ? 0 : Math.max(0, 1 - (s.jetzt_ms - seit_ms) / FEDERN_MS);
+      oben.push(() => zeichneBlase(m, cx, topY, 'erreicht', federn));
     } else if (s.spiel) {
       const b = blase(s.spiel, s.netz, o, st.warm, angeschlossen);
       if (b) oben.push(() => zeichneBlase(m, cx, topY, b));
@@ -348,6 +357,43 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   if (durchsicht) zeichneLeitungen(m, k, s);
   oben.forEach((f) => f());
   effekte.zeichnen(m, dt_s, (x, y) => k.mitte(x, y));
+}
+
+/** NR13 (DESIGN 13.2 Leitungs-Spur, K10): gestrichelte Linie durch die noch freien Spurfelder in Zugrichtung, heller Halo darunter,
+ *  alle drei Felder (gezählt ab dem Abgang) eine Pfeilspitze. Lücken in der Spur (schon eingezeichnete Felder) bleiben offen.
+ *  Strichmuster 10/8 aus DESIGN 13.10 (`spur_strich`/`spur_luecke`); Farbe und Breite = `naht_vorlauf`/`naht` (13.10: gleiche Werte). */
+function zeichneSpur(m: Maler, k: Kamera, spur: ReadonlyArray<readonly [number, number]>): void {
+  const { X } = m, M = tokens.menue, breite = M.mass_px.naht;
+  const stuecke: Array<Array<readonly [number, number]>> = [];
+  for (const f of spur) {
+    const letztes = stuecke.at(-1)?.at(-1);
+    if (letztes && Math.abs(letztes[0] - f[0]) + Math.abs(letztes[1] - f[1]) === 1) stuecke.at(-1)!.push(f); else stuecke.push([f]);
+  }
+  X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
+  for (const [farbe, b] of [['rgba(255,255,255,.6)', breite + 4], [M.farbe.naht_vorlauf, breite]] as const) {
+    X.strokeStyle = farbe; X.lineWidth = b; X.setLineDash([10, 8]);
+    for (const st of stuecke) {
+      if (st.length < 2) continue;
+      X.beginPath();
+      st.forEach(([x, y], i) => { const [px, py] = k.mitte(x, y); if (i) X.lineTo(px, py); else X.moveTo(px, py); });
+      X.stroke();
+    }
+  }
+  X.setLineDash([]);
+  // Pfeilspitzen in Zugrichtung: gezählt in der vollen Spur ab dem Abgang, damit übrige Felder ihre Spitze behalten (K10)
+  const voll = TUTORIAL_SPUR.map(([x, y]) => `${x},${y}`);
+  spur.forEach(([x, y]) => {
+    const i = voll.indexOf(`${x},${y}`);
+    if (i < 0 || i % 3) return;
+    const vor = TUTORIAL_SPUR[i - 1], nach = TUTORIAL_SPUR[i + 1] ?? (vor ? [2 * x - vor[0], 2 * y - vor[1]] : [x, y]);
+    const [ax, ay] = k.mitte(x, y), [bx, by] = k.mitte(nach[0], nach[1]);
+    const l = Math.hypot(bx - ax, by - ay);
+    if (l === 0) return;
+    const ux = (bx - ax) / l, uy = (by - ay) / l, g = breite * 2.5;
+    X.fillStyle = M.farbe.naht_vorlauf;
+    X.beginPath(); X.moveTo(ax + ux * g, ay + uy * g); X.lineTo(ax - uy * g * 0.7, ay + ux * g * 0.7); X.lineTo(ax + uy * g * 0.7, ay - ux * g * 0.7); X.closePath(); X.fill();
+  });
+  X.restore();
 }
 
 /** A37: Beim Planen sind Gebäude durchsichtig, damit nichts dahinter verschwindet. */
