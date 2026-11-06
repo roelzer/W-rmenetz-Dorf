@@ -326,3 +326,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:55 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-06 08:55 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** P4 ist gebaut und getestet. Die Test-Schranke meldet aber „NICHT OK“. Grund sind nur die 24 bekannten, erlaubten roten ([Bericht](docs/pruefberichte/20261106-085535-entwickler-abd8188371b4e73b1.md)) |
 | 2026-11-06 08:55 | ▶ | reviewer | Review NR18-P4 Darstellung |
+| 2026-11-06 08:58 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-06 08:58 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN 🟡**  ([Bericht](docs/pruefberichte/20261106-085800-entwickler-a60edb2ea2a3561fe.md)) |
+| 2026-11-06 08:59 | ▶ | entwickler | NR18 P2+P3 Integrationsfix |
+| 2026-11-06 08:59 | ▶ | reviewer | Review NR18-P2 Kern |
