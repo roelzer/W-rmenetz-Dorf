@@ -351,3 +351,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:33 | ▶ | entwickler | NR18-D Designer-Nacharbeit |
 | 2026-11-06 09:36 | ■ 🟢 | tester | 🟢 **Tester-Vorarbeit NR19-P0b ist fertig.** Genau die 5 Tests aus der P0b-Liste sind jetzt rot. Kein anderer Test ist rot geworden, und Produktivcode habe ic ([Bericht](docs/pruefberichte/20261106-093617-tester-ae04a18c9ef23be24.md)) |
 | 2026-11-06 09:36 | ▶ | kritiker | Kritiker Freigabe P0b-Löschung |
+| 2026-11-06 09:38 | ■ 🟢 | kritiker | 🟢 **Freigabe NR19-P0b erteilt** (Modus freigabe, Teilprüfung)  ([Bericht](docs/pruefberichte/20261106-093818-kritiker-ae200c752cd93accc.md)) |
