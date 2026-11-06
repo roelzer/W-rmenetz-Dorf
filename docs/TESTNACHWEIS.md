@@ -186,3 +186,7 @@ Ein zweiter Prüflauf ergab bei Z8/Z9 ebenfalls „erfüllt“ (JS 1× 10,2 ms, 
 | 2026-11-06 09:21 | 01a2968 | projektleiter | 🟢 | 1146 | 0 | – |
 | 2026-11-06 10:01 | bd4a179 | projektleiter | 🔴 | ? | 3 | – |
 | 2026-11-06 10:48 | 4aaef98 | projektleiter | 🔴 | 1237 | 2 | – |
+| 2026-11-06 10:50 | 9a9c4b9 | projektleiter | 🔴 | 1237 | 3 | – |
+| 2026-11-06 10:50 | 9a9c4b9 | projektleiter | 🔴 | 1237 | 2 | – |
+| 2026-11-06 10:53 | 9a9c4b9 | projektleiter | 🔴 | 1237 | 2 | – |
+| 2026-11-06 10:54 | 9a9c4b9 | projektleiter | 🟢 | 1237 | 0 | 2026-11-06 / NR19-Abnahme aufgedeckt (Umzug) / tests/abnahme/nr19-abnahme.test.t |
