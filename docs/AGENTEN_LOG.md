@@ -497,3 +497,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 16:46 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Der Fehler ist behoben und alles ist geprüft. Das Bedenken betrifft nur den Ort der neuen Browser-Prüfung: Sie steht in  ([Bericht](docs/pruefberichte/20261106-164639-entwickler-ad0feb0e39a82eaa0.md)) |
 | 2026-11-06 16:46 | ▶ | reviewer | Review Fix Neuladen T12 |
 | 2026-11-06 16:46 | ▶ | produktpruefer | Nachprüfung M1 Neuladen |
+| 2026-11-06 16:51 | ■ 🟢 | produktpruefer | 🟢 NR13 ist frei. M1 ist erfüllt: Neuladen mitten im Tutorial hängt es nicht mehr auf.  ([Bericht](docs/pruefberichte/20261106-165157-produktpruefer-a361340deae88cdd3.md)) |
