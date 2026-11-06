@@ -5,7 +5,7 @@ import { ENGSTELLE_DAUER_S, Effekte } from '../src/render/effekte';
 import { Kamera } from '../src/render/kamera';
 import { Maler } from '../src/render/maler';
 import { bodenEbeneEinrichten, zeichneSzene, type Szene } from '../src/render/szene';
-import { animationBedarf } from '../src/render/szene-schluessel';
+import { animationBedarf, szenenSchluessel } from '../src/render/szene-schluessel';
 import { neu } from './hilfen';
 
 // NR18-P4 Darstellung (Bauplan docs/bauplaene/NR18-ohne-autoanschluss.md, Abschnitt 5.1 „Engstellen-Anzeige“ und 7 „Bauplan P4“):
@@ -17,7 +17,9 @@ import { neu } from './hilfen';
 function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {
   const befehle: string[] = [];
   const zustand = new Map<PropertyKey, unknown>();
-  const text = (a: unknown): string => (typeof a === 'object' && a !== null ? String((a as { name?: string }).name ?? 'objekt') : String(a));
+  // Listen (z. B. Strichmuster von setLineDash) mit Inhalt aufschreiben, damit „leer“ und „gestrichelt“ unterscheidbar sind.
+  const text = (a: unknown): string => (Array.isArray(a) ? JSON.stringify(a)
+    : typeof a === 'object' && a !== null ? String((a as { name?: string }).name ?? 'objekt') : String(a));
   const X = new Proxy({}, {
     get(_z, p) {
       if (zustand.has(p)) return zustand.get(p);
@@ -133,6 +135,16 @@ describe('NR18-P4 Engstellen-Markierung (Bauplan 5.1)', () => {
     expect(zeit(alphas.indexOf(Math.min(...alphas)))).toBe(0.3);
   });
 
+  it('NR18-P4: nach der pulsierenden Markierung steht die Deckkraft wieder auf 1 (nichts danach wird blass)', () => {
+    const e = new Effekte();
+    e.engstelle([[2, 2]], false);
+    abspielen(e, 0.2);
+    const b = bild(e, 0.1); // t = 0,3 s: Puls im Tal, Deckkraft deutlich unter 1
+    expect(alphaDerMarkierung(b)).toBeLessThan(0.5);
+    const nachher = b.slice(b.indexOf(`strokeStyle=${WARNROT}`)).filter((x) => x.startsWith('globalAlpha=')).pop();
+    expect(nachher).toBe('globalAlpha=1');
+  });
+
   it('NR18-P4: „Weniger Bewegung“ – fest ohne Puls, volle Deckkraft, trotzdem 6 s', () => {
     const e = new Effekte();
     e.engstelle([[2, 2]], true);
@@ -200,7 +212,10 @@ describe('NR18-P4 Leitung mit geplantem Ersatz (Bauplan P4)', () => {
     expect(ohne.filter((b) => b === 'strokeStyle=#2a6fb0').length, 'ohne Ersatz keine Planmarkierung').toBe(0);
     expect(mit.filter((b) => b === 'strokeStyle=#2a6fb0').length, 'genau eine Leitung mit Ersatz').toBe(1);
     const i = mit.indexOf('strokeStyle=#2a6fb0');
-    expect(mit.slice(Math.max(0, i - 3), i).some((b) => b.startsWith('setLineDash(') && b !== 'setLineDash()'), 'gestrichelt').toBe(true);
+    const strich = mit.slice(0, i).filter((b) => b.startsWith('setLineDash(')).pop();
+    expect(strich, 'gestrichelt: zuletzt gesetztes Strichmuster vor der Raute ist nicht leer').toMatch(/^setLineDash\(\[[^\]]+\]\)$/);
+    const alpha = mit.slice(0, i).filter((b) => b.startsWith('globalAlpha=')).pop();
+    expect(alpha, 'Deckkraft der Planraute wie bei geplanten Leitungen').toBe('globalAlpha=0.6');
   });
 
   it('NR18-P4: die Ersatz-Leitung bleibt in ihrer alten Farbe sichtbar (keine Planfarbe statt Bestand)', () => {
@@ -209,5 +224,25 @@ describe('NR18-P4 Leitung mit geplantem Ersatz (Bauplan P4)', () => {
     // Die gebaute 25er wird weiter gezeichnet: gleiche Rohr-Befehle wie ohne Ersatz, die Markierung kommt dazu.
     const rohr = (b: string[]): number => b.filter((x) => x.startsWith('strokeStyle=') && x !== 'strokeStyle=#2a6fb0').length;
     expect(rohr(mit)).toBe(rohr(ohne));
+  });
+});
+
+describe('NR18-P4 Szenenschlüssel kennt den Ersatz (Bild wird neu gezeichnet)', () => {
+  it('NR18-P4: Ersatz planen, ändern oder zurücknehmen ändert den Schlüssel; gleicher Ersatz gleicher Schlüssel', () => {
+    // Eine Szene mit festem Netz-Objekt (der Schlüssel nummeriert Netz-Objekte); nur das Feld `ersatz` der Leitung ändert sich.
+    const leitung = neu('d25', 12, 10), objekte = [neu('hz', 10, 10), leitung];
+    const s: Szene = {
+      objekte, innen: [], netz: berechneNetz(objekte, [], 2), spiel: null, auswahl_id: null, modus: 'normal', geist: null,
+      verschiebe_id: null, stempel: null, jetzt_ms: 1000, strassen: [], fluss: [], kw_anzeigen: true,
+    };
+    const ohne = szenenSchluessel(s);
+    leitung.ersatz = { typ: 'd32', nr: 1 };
+    const mit32 = szenenSchluessel(s);
+    expect(mit32, 'Ersatz geplant').not.toBe(ohne);
+    expect(szenenSchluessel(s), 'gleicher Ersatz').toBe(mit32);
+    leitung.ersatz = { typ: 'd40', nr: 1 };
+    expect(szenenSchluessel(s), 'anderer Ersatz-Typ').not.toBe(mit32);
+    delete leitung.ersatz;
+    expect(szenenSchluessel(s), 'Ersatz zurückgenommen').toBe(ohne);
   });
 });
