@@ -182,7 +182,8 @@ describe('A84 (Review W1) Bausteine verhalten sich richtig', () => {
     const k = lies('src/ui/kontext.ts');
     expect(k).toContain("o.vorsehung ? '' : 'geld'");
     // NR18-P0 (4.22): Sofort-Tausch entfällt, der Ersatz im Bauabschnitt heißt „Ersetzen: …“ (rot bis NR18-P3).
-    expect(k).toMatch(/knopf\(`Ersetzen: \$\{KATALOG\[t\]\.name\}`, [^]*?, 'geld', \{ unter: eur/);
+    // umgebaut NR18-D 06.11.: Knopftext mit Kurzname („Ersetzen: 32er“, DESIGN 12.22)
+    expect(k).toMatch(/knopf\(`Ersetzen: \$\{kurzname\(t\)\}`, [^]*?, 'geld', \{ unter: eur/);
   });
 });
 

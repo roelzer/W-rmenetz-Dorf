@@ -28,6 +28,8 @@ const T0 = 1_000_000_000_000;
 const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
 // DESIGN.md 12.18/12.19, wörtlich
 const SELBST_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
+// umgebaut NR18-D 06.11.: im Hausblatt zeigt der Hinweis auf den Philipp-Knopf direkt darüber (DESIGN 12.22)
+const HAUS_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen – Knopf direkt darüber.';
 
 const neu = (stufe = 1) => {
   const s = new Spiel(neuerSpielstand(T0), () => T0);
@@ -224,7 +226,7 @@ describe('A92 Hinweise beim Antippen gesperrter Knöpfe ohne offenen Bauabschnit
     let ziehen = -1;
     const k = await karte(s, haus, (a, c) => { ziehen = mit(a, c, 'Hausanschluss ziehen').length; tippe(mit(a, c, 'Leitung selbst legen')[0]); });
     expect(ziehen).toBe(0);
-    expect(k.toasts).toEqual([SELBST_HINWEIS]);
+    expect(k.toasts).toEqual([HAUS_HINWEIS]);
     expect(s.abschnittLeitungen()).toBe(0);
   });
 

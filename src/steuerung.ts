@@ -21,7 +21,7 @@ import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/konte
 import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
-import { toast } from './ui/toast';
+import { toast, toastDauer_ms } from './ui/toast';
 
 const N = KONSTANTEN.feldanzahl;
 type Modus = 'normal' | 'platzieren' | 'verschieben' | 'stempel';
@@ -91,13 +91,28 @@ export class Steuerung implements Ui {
     const b = blattOeffnen({ titel: 'Willkommen!', art: 'popup', schliessbar: false });
     const spieler = h('input', { class: 'feld', type: 'text', maxlength: 20, placeholder: 'z. B. Simon', 'aria-label': 'Dein Name', id: 'start-spieler', autocomplete: 'given-name' }) as HTMLInputElement;
     const dorf = h('input', { class: 'feld', type: 'text', maxlength: 24, value: this.spiel.stand.name, 'aria-label': 'Name deines Dorfs', id: 'start-dorf' }) as HTMLInputElement;
-    const los = (): void => { this.spiel.namenSetzen(spieler.value, dorf.value); b.zu(); this.geaendert(); this.toast(`Viel Erfolg, ${this.spiel.spielerName}! ${this.spiel.stand.name} wartet auf sein Wärmenetz.`); };
+    const los = (): void => {
+      this.spiel.namenSetzen(spieler.value, dorf.value); b.zu(); this.geaendert();
+      const gruss = `Viel Erfolg, ${this.spiel.spielerName}! ${this.spiel.stand.name} wartet auf sein Wärmenetz.`;
+      this.toast(gruss);
+      this.startTippPlanen(gruss);
+    };
     for (const f of [spieler, dorf]) f.addEventListener('keydown', (e) => { if (e.key === 'Enter') los(); });
     b.inhalt.append(
       h('p', {}, 'Du baust das Wärmenetz für ein Dorf. Wie heißt du, und wie heißt dein Dorf?'),
       h('label', { for: 'start-spieler', class: 'gedaempft' }, 'Dein Name (so sprechen dich Philipp, Laura und die Techniker an)'), spieler,
       h('label', { for: 'start-dorf', class: 'gedaempft' }, 'Name deines Dorfs'), dorf,
       h('div', { class: 'knopfreihe' }, knopf('Los geht’s', los, 'los')));
+  }
+
+  /** NR18-D: einmalige Start-Meldung. Es gibt nur eine Meldung zugleich (12.17) – steht schon eine (`vorher`), kommt der
+   *  Tipp erst nach ihrer Lesezeit, sonst sofort. Ob er dran ist, entscheidet der Kern beim Zeigen. */
+  startTippPlanen(vorher?: string): void {
+    if (!this.spiel.startTippFaellig()) return;
+    window.setTimeout(() => {
+      const tipp = this.spiel.startTippNehmen();
+      if (tipp) this.toast(tipp);
+    }, vorher ? toastDauer_ms(vorher) : 0);
   }
 
   kwUmschalten(): boolean {

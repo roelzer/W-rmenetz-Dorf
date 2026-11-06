@@ -25,6 +25,8 @@ export interface Engstelle {
 export const ENGPASS_ERSATZ = 'Mit diesem Haus werden andere Häuser kalt. Eine Leitung auf dem Weg ist zu dünn.';
 /** Zusatz, wenn beim Abschließen mehr als ein Stück zu dünn ist. */
 export const WEITERE_STELLEN = 'Weitere zu dünne Stellen stehen im Baumenü.';
+/** DESIGN.md 12.22: Beim Abschließen mit mehr als einem Stück nur die Zahl – die Meldung bleibt so höchstens 3 Zeilen hoch. */
+export const mehrereStellenText = (anzahl: number): string => `${anzahl} Stellen sind nach dem Bau zu dünn – die Liste steht im Baumenü.`;
 
 /** Kapazität eines Leitungstyps im Netz (Katalog × Spreizungsfaktor, wie die Netzrechnung). */
 const kapazitaet = (netz: Netz, typ: TypId): number => (KATALOG[typ].kapazitaet_kw as number) * netz.spreizung_faktor;

@@ -21,7 +21,8 @@ const TSTUECK_HINWEIS = 'Für Hausanschlüsse nicht nötig, den Abzweig setzt da
 // Hausblatt: zwei Knöpfe nebeneinander → Zeile 2 in der Kurzform aus DESIGN.md 12.21 (Designer-Treue B2b Muss 1, 12.20 Regel 1).
 const OHNE_ABSCHNITT = 'kein Bauabschnitt';
 // Hinweistexte beim Antippen gesperrter Knöpfe, wörtlich aus DESIGN.md 12.19 (Punkt 2) bzw. 12.18 (Leitung selbst legen).
-const SELBST_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
+// umgebaut NR18-D 06.11.: im Hausblatt zeigt der Hinweis ohne Abschnitt auf den Philipp-Knopf direkt darüber (DESIGN 12.22)
+const SELBST_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen – Knopf direkt darüber.';
 const DICKERE_HINWEIS = 'Dickere Leitungen gibt es ab Heizzentrale Stufe 2. Baue die Heizzentrale aus.';
 
 const neu = (stufe = 1) => {

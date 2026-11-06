@@ -24,6 +24,9 @@ const norm = (t: string): string => t.replace(/ /g, ' ');
 const GELD_HINWEIS = (betrag: string): string => `Dir fehlen noch ${betrag}. Am Monatsende zahlen deine Kunden ihre Wärmerechnung.`;
 const TALER_HINWEIS = (n: number): string => `Dir fehlen noch ${n} Dorftaler. Du bekommst sie für Aufträge und beim Wegräumen.`;
 const B1_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
+// umgebaut NR18-D 06.11.: Im Hausblatt steht der Philipp-Knopf direkt darüber – dort zeigt der Hinweis auf ihn (DESIGN 12.22);
+// Großabnehmer und andere Stellen behalten B1_HINWEIS.
+const B1_HINWEIS_HAUS = 'Erst mit Philipp einen Bauabschnitt planen – Knopf direkt darüber.';
 const HA_LANG_1 = 'Grenzt eine Leitung an ein Haus, kann es darüber Wärme bekommen – den kurzen Abzweig setzt das Spiel selbst.';
 const HA_LANG_2 = 'Endet ein eigenes Leitungsstück am Haus, ist es sein Hausanschluss; er muss dick genug für das Haus sein.';
 const HA_KURZ = 'Endet eine Leitung an einem Haus, ist es sein Hausanschluss – er muss dick genug für das Haus sein.';
@@ -243,7 +246,7 @@ describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauch
   it('A92 B1: kein Bauabschnitt – Hausblatt Kurzform „kein Bauabschnitt“, Großabnehmer „braucht offenen Bauabschnitt“, Schloss, Hinweis', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     await karte(s, haus(s), uhr, (b) => {
-      for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'kein Bauabschnitt', schloss: true, hinweis: B1_HINWEIS }, n);
+      for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'kein Bauabschnitt', schloss: true, hinweis: B1_HINWEIS_HAUS }, n); // umgebaut NR18-D 06.11.
       KEIN_ZIEHEN(b, 'B1');
     });
     await karte(s, bad(s), uhr, (b) => {
@@ -304,10 +307,11 @@ describe('A92 / 12.21 Kurzformen B1–B4 – Hausblatt kurz, Großabnehmer lang,
   // der Großabnehmer-Knopf (allein, volle Breite) die lange Form aus 12.20; der Hinweis beim Antippen ist überall die lange Form.
   // Restzeiten bewusst andere als in den übrigen Tests: Ende nach 250 s, getippt nach 40 s → 3m 30s.
   const FAELLE = [
-    { nr: 'B1', abschnitt: null, kurz: 'kein Bauabschnitt', lang: 'braucht offenen Bauabschnitt', hinweis: B1_HINWEIS },
-    { nr: 'B2', abschnitt: { phase: 'planung', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 250_000 } }, kurz: 'wird noch geplant', lang: 'Philipp plant noch', hinweis: 'Philipp plant den Bauabschnitt noch (3m 30s). Danach kannst du zeichnen.' },
-    { nr: 'B3', abschnitt: { phase: 'bestellen', bau: null }, kurz: 'Bestellung offen', lang: 'Abschnitt ist geplant', hinweis: 'Abschnitt wartet auf Lauras Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.' },
-    { nr: 'B4', abschnitt: { phase: 'bau', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 250_000 } }, kurz: 'Abschnitt im Bau', lang: 'Abschnitt wird gebaut', hinweis: 'Der Bauabschnitt wird gerade gebaut (3m 30s). Danach kannst du den nächsten planen.' },
+    // umgebaut NR18-D 06.11.: hinweisHaus = Hinweis im Hausblatt; nur bei B1 anders (Philipp-Knopf direkt darüber, DESIGN 12.22)
+    { nr: 'B1', abschnitt: null, kurz: 'kein Bauabschnitt', lang: 'braucht offenen Bauabschnitt', hinweis: B1_HINWEIS, hinweisHaus: B1_HINWEIS_HAUS },
+    { nr: 'B2', abschnitt: { phase: 'planung', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 250_000 } }, kurz: 'wird noch geplant', lang: 'Philipp plant noch', hinweis: 'Philipp plant den Bauabschnitt noch (3m 30s). Danach kannst du zeichnen.', hinweisHaus: 'Philipp plant den Bauabschnitt noch (3m 30s). Danach kannst du zeichnen.' },
+    { nr: 'B3', abschnitt: { phase: 'bestellen', bau: null }, kurz: 'Bestellung offen', lang: 'Abschnitt ist geplant', hinweis: 'Abschnitt wartet auf Lauras Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.', hinweisHaus: 'Abschnitt wartet auf Lauras Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.' },
+    { nr: 'B4', abschnitt: { phase: 'bau', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 250_000 } }, kurz: 'Abschnitt im Bau', lang: 'Abschnitt wird gebaut', hinweis: 'Der Bauabschnitt wird gerade gebaut (3m 30s). Danach kannst du den nächsten planen.', hinweisHaus: 'Der Bauabschnitt wird gerade gebaut (3m 30s). Danach kannst du den nächsten planen.' },
   ] as const;
 
   for (const f of FAELLE) {
@@ -318,7 +322,7 @@ describe('A92 / 12.21 Kurzformen B1–B4 – Hausblatt kurz, Großabnehmer lang,
       else delete s.stand.abschnitt;
       await karte(s, haus(s), uhr, (b) => {
         uhr.t = T0 + 40_000;
-        for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: f.kurz, schloss: true, hinweis: f.hinweis }, `${f.nr} Hausblatt ${n}`);
+        for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: f.kurz, schloss: true, hinweis: f.hinweisHaus }, `${f.nr} Hausblatt ${n}`);
         KEIN_ZIEHEN(b, `${f.nr} Hausblatt`);
       });
       uhr.t = T0;

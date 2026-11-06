@@ -8,7 +8,7 @@ import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './t
 import { ortHolen } from './orte';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import type { Schritt } from './tutorial-vertrag';
-import { ENGPASS_ERSATZ, WEITERE_STELLEN, engstelleText, engstellenFinden, type Engstelle } from './engstelle';
+import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
 /** A38: So lange wird eine Abwesenheit höchstens nachgerechnet (7 Tage). */
@@ -37,6 +37,8 @@ const ok = (): Ergebnis => ({ ok: true });
 const SPIELTAG_MS = SPIELJAHR_MS / 365;
 const tageText = (t: number): string => `${t} ${t === 1 ? 'Tag' : 'Tage'}`;
 /** Bauplan NR18 Abschnitt 6: Ablehnungen des Ersatzes (außerhalb des offenen Abschnitts) und des Entfernens während des Baus (W5). */
+/** NR18-D (Designer 2026-11-06): einmalige Start-Meldung nach der Begrüßung, bis das Tutorial (NR13) sie ablöst. */
+export const START_TIPP = `Tipp ein Haus an – ${ABSCHNITT_HELFER.planung} plant dort deinen ersten Bauabschnitt.`;
 const ERSATZ_NUR_IM_ABSCHNITT = `Dickere Leitungen entstehen nur im Bauabschnitt – lass ${ABSCHNITT_HELFER.planung} einen planen.`;
 const ERSATZ_IM_BAU = 'Diese Leitung wird gerade ersetzt – warte, bis der Abschnitt gebaut ist.';
 const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
@@ -359,6 +361,19 @@ export class Spiel {
     if (sp) this.stand.spieler = sp;
     if (d) this.stand.name = d;
     this.stand.namen_gefragt = true;
+  }
+  /** NR18-D: Die einmalige Start-Meldung ist dran – nach der Begrüßung (Namensfenster zu), noch nie gezeigt und noch kein Haus
+   *  mit Übergabestation (wer schon angeschlossen hat, braucht den Tipp nicht; neue Spiele starten ohne Station, NR13). */
+  startTippFaellig(): boolean {
+    const s = this.stand;
+    if (s.namen_gefragt === false || s.start_tipp_gezeigt) return false;
+    return !s.objekte.some((o) => KATALOG[o.typ].kategorie === 'haus' && !o.ohne_station);
+  }
+  /** NR18-D: Text der Start-Meldung und als gezeigt merken; `null`, wenn sie nicht (mehr) dran ist. */
+  startTippNehmen(): string | null {
+    if (!this.startTippFaellig()) return null;
+    this.stand.start_tipp_gezeigt = true;
+    return START_TIPP;
   }
   /** Name des Spielers für die Ansprache der Helfer (A51). */
   get spielerName(): string { return this.stand.spieler?.trim() || 'Chef'; }
@@ -796,7 +811,7 @@ export class Spiel {
     const stuecke = this.warnlisteFuellen(this.probeNetz());
     this.schritt('abschnitt_abgeschlossen');
     if (!stuecke.length) return ok();
-    const hinweis = stuecke.length > 1 ? `${this.warnliste[0]} ${WEITERE_STELLEN}` : this.warnliste[0];
+    const hinweis = stuecke.length > 1 ? mehrereStellenText(stuecke.length) : this.warnliste[0];
     this.hinweis(hinweis);
     this.ereignisse.push({ art: 'engstelle', felder: stuecke.flatMap((e) => e.felder) });
     return { ok: true, hinweis };
