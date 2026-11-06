@@ -361,3 +361,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 10:02 | ▶ | entwickler | Entwickler P6 NR19 |
 | 2026-11-06 10:03 | ▶ | designer | Designer-Nachfoto NR18-D |
 | 2026-11-06 10:06 | ■ 🟢 | designer | 🟢 Beide Punkte sind erfüllt. Ich habe nichts gefunden, was umgebaut werden muss.  ([Bericht](docs/pruefberichte/20261106-100650-designer-a14b61546dc1c206e.md)) |
+| 2026-11-06 10:19 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-06 10:19 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** P6 (NR19 Puffer-Übergabestation) ist gebaut, committet und durch die Test-Schranke. Offen ist eine Wortlaut-Entscheidung, ([Bericht](docs/pruefberichte/20261106-101947-entwickler-a30509dfe6b020c78.md)) |
+| 2026-11-06 10:20 | ▶ | reviewer | Review P6 NR19 |
+| 2026-11-06 10:20 | ▶ | designer | Designer Fotoprüfung Stationswahl |

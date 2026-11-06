@@ -10,3 +10,4 @@
 - [Bauplan/Projektleiter] Tester-Vorarbeit aus dem Bauplan immer vor dem Entwickler beauftragen; vor dem Entfernen einer Sperre alle Tests suchen, die sie voraussetzen (nicht nur nach Stichwort im Namen). (NR15-P3, 2026-11-05)
 - [Prozess] Verlangt eine Design-Nachbesserung einen anderen sichtbaren Text, der in bestehenden Tests wörtlich steht, vor dem Entwickler-Auftrag eine Tester-Vorarbeit einplanen. (NR16-B2b, 2026-11-05)
 - [Prozess] Schweres Paket bekommt frischen Lauf und knappe Bauplan-Auszüge, sonst ist der Kontext beim Lesen verbraucht (NR18-P2, 06.11.)
+- [Pläne] Beispieltexte für Knopf-Zeile 2 vor der Freigabe gegen die Zeichengrenze (≤ 28, eng ≤ 18) prüfen. (NR19 Zeile 2 hatte 29 Zeichen, 2026-11-06)
