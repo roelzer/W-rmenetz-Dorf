@@ -524,7 +524,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     expect(mit(zu.knoepfe, 'Tauschen:')).toEqual([]);
     offenerAbschnitt(eins); offenerAbschnitt(vier);
     const k1 = await karte(eins, start25(eins));
-    expect(mit(k1.knoepfe, 'Ersetzen:').map((k) => k.text.replace(/[\d.]+\s€$/, ''))).toEqual(['Ersetzen: 32er-Leitung', 'Ersetzen: 40er-Leitung']);
+    expect(mit(k1.knoepfe, 'Ersetzen:').map((k) => k.text.replace(/[\d.]+\s€$/, ''))).toEqual(['Ersetzen: 32er', 'Ersetzen: 40er']); // umgebaut NR18-D 06.11.: Kurzname (DESIGN 12.22)
     expect(mit(k1.knoepfe, 'Dickere')).toEqual([expect.objectContaining({ text: 'Dickereab Heizzentrale Stufe 2', aus: true })]);
     expect(mit(k1.knoepfe, 'Tauschen:')).toEqual([]);
     expect((await karte(eins, start40(eins))).text).not.toContain('angebohrt');

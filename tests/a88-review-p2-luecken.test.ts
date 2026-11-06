@@ -72,7 +72,7 @@ describe('A88 Review P2 – Testlücken', () => {
     expect(mit(k90.knoepfe, 'Ersetzen:')).toEqual([]); // dicker ist nur die gesperrte 110er
     // 40er auf Stufe 2: dicker und frei sind 50er und 63er.
     const k40 = await karte(s, lege(s, 'd40', 7, 3));
-    expect(mit(k40.knoepfe, 'Ersetzen:').map((k) => k.text.replace(/[\d.]+\s€$/, ''))).toEqual(['Ersetzen: 50er-Leitung', 'Ersetzen: 63er-Leitung']);
+    expect(mit(k40.knoepfe, 'Ersetzen:').map((k) => k.text.replace(/[\d.]+\s€$/, ''))).toEqual(['Ersetzen: 50er', 'Ersetzen: 63er']); // umgebaut NR18-D 06.11.: Kurzname (DESIGN 12.22)
     expect(mit(k40.knoepfe, 'Tauschen:')).toEqual([]);
   });
 });

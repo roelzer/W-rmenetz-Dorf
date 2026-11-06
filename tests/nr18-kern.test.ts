@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
 import { KATALOG, KONSTANTEN, istLeitung, passendeStation, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
-import { ENGPASS_ERSATZ, WEITERE_STELLEN, engstellenFinden } from '../src/core/engstelle';
+import { ENGPASS_ERSATZ, engstellenFinden } from '../src/core/engstelle';
 import { altesStartdorf } from './hilfen/altes-startdorf';
 import { abschnittBauen, abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
 import type { Objekt } from '../src/core/typen';
@@ -275,7 +275,9 @@ describe('NR18-P2 Warnliste des Bauabschnitts (AE-NR18-5)', () => {
     const e = s.abschnittAbschliessen();
     expect(e.ok).toBe(true);
     expect(s.abschnittWarnungen().length).toBe(2);
-    expect(e.hinweis).toBe(`${s.abschnittWarnungen()[0]} ${WEITERE_STELLEN}`);
+    // umgebaut NR18-D 06.11.: Bei mehr als einem Stück nur die Zahl (mehrereStellenText, DESIGN 12.22) statt erstem Satz + „Weitere …“;
+    // der Einzelsatz bei genau einem Stück ist oben (TEXT_HZ_25) geprüft.
+    expect(e.hinweis).toBe('2 Stellen sind nach dem Bau zu dünn – die Liste steht im Baumenü.');
     expect(s.abschnittVerwerfen().ok).toBe(true);
     expect(s.abschnittWarnungen()).toEqual([]);
     expect(abschnittOeffnen(s, z)).toBe(true);

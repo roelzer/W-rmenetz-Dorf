@@ -18,6 +18,9 @@ const T0 = 1_000_000_000_000;
 const N = KONSTANTEN.feldanzahl;
 const norm = (t: string): string => t.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 const B1_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
+// umgebaut NR18-D 06.11.: Im Hausblatt zeigt der Hinweis ohne Abschnitt auf den Philipp-Knopf direkt darüber (DESIGN 12.22);
+// die Leitungskarte behält B1_HINWEIS.
+const B1_HINWEIS_HAUS = 'Erst mit Philipp einen Bauabschnitt planen – Knopf direkt darüber.';
 
 type Uhr = { t: number };
 const neu = (stufe = 1, uhr: Uhr = { t: T0 }): Spiel => {
@@ -85,8 +88,10 @@ describe('NR18-P3 Hausblatt – kein „Hausanschluss ziehen“', () => {
         expect(gesperrtMitHinweis(k[0]), p.name).toBe(true);
         expect(zeile2(k[0]), p.name).toBe(p.kurz);
         k[0].click();
-        expect(norm(u.meldung()), p.name).toBe(p.hinweis);
-        expect(p.hinweis.length, 'Hinweis ≤ 90 Zeichen (Abschnitt 6)').toBeLessThanOrEqual(90);
+        const hinweis = p.abschnitt ? p.hinweis : B1_HINWEIS_HAUS; // umgebaut NR18-D 06.11.: Hausblatt ohne Abschnitt
+        expect(norm(u.meldung()), p.name).toBe(hinweis);
+        if (p.abschnitt) expect(norm(u.meldung()), `${p.name}: Philipp-Knopf-Hinweis nur ohne Abschnitt`).not.toContain('Knopf direkt darüber');
+        expect(hinweis.length, 'Hinweis ≤ 90 Zeichen (Abschnitt 6)').toBeLessThanOrEqual(90);
       }, { uhr: () => uhr.t });
     }
     const s = offen(neu(1, uhr));
@@ -115,7 +120,7 @@ describe('NR18-P3 Leitungskarte – Ersetzen nur im offenen Bauabschnitt', () =>
     await echteSteuerung(s, (u) => {
       u.st.kontext(bei(s, 11, 14).id); // gebaute 25er
       const k = mit(u, 'Ersetzen:');
-      expect(k.map((e) => norm(e.textContent))).toEqual(['Ersetzen: 32er-Leitung360 €', 'Ersetzen: 40er-Leitung600 €']);
+      expect(k.map((e) => norm(e.textContent))).toEqual(['Ersetzen: 32er360 €', 'Ersetzen: 40er600 €']); // umgebaut NR18-D 06.11.: Kurzname (DESIGN 12.22)
       expect(k.map(istGold)).toEqual([true, true]);
       expect(k.map(zeile2)).toEqual(['360 €', '600 €']);
       expect(namen(u, 'Tauschen:')).toEqual([]);

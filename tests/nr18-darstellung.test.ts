@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { KATALOG } from '../src/core/katalog';
 import { berechneNetz } from '../src/core/netz';
 import type { Objekt } from '../src/core/typen';
 import { ENGSTELLE_DAUER_S, Effekte } from '../src/render/effekte';
@@ -207,23 +208,34 @@ describe('NR18-P4 Leitung mit geplantem Ersatz (Bauplan P4)', () => {
   }
 
   it('NR18-P4: gebaute Leitung mit Ersatz bekommt die Planmarkierung (gestrichelte blaue Raute), ohne Ersatz nicht', () => {
+    // umgebaut NR18-D 06.11.: Die Raute ist nicht mehr Plan-Blau, sondern in der Farbe der neuen Leitung (KATALOG[ersatz.typ].farbe),
+    // Deckkraft 0,8, weiter gestrichelt (DESIGN 12.22).
+    const neueFarbe = `strokeStyle=${KATALOG.d32.farbe}`;
+    expect(KATALOG.d32.farbe, 'Vorbedingung: neue Farbe unterscheidet sich von alter Leitung und Plan-Blau').not.toBe(KATALOG.d25.farbe);
+    expect(KATALOG.d32.farbe).not.toBe('#2a6fb0');
     const ohne = szeneMit({});
     const mit = szeneMit({ ersatz: { typ: 'd32', nr: 1 } });
-    expect(ohne.filter((b) => b === 'strokeStyle=#2a6fb0').length, 'ohne Ersatz keine Planmarkierung').toBe(0);
-    expect(mit.filter((b) => b === 'strokeStyle=#2a6fb0').length, 'genau eine Leitung mit Ersatz').toBe(1);
-    const i = mit.indexOf('strokeStyle=#2a6fb0');
+    expect(ohne.filter((b) => b === neueFarbe).length, 'ohne Ersatz keine Planmarkierung').toBe(0);
+    expect(mit.filter((b) => b === neueFarbe).length, 'genau eine Leitung mit Ersatz').toBe(1);
+    expect(mit.filter((b) => b === 'strokeStyle=#2a6fb0').length, 'Ersatz-Raute nicht in Plan-Blau').toBe(0);
+    const i = mit.indexOf(neueFarbe);
     const strich = mit.slice(0, i).filter((b) => b.startsWith('setLineDash(')).pop();
     expect(strich, 'gestrichelt: zuletzt gesetztes Strichmuster vor der Raute ist nicht leer').toMatch(/^setLineDash\(\[[^\]]+\]\)$/);
     const alpha = mit.slice(0, i).filter((b) => b.startsWith('globalAlpha=')).pop();
-    expect(alpha, 'Deckkraft der Planraute wie bei geplanten Leitungen').toBe('globalAlpha=0.6');
+    expect(alpha, 'Deckkraft der Ersatz-Raute').toBe('globalAlpha=0.8');
   });
 
   it('NR18-P4: die Ersatz-Leitung bleibt in ihrer alten Farbe sichtbar (keine Planfarbe statt Bestand)', () => {
     const ohne = szeneMit({});
     const mit = szeneMit({ ersatz: { typ: 'd32', nr: 1 } });
     // Die gebaute 25er wird weiter gezeichnet: gleiche Rohr-Befehle wie ohne Ersatz, die Markierung kommt dazu.
-    const rohr = (b: string[]): number => b.filter((x) => x.startsWith('strokeStyle=') && x !== 'strokeStyle=#2a6fb0').length;
+    // umgebaut NR18-D 06.11.: Die Markierung hat jetzt die Farbe der neuen Leitung (32er) statt Plan-Blau – sie wird aus der
+    // Zählung herausgenommen; die alte 25er behält ihre eigene Farbe.
+    const rohr = (b: string[]): number => b.filter((x) => x.startsWith('strokeStyle=') && x !== `strokeStyle=${KATALOG.d32.farbe}`).length;
     expect(rohr(mit)).toBe(rohr(ohne));
+    const alt = (b: string[]): number => b.filter((x) => x === `strokeStyle=${KATALOG.d25.farbe}`).length;
+    expect(alt(ohne), 'Vorbedingung: die 25er wird in ihrer Farbe gezeichnet').toBeGreaterThan(0);
+    expect(alt(mit), 'alte Leitung bleibt in ihrer Farbe').toBe(alt(ohne));
   });
 });
 
