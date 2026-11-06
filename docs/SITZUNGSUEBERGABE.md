@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: Entwickler P1-Fix (nr18-p1-fix ab 9892344: W1 alle Engstellen, W2 Text, K1); P0-A3 fertig (a9a7198, Kette 1165922→400a278→a9a7198). Freigabe P0-Löschungen eingetragen. Danach: Review P1-Fix + ungeprüfte P0-Umbauten → Kette 1165922,400a278,A3 (Vorarbeit eintragen) + P1 mergen; Teil B 984fead erst nach P5. Dann P2–P5 parallel.
+Laufende Agenten: Reviewer Nachprüfung P1-Fix b66bb47 + Teilprüfung P0-Kette (1165922→400a278→a9a7198). Danach: P0-Kette (Vorarbeit eintragen) + P1 mergen, Plan Abschn. 6/7 anpassen, dann P2–P5 parallel (Hinweis: Stück-Felder mehrere Äste). Teil B 984fead nach P5.
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.
