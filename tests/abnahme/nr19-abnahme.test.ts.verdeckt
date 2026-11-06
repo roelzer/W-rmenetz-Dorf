@@ -125,22 +125,44 @@ const engstellen = (s: Spiel): EngstelleEreignis[] =>
 const norm = (t: string): string => t.replace(/[  ]/g, ' ');
 
 // ─────────────── Oberfläche ───────────────
-type Knopf = { z1: string; z2: string; aus: boolean; klasse: string };
-async function hausblatt(s: Spiel, o: Objekt): Promise<{ text: string; knoepfe: Knopf[] }> {
+// Texte nach DESIGN 12.23 (Designer-Fotoprüfung 2026-11-06, Entscheidung Projektleiter): Knopf-Zeile 1 „Puffer HP 800“ usw.,
+// Zeile 2 „{x} kW vom Netz · {Preis}“, Stationszeile zweizeilig. Inhalte werden normalisiert verglichen (geschützte Leerzeichen
+// = Leerzeichen); die geschützten Leerzeichen selbst werden an den Stellen geprüft, die 12.23 ausdrücklich nennt (Rohtext).
+const NB = ' ';
+type Knopf = { z1: string; z2: string; z1roh: string; z2roh: string; aus: boolean; klasse: string };
+async function hausblatt(s: Spiel, o: Objekt): Promise<{ text: string; roh: string; knoepfe: Knopf[] }> {
   const { a, c } = await kontextKarte(s, o, T0);
   const knoepfe = a.alle(c).filter((e) => e.tag === 'button').map((e) => knopfTeile(a, e));
-  return { text: norm(a.text(c)), knoepfe };
+  const roh = a.text(c);
+  return { text: norm(roh), roh, knoepfe };
 }
 function knopfTeile(a: Attrappe, e: AttrappenElement): Knopf {
   const istSmall = (n: unknown): boolean => !!n && typeof n === 'object' && (n as { tag?: string }).tag === 'small';
+  const z1roh = e.kinder.filter((n) => !istSmall(n)).map(a.text).join('');
+  const z2roh = e.kinder.filter(istSmall).map(a.text).join('');
   return {
-    z1: norm(e.kinder.filter((n) => !istSmall(n)).map(a.text).join('')),
-    z2: norm(e.kinder.filter(istSmall).map(a.text).join('')),
+    z1: norm(z1roh), z2: norm(z2roh), z1roh, z2roh,
     aus: gesperrt(e as unknown as { attrs: Record<string, string> }),
     klasse: e.className || e.attrs.class || '',
   };
 }
-const pufferKnoepfe = (k: Knopf[]): Knopf[] => k.filter((x) => x.z1.startsWith('Puffer-Übergabestation'));
+/** Puffer-Knöpfe über ein stabiles Merkmal: Zeile 1 beginnt mit „Puffer“ + Kürzel HP/ÜP + Zahl (nicht „Puffer einbauen“). */
+const pufferKnoepfe = (k: Knopf[]): Knopf[] => k.filter((x) => /^Puffer (HP|ÜP) \d/.test(x.z1));
+/** Wand-Knöpfe: „Wandstation Typ …“ in Zeile 1 oder 2. */
+const wandKnoepfe = (k: Knopf[]): Knopf[] => k.filter((x) => x.z1.startsWith('Wandstation Typ') || x.z2.startsWith('Wandstation Typ'));
+/** Reihenüberschrift der Wandreihe: 12.23 schreibt „Wandstation (ohne Puffer)“, vorher „Wandstation ohne Puffer“. */
+const WANDREIHE = /Wandstation \(?ohne Puffer\)?/;
+/**
+ * Geschützte Leerzeichen laut DESIGN 12.23:
+ * Zeile 1: `NB` zwischen Kürzel und Zahl („HP 800“).
+ * Zeile 2 (12.20 Regel 1, Zusatz): „7,5 kW vom Netz ·“ mit `NB` zwischen Zahl und kW und zwischen „vom“ und „Netz“,
+ * Preis mit `NB` vor „€“; Umbruch genau vor dem Preis – nach „·“ steht also ein normales Leerzeichen.
+ */
+function geschuetzteLeerzeichen(k: Knopf): void {
+  expect(k.z1roh, `Zeile 1 „${k.z1}“: geschütztes Leerzeichen zwischen Kürzel und Zahl`).toMatch(new RegExp(`^Puffer[ ${NB}](HP|ÜP)${NB}\\d+$`));
+  expect(k.z2roh, `Zeile 2 „${k.z2}“: geschützte Leerzeichen Zahl–kW, vom–Netz, Preis–€; normaler Umbruchplatz vor dem Preis`)
+    .toMatch(new RegExp(`^\\d+(,\\d)?${NB}kW[ ${NB}]vom${NB}Netz[ ${NB}]· \\d{1,3}(\\.\\d{3})*${NB}€$`));
+}
 
 // ═══════════════════════════ Katalog ═══════════════════════════
 describe('NR19 Katalog', () => {
@@ -467,10 +489,15 @@ describe('NR19 Zusammenspiel', () => {
     }
     expect(abschnittWarnungen(s)).toEqual([]);
     expect(s.materialBestellen().ok).toBe(true);
-    vorstellen(s, z, katalog.KONSTANTEN.abschnitt_bau_s * katalog.KONSTANTEN.bauzeit_faktor + 10);
+    // Messpunkt genau bei Bauende (Plan: Restgeld „bei Bauende“): in 10-s-Schritten bis der Abschnitt fertig ist, höchstens die
+    // geplante Bauzeit + 10 s. Danach heizen die Häuser, Brennstoff kostet laufend Geld – das Restgeld bewegt sich dann legitim.
+    const bau_s = katalog.KONSTANTEN.abschnitt_bau_s * katalog.KONSTANTEN.bauzeit_faktor;
+    let vergangen_s = 0;
+    while (s.stand.abschnitt && vergangen_s < bau_s + 10) { vorstellen(s, z, 10); vergangen_s += 10; }
+    expect(s.stand.abschnitt, `Bau nach ${vergangen_s} s fertig (geplant ${bau_s} s)`).toBeUndefined();
+    expect(s.stand.geld_eur).toBe(14_460); // 30.000 − 2.000 − 6 × 400 − 2 × 5.570
     for (const h of haeuser) { expect(s.netz.warm.has(h.id), `(${h.x}|${h.y}) warm`).toBe(true); expect(s.netz.kalt.has(h.id)).toBe(false); }
     expect(engstellen(s)).toEqual([]);
-    expect(s.stand.geld_eur).toBe(14_460); // 30.000 − 2.000 − 6 × 400 − 2 × 5.570
   });
 
   it('test_nr19_abnahme_zwei_efh_mit_wandstation_an_25er_warnen', () => {
@@ -497,7 +524,8 @@ describe('NR19 Zusammenspiel', () => {
     expect(s.stationKaufen(h1.id, 'hp_800').ok).toBe(true);
     const e = s.stationKaufen(h2.id, 'st_15');
     expect(e.ok).toBe(true);
-    expect(norm(e.hinweis ?? '')).toContain('Die 25er an der Heizzentrale ist zu dünn');
+    // Eingezeichnete Leitung hat Vorrang vor „an der Heizzentrale“ (Entscheidung NR18-P1); 17,5 − 15 = 2,5 → aufgerundet 3 kW.
+    expect(norm(e.hinweis ?? '')).toContain('Die eingezeichnete 25er ist zu dünn, es fehlen 3 kW.');
     expect(engstellen(s).length).toBeGreaterThan(0);
   });
 });
@@ -510,12 +538,15 @@ describe('NR19 Hausblatt', () => {
     const b = await hausblatt(s, h);
     expect(b.text).toContain('Übergabestation wählen');
     expect(b.text).toContain('Mit Pufferspeicher');
-    expect(b.text).toContain('Wandstation ohne Puffer');
+    expect(b.text).toMatch(WANDREIHE);
     expect(b.text).toContain('Mit Puffer: 15.000 kWh ÷ 2.000 h = 7,5 kW aus dem Netz. Der Speicher fängt die Spitze ab.');
     expect(b.text).toContain('Ohne Puffer: 15.000 kWh ÷ 1.500 h = 10 kW – das Netz muss die Spitze liefern.');
+    expect(b.roh, 'DESIGN 12.23: geschütztes Leerzeichen Zahl–Einheit in der Erklärzeile').toContain(`7,5${NB}kW aus dem Netz`);
+    expect(b.roh, 'DESIGN 12.23: geschütztes Leerzeichen Zahl–Einheit in der Erklärzeile').toContain(`= 10${NB}kW`);
     expect(b.text).toContain('Den Puffer wählst du nur beim Anschluss.');
     const p = pufferKnoepfe(b.knoepfe);
-    expect(p.map((k) => [k.z1, k.z2, k.aus])).toEqual([['Puffer-Übergabestation HP 800', '7,5 kW aus dem Netz · 5.570 €', false]]);
+    expect(p.map((k) => [k.z1, k.z2, k.aus])).toEqual([['Puffer HP 800', '7,5 kW vom Netz · 5.570 €', false]]);
+    geschuetzteLeerzeichen(p[0]);
     expect(p[0].klasse).toMatch(/\bgeld\b/); // empfohlen = Gold
     expect(b.knoepfe.filter((k) => k.z2.startsWith('Wandstation Typ 15')).length).toBe(1);
     expect(b.text).not.toContain('Pufferspeicher im Haus');
@@ -528,7 +559,11 @@ describe('NR19 Hausblatt', () => {
     const b = await hausblatt(s, h);
     expect(b.text).toContain('Mit Puffer: 24.000 kWh ÷ 2.000 h = 12 kW aus dem Netz. Der Speicher fängt die Spitze ab.');
     expect(b.text).toContain('Ohne Puffer: 24.000 kWh ÷ 1.500 h = 16 kW – das Netz muss die Spitze liefern.');
-    expect(pufferKnoepfe(b.knoepfe).map((k) => [k.z1, k.z2])).toEqual([['Puffer-Übergabestation HP 800', '12 kW aus dem Netz · 5.570 €']]);
+    expect(b.roh).toContain(`12${NB}kW aus dem Netz`);
+    expect(b.roh).toContain(`= 16${NB}kW`);
+    const p = pufferKnoepfe(b.knoepfe);
+    expect(p.map((k) => [k.z1, k.z2])).toEqual([['Puffer HP 800', '12 kW vom Netz · 5.570 €']]);
+    geschuetzteLeerzeichen(p[0]);
     expect(b.knoepfe.filter((k) => k.z2.startsWith('Wandstation Typ 25')).length).toBe(1);
   });
 
@@ -536,8 +571,9 @@ describe('NR19 Hausblatt', () => {
     const { s } = dorf(2);
     const h = freiesHaus(s, 'efh');
     const p = pufferKnoepfe((await hausblatt(s, h)).knoepfe);
-    expect(p.map((k) => k.z1)).toEqual(['Puffer-Übergabestation HP 800', 'Puffer-Übergabestation HP 1000']);
-    expect(p.map((k) => k.z2)).toEqual(['7,5 kW aus dem Netz · 5.570 €', '7,5 kW aus dem Netz · 6.570 €']);
+    expect(p.map((k) => k.z1)).toEqual(['Puffer HP 800', 'Puffer HP 1000']);
+    expect(p.map((k) => k.z2)).toEqual(['7,5 kW vom Netz · 5.570 €', '7,5 kW vom Netz · 6.570 €']);
+    p.forEach(geschuetzteLeerzeichen);
     expect(p[0].klasse).toMatch(/\bgeld\b/);
     expect(p[1].klasse).not.toMatch(/\bgeld\b/);
   });
@@ -546,7 +582,8 @@ describe('NR19 Hausblatt', () => {
     const { s } = dorf(1);
     const h = freiesHaus(s, 'baeck');
     const p = pufferKnoepfe((await hausblatt(s, h)).knoepfe);
-    expect(p.map((k) => [k.z1, k.z2])).toEqual([['Puffer-Übergabestation HP 1000', '15 kW aus dem Netz · 6.570 €']]);
+    expect(p.map((k) => [k.z1, k.z2])).toEqual([['Puffer HP 1000', '15 kW vom Netz · 6.570 €']]);
+    geschuetzteLeerzeichen(p[0]);
   });
 
   it('test_nr19_hausblatt_ohne_puffer_reihe_fuer_grossabnehmer_wandhaus_und_zu_grosses_mfh', async () => {
@@ -572,7 +609,11 @@ describe('NR19 Hausblatt', () => {
     const h = freiesHaus(s, 'efh');
     expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
     const b = await hausblatt(s, h);
-    expect(b.text).toContain('Puffer-Übergabestation HP 800 · 14 kW Netz, 19 kW im Haus');
+    // DESIGN 12.23 Punkt 3: zwei Zeilen – „Übergabestation“ → „Puffer HP 800“, „Leistung Station“ → „14 kW Netz · 19 kW Haus“
+    expect(b.text).toMatch(/Übergabestation:?\s*Puffer HP 800/);
+    expect(b.text).toMatch(/Leistung Station:?\s*14 kW Netz · 19 kW Haus/);
+    expect(b.roh, 'geschützte Leerzeichen zwischen Zahl und kW').toContain(`14${NB}kW Netz · 19${NB}kW Haus`);
+    expect(b.text).not.toContain('19 kW im Haus'); // alte einzeilige Fassung ist weg
     expect(b.text).toContain('7,5 kW (÷ 2.000 h)');
     const alt = bei(s, 12, 14); alt.hauspuffer = true; s.neuBerechnen();
     expect((await hausblatt(s, alt)).text).toContain('Wandstation Typ 15 · 15 kW, mit Puffer');
@@ -591,8 +632,88 @@ describe('NR19 Hausblatt', () => {
     const b = await hausblatt(s, h);
     expect(b.text).toContain('Station zu klein');
     const p = pufferKnoepfe(b.knoepfe);
-    expect(p.map((k) => k.z1)).toEqual(['Puffer-Übergabestation HP 1000']);
-    expect(p[0].z2).toMatch(/^15,[78] kW aus dem Netz · 3\.785 €$/); // 15,75 kW (Gleitkomma rundet je nach Rechenweg auf 15,7/15,8); 6.570 − 2.785
+    expect(p.map((k) => k.z1)).toEqual(['Puffer HP 1000']);
+    expect(p[0].z2).toMatch(/^15,[78] kW vom Netz · 3\.785 €$/); // 15,75 kW (Gleitkomma rundet je nach Rechenweg auf 15,7/15,8); 6.570 − 2.785
+    geschuetzteLeerzeichen(p[0]);
+  });
+
+  // ─── Entscheidung W1 (Weg a, Review P6, 2026-11-06): Puffer-Station tauscht nur auf eine größere Puffer-Station ───
+  it('test_nr19_w1_hausblatt_keine_wandreihe_solange_puffer_station_reicht', async () => {
+    for (const stufe of [1, 2]) {
+      const { s } = dorf(stufe);
+      const h = bei(s, 9, 13);
+      h.station = 'hp_800'; h.hauspuffer = true; h.aufgestockt = true; h.vollversorgung = true; s.neuBerechnen(); // 15,75 kW / 21 kW → HP 1000 reicht
+      expect(s.netz.kalt.get(h.id), `Stufe ${stufe}: Vorbedingung Station zu klein`).toBe('station');
+      const b = await hausblatt(s, h);
+      expect(pufferKnoepfe(b.knoepfe).map((k) => k.z1), `Stufe ${stufe}`).toContain('Puffer HP 1000');
+      expect(wandKnoepfe(b.knoepfe), `Stufe ${stufe}: keine Wand-Knöpfe`).toEqual([]);
+      expect(b.text, `Stufe ${stufe}: keine Wandreihe`).not.toMatch(WANDREIHE);
+    }
+  });
+
+  it('test_nr19_w1_puffer_haus_tauscht_nicht_auf_wandstation', () => {
+    for (const stufe of [1, 2]) {
+      // a) passende HP 800: keine Wandstation, auch keine größere
+      const { s } = dorf(stufe);
+      const h = freiesHaus(s, 'efh');
+      expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
+      s.stand.geld_eur = 100_000;
+      for (const id of ['st_15', 'st_25', 'st_40', 'st_60', 'st_80']) {
+        expect(s.stationKaufen(h.id, id).ok, `Stufe ${stufe}: hp_800 → ${id}`).toBe(false);
+        expect(h.station, id).toBe('hp_800'); expect(h.hauspuffer, id).toBe(true); expect(s.stand.geld_eur, id).toBe(100_000);
+        expect(netzModul.bedarfKw(h), id).toBe(7.5);
+      }
+      // b) HP 800 zu klein, HP 1000 reicht (15,75 / 21 kW): Wandstation nach Bedarf ohne Puffer (21 kW → Typ 25) trotzdem abgelehnt
+      h.aufgestockt = true; h.vollversorgung = true; s.neuBerechnen();
+      for (const id of ['st_25', 'st_40']) {
+        expect(s.stationKaufen(h.id, id).ok, `Stufe ${stufe}: zu kleine hp_800 → ${id}`).toBe(false);
+        expect(h.station, id).toBe('hp_800'); expect(h.hauspuffer, id).toBe(true); expect(s.stand.geld_eur, id).toBe(100_000);
+      }
+      expect(s.stationKaufen(h.id, 'hp_1000').ok, `Stufe ${stufe}: hp_800 → hp_1000`).toBe(true);
+      expect(s.stand.geld_eur).toBe(100_000 - 3785); // 6.570 − 2.785
+      expect(h.station).toBe('hp_1000'); expect(h.hauspuffer).toBe(true);
+    }
+  });
+
+  it('test_nr19_w1_reicht_keine_puffer_station_wandstation_erlaubt_puffer_weg', async () => {
+    // MFH Kamin aus + aufgestockt mit ÜP 1000: 45.000 ÷ 2.000 × 2,1 = 47,25 kW Netz > 40, Spitze 63 kW > 54 → keine Puffer-Station reicht.
+    // Wandgröße nach Bedarf bei 1.500 h: 45.000 ÷ 1.500 × 2,1 = 63 kW → Typ 80 (Typ 60 zu klein).
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'mfh', { vollversorgung: true, aufgestockt: true });
+    h.station = 'up_1000'; h.hauspuffer = true; delete h.ohne_station; s.neuBerechnen();
+    expect(passendePuffer(netzSoll('mfh', h, true), spitzeSoll('mfh', h))).toBeNull();
+    const b = await hausblatt(s, h);
+    expect(pufferKnoepfe(b.knoepfe)).toEqual([]);
+    expect(wandKnoepfe(b.knoepfe).some((k) => k.z1.startsWith('Wandstation Typ 80') || k.z2.startsWith('Wandstation Typ 80'))).toBe(true);
+    s.stand.geld_eur = 100_000;
+    expect(s.stationKaufen(h.id, 'st_60').ok, 'Typ 60 schafft 63 kW nicht').toBe(false);
+    expect(h.station).toBe('up_1000'); expect(h.hauspuffer).toBe(true); expect(s.stand.geld_eur).toBe(100_000);
+    expect(s.stationKaufen(h.id, 'st_80').ok).toBe(true);
+    expect(h.station).toBe('st_80');
+    expect(!!h.hauspuffer, 'der Speicher gehört zur Station und geht mit ihr').toBe(false);
+    expect(s.stand.geld_eur).toBe(100_000 - 5215); // 9.000 − 7.570 × 50 %
+    expect(netzModul.bedarfKw(h)).toBeCloseTo(63, 9);
+    // kein Rückweg zur Puffer-Station über die Wandstation (Nachrüsten ausgeschlossen)
+    expect(s.stationKaufen(h.id, 'up_1000').ok).toBe(false);
+    expect(h.station).toBe('st_80'); expect(!!h.hauspuffer).toBe(false);
+  });
+
+  it('test_nr19_w1_altstand_puffer_merkmal_mit_wandstation_bleibt_unveraendert', async () => {
+    const st = altesStartdorf(T0);
+    const alt = st.objekte.find((o) => o.x === 12 && o.y === 14 && katalog.KATALOG[o.typ].kategorie === 'haus')!;
+    alt.station = 'st_15'; alt.hauspuffer = true; delete alt.ohne_station;
+    const { stand } = ladenMitBefund(serialisieren(st), T0);
+    const z: Uhr = { t: T0 };
+    const s = new Spiel(stand, () => z.t);
+    s.ersteQuelleWaehlen('kessel'); s.hz.stufe = 2; s.stand.geld_eur = 100_000; s.neuBerechnen();
+    const h = s.stand.objekte.find((o) => o.id === alt.id)!;
+    expect(h.station).toBe('st_15'); expect(h.hauspuffer).toBe(true);
+    expect(netzModul.bedarfKw(h)).toBe(7.5);
+    expect(s.netz.warm.has(h.id)).toBe(true);
+    vorstellen(s, z, 3600);
+    expect(h.station).toBe('st_15'); expect(h.hauspuffer).toBe(true);
+    expect(netzModul.bedarfKw(h)).toBe(7.5);
+    expect((await hausblatt(s, h)).text).toContain('Wandstation Typ 15 · 15 kW, mit Puffer');
   });
 
   it('test_nr19_anfrage_chip_station_dann_zu_klein_nutzt_puffer_regel', async () => {
