@@ -117,6 +117,8 @@ const KURZ_ZWEI_HAEUSER = '2 Häuser fehlen';
 // Gesperrter Grundzustand (DESIGN 13.5): Zeile 2 wie bei der Wandstation (13.5 T17). Diese Bedienungen liegen unter dem
 // Abdunkeln – ein Tipp darauf gilt als „falsch getippt“ (13.7), darum gibt es keinen Simon-Satz für die Blase.
 const GRUNDSPERRE: TutorialSperre = { kurz: 'später wählbar', satz: '' };
+// DESIGN 13.16 K4: „wählbar“ passt nur zu einer Auswahl; Aktionen, die das Tutorial nie freigibt, gehen erst danach.
+const AKTIONSSPERRE: TutorialSperre = { kurz: 'nach dem Tutorial', satz: '' };
 
 interface TutorialObjekte { hz: Objekt; haus1: Objekt; haus2: Objekt }
 
@@ -335,6 +337,7 @@ export class Tutorial {
         const geld = this.erreichtZahl() === 2 && this.lage.tutorialGeldFehlt_eur() > 0;
         return { kurz: GRUNDSPERRE.kurz, satz: geld ? SATZ_GELD : SATZ_LEISTE_OFFEN };
       }
+      case 'verwerfen': case 'sofort': case 'express': case 'weiter_einzeichnen': return AKTIONSSPERRE;
       default: return GRUNDSPERRE;
     }
   }
