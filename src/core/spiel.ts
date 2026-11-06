@@ -56,6 +56,8 @@ export class Spiel {
   private flussSet?: Set<number>;
   /** AE-NR18-5: Warnsätze „Nach dem Bau zu dünn“ des abgeschlossenen Abschnitts – nur hier, nie im Spielstand. */
   private warnliste: string[] = [];
+  /** NR18-W: zuletzt gerechnetes Probe-Netz zum Abgleich der wartenden Häuser und der Schlüssel, für den es gilt. */
+  private probeSpeicher: { netz: Netz; zu: Netz; schluessel: string } | null = null;
   /** AE-NR13-2: zuletzt erreichte Häuser; Grundlage für haus_erreicht/haus_getrennt. */
   private erreicht: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
@@ -234,6 +236,34 @@ export class Spiel {
       return a.ersatz ? { ...a, typ: a.ersatz.typ } : a;
     });
     return berechneNetz(objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur);
+  }
+  /**
+   * NR18-W (Entscheidung 06.11., Weg A): Häuser, die nur wegen der Leitung kalt sind und nach dem laufenden Bauabschnitt warm
+   * wären – sie warten auf den Bau und verlieren keine Zufriedenheit. Nur in den Phasen bestellen und bau: Erst der
+   * abgeschlossene Abschnitt ist verbindlich, ein offener, nie abgeschlossener wäre sonst ein Dauer-Freibrief (Review W1).
+   * Ohne solchen Abschnitt oder ohne Haus kalt wegen Leitung wird nichts gerechnet (der Normalfall in jedem Spieltakt).
+   */
+  private wartenAufBau(): Set<number> {
+    const phase = this.stand.abschnitt?.phase;
+    if (phase !== 'bestellen' && phase !== 'bau') return new Set();
+    const kalt = [...this.netz.kalt].filter(([, grund]) => grund === 'leitung').map(([id]) => id);
+    if (!kalt.length) return new Set();
+    const probe = this.probeGespeichert();
+    return new Set(kalt.filter((id) => probe.warm.has(id)));
+  }
+  /**
+   * Probe-Netz nur neu rechnen, wenn sich etwas geändert hat. Alles außer eingezeichneten Leitungen und Ersatz steckt schon
+   * im gebauten Netz, das jede Änderung über neuBerechnen neu anlegt; dessen Identität plus die Abschnittsteile ist der Schlüssel.
+   */
+  private probeGespeichert(): Netz {
+    const schluessel = this.stand.objekte
+      .filter((o) => o.geplant || o.ersatz)
+      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}`).join('|');
+    const sp = this.probeSpeicher;
+    if (sp && sp.zu === this.netz && sp.schluessel === schluessel) return sp.netz;
+    const netz = this.probeNetz();
+    this.probeSpeicher = { netz, zu: this.netz, schluessel };
+    return netz;
   }
   private erreichteIn(netz: Netz): number[] {
     return this.stand.objekte.filter((o) => istHausOderGross(o) && netz.anschluss.has(o.id)).map((o) => o.id).sort((x, y) => x - y);
@@ -1088,12 +1118,13 @@ export class Spiel {
     // A81: Erzeugungskosten folgen der im Monat gelieferten Wärme (Monatsanteil × 12; übers Jahr gemittelt 1)
     s.geld_eur = Math.max(0, s.geld_eur - (this.netz.betriebskosten_eur_min * anteil * 12 / 60) * dt_s + (this.netz.einspeisung_kw * KONSTANTEN.einspeisung_eur_je_kw_min / 60) * dt_s);
     let geaendert = false;
+    const wartet = this.wartenAufBau();
     for (const o of s.objekte) {
       if (!istKunde(o) || !this.netz.anschluss.has(o.id)) continue;
       const gross = KATALOG[o.typ].kategorie === 'gross';
       const kuehl = Math.max(0, this.mindestVorlauf_c(o) - this.vorlauf_c) * 4; // A33: Vorlauf zu niedrig → Räume zu kühl
       const grund = (GRUNDGEBUEHR.neutral_eur - this.grundgebuehr_eur) * GRUNDGEBUEHR.zufriedenheit_je_eur_pct; // A81
-      const ziel = Math.max(0, Math.min(100, P.zufriedenheit_pct + grund - kuehl + (this.netz.warm.has(o.id) ? 0 : gross ? -KONSTANTEN.kalt_abzug_gross_pct : -KONSTANTEN.kalt_abzug_haus_pct) + (o.stufe - 1) * 3));
+      const ziel = Math.max(0, Math.min(100, P.zufriedenheit_pct + grund - kuehl + (this.netz.warm.has(o.id) || wartet.has(o.id) ? 0 : gross ? -KONSTANTEN.kalt_abzug_gross_pct : -KONSTANTEN.kalt_abzug_haus_pct) + (o.stufe - 1) * 3));
       const jetzt = o.zufriedenheit_pct ?? 80, tau = gross ? 60 : 90;
       o.zufriedenheit_pct = ziel + (jetzt - ziel) * Math.exp(-dt_s / tau);
       if (!gross && this.netz.warm.has(o.id)) {
