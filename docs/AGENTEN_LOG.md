@@ -309,3 +309,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:22 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle drei Befunde aus dem Review sind behoben. Gelb nur aus einem Grund: Ich musste einen weiteren eigenen Test anpassen,  ([Bericht](docs/pruefberichte/20261106-082207-entwickler-abfa3730a8acb300b.md)) |
 | 2026-11-06 08:22 | ▶ | reviewer | Nachprüfung P1 + P0-Umbauten |
 | 2026-11-06 08:28 | ■ 🟡 | reviewer | ## Aufgabe 1 – Nachprüfung NR18-P1 (Fix b66bb47 auf 9892344): 🟢 freigegeben  ([Bericht](docs/pruefberichte/20261106-082803-reviewer-abc076939224ce9dd.md)) |
+| 2026-11-06 08:31 | ▶ | entwickler | NR18-P2 Kern bauen |
+| 2026-11-06 08:31 | ▶ | entwickler | NR18-P3 Oberfläche bauen |
+| 2026-11-06 08:31 | ▶ | entwickler | NR18-P5 Spielstart bauen |
