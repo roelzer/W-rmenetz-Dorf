@@ -314,3 +314,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:31 | ▶ | entwickler | NR18-P5 Spielstart bauen |
 | 2026-11-06 08:37 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT (Kontext zu knapp für ein schweres Paket). Ich habe keinen Code geschrieben und nichts committet.  ([Bericht](docs/pruefberichte/20261106-083708-entwickler-ab305ff8c29c7ea0b.md)) |
 | 2026-11-06 08:37 | ▶ | entwickler | NR18-P2 Kern, Lauf 2 |
+| 2026-11-06 08:39 | ■ 🟡 | entwickler | 🟡 Status: BLOCKIERT, aber nur formal. Das Paket P5 ist inhaltlich fertig und committet. Die Test-Schranke meldet „NICHT OK“, weil 20 Tests rot sind: die  ([Bericht](docs/pruefberichte/20261106-083915-entwickler-ab00795e4bc36d996.md)) |
+| 2026-11-06 08:39 | ▶ | reviewer | Review NR18-P5 Spielstart |
+| 2026-11-06 08:39 | ▶ | tester | Tester: Starttest umbauen |
