@@ -85,6 +85,10 @@ describe('NR13 Schritt-Ereignisse aus dem Kern', () => {
     expect(erreicht()).toEqual([['haus_erreicht', b.id]]);
     expect(a.ohne_station && b.ohne_station).toBe(true); // erreicht zählt auch ohne Station
     expect(s.erreichteHaeuser()).toEqual([a.id, b.id].sort((x, y) => x - y));
+    // Laden mit zwei erreichten Häusern: die nächste Leitung meldet nur das wirklich neu erreichte (9|15)
+    const g0 = new Spiel(ladenMitBefund(serialisieren(s.stand), z.t).stand, () => z.t);
+    expect(g0.platzieren('d25', 10, 15).ok).toBe(true);
+    expect(neueSchritte(g0).filter((x) => x[0] !== 'leitung_gezeichnet')).toEqual([['haus_erreicht', haus(g0, 9, 15).id]]);
     expect(s.letzteLeitungZurueck().ok).toBe(true);
     expect(erreicht()).toEqual([['haus_getrennt', b.id]]);
     expect(s.geplanteLeitungEntfernen(10, 12).ok).toBe(true);
