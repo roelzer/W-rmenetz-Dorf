@@ -41,6 +41,12 @@ function umriss(l: Loch): { x: number; y: number; b: number; h: number; radius: 
   return { x: l.r.x - d, y: l.r.y - d, b, h: hh, radius: Math.min((l.radius_px ?? 0) + d, b / 2, hh / 2) };
 }
 
+/** Außenmaß des gezeichneten Lochrands (inklusive Abstand) – danach richtet sich, wo die Anleiter-Karte stehen darf. */
+export function lochRand(l: Loch): Rechteck {
+  const u = umriss(l);
+  return { x: u.x, y: u.y, b: u.b, h: u.h };
+}
+
 const rechteckPfad = (r: Rechteck): string => `M${zahl(r.x)} ${zahl(r.y)}H${zahl(r.x + r.b)}V${zahl(r.y + r.h)}H${zahl(r.x)}Z`;
 
 function lochPfad(l: Loch): string {

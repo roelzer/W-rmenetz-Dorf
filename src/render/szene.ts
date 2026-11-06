@@ -360,7 +360,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
 }
 
 /** NR13 (DESIGN 13.2 Leitungs-Spur, K10): gestrichelte Linie durch die noch freien Spurfelder in Zugrichtung, heller Halo darunter,
- *  alle drei Felder (gezählt ab dem Abgang) eine Pfeilspitze. Lücken in der Spur (schon eingezeichnete Felder) bleiben offen.
+ *  alle drei Felder (gezählt ab dem Abgang) eine Pfeilspitze. Halo = `text_halo` wie bei Text auf der Karte. Lücken in der Spur (schon eingezeichnete Felder) bleiben offen.
  *  Strichmuster 10/8 aus DESIGN 13.10 (`spur_strich`/`spur_luecke`); Farbe und Breite = `naht_vorlauf`/`naht` (13.10: gleiche Werte). */
 function zeichneSpur(m: Maler, k: Kamera, spur: ReadonlyArray<readonly [number, number]>): void {
   const { X } = m, M = tokens.menue, breite = M.mass_px.naht;
@@ -370,8 +370,8 @@ function zeichneSpur(m: Maler, k: Kamera, spur: ReadonlyArray<readonly [number, 
     if (letztes && Math.abs(letztes[0] - f[0]) + Math.abs(letztes[1] - f[1]) === 1) stuecke.at(-1)!.push(f); else stuecke.push([f]);
   }
   X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
-  for (const [farbe, b] of [['rgba(255,255,255,.6)', breite + 4], [M.farbe.naht_vorlauf, breite]] as const) {
-    X.strokeStyle = farbe; X.lineWidth = b; X.setLineDash([10, 8]);
+  for (const [farbe, b] of [[tokens.farbe.effekt.text_halo, breite + 4], [M.farbe.naht_vorlauf, breite]] as const) {
+    X.strokeStyle = farbe; X.lineWidth = b; X.setLineDash([M.mass_px.spur_strich, M.mass_px.spur_luecke]);
     for (const st of stuecke) {
       if (st.length < 2) continue;
       X.beginPath();
