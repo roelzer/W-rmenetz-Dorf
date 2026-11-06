@@ -13,6 +13,7 @@ import { SYMBOLE } from '../src/ui/symbole';
 import { gesperrt, gesperrtMitHinweis, htmlDisabled } from './hilfen/gesperrt';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 import { sichtbar } from './hilfen/dom-attrappe';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // A88 Freischalt-Leiter (Bauplan docs/bauplaene/A88-freischalt-leiter.md, Abschnitt 4, 6a, 9 T1–T10, 10).
 // Nutzt das echte Kernmodul (kein vi.mock). Erwartete Stufen von Hand aus der Tabelle in Abschnitt 4.
@@ -382,7 +383,7 @@ describe('A88 Oberfläche fragt nur ab (T10, ohne Browser)', () => {
       const { Katalog } = await import('../src/ui/katalog');
       const { s } = neu(1);
       const toasts: string[] = [];
-      const ui = { spiel: s, toast: (t: string) => toasts.push(t), jetzt_ms: () => T0 } as unknown as ConstructorParameters<typeof Katalog>[0];
+      const ui = { ...UI_LEERLAUF, spiel: s, toast: (t: string) => toasts.push(t), jetzt_ms: () => T0 } as unknown as ConstructorParameters<typeof Katalog>[0];
       const k = new Katalog(ui);
       k.oeffnen('netz');
       const blatt = (k as unknown as { blatt: { inhalt: InstanceType<typeof a.El> } }).blatt;
@@ -407,7 +408,7 @@ describe('A88 Oberfläche fragt nur ab (T10, ohne Browser)', () => {
       const { Katalog } = await import('../src/ui/katalog');
       const { s } = neu(stufe);
       s.stand.abschnitt = phase === 'offen' ? { phase: 'offen', bau: null } : { phase: 'bau', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 10 * 86_400_000 } };
-      const ui = { spiel: s, toast: () => {}, jetzt_ms: () => T0 } as unknown as ConstructorParameters<typeof Katalog>[0];
+      const ui = { ...UI_LEERLAUF, spiel: s, toast: () => {}, jetzt_ms: () => T0 } as unknown as ConstructorParameters<typeof Katalog>[0];
       const k = new Katalog(ui);
       k.oeffnen('netz');
       const inhalt = (k as unknown as { blatt: { inhalt: InstanceType<typeof a.El> } }).blatt.inhalt;
@@ -450,7 +451,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
   const karte = (s: Spiel, o: Objekt) => mitAttrappe(async (a) => {
     const { Kontext } = await import('../src/ui/kontext');
     const gestempelt: string[] = [];
-    const ui = { spiel: s, jetzt_ms: () => T0, geaendert: () => {}, stempeln: (t: string) => gestempelt.push(t), toast: () => {}, katalog: () => {} };
+    const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => T0, geaendert: () => {}, stempeln: (t: string) => gestempelt.push(t), toast: () => {}, katalog: () => {} };
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);

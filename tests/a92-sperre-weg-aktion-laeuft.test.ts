@@ -5,6 +5,7 @@ import { HELFER, KATALOG, UPGRADES } from '../src/core/katalog';
 import type { Objekt } from '../src/core/typen';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // Tester-Nachzug NR16-B2a (A92, ENTSCHEIDUNGEN 2026-11-05 Antwort 7): Fällt der Sperrgrund weg, während das Blatt offen ist,
 // läuft beim Tippen die normale Aktion – keine Meldung. Der Review hat das für Taler („Sofort fertig“), Vertrag („Vertrag
@@ -74,7 +75,7 @@ async function mitAttrappe(s: Spiel, uhr: Uhr, arbeit: (a: Attrappe, ui: Record<
   vi.doMock('../src/ui/toast', () => ({ toast: (t: string) => toasts.push(t), hinweisMitKnopf: () => {} }));
   vi.doMock('../src/ui/sprecher', () => ({ sprecherZeigen: () => {} }));
   const ui = {
-    spiel: s, jetzt_ms: () => uhr.t, geaendert: () => s.neuBerechnen(), stempeln: () => {},
+    ...UI_LEERLAUF, spiel: s, jetzt_ms: () => uhr.t, geaendert: () => s.neuBerechnen(), stempeln: () => {},
     toast: (t: string) => toasts.push(t), katalog: () => {}, verschieben: () => {},
   };
   try { await arbeit(a, ui, toasts); } finally {

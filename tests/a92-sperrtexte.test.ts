@@ -9,6 +9,7 @@ import { SYMBOLE } from '../src/ui/symbole';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // Tester-Vorarbeit NR16-B2a (A92): Sperrtexte nach DESIGN.md 12.20 und Hausanschluss-Erklärsätze (ENTSCHEIDUNGEN 2026-11-05).
 // Je Tabellenzeile: Zeile 2 (Grund im Knopf), Schloss ja/nein, wörtlicher Hinweis beim Antippen. Dazu Regel 4 (Rangfolge),
@@ -105,7 +106,7 @@ async function mitAttrappe(uhr: Uhr, arbeit: (b: Omit<B, 'c'> & { ui: Record<str
   vi.doMock('../src/ui/toast', () => ({ toast: (t: string) => toasts.push(t), hinweisMitKnopf: () => {} }));
   vi.doMock('../src/ui/sprecher', () => ({ sprecherZeigen: () => {} }));
   const ui = {
-    spiel: s, jetzt_ms: () => uhr.t, geaendert: () => s?.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t),
+    ...UI_LEERLAUF, spiel: s, jetzt_ms: () => uhr.t, geaendert: () => s?.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t),
     toast: (t: string) => toasts.push(t), katalog: () => {}, verschieben: () => {},
   };
   const knoepfeIn = (root: AttrappenElement) => a.alle(root).filter((e) => e.tag === 'button');

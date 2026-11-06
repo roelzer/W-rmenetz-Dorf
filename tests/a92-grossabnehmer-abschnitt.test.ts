@@ -5,6 +5,7 @@ import type { Objekt } from '../src/core/typen';
 import { serialisieren } from '../src/core/speichern';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 import { gesperrt, htmlDisabled } from './hilfen/gesperrt';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // A92 / K1 (Review NR16-A, ENTSCHEIDUNGEN 2026-11-05 „NR16-A als A92 übernommen“, Paket NR16-B1):
 // Der Großabnehmer-Knopf „<Leitung> legen“ ist ohne offenen Bauabschnitt gesperrt wie beim Haus („Leitung selbst legen“),
@@ -83,7 +84,7 @@ async function karte(s: Spiel, o: Objekt, tun?: (k: Karte) => void): Promise<Kar
   try {
     const { Kontext } = await import('../src/ui/kontext');
     const gestempelt: string[] = [];
-    const ui = { spiel: s, jetzt_ms: () => T0, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
+    const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => T0, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);

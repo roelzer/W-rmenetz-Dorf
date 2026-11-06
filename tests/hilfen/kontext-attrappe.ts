@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import type { Spiel } from '../../src/core/spiel';
 import type { Objekt } from '../../src/core/typen';
+import { UI_LEERLAUF } from './ui-leerlauf';
 
 // Gemeinsame Testhilfe: winzige DOM-Nachbildung ohne Browser und Aufbau der Kontextkarte eines Objekts mit dem echten
 // Kernmodul und der echten Kontextkarte (src/ui/kontext.ts). Nur das Seitenblatt (src/ui/blatt) wird ersetzt.
@@ -37,7 +38,7 @@ export async function kontextKarte(s: Spiel, o: Objekt, jetzt_ms: number): Promi
   vi.doMock('../../src/ui/blatt', () => ({ blattOeffnen: () => ({ inhalt: new a.El('div'), zu: () => {} }), blattOffen: () => false }));
   try {
     const { Kontext } = await import('../../src/ui/kontext');
-    const ui = { spiel: s, jetzt_ms: () => jetzt_ms, geaendert: () => {}, stempeln: () => {}, toast: () => {}, katalog: () => {} };
+    const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => jetzt_ms, geaendert: () => {}, stempeln: () => {}, toast: () => {}, katalog: () => {} };
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);
