@@ -6,6 +6,7 @@ import { SYMBOLE } from '../src/ui/symbole';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
 import { echteSteuerung, tippe as echtTippe } from './hilfen/echte-steuerung';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // A92 / DESIGN.md 12.19 (NR16-B1, Nachbesserung nach Review W1/K-b):
 // - Jeder gesperrte Knopf zeigt in Zeile 2 das Schloss vor dem Grund („Dickere“, „Hausanschluss ziehen“, „Leitung selbst legen“,
@@ -83,7 +84,7 @@ async function karte(s: Spiel, o: Objekt, tun?: (a: Attrappe, c: AttrappenElemen
   return mitAttrappe(async (a, toasts) => {
     const { Kontext } = await import('../src/ui/kontext');
     const gestempelt: string[] = [];
-    const ui = { spiel: s, jetzt_ms: () => T0, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
+    const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => T0, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);

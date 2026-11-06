@@ -7,6 +7,7 @@ import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
 import { echteSteuerung, tippe as echtTippe, type EchteUmgebung } from './hilfen/echte-steuerung';
 import type { El } from './hilfen/dom-attrappe';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 /** Leerzeichenarten angleichen (ENTSCHEIDUNGEN 2026-11-05 Antwort 2: in Meldungen beide erlaubt). */
 const leer = (t: string): string => t.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
@@ -92,7 +93,7 @@ async function karte(s: Spiel, o: Objekt, tun?: (a: Attrappe, c: AttrappenElemen
   return mitAttrappe(async (a, toasts) => {
     const { Kontext } = await import('../src/ui/kontext');
     const gestempelt: string[] = [];
-    const ui = { spiel: s, jetzt_ms: () => T0, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
+    const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => T0, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);
@@ -265,7 +266,7 @@ describe('A92 K2 – Baumenü: Phasenwechsel auf einem anderen Reiter baut nicht
       const s = new Spiel(neuerSpielstand(T0), () => z.t);
       s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000; s.neuBerechnen();
       s.abschnittPlanen();
-      const k = new Katalog({ spiel: s, toast: () => {}, jetzt_ms: () => z.t, geaendert: () => {} } as unknown as ConstructorParameters<typeof Katalog>[0]);
+      const k = new Katalog({ ...UI_LEERLAUF, spiel: s, toast: () => {}, jetzt_ms: () => z.t, geaendert: () => {} } as unknown as ConstructorParameters<typeof Katalog>[0]);
       k.oeffnen('waerme');
       const vorher = [...blatt.inhalt.kinder];
       z.t = T0 + 75_000; s.bis(z.t);

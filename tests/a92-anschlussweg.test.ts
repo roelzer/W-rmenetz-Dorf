@@ -10,6 +10,7 @@ import { gesperrt, gesperrtMitHinweis, htmlDisabled } from './hilfen/gesperrt';
 import { serialisieren } from '../src/core/speichern';
 import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
 import { sichtbar, type El } from './hilfen/dom-attrappe';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // A92 (NR16) – Der Weg zum Hausanschluss erklärt sich: T-Stück-Hinweis beim Antippen, Sperren mit Grund ohne offenen
 // Bauabschnitt, Planungsstand zählt live, „Angeschlossen …“ nur bei angeschlossenen Häusern, „Hausanschluss geplant“
@@ -125,7 +126,7 @@ async function karte(s: Spiel, o: Objekt, jetzt_ms = T0, tun?: (k: Karte) => voi
   return mitAttrappe(async (a, toasts) => {
     const { Kontext } = await import('../src/ui/kontext');
     const gestempelt: string[] = [];
-    const ui = { spiel: s, jetzt_ms: () => jetzt_ms, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
+    const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => jetzt_ms, geaendert: () => s.neuBerechnen(), stempeln: (t: string) => gestempelt.push(t), toast: (t: string) => toasts.push(t), katalog: () => {} };
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);
@@ -471,7 +472,7 @@ describe('A92 Baumenü – Planungsstand zählt live', () => {
       const { Katalog } = await import('../src/ui/katalog');
       const { s, z } = neu(1);
       s.abschnittPlanen();
-      const ui = { spiel: s, toast: () => {}, jetzt_ms: () => z.t, geaendert: () => {} } as unknown as ConstructorParameters<typeof Katalog>[0];
+      const ui = { ...UI_LEERLAUF, spiel: s, toast: () => {}, jetzt_ms: () => z.t, geaendert: () => {} } as unknown as ConstructorParameters<typeof Katalog>[0];
       const k = new Katalog(ui);
       k.oeffnen('netz');
       const kasten = () => a.alle(blatt.inhalt).find((e) => e.className === 'kasten')!;
@@ -494,7 +495,7 @@ describe('A92 Baumenü – Planungsstand zählt live', () => {
     await mitAttrappe(async (a, _toasts, blatt) => {
       const { Katalog } = await import('../src/ui/katalog');
       const { s } = neu(1);
-      const k = new Katalog({ spiel: s, toast: () => {}, jetzt_ms: () => T0 } as unknown as ConstructorParameters<typeof Katalog>[0]);
+      const k = new Katalog({ ...UI_LEERLAUF, spiel: s, toast: () => {}, jetzt_ms: () => T0 } as unknown as ConstructorParameters<typeof Katalog>[0]);
       k.aktualisieren();
       expect(blatt.inhalt.kinder).toEqual([]);
       void a;

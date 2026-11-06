@@ -4,6 +4,7 @@ import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import type { TypId } from '../src/core/katalog';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 import { attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // Tester-Nachzug NR15-P1 / NR16-B2a (A91, Bauplan docs/bauplaene/NR15-netzmodell.md „test_a91_alter_hausanschluss_satz_ist_weg“,
 // ENTSCHEIDUNGEN 2026-11-05): Die alten Hausanschluss-Sätze „Eine Leitung, die an ein Haus grenzt, ist sein Hausanschluss“
@@ -117,7 +118,7 @@ describe('A91 – alter Hausanschluss-Satz ist weg (Bauplan NR15 P1, ENTSCHEIDUN
       const { Katalog } = await import('../src/ui/katalog');
       const s = neu(2);
       s.stand.abschnitt = { phase: 'offen', bau: null };
-      const ui = { spiel: s, jetzt_ms: () => T0, geaendert: () => {}, stempeln: () => {}, toast: () => {}, katalog: () => {}, verschieben: () => {} };
+      const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => T0, geaendert: () => {}, stempeln: () => {}, toast: () => {}, katalog: () => {}, verschieben: () => {} };
       new Katalog(ui as unknown as ConstructorParameters<typeof Katalog>[0]).oeffnen('netz');
       const t = norm(a.text(blatt.inhalt));
       expect(t).toContain(NEU_LANG_1);

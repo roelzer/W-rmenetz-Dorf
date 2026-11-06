@@ -6,6 +6,7 @@ import { altesStartdorf } from './hilfen/altes-startdorf';
 import { attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 import { gesperrt, gesperrtMitHinweis } from './hilfen/gesperrt';
 import { objektBei } from './hilfen/nr18';
+import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 // NR19 Puffer-Übergabestation, Hausblatt (Bauplan docs/bauplaene/NR18-ohne-autoanschluss.md, Abschnitt 5.5 und „Bauplan P6“).
 // Echte Kontextkarte mit dem echten Kern ohne Browser; ersetzt werden nur Seitenblatt und Toast (Hinweis beim Antippen mitlesen).
@@ -39,7 +40,7 @@ async function karte(s: Spiel, o: Objekt, antippen?: (k: Knopf[]) => Knopf | und
   vi.doMock('../src/ui/toast', async (orig) => ({ ...(await orig<typeof import('../src/ui/toast')>()), toast: (t: string) => { toasts.push(t); } }));
   try {
     const { Kontext } = await import('../src/ui/kontext');
-    const ui = { spiel: s, jetzt_ms: () => T0, geaendert: () => {}, stempeln: () => {}, toast: () => {}, katalog: () => {} };
+    const ui = { ...UI_LEERLAUF, spiel: s, jetzt_ms: () => T0, geaendert: () => {}, stempeln: () => {}, toast: () => {}, katalog: () => {} };
     const k = new Kontext(ui as unknown as ConstructorParameters<typeof Kontext>[0], () => {});
     const c = new a.El('div');
     (k as unknown as { inhalt: (c: unknown, o: Objekt) => void }).inhalt(c, o);
