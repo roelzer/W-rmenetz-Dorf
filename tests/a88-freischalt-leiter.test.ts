@@ -95,15 +95,18 @@ describe('A88 Freischalt-Leiter – neues Spiel und Durchsetzung im Kern (T3, T4
     expect(s.innenEinbauen('pellet').ok).toBe(false);
     expect(s.innenEinbauen('kessel').ok).toBe(true);
   });
-  it('A88: test_a88_kern_setzt_durch – Stufe 1 mit genug Geld', () => {
-    const { s, z } = neu(1);
-    const start40 = s.stand.objekte.find((o) => o.typ === 'd40' && o.x === 10 && o.y === 12)!;
+  it('A88: test_a88_kern_setzt_durch_ersatz – Stufe 1: Ersatz auf eine 50er abgelehnt', () => {
     // NR18-P0 (4.19): Sofort-Tausch entfällt – der Ersatz auf eine 50er wird auch im offenen Bauabschnitt abgelehnt (rot bis NR18-P2).
+    const { s } = neu(1);
+    const start40 = s.stand.objekte.find((o) => o.typ === 'd40' && o.x === 10 && o.y === 12)!;
     offenerAbschnitt(s);
     expect(ersatzPlanen(s, start40.id, 'd50').ok).toBe(false);
     expect(ersatzVon(start40)).toBeUndefined();
     expect(start40.typ).toBe('d40');
-    s.stand.abschnitt = undefined;
+  });
+  it('A88: test_a88_kern_setzt_durch – Stufe 1 mit genug Geld', () => {
+    const { s, z } = neu(1);
+    // Der Ersatz-Teil (4.19) steht in test_a88_kern_setzt_durch_ersatz (rot bis NR18-P2).
     const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
     expect(bedarfKw(haus)).toBe(10);
     expect(s.stationKaufen(haus.id, 'st_25').ok).toBe(false);
@@ -238,8 +241,18 @@ describe('A88 Freischalt-Leiter – alte Stände und Bestand (T8, F3)', () => {
     expect(s.stand.objekte.some((o) => o.typ === 'puffer')).toBe(true);
     const r = s.innenAusbauen(s.stand.innen.findIndex((k) => k.typ === 'pellet'));
     expect(r.hinweis ?? '').not.toContain('ab Heizzentrale Stufe');
+    // Die gebaute 50er bleibt eine 50er, auch auf Stufe 1; Entfernen geht weiter.
+    // Der Ersatz-Teil (4.19) steht in test_a88_gebautes_bleibt_ersatz (rot bis NR18-P2).
+    offenerAbschnitt(s);
+    expect(l50.typ).toBe('d50');
+    expect(s.entfernen(l50.id).ok).toBe(true);
+  });
+  it('A88: test_a88_gebautes_bleibt_ersatz – Ersatz auf gesperrte 63er abgelehnt, Leitung unverändert', () => {
     // NR18-P0 (4.19): Die gebaute 50er bleibt eine 50er, auch auf Stufe 1; ein Ersatz auf die gesperrte 63er wird
     // abgelehnt, ändert aber nichts an der Leitung (rot bis NR18-P2). Entfernen geht weiter.
+    const { s } = neu(1);
+    const l50 = lege(s, 'd50', 9, 12);
+    s.neuBerechnen();
     offenerAbschnitt(s);
     expect(ersatzPlanen(s, l50.id, 'd63').ok).toBe(false);
     expect(l50.typ).toBe('d50');
