@@ -8,6 +8,7 @@ import { Tutorial } from './core/tutorial';
 import type { Bedienung, TippMeldung, TutorialAnsicht, TutorialSperre, ZielName } from './core/tutorial-vertrag';
 import type { Objekt } from './core/typen';
 import { Effekte } from './render/effekte';
+import { FEDERN_MS } from './render/gebaeude';
 import { Kamera } from './render/kamera';
 import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
@@ -18,7 +19,7 @@ import { blattBreite_px, blattOeffnen, blattOffen, type Blatt } from './ui/blatt
 import { eur, h } from './ui/dom';
 import { sprecherAktiv, sprecherZeigen } from './ui/sprecher';
 import { anleiterAusblenden, anleiterPlatz, anleiterRechteck, anleiterZeigen } from './ui/anleiter';
-import { eingabeSperre, infoKapsel, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
+import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
@@ -27,11 +28,13 @@ import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/konte
 import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
+import { tempo } from './tempo';
 import { meldungenStumm, toast, toastDauer_ms, toastWichtig } from './ui/toast';
 
 const N = KONSTANTEN.feldanzahl;
 /** Bauplan NR13 P4: Abstand nach [Los geht’s], bevor aufgesparte Hinweise kommen */
 const NACH_TUTORIAL_MS = 600;
+const istKartenziel = (z: ZielName): z is keyof typeof KARTEN_VORLESENAME => z === 'heizzentrale' || z === 'haus1' || z === 'haus2';
 /** DESIGN 13.6 / Bauplan NR13 P4 „Kamera“: Rand beim Einpassen mehrerer Ziele und höchster Zoom (= Startzoom am Handy) */
 const EINPASS_RAND_PX = 24;
 const ZIEL_ZOOM_MAX = T.karte.zoom_start_handy;
@@ -93,6 +96,8 @@ export class Steuerung implements Ui {
   /** Tutorial-Kurzgrund von [Abschnitt abschließen], mit dem die Zeichenleiste zuletzt gebaut wurde */
   private leisteSperreKurz: string | null = null;
   private tabZiele: HTMLElement[] = [];
+  /** Schritt (wie `angewendet.schritt`), für den der Fokus schon gesetzt ist */
+  private fokusFuer: string | null = null;
   /** Ziele im Blatt, die in diesem Schritt schon ins Bild gescrollt wurden (K9) */
   private gescrollt = new Set<string>();
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
@@ -140,16 +145,26 @@ export class Steuerung implements Ui {
     const dorf = h('input', { class: 'feld', type: 'text', maxlength: 24, value: this.spiel.stand.name, 'aria-label': 'Name deines Dorfs', id: 'start-dorf' }) as HTMLInputElement;
     const los = (): void => {
       this.spiel.namenSetzen(spieler.value, dorf.value); b.zu(); this.geaendert();
+      // Im Tutorial begrüßt Simon in T01 selbst; Begrüßung und Start-Tipp entfallen (DESIGN 13.7 „Erster Start“)
+      if (this.anleitung) { this.anleitungAnwenden(); return; }
       const gruss = `Viel Erfolg, ${this.spiel.spielerName}! ${this.spiel.stand.name} wartet auf sein Wärmenetz.`;
       this.toast(gruss);
       this.startTippPlanen(gruss);
     };
+    // T-F3 (Simon): Überspringen nur für Tester, also nur im Vorführ-Tempo
+    const ohneTutorial = (): void => {
+      this.spiel.tutorialUeberspringen();
+      this.anleitungBeenden();
+      los();
+    };
+    const knoepfe = [knopf('Los geht’s', los, 'los')];
+    if (this.anleitung && tempo() > 1) knoepfe.push(knopf('Ohne Tutorial starten', ohneTutorial));
     for (const f of [spieler, dorf]) f.addEventListener('keydown', (e) => { if (e.key === 'Enter') los(); });
     b.inhalt.append(
       h('p', {}, 'Du baust das Wärmenetz für ein Dorf. Wie heißt du, und wie heißt dein Dorf?'),
       h('label', { for: 'start-spieler', class: 'gedaempft' }, 'Dein Name (so sprechen dich Philipp, Laura und die Techniker an)'), spieler,
       h('label', { for: 'start-dorf', class: 'gedaempft' }, 'Name deines Dorfs'), dorf,
-      h('div', { class: 'knopfreihe' }, knopf('Los geht’s', los, 'los')));
+      h('div', { class: 'knopfreihe' }, ...knoepfe));
   }
 
   /** NR18-D: einmalige Start-Meldung. Es gibt nur eine Meldung zugleich (12.17) – steht schon eine (`vorher`), kommt der
@@ -587,14 +602,20 @@ export class Steuerung implements Ui {
   private kartentippImTutorial(mx: number, my: number): void {
     const a = this.anleitung?.ansicht(this.uhr());
     if (!a) return;
-    const oeffnen = a.normale_aktion, ids = a.objekt_ids;
+    const ids = a.objekt_ids;
     const ziele = this.spiel.stand.objekte.filter((z) => z.id === ids.heizzentrale || z.id === ids.haus1 || z.id === ids.haus2);
     const o = objektAmPunkt(this.kamera, ziele, mx, my);
-    if (!o) return;
-    if (o.id === ids.heizzentrale) { this.tutorialMelden({ art: 'tipp', tipp: 'heizzentrale' }); return; }
-    if (o.id !== ids.haus1 && o.id !== ids.haus2) return;
-    this.tutorialMelden({ art: 'tipp', tipp: 'haus', objekt_id: o.id });
-    if (oeffnen) this.kontext(o.id);
+    if (o) this.kartenzielGetippt(o.id);
+  }
+  /** Antippen oder Enter auf dem Ersatz-Element (13.11): derselbe Tipp. Ob ein Blatt öffnet, gilt für die Ansicht vor dem Tipp. */
+  private kartenzielGetippt(id: number): void {
+    const a = this.anleitung?.ansicht(this.uhr());
+    if (!a) return;
+    const ids = a.objekt_ids;
+    if (id === ids.heizzentrale) { this.tutorialMelden({ art: 'tipp', tipp: 'heizzentrale' }); return; }
+    if (id !== ids.haus1 && id !== ids.haus2) return;
+    this.tutorialMelden({ art: 'tipp', tipp: 'haus', objekt_id: id });
+    if (a.normale_aktion) this.kontext(id);
   }
 
   // ---------- je Bild ----------
@@ -630,13 +651,24 @@ export class Steuerung implements Ui {
   private anleitungBeenden(): void {
     this.anleitung = null;
     eingabeSperre(null); this.sperreAn = false;
-    spotlightAus(); anleiterAusblenden(); infoKapsel(null, null);
+    spotlightAus(); anleiterAusblenden(); infoKapsel(null, null); ersatzZiel(null);
     this.kamera.grenzeSetzen(null);
-    this.angewendet = null; this.szeneTutorial = {}; this.erreichtSeit.clear();
+    this.angewendet = null; this.fokusFuer = null; this.szeneTutorial = {}; this.erreichtSeit.clear();
     meldungenStumm(false);
     this.hud.tutorialModus(false);
+    this.auftragFedern();
     const liste = this.nachTutorialListe.splice(0);
     if (liste.length) window.setTimeout(() => { for (const f of liste) f(); }, NACH_TUTORIAL_MS);
+  }
+  /** T26 (DESIGN 13.5): die Auftragskarte kommt zurück und federt kurz wie beim Bauen (450 ms, `plopp_staerke`); ruhig ohne. */
+  private auftragFedern(): void {
+    this.auftrag = pruefeAuftraege(this.spiel);
+    this.hudJetzt();
+    const karte = this.hud.wurzel.querySelector<HTMLElement>('.auftrag');
+    if (!karte) throw new Error('HUD ohne Auftragskarte (.auftrag)');
+    if (this.ruhig() || karte.classList.contains('versteckt')) return;
+    const gross = `scale(${1 + T.karte.plopp_staerke})`;
+    karte.animate([{ transform: 'scale(1)' }, { transform: gross }, { transform: 'scale(1)' }], { duration: FEDERN_MS, easing: 'ease-out' });
   }
   private bildzeit(): number { return performance.now(); }
   private ruhig(): boolean { return this.einstellungen.weniger_bewegung || matchMedia('(prefers-reduced-motion: reduce)').matches; }
@@ -645,7 +677,7 @@ export class Steuerung implements Ui {
 
   /** Kartenziel → Objekt; `null` für Bedienelemente und das Leitungsstück. */
   private kartenObjekt(a: TutorialAnsicht, z: ZielName): Objekt | null {
-    if (z !== 'heizzentrale' && z !== 'haus1' && z !== 'haus2') return null;
+    if (!istKartenziel(z)) return null;
     const o = this.spiel.objekt(a.objekt_ids[z]);
     if (!o) throw new Error(`Tutorial: Objekt ${z} (id ${a.objekt_ids[z]}) fehlt im Spielstand.`);
     return o;
@@ -698,6 +730,14 @@ export class Steuerung implements Ui {
     }
     k.zoom = z.zoom;
     k.zentrierenBei(z.mitte_x, z.mitte_y, 1, z.ziel_x, z.ziel_y);
+  }
+  /** Weg des Fingers in T13: die Spur und weiter auf Haus 2. Der letzte Spurschritt geht nur ein Feld zur Seite; nach A47
+   *  knickt die Leitung erst bei 2 Feldern – wer genau nachfährt, legt das letzte Feld erst mit dem Zug auf das Haus. */
+  private fingerSpur(a: TutorialAnsicht): Array<[number, number]> {
+    const h2 = this.spiel.objekt(a.objekt_ids.haus2);
+    if (!h2) throw new Error(`Tutorial: Haus 2 (id ${a.objekt_ids.haus2}) fehlt im Spielstand.`);
+    const g = groesse(h2), ende = [h2.x + (g - 1) / 2, h2.y + (g - 1) / 2] as const;
+    return [...TUTORIAL_SPUR, ende].map(([x, y]) => this.kamera.mitte(x, y));
   }
   /** Feldmitten-Rahmen um Objekte */
   private rahmen(os: Objekt[]): { x0: number; y0: number; x1: number; y1: number } {
@@ -759,7 +799,7 @@ export class Steuerung implements Ui {
     }
     const erstes = ziele[0]?.l?.loch.r ?? null;
     const finger: Finger | null = a.finger === 'tippen' && erstes ? { art: 'tippen', ziel: erstes }
-      : a.finger === 'spur' ? { art: 'spur', punkte: TUTORIAL_SPUR.map(([x, y]) => k.mitte(x, y)) } : null;
+      : a.finger === 'spur' ? { art: 'spur', punkte: this.fingerSpur(a) } : null;
     const hud = this.hud.wurzel.getBoundingClientRect();
     // Während der Fahrt zeigt das Bild kein Abdunkeln; die Sperre liest weiter die Ansicht (AE-NR13-6)
     spotlightSetzen({ loecher, abdunkeln: this.fahrtJetzt ? 'nichts' : a.abdunkeln, finger, ruhig, hud: [{ x: hud.left, y: hud.top, b: hud.width, h: hud.height }] });
@@ -769,8 +809,19 @@ export class Steuerung implements Ui {
     const haus1 = this.spiel.objekt(a.objekt_ids.haus1);
     infoKapsel(a.info_kapsel ?? null, a.info_kapsel && haus1 ? this.objektRechteck(haus1, true) : null);
     this.sperrLage = { fahrt: this.fahrtJetzt, anleiter: null, abdunkeln: a.abdunkeln, art: a.art, loecher: loecher.map((l) => l.r) };
+    // 13.11/K9: Kartenziel eines Handlungs-Schritts bekommt ein fokussierbares Ersatz-Element mit Vorlesenamen
+    const z0 = a.art === 'H' ? a.ziele[0] : undefined, karte0 = z0 && istKartenziel(z0) ? this.kartenObjekt(a, z0) : null;
+    ersatzZiel(z0 && istKartenziel(z0) && karte0 && erstes ? { r: erstes, name: KARTEN_VORLESENAME[z0], enter: () => this.kartenzielGetippt(karte0.id) } : null);
+    const ersatz = document.querySelector<HTMLElement>('.ersatz-ziel');
     const weiter = document.getElementById('anleiter-weiter');
-    this.tabZiele = [...ziele.flatMap((e) => (e.l?.el ? [e.l.el] : [])), ...(weiter ? [weiter] : [])];
+    const zielEls = [...(ersatz ? [ersatz] : []), ...ziele.flatMap((e) => (e.l?.el ? [e.l.el] : []))];
+    this.tabZiele = [...zielEls, ...(weiter ? [weiter] : [])];
+    // Fokus einmal je Schritt: Handlungs-Schritt aufs Ziel, sobald es da ist; im Erklär-Schritt setzt ihn anleiterZeigen auf [Weiter]
+    if (this.fokusFuer !== schritt) {
+      const ziel = a.art === 'H' ? zielEls[0] : undefined;
+      ziel?.focus();
+      if (ziel || a.art === 'W' || !a.ziele.length) this.fokusFuer = schritt;
+    }
     if (!this.sperreAn) {
       this.sperreAn = true;
       eingabeSperre({

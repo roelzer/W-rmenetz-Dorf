@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { KATALOG } from '../src/core/katalog';
+import { KATALOG, istLeitung } from '../src/core/katalog';
 import { groesse } from '../src/core/netz';
 import { Spiel } from '../src/core/spiel';
 import { ERSTE_HAEUSER, TUTORIAL_SPUR, neuesSpielMitTutorial } from '../src/core/start';
 import { Tutorial } from '../src/core/tutorial';
 import type { TippMeldung } from '../src/core/tutorial-vertrag';
 import { echteSteuerung } from './hilfen/echte-steuerung';
+import { El } from './hilfen/dom-attrappe';
 
 // Bauplan NR13 Fassung 3.1, Paket P4 (Einbindung) – Teil 1: Steuerung hält das Tutorial, Meldungen stumm, nachTutorial,
 // „Willkommen zurück“ entfällt im Tutorial (K6).
@@ -499,5 +500,133 @@ describe('NR13 P4 Einbindung – Ablauf Geldmangel', () => {
     expect(t.aktiv()).toBe(false);
     expect(s.stand.tutorial).toBeUndefined();
     expect(s.netz.warm.has(h1.id) && s.netz.warm.has(h2.id)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Teil 3: Namensfenster, Fokus und Vorlesenamen (DESIGN 13.11/K9), Ende mit federndem Auftrag, Finger-Spur bis Haus 2.
+type St3 = Omit<St2, 'anleitungAnsicht'> & { anleitungAnsicht(): (Ansicht2 & { wiedereinstieg: boolean }) | null; zentrieren(): void };
+const knopfMit = (u: U, text: string) => u.knoepfe().find((k) => k.textContent.includes(text));
+
+/** Zweite, echte Steuerung mit offenem Namensfenster (die Testhilfe überspringt es, Hilfen bleiben unverändert). */
+async function mitNamensfenster(u: U, spiel: Spiel, uhr: { t: number }): Promise<St3> {
+  const { Steuerung } = await import('../src/steuerung');
+  const lw = new El('canvas');
+  u.dom.app.append(lw);
+  spiel.stand.namen_gefragt = false;
+  const st = new Steuerung(spiel, lw as unknown as HTMLCanvasElement, { reduziert: false } as never, () => uhr.t) as unknown as St3;
+  st.kamera.groesseSetzen(844, 390, 2); st.zentrieren();
+  return st;
+}
+/** Neues Spiel ohne Tutorial für die erste (von der Hilfe gebaute) Steuerung, damit sie nichts anzeigt */
+const ohneTutorial = (uhr: { t: number }): Spiel => { const s = neuesSpiel(uhr); s.tutorialUeberspringen(); return s; };
+/** Punkte (px) der letzten Spur-Animation des Fingers, in der Reihenfolge, in der er sie abfährt */
+function fingerSpurPunkte(anim: { mock: { calls: unknown[][] } }): Array<[number, number]> {
+  const spur = anim.mock.calls.filter(([kf, o]) => Array.isArray(kf) && (o as { iterations?: number } | undefined)?.iterations === Infinity
+    && (kf as Keyframe[]).length >= 4 && (kf as Keyframe[]).every((k) => typeof k.transform === 'string')
+    && (kf as Keyframe[]).some((k) => k.opacity === 0));
+  expect(spur.length, 'Testaufbau: die Finger-Spur wurde gezeigt').toBeGreaterThan(0);
+  const kf = spur[spur.length - 1][0] as Keyframe[];
+  return kf.filter((k) => k.opacity === 1).map((k) => {
+    const m = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(String(k.transform))!;
+    return [Number(m[1]), Number(m[2])];
+  });
+}
+
+describe('NR13 P4 Einbindung – Teil 3', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('test_nr13_namensfenster_startet_t01: ohne Vorführ-Tempo kein „Ohne Tutorial starten“; nach dem Namen T01 ohne Begrüßung und Start-Tipp', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(ohneTutorial(uhr), async (u) => {
+      const st = await mitNamensfenster(u, spiel, uhr);
+      expect(st.anleitungAnsicht(), 'solange das Namensfenster offen ist, keine Blase').toBeNull();
+      expect(knopfMit(u, 'Ohne Tutorial starten')).toBeUndefined();
+      (u.dom.doc.getElementById('start-spieler') as unknown as { value: string }).value = 'Anna';
+      knopfMit(u, 'Los geht’s')!.click();
+      expect(spiel.spielerName).toBe('Anna');
+      expect(st.anleitungAnsicht()?.schritt).toBe('T01');
+      expect(st.anleitungAnsicht()?.wiedereinstieg).toBe(false);
+      expect(u.dom.doc.getElementById('anleiter'), 'T01 steht sofort, ohne auf das nächste Bild zu warten').not.toBeNull();
+      vi.advanceTimersByTime(30_000);
+      expect(u.meldungen).toEqual([]);
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr13_ohne_tutorial_nur_vorfuehrtempo: mit ×10 startet „Ohne Tutorial starten“ das Spiel wie bisher (Begrüßung sichtbar)', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    const speicher = new Map([['waermedorf-tempo-v1', JSON.stringify({ faktor: 10, offset_ms: 0 })]]);
+    await echteSteuerung(ohneTutorial(uhr), async (u) => {
+      const st = await mitNamensfenster(u, spiel, uhr);
+      (u.dom.doc.getElementById('start-spieler') as unknown as { value: string }).value = 'Anna';
+      knopfMit(u, 'Ohne Tutorial starten')!.click();
+      expect(st.anleitungAnsicht()).toBeNull();
+      expect(spiel.stand.tutorial).toBeUndefined();
+      expect(spiel.spielerName).toBe('Anna');
+      expect(u.meldung()).toBe(`Viel Erfolg, Anna! ${spiel.stand.name} wartet auf sein Wärmenetz.`);
+      expect(u.dom.doc.getElementById('anleiter')).toBeNull();
+      expect(knopfMit(u, 'Ohne Tutorial starten')).toBeUndefined();
+    }, { uhr: () => uhr.t, speicher });
+  });
+
+  it('test_nr13_fokus_und_vorlesename: T01 Ersatz-Element „Heizzentrale“ fokussiert, Enter → T02; T02 Fokus auf [Weiter]; T08 Fokus auf [Bauen]', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      const s = s2(u), doc = u.dom.doc;
+      bisT01(u, uhr);
+      const ersatz = doc.activeElement as unknown as El;
+      expect(ersatz.classList.contains('ersatz-ziel')).toBe(true);
+      expect(ersatz.getAttribute('aria-label')).toBe('Heizzentrale');
+      ersatz.ausloesen('keydown', { key: 'Enter' });
+      expect(schrittJetzt(u)).toBe('T02');
+      s.tick(uhr.t);
+      expect((doc.activeElement as unknown as El).id).toBe('anleiter-weiter');
+      expect(doc.querySelector('.ersatz-ziel'), 'W-Schritt: kein Ersatz-Element').toBeNull();
+      for (const id of ['T02', 'T03', 'T04', 'T05', 'T06', 'T07']) { s.tick(uhr.t); expect(schrittJetzt(u)).toBe(id); weiterTippen(u); }
+      s.tick(uhr.t); expect(schrittJetzt(u)).toBe('T08');
+      expect((doc.activeElement as unknown as El).getAttribute('data-ziel')).toBe('bauen');
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr13_nach_ende_knoepfe_zurueck: nach T26 sind Auftragskarte und Zoomknöpfe zurück, der Auftrag federt 450 ms; „Weniger Bewegung“ ohne Federn', async () => {
+    for (const bewegung of ['normal', 'einstellung'] as const) {
+      // die Testhilfe nimmt am Ende alle Ersatz-Globale zurück, also je Durchlauf neu
+      vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; });
+      const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+      await echteSteuerung(spiel, (u) => {
+        const s = s2(u);
+        bisT01(u, uhr);
+        const karte = u.dom.html.querySelector('.auftrag')!, zoom = u.dom.html.querySelector('.zoom')!;
+        expect(karte.classList.contains('versteckt')).toBe(true);
+        const anim = vi.spyOn(karte, 'animate');
+        spiel.tutorialBeenden(); s.tick(uhr.t);
+        expect(karte.classList.contains('versteckt')).toBe(false);
+        expect(zoom.classList.contains('versteckt')).toBe(false);
+        if (bewegung === 'einstellung') { expect(anim).not.toHaveBeenCalled(); return; }
+        expect(anim).toHaveBeenCalledTimes(1);
+        const [kf, opt] = anim.mock.calls[0] as unknown as [Keyframe[], KeyframeAnimationOptions];
+        // DESIGN Abschnitt 1/13.5: kurzes Federn 450 ms mit plopp_staerke 0,08 (design/tokens.json)
+        expect(opt.duration).toBe(450);
+        expect(kf.map((k) => k.transform)).toEqual(['scale(1)', 'scale(1.08)', 'scale(1)']);
+      }, { uhr: () => uhr.t, bewegung });
+    }
+  });
+
+  it('test_nr13_spur_nachfahren_bis_haus2: wer die Finger-Spur in T13 genau nachfährt, verbindet beide Häuser → T14', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    const anim = vi.spyOn(El.prototype, 'animate');
+    await echteSteuerung(spiel, (u) => {
+      bisT13(u, spiel, uhr);
+      const punkte = fingerSpurPunkte(anim);
+      leinwand(u).ausloesen('pointerdown', zeiger(7, ...punkte[0]));
+      for (const p of punkte.slice(1)) leinwand(u).ausloesen('pointermove', zeiger(7, ...p));
+      leinwand(u).ausloesen('pointerup', zeiger(7, ...punkte[punkte.length - 1]));
+      const leitungBei = (x: number, y: number) => spiel.stand.objekte.some((o) => istLeitung(o.typ) && o.x === x && o.y === y);
+      for (const [x, y] of TUTORIAL_SPUR) expect(leitungBei(x, y), `Leitung auf ${x},${y}`).toBe(true);
+      expect(spiel.erreichteHaeuser()).toEqual(expect.arrayContaining(tutorialObjekte(spiel).slice(1).map((o) => o.id)));
+      s2(u).tick(uhr.t);
+      expect(schrittJetzt(u)).toBe('T14');
+    }, { uhr: () => uhr.t });
   });
 });
