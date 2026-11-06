@@ -412,3 +412,41 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 /* Abschließen immer 52 px hoch, auch ohne Zeile 2 – sonst springt die Aktionsleiste (12.21 Punkt 1) */
 .aktionsleiste .knopf{width:100%;height:var(--menue-mass-px-zeichen-abschluss-hoehe);min-height:0;padding:0 8px;font-size:var(--menue-schrift-groesse-px-knopf-klein);display:flex;flex-direction:column;align-items:center;justify-content:center}
 .aktionsleiste .knopf small{margin-top:0}
+/* NR13 Tutorial (DESIGN.md 13.2/13.3/13.7/13.11/13.15): Spotlight über Karte, HUD und Blatt; Sprecher (30), Anleiter-Karte und
+   Meldung liegen darüber. Abdunkeln per clip-path aus spotlight.ts, Lochränder als eigene Elemente. */
+#spotlight{position:fixed;inset:0;z-index:25;pointer-events:none}
+.spot-dunkel{position:absolute;inset:0;background:var(--menue-farbe-abdunkeln)}
+.spot-ring{position:absolute;box-sizing:border-box;border:var(--menue-mass-px-spot-ring) solid var(--menue-farbe-spot-ring);box-shadow:0 0 0 var(--menue-mass-px-spot-ring-kontur) var(--menue-farbe-kontur),0 0 var(--menue-mass-px-spot-schein) var(--menue-farbe-spot-schein);animation:nr13-ein var(--menue-zeit-ms-spot-wechsel) ease-out}
+.spot-ring.stupst{animation:nr13-stupsen var(--menue-zeit-ms-stupsen) ease-out}
+/* Weniger Bewegung: Rand 600 ms dicker; die leere Animation liefert das animationend, das die Klasse wieder entfernt */
+.spot-ring.stupst-ruhig{border-width:var(--menue-mass-px-spot-ring-ruhig);animation:nr13-halten var(--menue-zeit-ms-stupsen-ruhig) linear}
+@keyframes nr13-ein{from{opacity:0}}
+@keyframes nr13-stupsen{50%{transform:scale(var(--menue-faktor-stupsen))}}
+@keyframes nr13-halten{from{opacity:1}to{opacity:1}}
+.spot-finger{position:absolute;width:var(--menue-mass-px-finger);height:var(--menue-mass-px-finger);pointer-events:none}
+.spot-finger .sym{display:block;width:100%;height:100%}
+.spot-finger.von-links{margin-left:calc(-1 * var(--menue-mass-px-finger))}
+.spot-finger.von-links .sym{transform:scaleX(-1)}
+.ersatz-ziel{position:absolute;z-index:26;pointer-events:none;border-radius:var(--menue-mass-px-spot-abstand-knopf);outline:none}
+.ersatz-ziel:focus-visible{outline:3px solid var(--menue-farbe-fokus-auf-dunkel);outline-offset:2px}
+.info-kapsel{position:absolute;z-index:26;transform:translateX(-50%);white-space:nowrap;pointer-events:none;animation:nr13-ein var(--menue-zeit-ms-spot-wechsel) ease-out}
+#anleiter{position:absolute;z-index:33;display:flex;align-items:flex-end;gap:8px;box-sizing:border-box;animation:nr13-ein var(--menue-zeit-ms-anleiter-wechsel) ease-out}
+.anleiter-figur{flex:none;width:var(--menue-mass-px-anleiter-figur);height:var(--menue-mass-px-anleiter-figur)}
+#anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein)}
+.anleiter-figur .sprecher-bild{width:100%;height:100%}
+.anleiter-blase{flex:1;min-width:0;background:var(--menue-farbe-tafel);border:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-kontur);border-radius:var(--menue-mass-px-radius-kasten) var(--menue-mass-px-radius-kasten) var(--menue-mass-px-radius-kasten) 4px;box-shadow:0 3px 0 var(--menue-farbe-kontur);padding:8px 12px}
+.anleiter-kopf{display:flex;align-items:center;justify-content:space-between;height:18px}
+.anleiter-name{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-abzeichen);color:var(--menue-farbe-kontur)}
+.kapitel-punkte{display:flex;gap:var(--menue-mass-px-kapitel-punkt-luecke)}
+.kapitel-punkte .punkt{width:var(--menue-mass-px-kapitel-punkt);height:var(--menue-mass-px-kapitel-punkt);box-sizing:border-box;border-radius:50%;border:2px solid var(--menue-farbe-tafel-linie)}
+.kapitel-punkte .punkt.an{background:var(--menue-farbe-naht-vorlauf);border-color:var(--menue-farbe-naht-vorlauf)}
+.anleiter .chip.gold{margin-top:4px}
+.anleiter-text{margin:4px 0 0;font-family:var(--schrift-text);font-weight:600;font-size:var(--menue-schrift-groesse-px-zeile);line-height:18px;color:var(--menue-farbe-text)}
+.anleiter-text strong{font-weight:800}
+.anleiter-knopfzeile{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;min-height:var(--menue-mass-px-knopf-hoehe-klein)}
+.anleiter-knopfzeile .gedaempft{color:var(--menue-farbe-text-gedaempft);font-size:var(--schrift-groesse-px-absatz)}
+#anleiter-weiter{margin-left:auto}
+.weniger-bewegung .spot-ring:not(.stupst-ruhig),.weniger-bewegung .info-kapsel,.weniger-bewegung #anleiter{animation:none}
+@media (prefers-reduced-motion:reduce){.spot-ring:not(.stupst-ruhig),.info-kapsel,#anleiter{animation:none}}
+/* Hochformat: das Tutorial ruht hinter dem Dreh-Hinweis (13.7) */
+@media (orientation:portrait) and (max-width:600px){#spotlight,#anleiter,.ersatz-ziel,.info-kapsel{display:none}}
