@@ -282,3 +282,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 07:06 | ■ 🟡 | architekt | 🟡 Kontext voll. Plan NR18 Fassung 1 committet (57ef29a); Startdorf/Tutorial/NR19 nur als Nachtrag ([Bericht](docs/pruefberichte/20261106-070624-architekt-a124cf1b42c6739e4.md)) |
 | 2026-11-06 07:09 | ▶ | architekt | NR18-Plan Fassung 2 |
 | 2026-11-06 07:14 | ■ 🟢 | designer | 🟢 Grün: Der Entwurf für das Pflicht-Tutorial NR13 ist fertig, dazu das Muster für Mini-Tutorials und den Info-Knopf aus Simons NR3-Ergänzung.  ([Bericht](docs/pruefberichte/20261106-071454-designer-a4f11f4b199d7a907.md)) |
+| 2026-11-06 07:15 | ▶ | fachpruefer | Fachprüfung Tutorial-Texte |
