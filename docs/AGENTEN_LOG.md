@@ -402,3 +402,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:00 | ■ 🟢 | architekt | 🟢 Bauplan NR13 Fassung 2 ist fertig. Alle 8 Muss-Punkte des Kritikers und alle Rückfragen P0–P4 sind im Plan beantwortet, DESIGN 13.15 (K1–K10) ist eing ([Bericht](docs/pruefberichte/20261106-120016-architekt-a154c3c8f27d9db17.md)) |
 | 2026-11-06 12:01 | ▶ | kritiker | Kritiker-Nachprüfung NR13 F2 |
 | 2026-11-06 12:01 | ▶ | tester | Tester verdeckte Abnahme NR13 |
+| 2026-11-06 12:06 | ■ 🟡 | kritiker | 🟡 **Nachprüfung des Bauplans NR13 Tutorial, Fassung 2: Gelb. Alle acht Muss-Punkte und alle Rückfragen sind bearbeitet. Drei neue Lücken müssen aber vor  ([Bericht](docs/pruefberichte/20261106-120649-kritiker-a92c5aa886f76cdd1.md)) |
