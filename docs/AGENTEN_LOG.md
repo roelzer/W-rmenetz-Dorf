@@ -352,3 +352,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:36 | ■ 🟢 | tester | 🟢 **Tester-Vorarbeit NR19-P0b ist fertig.** Genau die 5 Tests aus der P0b-Liste sind jetzt rot. Kein anderer Test ist rot geworden, und Produktivcode habe ic ([Bericht](docs/pruefberichte/20261106-093617-tester-ae04a18c9ef23be24.md)) |
 | 2026-11-06 09:36 | ▶ | kritiker | Kritiker Freigabe P0b-Löschung |
 | 2026-11-06 09:38 | ■ 🟢 | kritiker | 🟢 **Freigabe NR19-P0b erteilt** (Modus freigabe, Teilprüfung)  ([Bericht](docs/pruefberichte/20261106-093818-kritiker-ae200c752cd93accc.md)) |
+| 2026-11-06 09:52 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-06 09:52 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle 8 Punkte sind gebaut, getestet und fotografiert. Die Test-Schranke meldet trotzdem „NICHT OK“: 12 bestehende Test ([Bericht](docs/pruefberichte/20261106-095223-entwickler-ad1803d60037f8d93.md)) |
+| 2026-11-06 09:52 | ▶ | tester | Tester: Texte-Tests NR18-D umbauen |
+| 2026-11-06 09:52 | ▶ | reviewer | Review NR18-D |
