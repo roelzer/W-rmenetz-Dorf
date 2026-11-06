@@ -270,3 +270,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-05 21:31 | ■ 🟢 | architekt | 🟢 Der Bauplan für NR17 steht und ist auf `claude/keen-mccarthy-f4p5us` (Commit 368f6a4, gepusht). Vorher habe ich fetch/merge gemacht. Simons Problem habe i ([Bericht](docs/pruefberichte/20261105-213129-architekt-ae7b3560aebd044a7.md)) |
 | 2026-11-05 21:31 | ▶ | kritiker | Kritik Bauplan NR17 |
 | 2026-11-05 21:31 | ▶ | fachpruefer | Fachprüfung NR17-Texte |
+| 2026-11-06 06:49 | ▶ | rechercheur | Recherche Puffer-Übergabestation |
+| 2026-11-06 06:49 | ▶ | architekt | Bauplan NR18 ohne Auto-Anschluss |
