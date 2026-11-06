@@ -477,3 +477,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 15:01 | ■ 🟢 | reviewer | 🟢 Freigegeben. Alle 4 Befunde sind behoben, durch die Umbauten ist nichts Neues kaputtgegangen.  ([Bericht](docs/pruefberichte/20261106-150149-reviewer-aa6e62861b45b2583.md)) |
 | 2026-11-06 15:03 | ▶ | tester | NR13 Abnahme aufdecken |
 | 2026-11-06 15:06 | ■ 🟡 | designer | 🟡 Das Tutorial passt größtenteils zum Entwurf. Ein Muss-Befund ist offen, dazu sechs Kann-Befunde.  ([Bericht](docs/pruefberichte/20261106-150611-designer-aa43f1c7a6c906c46.md)) |
+| 2026-11-06 15:07 | ▶ | entwickler | NR13 Design-Fix M1 T13 |
