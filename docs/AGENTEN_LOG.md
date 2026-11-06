@@ -411,3 +411,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:19 | ▶ | architekt | NR13 Bauplan F3 fertigstellen |
 | 2026-11-06 12:20 | ▶ | tester | NR13 Vorarbeit V1 Ersatz-Oberflächen |
 | 2026-11-06 12:20 | ▶ | tester | NR13 verdeckte Abnahme anpassen |
+| 2026-11-06 12:21 | ■ 🟢 | tester | 🟢 Fertig. Commit 253ee3b4507230186df03f7f8d5fca782f5d7140 auf Zweig nr13-abnahme2 (Basis f8766f7, nicht gepusht). Geändert ist nur tests/nr13-abnahme.test.t ([Bericht](docs/pruefberichte/20261106-122138-tester-ab9c33af1eedab21a.md)) |
