@@ -358,3 +358,12 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:52 | ▶ | reviewer | Review NR18-D |
 | 2026-11-06 09:57 | ■ 🟡 | reviewer | 🟡 **NR18-D (Designer-Nacharbeit), Stand 7277b66 auf Basis 7e275ba: freigegeben, mit einem Punkt, den der Tester beim Umbau mitnehmen muss.** Es ist kein Fehl ([Bericht](docs/pruefberichte/20261106-095721-reviewer-a63dbce6771d802dd.md)) |
 | 2026-11-06 10:00 | ■ 🟢 | tester | 🟢 Alle 12 Tests prüfen jetzt das neue Verhalten aus NR18-D. Der volle Testlauf ist grün, jede Fehlerprobe hat angeschlagen.  ([Bericht](docs/pruefberichte/20261106-100056-tester-a76ddb1d1bf667d29.md)) |
+| 2026-11-06 10:02 | ▶ | entwickler | Entwickler P6 NR19 |
+| 2026-11-06 10:03 | ▶ | designer | Designer-Nachfoto NR18-D |
+| 2026-11-06 10:06 | ■ 🟢 | designer | 🟢 Beide Punkte sind erfüllt. Ich habe nichts gefunden, was umgebaut werden muss.  ([Bericht](docs/pruefberichte/20261106-100650-designer-a14b61546dc1c206e.md)) |
+| 2026-11-06 10:19 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-06 10:19 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** P6 (NR19 Puffer-Übergabestation) ist gebaut, committet und durch die Test-Schranke. Offen ist eine Wortlaut-Entscheidung, ([Bericht](docs/pruefberichte/20261106-101947-entwickler-a30509dfe6b020c78.md)) |
+| 2026-11-06 10:20 | ▶ | reviewer | Review P6 NR19 |
+| 2026-11-06 10:20 | ▶ | designer | Designer Fotoprüfung Stationswahl |
+| 2026-11-06 10:24 | ■ 🔴 | reviewer | 🟡 Paket P6 (NR19 Puffer-Übergabestation, 105d4dc..960c7b8f82): Nachbesserung nötig, ein wichtiger Befund  ([Bericht](docs/pruefberichte/20261106-102416-reviewer-ac83bcc7f92d74f35.md)) |
+| 2026-11-06 10:27 | ■ 🟡 | designer | 🟡 Fotoprüfung Stationswahl NR19 (Stand 960c7b8, Branch p6-nr19)  ([Bericht](docs/pruefberichte/20261106-102737-designer-a89e129aa870d1535.md)) |
