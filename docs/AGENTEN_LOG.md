@@ -371,3 +371,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 10:28 | ▶ | tester | Tester NR19-Abnahme Texte |
 | 2026-11-06 10:34 | ■ 🟡 | tester | 🟡 **Die verdeckte NR19-Abnahme ist auf die neuen Texte und die Tausch-Entscheidung W1 umgestellt und committet.** Gelb, weil zwei ältere Tests aus der Datei ([Bericht](docs/pruefberichte/20261106-103406-tester-a4e01f62facc8b2ac.md)) |
 | 2026-11-06 10:37 | ■ 🟢 | tester | 🟢 **Beide Punkte erledigt: Neuer Commit `7176afb62321c21057838ffc06da55b20adfc6f5` auf `nr19-abnahme-texte`, direkt nach 8500953, nicht gepusht.** Geändert  ([Bericht](docs/pruefberichte/20261106-103716-tester-a4e01f62facc8b2ac.md)) |
+| 2026-11-06 10:42 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Ein Punkt aus der Designer-Liste ist absichtlich nicht gebaut: die kurze Knopfbeschriftung „Puffer HP 800“. Grund: Sie ([Bericht](docs/pruefberichte/20261106-104218-entwickler-adbcab74f3ddc0e73.md)) |
+| 2026-11-06 10:42 | ▶ | tester | Tester a88 Knopftext umstellen |
