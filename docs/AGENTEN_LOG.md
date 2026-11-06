@@ -380,3 +380,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 10:52 | ■ 🟢 | kritiker | 🟢 **Freigegeben, mit einer Bedingung.** Ich habe keinen Fehler gefunden, aber ich konnte zwei Dinge nicht selbst ausführen.  ([Bericht](docs/pruefberichte/20261106-105242-kritiker-a9ddcfa7e57d25259.md)) |
 | 2026-11-06 10:54 | ▶ | designer | Designer-Nachfoto NR19 12.23 |
 | 2026-11-06 10:54 | ▶ | fachpruefer | Fachprüfer NR19 |
+| 2026-11-06 11:01 | ■ 🟡 | designer | 🟡 **Nachfoto NR19 Stationswahl: 5 von 6 Punkten grün, Punkt 4 gelb. Dazu kommt ein neuer, älterer Mangel bei den Wandstations-Knöpfen.**  ([Bericht](docs/pruefberichte/20261106-110122-designer-a25c8992e8773d6cd.md)) |
