@@ -416,3 +416,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:24 | ■ 🟢 | architekt | 🟢 Fassung 3 des Bauplans NR13 ist fertig: alle 5 Punkte sind eingearbeitet, die Geldfrage ist geklärt. Nur `docs/bauplaene/NR13-tutorial.md` geändert, nich ([Bericht](docs/pruefberichte/20261106-122448-architekt-a0cc175527df1f70e.md)) |
 | 2026-11-06 12:25 | ▶ | kritiker | Kritiker-Nachprüfung NR13 F3 |
 | 2026-11-06 12:25 | ▶ | entwickler | NR13 Paket P0 Vertrag |
+| 2026-11-06 12:26 | ■ 🟡 | kritiker | 🟡 **NR13 Fassung 3: Gelb.** Alle fünf alten Muss-Punkte sind geschlossen und testbar. Zwei neue Lücken gehören vor dem Bau in den Plan: ein Festhänge-Weg ([Bericht](docs/pruefberichte/20261106-122652-kritiker-a65ee49795235f41d.md)) |
