@@ -413,3 +413,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:20 | ▶ | tester | NR13 verdeckte Abnahme anpassen |
 | 2026-11-06 12:21 | ■ 🟢 | tester | 🟢 Fertig. Commit 253ee3b4507230186df03f7f8d5fca782f5d7140 auf Zweig nr13-abnahme2 (Basis f8766f7, nicht gepusht). Geändert ist nur tests/nr13-abnahme.test.t ([Bericht](docs/pruefberichte/20261106-122138-tester-ab9c33af1eedab21a.md)) |
 | 2026-11-06 12:22 | ■ 🟢 | tester | 🟢 Vorarbeit V1 ist erledigt und committet auf nr13-v1 (nicht gepusht): db244096a671dc0a5e6cce8179903b582c247004  ([Bericht](docs/pruefberichte/20261106-122257-tester-ad9911fe2bb73eba6.md)) |
+| 2026-11-06 12:24 | ■ 🟢 | architekt | 🟢 Fassung 3 des Bauplans NR13 ist fertig: alle 5 Punkte sind eingearbeitet, die Geldfrage ist geklärt. Nur `docs/bauplaene/NR13-tutorial.md` geändert, nich ([Bericht](docs/pruefberichte/20261106-122448-architekt-a0cc175527df1f70e.md)) |
