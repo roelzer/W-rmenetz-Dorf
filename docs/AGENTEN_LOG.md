@@ -295,3 +295,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 07:48 | ■ 🟢 | architekt | 🟢 **Fassung 3 des Bauplans NR18 ist fertig und committet: d076fc4** auf Branch `architekt/nr18-f3` (Basis origin/claude/keen-mccarthy-f4p5us = ab0f53b). Alle ([Bericht](docs/pruefberichte/20261106-074819-architekt-a2616ec8f9fcad4ce.md)) |
 | 2026-11-06 07:49 | ▶ | entwickler | NR18 P1 Engstelle+Vertrag |
 | 2026-11-06 07:49 | ▶ | tester | NR18 P0 Tester-Vorarbeit |
+| 2026-11-06 08:03 | ■ 🟡 | tester | 🟡 STATUS: BLOCKIERT – mein Kontext ist voll. Teil A ist zum Teil fertig und committet. Teil B (die Abnahmetests `tests/nr18-abnahme.test.ts`) ist noch nich ([Bericht](docs/pruefberichte/20261106-080316-tester-a06680e1b358a6db7.md)) |
+| 2026-11-06 08:03 | ▶ | tester | NR18 P0 Rest + Teil B |
