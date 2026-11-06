@@ -265,6 +265,17 @@ export function zeitText(s: number): string {
   return `${h}h ${min ? `${min}m` : ''}`.trim();
 }
 
+/** Ungefähre Dauer für Fließtext („etwa 15 Min.“, DESIGN 12.22) – nicht für die Restzeit-Anzeigen, die `zeitText` kurz hält.
+ *  Ab einer Minute auf ganze Minuten gerundet. */
+export function dauerText(s: number): string {
+  s = Math.ceil(s);
+  if (s < 60) return `${s} Sek.`;
+  const min = Math.round(s / 60);
+  if (min < 60) return `${min} Min.`;
+  const h = Math.floor(min / 60), rest = min % 60;
+  return rest ? `${h} Std. ${rest} Min.` : `${h} Std.`;
+}
+
 export function zeichneGeruest(m: Maler, cx: number, cy: number, s: number, hp: number): void {
   const { X } = m, tw = m.tw, th = m.th;
   X.strokeStyle = '#a0703f'; X.lineWidth = Math.max(1.5, tw * 0.03); X.beginPath();

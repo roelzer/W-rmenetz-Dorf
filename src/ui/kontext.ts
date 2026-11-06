@@ -4,7 +4,7 @@ import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, zeile, type Sperre } from './bausteine';
-import { ANSCHLUSS_GEPLANT, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
+import { ANSCHLUSS_GEPLANT, OHNE_ABSCHNITT_HINWEIS_HAUS, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -218,7 +218,9 @@ export class Kontext {
   /** A92 (NR16): Knöpfe zum Anschließen eines Hauses ohne Anschluss. Ohne offenen Bauabschnitt ist „Leitung selbst legen“ gesperrt und nennt den Grund;
    *  gibt es noch gar keinen Abschnitt, lässt er sich hier gleich planen (dieselbe Aktion und derselbe Preis wie im Baumenü). */
   private anschlussWeg(o: Objekt): HTMLElement[] {
-    const sp = this.ui.spiel, sperre = abschnittSperreKurz(sp, () => this.ui.jetzt_ms());
+    const sp = this.ui.spiel, kurz = abschnittSperreKurz(sp, () => this.ui.jetzt_ms());
+    // DESIGN 12.22: Ohne Abschnitt steht der Philipp-Knopf direkt darüber – der Hinweis zeigt dorthin statt ins Baumenü.
+    const sperre = kurz && !sp.abschnitt ? { ...kurz, hinweis: OHNE_ABSCHNITT_HINWEIS_HAUS } : kurz;
     const reihen: HTMLElement[] = [];
     if (!sp.abschnitt) {
       const preis = KONSTANTEN.abschnitt_planung_eur;
@@ -296,8 +298,8 @@ export class Kontext {
     const frei = sp.freigeschaltet('stationstypen');
     const k = kasten(alt ? 'Übergabestation tauschen' : 'Übergabestation wählen');
     k.append(h('p', { class: 'gedaempft' }, alt
-      ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${bedarf} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
-      : `Das Gebäude braucht ${bedarf} kW.${frei ? ' Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.' : ''}`));
+      ? `Aktuell: ${alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${kw(bedarf)} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
+      : `Das Gebäude braucht ${kw(bedarf)} kW.${frei ? ' Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.' : ''}`));
     if (alt && alt.leistung_kw < bedarf) k.append(chip('Station zu klein', 'rot'));
     const reihe = h('div', { class: 'knopfreihe' });
     // A88: Ohne freie Stationswahl gibt es nur die kleinste passende Station – so bleibt jedes Haus versorgbar.
@@ -398,7 +400,7 @@ export class Kontext {
     if (offen) {
       // E1: Neupreis minus 50 % des Altpreises; im Fluss kommt die Spülbohrung dazu (Bauplan NR18 5.1)
       const preis = (t: TypId): number => KATALOG[t].kosten_eur![0] - sp.rueckkauf_eur(o.typ, 1) + (sp.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0);
-      const ersatz = leitungsKnoepfe(sp, o.typ, (t) => knopf(`Ersetzen: ${KATALOG[t].name}`, () => { sp.ersatzPlanen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(preis(t)), klein: true }), false, true);
+      const ersatz = leitungsKnoepfe(sp, o.typ, (t) => knopf(`Ersetzen: ${kurzname(t)}`, () => { sp.ersatzPlanen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(preis(t)), klein: true }), false, true);
       if (ersatz.length) c.append(h('div', { class: 'knopfreihe' }, ...ersatz));
     } else if (LEITUNGEN.indexOf(o.typ) < LEITUNGEN.length - 1) {
       c.append(h('div', { class: 'knopfreihe' }, knopf('Dickere Leitung', () => undefined, '', { klein: true, sperre: abschnittSperreKurz(sp, () => this.ui.jetzt_ms()) })));

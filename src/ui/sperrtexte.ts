@@ -15,6 +15,9 @@ export const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
 /** DESIGN.md 12.18/12.19: Hinweis beim Antippen von Knöpfen, die ohne Bauabschnitt gesperrt sind. */
 export const OHNE_ABSCHNITT_HINWEIS = `Erst mit ${ABSCHNITT_HELFER.planung} einen Bauabschnitt planen: Bauen → Leitungen.`;
 
+/** DESIGN.md 12.22: dasselbe im Hausblatt, wo der Knopf „Bauabschnitt planen lassen“ direkt über dem gesperrten Knopf steht. */
+export const OHNE_ABSCHNITT_HINWEIS_HAUS = `Erst mit ${ABSCHNITT_HELFER.planung} einen Bauabschnitt planen – Knopf direkt darüber.`;
+
 /** Hausanschluss-Erklärsatz, kurze Fassung für die Zeichenleiste (Fachprüfung, ENTSCHEIDUNGEN 2026-11-05). */
 export const HAUSANSCHLUSS_KURZ = 'Endet eine Leitung an einem Haus, ist es sein Hausanschluss – er muss dick genug für das Haus sein.';
 

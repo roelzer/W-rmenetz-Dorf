@@ -360,8 +360,8 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
-  const planRaute = (cx: number, cy: number): void => {
-    X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = '#2a6fb0'; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
+  const planRaute = (cx: number, cy: number, farbe = '#2a6fb0'): void => {
+    X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = farbe; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
   };
   for (const o of rohre) {
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
@@ -436,9 +436,10 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       planRaute(cx, cy);
       X.restore();
     } else if (o.ersatz) {
-      // NR18: Gebaute Leitung mit geplantem Ersatz zeigt dieselbe gestrichelte Planraute wie eine geplante Leitung;
-      // die alte Leitung bleibt bis zum Bauende sichtbar, weil sie bis dahin das Wasser führt.
-      X.save(); X.globalAlpha = 0.6; planRaute(cx, cy);
+      // NR18: Gebaute Leitung mit geplantem Ersatz zeigt eine gestrichelte Planraute; die alte Leitung bleibt bis zum Bauende
+      // sichtbar, weil sie bis dahin das Wasser führt. DESIGN 12.22: Raute in der Farbe der neuen Leitung, damit man sieht,
+      // welche Dicke kommt, und Ersatz nicht wie eine neu eingezeichnete (blaue) Leitung aussieht.
+      X.save(); X.globalAlpha = 0.8; planRaute(cx, cy, KATALOG[o.ersatz.typ].farbe);
       X.restore();
     }
   }
