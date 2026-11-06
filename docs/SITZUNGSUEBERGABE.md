@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: Entwickler P3a-Fix (nr13-p3a-fix ab 674a7a6). P0+P1+P2+P3b gemergt. Danach Nachprüfung P3a-Fix, Merge, P4 (Nacharbeiten-Liste ENTSCHEIDUNGEN 2026-11-06).
+Laufende Agenten: Reviewer-Nachprüfung P3a-Fix (nr13-p3a-fix @ 27f0636). P0+P1+P2+P3b gemergt. Danach Merge P3a(-Fix), P4 (Nacharbeiten-Liste ENTSCHEIDUNGEN 2026-11-06).
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.
