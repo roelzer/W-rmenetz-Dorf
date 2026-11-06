@@ -1,194 +1,317 @@
-# Bauplan NR18 – Kein automatischer Hausanschluss, Warnung statt Sperre, dickere Leitung nur im Bauabschnitt
+# Bauplan NR18 + Spielstart ohne Häuser (NR13-Präzisierung) + NR19 Puffer-Übergabestation
 
-Stand 2026-11-06, Architekt, Fassung 1. Grundlage: Lastenheft NR18, ENTSCHEIDUNGEN 2026-11-06 (drei Einträge), Bauplan NR17 (geht hierin auf).
-**Basis: B2b komplett auf dem Hauptstand** (Branch-Kette `nr16-b2b-final` 40a83f8 → … → `nr16-b2b-nach` d32123a, enthält Fix 1). Alle Zeilenangaben beziehen sich auf d32123a. Noch nicht vom Kritiker geprüft.
+Stand 2026-11-06, Architekt, **Fassung 2** (ersetzt Fassung 1 von 57ef29a). Grundlage: Lastenheft NR18, NR19, NR13 mit Präzisierung 06.11., A71; ENTSCHEIDUNGEN 2026-11-06 (Einträge 161–169); Recherche `docs/recherche/puffer-uebergabestation.md` mit Gegenprüfung.
+**Basis: 124952e** (main mit B2b komplett). Zeilenangaben aus Fassung 1 beziehen sich auf d32123a; die betroffenen Stellen in `src/` sind seitdem unverändert (gelesen: `spiel.ts:35–72` Spielstart, `:510–527` Stationskauf, `:626–637` Puffer, `katalog.ts:393–415`, `netz.ts:397–404, 450–455`, `kontext.ts:186, 207–240, 290–312`, `auftraege.ts:11–16`). Noch nicht vom Kritiker geprüft.
+Der Tutorial-Ablauf des Designers (DESIGN.md „Tutorial (NR13)“) lag beim Schreiben **auf keinem Branch und in keinem Worktree** vor (gesucht: Branch `design-nr13-tutorial` = 124952e ohne den Abschnitt, alle Worktrees). Deshalb sieht dieser Plan nur die Ereignisse vor, nicht den Ablauf.
 
-## 1. Ziel und Abnahme (Vorschlag Lastenheft-Zeile, Tests mit „NR18“ im Namen)
-1. **Kein Knopf „Hausanschluss ziehen“** mehr, keine automatische Wegsuche im Kern. Der Spieler zeichnet die Leitung im Bauabschnitt selbst bis ans Haus und kauft die Übergabestation.
-2. **Warnung, keine Sperre**: Wird eine Leitung durch den Stationskauf oder durch den Bauabschnitt zu dünn, sagt das Spiel welches Stück und wie viele kW fehlen, und markiert das Stück auf der Karte. Gekauft bzw. gebaut wird trotzdem.
-3. **Dickere Leitung nur im Bauabschnitt**: Im offenen Abschnitt eine dickere Leitung über eine gebaute zeichnen (oder Knopf „Ersetzen“ in der Leitungskarte) plant den Ersatz. Bezahlt wird mit der Materialbestellung, getauscht wird beim Bauende. Der Sofort-Tausch außerhalb eines Abschnitts (`leitungTauschen`) entfällt.
-4. Abnahme: (a) neues Spiel, Hausblatt ohne „Hausanschluss ziehen“; (b) Leitung zu (13|12) gezeichnet + Station gekauft + Bauzeit → Haus warm, Auftrag c2 erledigt; (c) zu dünne Leitung → Warnung mit Stück und fehlenden kW, Haus nach dem Bau kalt wegen Leitung; (d) im nächsten Abschnitt dickere Leitung darüber gezeichnet → nach dem Bau warm.
+## 1. Ziel und Abnahme
+**NR18** (Tests mit „nr18“ im Namen):
+1. Kein Knopf „Hausanschluss ziehen“, keine automatische Wegsuche. Der Spieler zeichnet die Leitung im Bauabschnitt selbst bis ans Haus und kauft die Übergabestation.
+2. Warnung, keine Sperre: Wird eine Leitung durch Stationskauf oder Bauabschnitt zu dünn, nennt das Spiel das Stück und die fehlenden kW und markiert es auf der Karte. Gekauft bzw. gebaut wird trotzdem.
+3. Dickere Leitung nur im Bauabschnitt: über eine gebaute Leitung dicker zeichnen (oder Knopf „Ersetzen“) plant den Ersatz; bezahlt mit der Materialbestellung, getauscht beim Bauende. Der Sofort-Tausch (`leitungTauschen`) entfällt.
 
-## 2. Bestand (gelesen, Datei:Zeile auf d32123a)
-- Automatische Wegsuche: `spiel.ts:649–778` (`feldKosten_eur`, `hausanschlussPlanen`: Dijkstra, Probe-Netz, A89/A91-Prüfung, Rückfall, `gruppe`).
-- `gruppe`: `typen.ts:39–40`, `spiel.ts:485` (Zurück nimmt Gruppe als Ganzes), `spiel.ts:1051` (Bauende löscht `gruppe`).
-- Sofort-Tausch: `spiel.ts:862–875` `leitungTauschen` (A30, 50 % Rückkauf). Knöpfe `kontext.ts:382` „Tauschen: …“.
-- Hausblatt: `kontext.ts:216–229` `anschlussWeg` (Knöpfe „Hausanschluss ziehen“ / „Hausanschluss geplant“ / „Leitung selbst legen“), `sperrtexte.ts:67` `ANSCHLUSS_GEPLANT`.
-- Stationskauf: `spiel.ts:510–527`, prüft keine Leitungslast (Befund NR15-P3, NR17).
-- Netzrechnung „wie nach dem Bau“: `berechneNetz` mit allen Objekten (geplant zählt wie gebaut), heute nur in der Wegsuche (`spiel.ts:687`). Live-Netz ohne geplante: `spiel.ts:238`.
-- Zeichnen: `steuerung.ts:397–428` `stempelnBei`; belegte Felder werden übersprungen (`:424`).
-- Wiederverwendbar aus NR17: Engstellen-Ermittlung über `netz.eltern`, Texte, Markierung (Ereignis statt Grafik), Architekturtest.
-- Tutorial NR13 ist noch nicht gebaut (kein Code). Auftrag c2 (`auftraege.ts:14`) sagt heute „lass mit Philipp einen Bauabschnitt planen, der die Leitung dorthin legt“ – klingt nach automatischem Anschluss.
+**Spielstart (NR13-Präzisierung, Tests mit „nr13“):**
+4. Neues Spiel ohne Leitungen und ohne Haus mit Station. Heizzentrale, Büro, Monteurhütte, 30.000 €, alle Häuser heizen mit Öl. Alte Spielstände behalten ihr Netz und ihre Stationen (nichts wird umgebaut).
+5. Aufträge passen zum leeren Start: c1 „erstes Haus“, c2 „zweites Haus“ (statt „drittes Starthaus“).
 
-**Prototyp (getestet, Wegwerf-Kopie im Scratchpad, nicht im Projekt):** B2b-Stand d32123a, `npx vitest run tests` → 1017 passed. Danach Wegsuche, `hausanschlussGeplant`-Knopf „ziehen“, `gruppe`, `leitungTauschen` entfernt, Ersatz und Warnung beim Stationskauf/Abschließen grob eingebaut, Überzeichnen in `stempelnBei` → **49 failed / 968 passed** in 15 Dateien (Liste in Abschnitt 7). Kein Test scheiterte an der neuen Warnmeldung oder am Überzeichnen; alle Fehler hängen an entfernter Wegsuche, entferntem Tausch oder entferntem Knopf. `tsc` zusätzlich: `tools/a91-laufzeit.messung.ts` (5 Stellen) nutzt `hausanschlussPlanen`.
+**Tutorial-Schnittstelle (NR13, nur Vertrag):**
+6. Der Kern meldet die Handlungen, auf die ein Tutorial-Schritt warten kann, als Ereignis `schritt` (Abschnitt 5.4). Kein Tutorial-Ablauf in diesem Plan.
+
+**NR19** (Tests mit „nr19“):
+7. Beim Anschluss eines Hauses wählt man **Puffer-Station** (Pufferspeicher mit angebauter Übergabe, HP 800 / HP 1000 / ÜP 1000) oder **Wandstation** (wie bisher). Großabnehmer bekommen weiter nur Wand-/CAD-Stationen.
+8. Mit Puffer 2.000 Volllaststunden, ohne 1.500 (A71 neu). Puffer-Stationen führen zwei Leistungen getrennt: **Netz-Ladeleistung** (zählt fürs Netz) und **Spitze im Haus**.
+9. Kein nachträglicher Pufferkauf („Puffer einbauen“ entfällt). Alte Stände mit Puffer behalten ihn.
+
+**Abnahme NR18 auf dem leeren Dorf** (Tests in `tests/nr18-abnahme.test.ts`, Abschnitt 7 P0 Teil B): (a) Hausblatt ohne „Hausanschluss ziehen“; (b) 25er von der Heizzentrale zu (12|14) gezeichnet + Station + Bauzeit → Haus warm, Auftrag c1 erledigt; (c) zweites Haus (9|13) an derselben 25er mit Wandstation → Warnung mit Stück und „es fehlen 5 kW“, nach dem Bau kalt wegen Leitung; (d) nächster Abschnitt, 32er über die 25er gezeichnet → nach dem Bau beide warm, c2 erledigt.
+
+## 2. Bestand (gelesen bzw. gemessen)
+- Alles aus Fassung 1 gilt weiter (Wegsuche `spiel.ts:649–778`, `gruppe`, `leitungTauschen :862–875`, Hausblatt `kontext.ts:216–229`, Stationskauf ohne Lastprüfung, Zeichnen `steuerung.ts:397–428`).
+- Spielstart: `neuerSpielstand` `spiel.ts:35–72` legt 5×40er (10|10…14, Vorsehung bei 14) + 25er (11|14) und Stationen für die Häuser (9|13), (12|14) an. Hilfsfunktion `ueberlappt` (`:74`) wird nur dort benutzt. `speichern.ts:4` importiert `neuerSpielstand` aus `./spiel`, 35 Testdateien ebenso.
+- Ereignisse: Typ `spiel.ts:20–26`; `steuerung.ts:467–482` leert die Liste je Bild und **übergeht unbekannte Arten still** – ein neues Ereignis `schritt` stört heute nichts.
+- Puffer heute: Feld `hauspuffer` (`typen.ts:55`), gelesen nur in `bedarfKw` (`netz.ts:453`) und für Anzeigen (`kontext.ts:186, 235`); gesetzt nur in `hauspufferEinbauen` (`spiel.ts:626–637`, Merkmal `hauspuffer` ab Stufe 3, `freischaltung.ts:11, 29, 47`, Preis `KONSTANTEN.hauspuffer_eur` 1.800 €).
+- Stationen: `STATIONEN` (`katalog.ts:405–412`, Wand 15–80 kW + CAD 150 kW), `passendeStation`, Stationsprüfung im Netz `netz.ts:402–403` (`st.leistung_kw < n` → kalt „station“). Tests greifen über Index zu (`STATIONEN[0]`, `STATIONEN.at(-1)` in `anpassungen.test.ts:139, 591`), `tests/hilfen/a91-netze.ts:66, 103` nutzt `passendeStation` → **Puffer-Stationen kommen in eine eigene Liste**, sonst kippen diese Tests.
+- Bedarfe (Katalog): EFH 15.000 kWh/a, RH 24.000, Bäckerei 30.000, MFH 45.000; Vollversorgung ×1,5, Aufstockung ×1,4.
+
+**Messungen (getestet, Wegwerf-Kopie unter dem Scratchpad, nicht im Projekt; Basis 124952e, `npx vitest run tests`):**
+1. Nur Startnetz und Startstationen aus `neuerSpielstand` entfernt → **128 rot / 923 grün** in 19 Dateien (anpassungen 44, a88-kundenanfrage 21, a88-kundenanfrage-abnahme 16, a88-freischalt-leiter 15, a92-anschlussweg 5, a92-b2b-zeichenleiste 4, a89-hausanschluss 3, a92-sperrtexte 3, spiel 3, a88-review-p2-luecken 2, a89-hausanschluss-meldung 2, a91-hausanschluss 2, nr12-ebenen 2, je 1: a88-wegsuche, a89-mehrfach, a91-anschluss, a91-netzbaum, a91-vergleich, a92-sperre-weg-aktion-laeuft). Die Zahl weicht von den 98 aus Fassung 1 ab, weil dort die Wegsuche schon entfernt war (Überschneidung).
+2. Dazu Testhilfe `altesStartdorf` (Entwurf in Abschnitt 7) und in genau diesen 19 Dateien `neuerSpielstand(` → `altesStartdorf(` → **1 rot / 1.050 grün**; der eine Rest ist `a88-wegsuche` (wird in P0 ohnehin gelöscht). Die Testhilfe trägt also.
+3. Zusätzlich `VOLLLASTSTUNDEN.mit_puffer_h` 1.800 → 2.000 → nur **ein** weiterer roter Test: `anpassungen` „A71: … ÷ 1.800 h“.
 
 ## 3. Festlegungen
-**AE-NR18-1 Warnen entscheidet nichts.** Bindet `stationKaufen`, `abschnittAbschliessen`. Verhindert, dass eine Sperre (NR17-Variante A) zurückkommt. Regel: Beide Aktionen laufen wie heute; die Prüfung kommt **nach** der Aktion und ändert weder Geld noch Spielstand. Ergebnis `{ ok: true, hinweis?: string }`.
+**AE-NR18-1 Warnen entscheidet nichts.** Bindet `stationKaufen`, `abschnittAbschliessen`. Verhindert, dass eine Sperre zurückkommt. Regel: Die Prüfung läuft **nach** der Aktion und ändert weder Geld noch Spielstand; Ergebnis `{ ok: true, hinweis?: string }`.
 
-**AE-NR18-2 Ein Ort für die Engstelle** [aus AE-A93-2]. `engstellenFinden`, `engstelleText`, `ENGPASS_ERSATZ`, Typ `Engstelle` nur in `src/core/engstelle.ts` (rein, importiert nur `./katalog`, `./typen`). Aufgerufen nur in `spiel.ts`. Architekturtest R1–R3.
+**AE-NR18-2 Ein Ort für die Engstelle** [aus AE-A93-2]. `engstellenFinden`, `engstelleText`, `ENGPASS_ERSATZ`, `WEITERE_STELLEN`, Typ `Engstelle` nur in `src/core/engstelle.ts` (importiert nur `./katalog`, `./typen`), aufgerufen nur in `spiel.ts`. Architekturtest `nr18-engstelle` R1–R3.
 
-**AE-NR18-3 Eine Probe-Rechnung.** Jede Rechnung „wie nach dem Bau“ läuft durch `private probeNetz(anpassen?: (o: Objekt) => Objekt): Netz` in `spiel.ts`: alle Objekte inkl. geplanter Leitungen, gebaute Leitungen mit `ersatz` als `{ ...o, typ: o.ersatz.typ }`. Verhindert, dass eine Warnung den geplanten Ersatz vergisst. Regel: `berechneNetz(` steht in `spiel.ts` höchstens zweimal (`neuBerechnen`, `probeNetz`) – Architekturtest R4, gilt schon heute.
+**AE-NR18-3 Eine Probe-Rechnung.** Jede Rechnung „wie nach dem Bau“ läuft durch `private probeNetz(anpassen?: (o: Objekt) => Objekt): Netz`. `berechneNetz(` steht in `spiel.ts` höchstens zweimal. Architekturtest `nr18-engstelle` R4.
 
-**AE-NR18-4 Ersatz ist ein Feld an der gebauten Leitung, kein zweites Objekt.** `Objekt.ersatz?: { typ: TypId; nr: number }`. `nr` = `stand.naechste_id++` beim Planen (Reihenfolge für „Zurück“). Verhindert zwei Objekte auf einem Feld (Belegungskarte, Anbohrung, Antippen, Zeichnen würden sonst das falsche Objekt finden). Live-Netz rechnet bis zum Bauende mit dem alten Typ (E2).
+**AE-NR18-4 Ersatz ist ein Feld an der gebauten Leitung.** `Objekt.ersatz?: { typ: TypId; nr: number }`, `nr` = `stand.naechste_id++`. Live-Netz rechnet bis Bauende mit dem alten Typ (E2).
 
-**AE-NR18-5 Warnliste des Abschnitts nur im Spiel-Objekt, nie im Spielstand.** `abschnittAbschliessen` und der Konstruktor (Phase `bestellen` nach dem Laden) berechnen sie einmal; `abschnittWiederOeffnen`, `abschnittVerwerfen`, `materialBestellen` und Bauende leeren sie. Die Oberfläche liest nur `abschnittWarnungen()`; kein Netz je Blatt-Aufbau (das Blatt baut sich alle 250 ms neu).
+**AE-NR18-5 Warnliste des Abschnitts nur im Spiel-Objekt**, nie im Spielstand (wie Fassung 1).
 
-**AE-NR18-6 Ereignis statt Grafik** [aus AE-A93-4]. Kern meldet `{ art: 'engstelle'; felder: number[] }`. Darstellung markiert; bei „Weniger Bewegung“ ohne Puls, aber nicht weggelassen.
+**AE-NR18-6 Ereignis statt Grafik.** `{ art: 'engstelle'; felder: number[] }`; bei „Weniger Bewegung“ ohne Puls, nicht weggelassen.
+
+**AE-NR13-1 Spielstart an einer Stelle (neu).** Bindet `neuerSpielstand`. Verhindert, dass Spielstart, Tutorial-Start und Tests auseinanderlaufen und dass P2 und P5 in derselben Datei arbeiten. Regel: `neuerSpielstand` ist genau einmal definiert, ab P1 in `src/core/start.ts`; `spiel.ts` reicht nur weiter (`export { neuerSpielstand } from './start';`, damit `speichern.ts` und 35 Testdateien unverändert bleiben). `start.ts` importiert nicht `./spiel` (kein Kreis). Spätere Tutorial-Startdaten (NR13) kommen auch hierher. Architekturtest `nr18-f2-struktur` F1.
+
+**AE-NR13-2 Tutorial hört nur zu (neu).** Bindet das Ereignis `schritt`. Verhindert, dass ein Tutorial eigene Spielregeln prüft oder den Spielstand liest, um Fortschritt zu erraten. Regel: Nur der Kern (`src/core/`) erzeugt `{ art: 'schritt', … }`; Oberfläche und Darstellung lesen es nur. Ein Schritt-Ereignis wird erst **nach** dem Gelingen der Aktion ausgesendet, nie bei Ablehnung. Architekturtest `nr18-f2-struktur` F2.
+
+**AE-NR19-1 Puffer ist ein Merkmal des Hauses, die Bauart steht an der Station (neu).** Bindet `hauspuffer`, `PUFFER_STATIONEN`. Verhindert zwei Wahrheiten über „hat Puffer“. Regel: `bedarfKw` liest nur `o.hauspuffer` (wie heute). `stationKaufen` setzt `hauspuffer = true`, wenn eine Puffer-Station gekauft wird; `hauspuffer` wird nie gelöscht. Haus mit `hauspuffer` darf jede passende Station bekommen (auch Wandstation – so bleiben alte Stände „Puffer + Wandstation“ gültig); Haus ohne `hauspuffer`, das schon eine Station hat, bekommt keine Puffer-Station mehr (kein Nachrüsten). Puffer-Stationen nur für Kategorie `haus`.
+
+**AE-NR19-2 Eine Prüfung „Station reicht“ (neu).** Bindet jede Frage „schafft diese Station dieses Haus?“. Verhindert, dass Netz (kalt „Station zu klein“), Kauf und Hausblatt unterschiedlich rechnen. Regel: `export function stationReicht(st: Station, o: Objekt): boolean` in `src/core/netz.ts`; außerhalb von `netz.ts` und `katalog.ts` vergleicht kein Code `leistung_kw` mit einer Bedarfszahl. Architekturtest `nr18-f2-struktur` F3 (greift, sobald `stationReicht` existiert).
+
+**AE-NR19-3 Zwei Leistungen getrennt.** `PufferStation.leistung_kw` = **Netz-Ladeleistung** (Dauerheizleistung, gegen `bedarfKw` mit 2.000 h), `spitze_kw` = **Spitze im Haus** (Spitzenheizleistung, gegen die Leistung des Hauses ohne Puffer = Verbrauch ÷ 1.500 h × Nutzung) [F]. Kein Feld heißt nur „kw“.
 
 ## 4. Was wegfällt
 | Was | Wo | Paket |
 |---|---|---|
-| `hausanschlussPlanen`, `feldKosten_eur`, `BIEGUNG_EUR`, A89/A91-Wegprüfung, Rückfall, Meldungen „Hausanschluss geplant: N Felder“, „Kein Weg gefunden, bei dem alle Häuser warm bleiben“, „Kein Weg zu einer Leitung gefunden“, „Das Haus liegt schon an einer Leitung“, „Zu viele Leitungen für diese Heizzentralen-Stufe“ (nur Wegsuche) | `spiel.ts:649–778` | P2 |
-| `gruppe` (Typ, Schreiben, Zurück als Gruppe, Löschen bei Bauende) | `typen.ts:39–40`, `spiel.ts:485`, `:1051` | P1 (Typ), P2 |
-| `leitungTauschen` (Sofort-Tausch) | `spiel.ts:862–875` | P2 |
-| Knopf „Hausanschluss ziehen“ samt `unter: 'zur nächsten Leitung'` | `kontext.ts:225` | P3 |
-| Knöpfe „Tauschen: …“ außerhalb des Abschnitts | `kontext.ts:382` | P3 |
-| Messungen M4/M5 (Hausanschluss im Extremnetz) | `tools/a91-laufzeit.messung.ts` | P2 |
+| Wegsuche `hausanschlussPlanen`, `feldKosten_eur`, `BIEGUNG_EUR`, A89/A91-Wegprüfung, Rückfall, zugehörige Meldungen | `spiel.ts:649–778` | P2 |
+| `gruppe` (Typ, Schreiben, Zurück als Gruppe, Löschen bei Bauende) | `typen.ts:39–40`, `spiel.ts:485, :1051` | P1 (Typ), P2 |
+| `leitungTauschen` | `spiel.ts:862–875` | P2 |
+| Knopf „Hausanschluss ziehen“, Knöpfe „Tauschen: …“ außerhalb des Abschnitts | `kontext.ts:225, :382` | P3 |
+| Messungen M4/M5 | `tools/a91-laufzeit.messung.ts` | P2 |
+| Startnetz (5×40er, 25er) und Startstationen | `neuerSpielstand` (nach P1 in `start.ts`) | P5 |
+| `hauspufferEinbauen`, `KONSTANTEN.hauspuffer_eur`, Merkmal `hauspuffer`, Kasten „Pufferspeicher im Haus“ | `spiel.ts:626–637`, `katalog.ts:385`, `freischaltung.ts:11, 29, 47`, `kontext.ts:209, 232–241` | P6 |
 
-**Bleibt:** „Leitung selbst legen“ (Simons Wortlaut „selbst ziehen“, spart Testumbau), „Hausanschluss geplant“ (gesperrt, `ANSCHLUSS_GEPLANT`) – der Text stimmt auch für eine selbst gezeichnete Leitung. `abschnittAnschluesse`/`hausanschlussGeplant` bleiben (Zählung im Baumenü, Knopf „geplant“), Kommentar `spiel.ts:507` anpassen. Automatisches Abzweig-Zeichnen (A47 „läuft gerade durch, verbindet sich“, A65) bleibt; Erklärsätze `HAUSANSCHLUSS_KURZ`, T-Stück-Hinweis bleiben richtig. Anbohrungskosten (A69) bleiben, nur „Wegsuche bevorzugt Vorsehungen“ entfällt.
+**Bleibt:** „Leitung selbst legen“, „Hausanschluss geplant“ (gesperrt), `abschnittAnschluesse`/`hausanschlussGeplant`, automatisches Abzweig-Zeichnen (A47/A65), Anbohrungskosten (A69), Feld `hauspuffer`.
 
-**Lastenheft-Anpassung (Projektleiter, beim Merge von P2):** A47 Abnahme ohne „Hausanschluss ziehen plant …“; A69 ohne „der automatische Hausanschluss rechnet die Anbohrung ein und bevorzugt Vorsehungen“; A89 „entfallen durch NR18“; A92 Abnahme „erste Häuser über selbst gezeichnete Leitung anschließbar“; A30 „Tausch nur im Bauabschnitt, bezahlt mit der Materialbestellung“ (nach E1); NR17 „aufgegangen in NR18“.
+**Lastenheft-Anpassung (Projektleiter):** beim Merge von P2: A47, A69, A89, A92, A30, NR17 wie Fassung 1. Beim Merge von P5: A29 „zwei Starthäuser angeschlossen“ → „kein Haus angeschlossen (NR13)“, A59/A67/A74 (Startnetz) → „entfallen für neue Spiele durch NR13; alte Stände behalten ihr Netz“. Beim Merge von P6: A71 2.000 h, Puffer nur beim Anschluss; A88-Tabelle ohne „Puffer im Haus“ (Stufe 3).
 
 ## 5. Was neu kommt
-- **Warnung beim Stationskauf** (nur wenn das Haus vorher `ohne_station` war): `vorher = probeNetz(Haus als ohne_station)`, `nachher = probeNetz()`. `neu` = Kunden mit `kalt === 'leitung'` in `nachher`, die es in `vorher` nicht waren. Ist `neu` nicht leer: Engstellen über `engstellenFinden(nachher, neu)`; Text der ersten, sonst `ENGPASS_ERSATZ`; Ereignisse `hinweis` + `engstelle` (Felder aller gefundenen Stücke). Rechnet mit geplanten Leitungen und geplantem Ersatz – Station kaufen, solange die Leitung nur eingezeichnet ist, warnt also schon richtig.
-- **Warnung beim Abschluss des Bauabschnitts:** nach `phase = 'bestellen'`: `nachher = probeNetz()`, alle Kunden mit `kalt === 'leitung'` → Warnliste (AE-NR18-5). Hinweis = erster Text; bei mehr als einem Stück dazu „Weitere zu dünne Stellen stehen im Baumenü.“; Ereignis `engstelle` mit allen Feldern. Baumenü (Phase `bestellen`) listet alle Texte über der Bestell-Schaltfläche.
-- **Engstellen-Anzeige:** Rauten-Umriss je Feld, Warnrot `#d8392f`, Linie 3 px, 6 s, Puls 1,5 Hz, bei „Weniger Bewegung“ fest; eine neue Markierung ersetzt die alte (wie NR17, Designer bestätigt in der Fotoprüfung).
-- **Upgrade-Weg (Ersatz):** `ersatzPlanen(id, neu)`: nur gebaute Leitung, Abschnitt `offen`, `neu` dicker (`kapazitaet_kw` größer) und freigeschaltet (`gesperrt(neu)`), sonst Ablehnung mit Hinweis. Überzeichnen in der Zeichenleiste ruft es für gebaute Felder auf; über eine **geplante** Leitung zeichnen setzt einfach deren `typ` neu (`geplanteLeitungTyp`), dünner oder gleich über gebaut → still übersprungen (kein Meldungs-Schwall beim Wischen). Radierer/„Zurück“ nehmen auch Ersatz zurück. Kosten im Abschnitt: Material neu, minus 50 % Altpreis (E1), plus Spülbohrung auf Flussfeldern [F]; keine Gestattung (liegt schon). Bauende: `typ = ersatz.typ`, `ersatz` löschen, Vorsehung bleibt.
-- **Auftrag c2**: „Versorge alle drei Starthäuser: zeichne im Bauabschnitt eine Leitung zum dritten Haus und kaufe ihm eine Übergabestation“ (Text, kein [F]).
+### 5.1 NR18 (inhaltlich wie Fassung 1)
+- **Warnung beim Stationskauf** (nur wenn das Haus vorher `ohne_station` war): `vorher = probeNetz(Haus als ohne_station)`, `nachher = probeNetz()`. `neu` = Kunden mit `kalt === 'leitung'` in `nachher`, die es in `vorher` nicht waren. Ist `neu` nicht leer: `engstellenFinden(nachher, neu)`; Text der ersten Engstelle, sonst `ENGPASS_ERSATZ`; Ereignisse `hinweis` + `engstelle` (Felder aller gefundenen Stücke). Rechnet mit geplanten Leitungen und geplantem Ersatz.
+- **Warnung beim Abschluss des Bauabschnitts:** nach `phase = 'bestellen'`: `nachher = probeNetz()`, alle Kunden mit `kalt === 'leitung'` → Warnliste (AE-NR18-5). Hinweis = erster Text; bei mehr als einem Stück dazu `WEITERE_STELLEN`; Ereignis `engstelle` mit allen Feldern. Baumenü (Phase `bestellen`) listet alle Texte über der Bestell-Schaltfläche.
+- **Engstellen-Anzeige:** Rauten-Umriss je Feld, Warnrot `#d8392f`, Linie 3 px, 6 s, Puls 1,5 Hz, bei „Weniger Bewegung“ fest; eine neue Markierung ersetzt die alte (Designer bestätigt in der Fotoprüfung).
+- **Ersatz:** `ersatzPlanen(id, neu)`: nur gebaute Leitung, Abschnitt `offen`, `neu` dicker (`kapazitaet_kw` größer) und freigeschaltet, sonst Ablehnung mit Hinweis. Überzeichnen in der Zeichenleiste ruft es für gebaute Felder auf; über eine **geplante** Leitung zeichnen setzt deren Typ neu (`geplanteLeitungTyp`); dünner oder gleich über gebaut → still übersprungen. Radierer/„Zurück“ nehmen auch Ersatz zurück. Kosten im Abschnitt: Material neu, minus 50 % Altpreis (E1), plus Spülbohrung auf Flussfeldern [F]; keine Gestattung. Bauende: `typ = ersatz.typ`, `ersatz` löschen, Vorsehung bleibt.
+- Der c2-Text gehört jetzt zu P5 (Abschnitt 5.3).
+
+### 5.2 Neuer Spielstart (P5)
+`neuerSpielstand` ohne die Zeilen für Startnetz und Startstationen; alle Häuser `ohne_station: true`. Alles andere gleich (Geld, Taler, Preisstufe, Deko mit gleichem Zufallsstart – die Deko liegt nie im Bereich 6–16, das Startnetz hat sie nie verdrängt). Neu exportiert: `ERSTE_HAEUSER: ReadonlyArray<readonly [number, number]> = [[12, 14], [9, 13]]` – die zwei nächsten Häuser, zu denen das Tutorial führt (Reihenfolge = Tutorial-Reihenfolge, Vorschlag; Designer darf tauschen).
+**Alte Stände:** keine Umwandlung. `speichern.ts` lädt gespeicherte Objekte wie sie sind; Startnetz und Stationen bleiben.
+**Geld (gerechnet, nicht gemessen – Entwickler misst in P5):** Planung 2.000 € + 6 Felder 25er à 400 € + 2 Wandstationen à 2.400 € = 9.200 €; mit zwei Puffer-Stationen HP 800 (nach P6) 15.540 €. Vom Startgeld 30.000 € bleiben 14.460–20.800 €. Bisher bekam der Spieler ca. 9.200 € Netz und Stationen geschenkt (E4).
+
+### 5.3 Aufträge (P5)
+- c1 (≥ 1 warmes Haus): „Versorge dein erstes Haus: Leitung von der Heizzentrale bis ans Haus legen, Station kaufen“.
+- c2 (**≥ 2** warme Häuser, bisher 3): „Versorge ein zweites Haus – reicht die Leitung für beide?“
+- h3 (≥ 4, unverändert): Text „Schließ zwei weitere Häuser an: Station kaufen und Leitung im Bauabschnitt legen“.
+Folge für alte Stände: wer c2 noch offen und schon 2 warme Häuser hat, bekommt c2 sofort (+10 Taler) – harmlos.
+
+### 5.4 Tutorial-Schnittstelle (Vertrag P1, Aussenden P2)
+```ts
+export type Schritt =
+  | 'quelle_gewaehlt'          // ersteQuelleWaehlen ok
+  | 'abschnitt_geplant'        // abschnittPlanen ok (Philipp plant)
+  | 'abschnitt_offen'          // Planung fertig, Phase planung → offen (Takt)
+  | 'leitung_gezeichnet'       // platzieren einer geplanten Leitung ok, ersatzPlanen ok; objekt_id = Leitung
+  | 'station_gekauft'          // stationKaufen ok; objekt_id = Haus
+  | 'abschnitt_abgeschlossen'  // abschnittAbschliessen ok
+  | 'material_bestellt'        // materialBestellen ok
+  | 'abschnitt_gebaut'         // Bauende des Abschnitts (Takt)
+  | 'haus_warm';               // Kunde neu in netz.warm; objekt_id = Kunde
+// in Ereignis: | { art: 'schritt'; schritt: Schritt; objekt_id?: number }
+```
+- `haus_warm` entsteht in `neuBerechnen` durch Vergleich alt/neu von `netz.warm`; **nicht** bei der ersten Rechnung im Konstruktor (sonst meldet jedes Laden alle warmen Häuser). Kein zusätzlicher `berechneNetz`-Aufruf (R4).
+- Je gezeichnetem Feld ein Ereignis (Wischen erzeugt mehrere); das Tutorial wertet nur das erste aus.
+- Nicht in diesem Plan: Tutorial-Zustand im Spielstand, Sperren von Bedienelementen während des Tutorials, Kamerafahrt – das plant NR13 auf Grundlage des Designer-Ablaufs. Hinweis für NR13: `steuerung.ts:469` leert die Ereignisliste je Bild (`splice(0)`); das Tutorial muss sich dort einhängen, nicht selbst in `spiel.ereignisse` lesen.
+
+### 5.5 NR19 Puffer-Übergabestation (P6)
+**Katalog (`katalog.ts`), Spielwerte mit Quelle:**
+```ts
+export const VOLLLASTSTUNDEN = { ohne_puffer_h: 1500, mit_puffer_h: 2000 } as const;
+// Quelle: Simon 2026-11-06; ENERPIPE TI 04/26 S. 18 (mit Puffer 2.000–2.200 h, Herstellerwert);
+// ohne Puffer 1.500–1.700 h Fraunhofer UMSICHT Leitfaden Nahwärme S. 11.
+export interface PufferStation extends Station { spitze_kw: number; speicher_l: number }
+export const PUFFER_STATIONEN: ReadonlyArray<PufferStation> = [...]
+export const istPufferStation = (st: Station | undefined): st is PufferStation => !!st && 'spitze_kw' in st;
+export const passendePufferStation = (netz_kw: number, spitze_kw: number): PufferStation | null => …; // kleinste mit leistung_kw ≥ netz_kw und spitze_kw ≥ spitze_kw
+// stationHolen sucht in STATIONEN und PUFFER_STATIONEN; passendeStation bleibt unverändert (nur STATIONEN).
+```
+| id | name | leistung_kw (Netz) | spitze_kw (Haus) | speicher_l | kosten_eur | Herleitung |
+|---|---|---|---|---|---|---|
+| `hp_800` | Puffer HP 800 | 14 | 19 | 800 | 5.570 | 2.000 + 3.570 |
+| `hp_1000` | Puffer HP 1000 | 20 | 27 | 1000 | 6.570 | 3.000 + 3.570 |
+| `up_1000` | Puffer ÜP 1000 | 40 | 54 | 1000 | 7.570 | 4.000 + 3.570 |
+
+Quellen: Leistungen ENERPIPE „Pufferspeichersysteme“ 06/18 S. 13 Tab. 4 (Netz 80/60 °C; Dauer- = Netz-Ladeleistung, Spitzen- = Haus), Gegenprüfung 2026-11-06. Preis = „Station allein“ nach Netz-Ladeleistung (Adelsdorf 2024: 2.000 € bis 15 kW, 3.000 € 15–25 kW, 4.000 € 25–50 kW, Differenz mit/ohne Übergabestation) + Speicher-Aufpreis 3.570 € (Donauwörth Q3/2026, Variante 3 − 1), brutto, regional, **Spielannahme** – Simon 2026-11-06 „erst mal okay“. Wandstationen und CAD bleiben unverändert (E6).
+Beschreibungen [F] (≤ 90 Zeichen, kein Firmenname – A87):
+- HP 800: „800-l-Speicher mit Rohrwendel: lädt mit 14 kW, gibt im Haus bis 19 kW ab.“
+- HP 1000: „1.000-l-Speicher mit Rohrwendel: lädt mit 20 kW, gibt im Haus bis 27 kW ab.“
+- ÜP 1000: „1.000-l-Speicher mit Plattentauscher: lädt mit 40 kW, gibt bis 54 kW ab.“
+
+Probe mit den Katalog-Bedarfen (Tabelle zur Kontrolle, gerechnet aus Katalogwerten, Fachprüfer bestätigt): EFH 7,5 kW Netz / 10 kW Spitze → HP 800; RH 12 / 16 → HP 800; Bäckerei 15 / 20 → HP 1000; MFH 22,5 / 30 → ÜP 1000; EFH mit Kamin aus und aufgestockt (×2,1) 15,75 / 21 → HP 1000; MFH ×2,1 47,25 / 63 → keine Puffer-Station, nur Wandstation.
+
+**Netz (`netz.ts`):**
+- `export function stationReicht(st: Station, o: Objekt): boolean` – Wandstation/CAD: `st.leistung_kw >= bedarfKw(o)`. Puffer-Station: zusätzlich `st.spitze_kw >= bedarfKw({ ...o, hauspuffer: false })` (Spitze des Hauses = Leistung ohne Puffer) [F].
+- `netz.ts:403`: `if (st && !stationReicht(st, o)) kalt.set(o.id, 'station')`.
+
+**Kern (`spiel.ts`) `stationKaufen(id, stationId)`** (Signatur bleibt):
+- Puffer-Station nur für Kategorie `haus`; nicht für ein Haus, das schon eine Station und kein `hauspuffer` hat → Ablehnung „Den Puffer gibt es nur beim Anschluss. Für dieses Haus geht nur eine Wandstation.“ (79).
+- Prüfobjekt `p = { ...o, hauspuffer: o.hauspuffer || istPufferStation(st) }`; `!stationReicht(st, p)` → Ablehnung mit dem bisherigen Satz „{name} schafft nur {kw} kW, das Gebäude braucht {b} kW“ bzw. bei Puffer-Spitze „{name} gibt im Haus nur {spitze} kW ab, das Haus braucht in der Spitze {s} kW“ [F].
+- Ohne `stationstypen` erlaubt: `passendeStation(bedarfKw(p_ohne))` **und** `passendePufferStation(bedarfKw(p_mit), bedarfKw(p_ohne))` (beide „kleinste passende“). Mit `stationstypen`: jede, die reicht.
+- „Größere Station“-Regel bleibt (`alt.leistung_kw >= st.leistung_kw` → Ablehnung), Rückkauf 50 % über `stationspreis_eur` (unverändert).
+- Bei Erfolg: `if (istPufferStation(st)) o.hauspuffer = true;` vor `neuBerechnen` und vor der NR18-Warnprüfung (die Warnung rechnet so mit 2.000 h).
+- `hauspufferEinbauen` entfällt.
+
+**Spielstand (`speichern.ts`, nach `gueltig`):** Haus mit Puffer-Station ohne `hauspuffer` → `hauspuffer = true` (Reparatur). Puffer-Station an einem Großabnehmer → Station löschen, `ohne_station = true`. Version bleibt 3. Alte Stände mit `hauspuffer` + Wandstation bleiben unverändert.
+
+**Freischaltung:** Merkmal `hauspuffer` entfällt (Puffer-Stationen sind ab Stufe 1 frei – Standard laut Simon und Teil des Tutorials).
+
+**Hausblatt (`kontext.ts`):**
+- `stationswahl`: Kasten „Übergabestation wählen“ mit zwei Reihen. Reihe 1 „Mit Pufferspeicher“ (nur Kategorie `haus`, nur wenn eine Puffer-Station reicht und AE-NR19-1 sie erlaubt), Knöpfe `{name} · {leistung_kw} kW`, Unterzeile Preis; die kleinste passende ist `geld` (empfohlen). Reihe 2 „Wandstation ohne Puffer“, wie heute. Ohne `stationstypen` je Reihe ein Knopf, mit höchstens zwei je Reihe. Erklärzeilen [F]:
+  - „Mit Puffer: {kwh} kWh ÷ 2.000 h = {kw} kW aus dem Netz. Der Speicher fängt die Spitze ab.“
+  - „Ohne Puffer: {kwh} kWh ÷ 1.500 h = {kw} kW – das Netz muss die Spitze liefern.“
+  - „Den Puffer wählst du nur beim Anschluss.“ (Spielregel, kein [F])
+- Zeile „Übergabestation“: Puffer-Station „{name} · {leistung_kw} kW Netz, {spitze_kw} kW im Haus“; Wandstation wie heute; alter Stand mit `hauspuffer` + Wandstation: „{name} · {kw} kW, mit Puffer“.
+- Kasten „Pufferspeicher im Haus“ (`pufferBereich`) entfällt; Zeile „Anschlussleistung … (÷ 2.000 h)“ bleibt (liest `VOLLLASTSTUNDEN`).
+- `anfrageKasten` (`kontext.ts:25`) und der Chip „Station zu klein“ nutzen `stationReicht` (mit dem Bedarf nach der Anfrage: `stationReicht(st, { ...o, vollversorgung/aufgestockt wie nach Annahme })` – P6 baut dafür `spiel.anfrageObjekt(o): Objekt` oder rechnet über den vorhandenen `anfrageBedarf_kw`; Entscheidung des Entwicklers, aber nur über `stationReicht`).
 
 ## 6. Texte (≤ 90 Zeichen, **[F]** = Fachprüfer)
-`{t}`/`{e}` = Kurzname ohne „-Leitung“ („25er“). `{f}` = `max(1, ⌈last_kw − kapazitaet_kw⌉)`, `kapazitaet_kw` = Katalog × `spreizung_faktor`. `{e}` = kleinste Leitung des Katalogs mit Kapazität × Faktor ≥ `last_kw`, dicker als `{t}`.
+**NR18** – `{t}`/`{e}` = Kurzname ohne „-Leitung“ („25er“). `{f}` = `max(1, ⌈last_kw − kapazitaet_kw⌉)`, `kapazitaet_kw` = Katalog × `spreizung_faktor`. `{e}` = kleinste Leitung des Katalogs mit Kapazität × Faktor ≥ `last_kw`, dicker als `{t}`.
 - Satz 1 [F]: an der Heizzentrale (Tiefe 1) „Die {t} an der Heizzentrale ist zu dünn, es fehlen {f} kW.“ · weiter draußen „Eine {t} auf dem Weg ist zu dünn, es fehlen {f} kW.“ · Stück enthält geplante Leitung oder geplanten Ersatz „Die eingezeichnete {t} ist zu dünn, es fehlen {f} kW.“
 - Satz 2: `{e}` frei „Zeichne eine {e} darüber.“ · `{e}` gesperrt „Die {e} gibt es ab Stufe {n}.“ · keine reicht „Leg eine zweite Leitung.“ [F]
-- Beispiel: „Die 25er an der Heizzentrale ist zu dünn, es fehlen 5 kW. Zeichne eine 32er darüber.“ (84). Längster gültiger Fall 90 (geprüft per Skript: 90er, `{e}` 110er, `{f}` 9999).
+- Beispiel: „Die 25er an der Heizzentrale ist zu dünn, es fehlen 5 kW. Zeichne eine 32er darüber.“ (84). Längster Fall 90.
 - `ENGPASS_ERSATZ` [F]: „Mit diesem Haus würden andere Häuser kalt. Eine Leitung auf dem Weg ist zu dünn.“ (80)
-- Mehrere Stellen: „Weitere zu dünne Stellen stehen im Baumenü.“ (43)
-- Ersatz außerhalb des offenen Abschnitts (Hinweis des gesperrten Knopfs „Dickere Leitung“ in der Leitungskarte): Sperre wie `abschnittSperre` (DESIGN 12.20 B1–B4), Zeile 2 Kurzform 12.21. Kern-Ablehnung: „Dickere Leitungen entstehen nur im Bauabschnitt – lass Philipp einen planen.“ (76)
-- Leitungskarte mit geplantem Ersatz: „Wird im Bauabschnitt durch eine {e} ersetzt.“ (≤ 46), Knopf „Ersatz zurücknehmen“.
-- Baumenü-Überschrift der Warnliste: „Nach dem Bau zu dünn“.
+- `WEITERE_STELLEN`: „Weitere zu dünne Stellen stehen im Baumenü.“ (43)
+- Kern-Ablehnung Ersatz außerhalb des offenen Abschnitts: „Dickere Leitungen entstehen nur im Bauabschnitt – lass Philipp einen planen.“ (76); gesperrter Knopf „Dickere Leitung“ in der Leitungskarte mit Sperre wie `abschnittSperre` (DESIGN 12.20 B1–B4), Zeile 2 Kurzform 12.21.
+- Leitungskarte mit geplantem Ersatz: „Wird im Bauabschnitt durch eine {e} ersetzt.“, Knopf „Ersatz zurücknehmen“. Baumenü-Überschrift der Warnliste: „Nach dem Bau zu dünn“.
+Spielstart: Auftragstexte 5.3 (kein [F]). Hausblatt-Satz „Heizt noch mit Öl. Leg eine Leitung von der Heizzentrale bis an das Haus und kaufe danach eine passende Übergabestation.“ bleibt.
+NR19: Beschreibungen und Erklärzeilen 5.5 [F]; Ablehnungen 5.5 (Spitzen-Satz [F]).
+Fachprüfer zusätzlich: „Spitze des Hauses = Verbrauch ÷ 1.500 h“ (Spielvereinfachung), Lesart HP/ÜP-kW (Netz = Dauer-, Haus = Spitzenheizleistung, 80/60 °C), „mit Puffer 2.000 h“ als Herstellerwert kennzeichnen.
 
 ## 7. Pakete
+Zwei Wellen, je Paket ein Entwicklerlauf.
+
 | Paket | Dateien | Abhängig von | Parallel mit | Schwierigkeit |
 |---|---|---|---|---|
-| P0 Tester-Vorarbeit | `tests/**` (Liste unten), neu `tests/hilfen/nr18.ts`, neu `tests/nr18-abnahme.test.ts` | B2b auf Hauptstand | P1 | mittel |
-| P1 Engstelle + Vertrag | neu `src/core/engstelle.ts`, neu `tests/nr18-engstelle-kern.test.ts`; `src/core/typen.ts` (Feld `ersatz`), `src/core/spiel.ts` nur Vertrag, `src/render/effekte.ts` nur leere Methode | B2b | P0 | mittel |
-| P2 Kern | `src/core/spiel.ts`, `src/core/speichern.ts`, `src/core/auftraege.ts`, `tools/a91-laufzeit.messung.ts`, neu `tests/nr18-kern.test.ts`, neu `tests/nr18-spielstand.test.ts` | P0 + P1 gemergt | P3, P4 | **schwer** |
-| P3 Oberfläche | `src/ui/kontext.ts`, `src/ui/katalog.ts`, `src/ui/sperrtexte.ts`, `src/steuerung.ts`, neu `tests/nr18-oberflaeche.test.ts` | P0 + P1 gemergt | P2, P4 | mittel |
-| P4 Darstellung | `src/render/effekte.ts`, `src/render/szene.ts`, neu `tests/nr18-darstellung.test.ts` | P1 | P2, P3 | mittel |
+| **P0** Tester-Vorarbeit NR18 + Start | `tests/**` (Liste unten), neu `tests/hilfen/altes-startdorf.ts`, `tests/hilfen/nr18.ts`, `tests/nr18-abnahme.test.ts`; löschen `tests/architektur/a93-engstelle.test.ts` | – | P1 | mittel |
+| **P1** Engstelle + Vertrag + Start verschieben | neu `src/core/engstelle.ts`, neu `src/core/start.ts`, `src/core/typen.ts`, `src/core/spiel.ts` (nur Vertrag + Verschieben), `src/render/effekte.ts` (leere Methode), neu `tests/nr18-engstelle-kern.test.ts` | – | P0 | mittel |
+| **P2** Kern NR18 + Schritt-Ereignisse | `src/core/spiel.ts`, `src/core/speichern.ts`, `tools/a91-laufzeit.messung.ts`, neu `tests/nr18-kern.test.ts`, `tests/nr18-spielstand.test.ts`, `tests/nr13-schritte.test.ts` | P0, P1 | P3, P4, P5 | **schwer** |
+| **P3** Oberfläche NR18 | `src/ui/kontext.ts`, `src/ui/katalog.ts`, `src/ui/sperrtexte.ts`, `src/steuerung.ts`, neu `tests/nr18-oberflaeche.test.ts` | P0, P1 | P2, P4, P5 | mittel |
+| **P4** Darstellung NR18 | `src/render/effekte.ts`, `src/render/szene.ts`, neu `tests/nr18-darstellung.test.ts` | P1 | P2, P3, P5 | mittel |
+| **P5** Neuer Spielstart | `src/core/start.ts`, `src/core/auftraege.ts`, neu `tests/nr13-start.test.ts` | P0, P1 | P2, P3, P4 | einfach |
+| **P0b** Tester-Vorarbeit NR19 | `tests/**` (Liste unten) | Welle 1 gemergt | – | einfach |
+| **P6** NR19 Puffer-Übergabestation | `src/core/katalog.ts`, `src/core/netz.ts`, `src/core/spiel.ts`, `src/core/speichern.ts`, `src/core/freischaltung.ts`, `src/ui/kontext.ts`, neu `tests/nr19-puffer-kern.test.ts`, `tests/nr19-puffer-oberflaeche.test.ts` | P0b, Welle 1 | – | mittel |
 
-Kritischer Pfad: P1 (≈ 45 min) → P2. P0 läuft gleichzeitig mit P1, P3 und P4 gleichzeitig mit P2 (keine gemeinsamen Dateien, keine gemeinsamen Ressourcen). **Merge-Reihenfolge:** P0, P1, P2, P3, P4; P0 muss vor P2/P3 drin sein, weil P2/P3 die Methoden entfernen, die alte Tests aufrufen. Danach Designer-Fotoprüfung (844×390, 667×375) und Fachprüfer [F]-Texte. **Überschneidungen:** B2b (gleiche Dateien `steuerung.ts`, `kontext.ts`, `sperrtexte.ts`, `ui/katalog.ts`, a92-Tests) – kommt nach B2b noch eine Fix-Runde, muss P0 die betroffenen a92-Tests neu abgleichen. NR19 (Puffer-Übergabestation) ändert `stationswahl`/`stationKaufen` – nach NR18 bauen; NR18 hängt die Warnung nur ans Ende von `stationKaufen`.
+**Kritischer Pfad Welle 1:** P1 (≈ 45 min) → P2. P0 gleichzeitig mit P1; P3, P4, P5 gleichzeitig mit P2 (keine gemeinsamen Dateien: P5 arbeitet nur in `start.ts`/`auftraege.ts`, dafür verschiebt P1 den Spielstart; keine gemeinsamen Ports oder Dateien zur Laufzeit). 2 von 5 Entwicklerpaketen nacheinander. **Welle 2:** P0b → P6 (NR19 berührt `spiel.ts` und `kontext.ts`, die P2/P3 gerade umbauen – deshalb danach; Simons Reihenfolge „NR18 (+NR19) zuerst, dann Tutorial“ bleibt gewahrt).
+**Merge-Reihenfolge:** P0 Teil A → P1 → P2, P3, P4, P5 (beliebig; P0 Teil A muss vor P2/P3/P5 drin sein) → P0 Teil B (Abnahme) → Designer-Fotoprüfung + Fachprüfer [F] → P0b → P6 → Designer-Fotoprüfung Stationswahl + Fachprüfer.
+**Überschneidungen außerhalb:** NR13 (Tutorial) baut auf `start.ts`, `Schritt` und `ERSTE_HAEUSER` auf – erst nach Welle 1 planen.
 
 ### Vorarbeit (nicht für die Entwickler)
-**Tester-Vorarbeit P0** (Betreff „Tester-Vorarbeit NR18-P0“). Gesucht wurde nach **Verhalten** (Prototyp, ganze Suite), nicht nur nach Namen. Neue Aufrufe neuer Kern-Methoden nur über `tests/hilfen/nr18.ts`, damit `npm run typecheck` vor P1/P2 grün bleibt, z. B. `export const ersatzPlanen = (s: Spiel, id: number, t: TypId): Ergebnis => (s as unknown as { ersatzPlanen(id: number, t: TypId): Ergebnis }).ersatzPlanen(id, t);` (ebenso `abschnittWarnungen`). Nach P0 gibt es im Ordner `tests/` keinen Aufruf von `hausanschlussPlanen` oder `leitungTauschen` mehr.
+**Tester-Vorarbeit P0** (Betreff „Tester-Vorarbeit NR18-P0“). Neue Kern-Aufrufe nur über `tests/hilfen/nr18.ts` (Typumweg wie Fassung 1), damit `npm run typecheck` vor P1/P2 grün bleibt.
 
-*Löschen (Verhalten entfällt ganz):*
-1. `tests/a88-wegsuche.test.ts` (ganze Datei).
-2. `tests/a89-hausanschluss.test.ts` (ganze Datei, 5 Tests).
-3. `tests/a89-hausanschluss-meldung.test.ts` (ganze Datei, 3 Tests).
-4. `tests/a89-mehrfach.test.ts` (ganze Datei, 2 Tests) – Ersatz: Abnahmetest NR18-d unten.
-5. `tests/anpassungen.test.ts`: „A47: Der Hausanschluss führt vom Haus zur nächsten Leitung …“, „A47: Ohne offenen Bauabschnitt wird kein Anschluss geplant“, „A47: Der automatische Hausanschluss läuft gerade …“, „A69: Der automatische Hausanschluss rechnet die Anbohrung ein …“, „A49: ‚Letzte zurück‘ nimmt einen automatisch gezogenen Hausanschluss als Ganzes zurück“.
-6. `tests/a92-anschlussweg.test.ts`: „A92: Hausanschluss-Meldung beugt ‚Feld‘ richtig“.
-7. `tests/a91-anschluss.test.ts`: `test_a91_hausanschluss_4_12_ohne_umweg`.
-8. `tests/a91-vergleich.test.ts`: `test_a91_vergleich_a89_durchlauf` (Netze aus der Wegsuche; Abdeckung bleibt über die 3.000 Zufallsnetze).
-9. `tests/a88-freischalt-leiter.test.ts`: „Hausanschluss jenseits des Flusses auf Stufe 1 – Hinweis mit Spülbohrung“ – vorher prüfen, ob ein Test „Leitung im Fluss auf Stufe 1 zeichnen → Hinweis Spülbohrung“ (`platzieren`) besteht; sonst als solcher umbauen.
+*Teil A – auf 124952e grün, oder rot nur bis zum genannten Paket:*
+0. **Löschen `tests/architektur/a93-engstelle.test.ts`** (ganz; abgedeckt durch `tests/architektur/nr18-engstelle.test.ts` R1–R4). Die Schranke wertet sonst das Umbenennen als Löschen.
+1. **Testhilfe `tests/hilfen/altes-startdorf.ts`:** `export function altesStartdorf(jetzt_ms: number, ortId?: string): Spielstand` – ruft `neuerSpielstand` und ergänzt, **nur wo frei**, 40er auf (10|10)…(10|14) (Vorsehung auf (10|14)), 25er auf (11|14), und gibt den Häusern (9|13) und (12|14), falls `ohne_station`, die Station `passendeStation(KATALOG[typ].bedarf_kw)` (ohne `ohne_station`). Vor P5 ändert sie nichts, nach P5 stellt sie das alte Startdorf her (gemessen, Abschnitt 2 Messung 2). Importiert nur `src/core/spiel`, `src/core/katalog`, `src/core/typen` (nicht `start.ts`, das es vor P1 nicht gibt).
+2. **Umstellen auf die Testhilfe:** In diesen 19 Dateien jedes `neuerSpielstand(` → `altesStartdorf(` (Import ergänzen): anpassungen, a88-kundenanfrage, a88-kundenanfrage-abnahme, a88-freischalt-leiter, a92-anschlussweg, a92-b2b-zeichenleiste, a92-sperrtexte, spiel, a88-review-p2-luecken, nr12-ebenen, a91-hausanschluss, a91-anschluss, a91-netzbaum, a91-vergleich, a92-sperre-weg-aktion-laeuft (die übrigen vier – a88-wegsuche, a89-hausanschluss, a89-hausanschluss-meldung, a89-mehrfach – werden gelöscht). Ausnahmen Punkt 3. Probe des Testers: Wegwerf-Kopie, in `neuerSpielstand` Startnetz und Startstationen entfernen, Suite laufen lassen → nur die bewusst roten Tests aus Teil A/B rot.
+3. **Start-Tests, die den alten Start festschreiben:** `anpassungen` „A29: Start mit 30.000 € …“ → mit `neuerSpielstand` lassen, Prüfungen auf Häuser/Stationen entfernen (Geld, Preis, Quelle bleiben; neuer Start in P5-Test). Löschen: `anpassungen` „A59: Die Hauptleitung am Start ist eine 40er …“, „A67: Das Startnetz wird nur am Abzweig dünner …“, „A74: Startnetz – 40er bis vor das letzte Haus …“, `a88-freischalt-leiter` „test_a88_startnetz_bleibt (A74)“ (Ersatz: P5 `test_nr13_alter_stand_behaelt_netz`).
+4. **NR18-Liste** (aus Fassung 1, gesucht nach Verhalten per Prototyp, nicht nur nach Namen). Bei allen Umbauten auf dem `altesStartdorf` zeichnen.
+   *Löschen (Verhalten entfällt), grün sofort:* 4.1 `tests/a88-wegsuche.test.ts` (ganz). 4.2 `tests/a89-hausanschluss.test.ts` (ganz). 4.3 `tests/a89-hausanschluss-meldung.test.ts` (ganz). 4.4 `tests/a89-mehrfach.test.ts` (ganz; Ersatz: Abnahme (d)/mehrere Häuser). 4.5 `anpassungen`: „A47: Der Hausanschluss führt vom Haus zur nächsten Leitung …“, „A47: Ohne offenen Bauabschnitt wird kein Anschluss geplant“, „A47: Der automatische Hausanschluss läuft gerade …“, „A69: Der automatische Hausanschluss rechnet die Anbohrung ein …“, „A49: ‚Letzte zurück‘ nimmt einen automatisch gezogenen Hausanschluss als Ganzes zurück“. 4.6 `a92-anschlussweg`: „A92: Hausanschluss-Meldung beugt ‚Feld‘ richtig“. 4.7 `a91-anschluss`: `test_a91_hausanschluss_4_12_ohne_umweg`. 4.8 `a91-vergleich`: `test_a91_vergleich_a89_durchlauf`. 4.9 `a88-freischalt-leiter`: „Hausanschluss jenseits des Flusses auf Stufe 1 – Hinweis mit Spülbohrung“ – vorher prüfen, ob ein Test „Leitung im Fluss auf Stufe 1 zeichnen → Hinweis Spülbohrung“ (`platzieren`) besteht; sonst als solcher umbauen.
+   *Umbauen, Wegsuche war nur Werkzeug (Leitung per `platzieren` im offenen Abschnitt, Erwartung gleich), grün sofort:* 4.10 `a88-freischalt-leiter` `test_a88_stufe1_durchspielbar`. 4.11 `a92-sperrtexte`: B5 „Hausanschluss schon im Abschnitt“, B8 „Material bestellen mit 0,25 € zu wenig“, Regel 3 „jeder aria-disabled-Knopf …“, „Baumenü mit einem geplanten Anschluss – Zählung …“. 4.12 `a92-anschlussweg`: „Hauskarte mit geplantem Hausanschluss – gesperrte Knöpfe …“, „hausanschlussGeplant – nur das Haus mit geplantem Anschluss …“, „nach ‚Hausanschluss ziehen‘ zeigt das Haus ‚Hausanschluss geplant‘“ → „nach selbst gezeichneter Leitung …“. 4.13 `nr12-ebenen`: „Ablauf – gleicher Schlüssel ⇒ gleiche Befehlsfolge“ (Spielaktion Hausanschluss → gezeichnete Leitung). 4.14 `tests/browser/a92-b2b.browser.cjs:29` `TEXT_46` durch eine bleibende Meldung gleicher Länge ersetzen.
+   *Umbauen, Knopf „Hausanschluss ziehen“ fehlt (nur „Leitung selbst legen“ bzw. „Hausanschluss geplant“), rot bis P3:* 4.15 `a92-sperrtexte`: 12.20 B1, B2, B3 und 12.21 B1–B4 (→ genau ein Knopf „Leitung selbst legen“ mit derselben Zeile 2/Hinweis). 4.16 `a92-anschlussweg`: „ohne Bauabschnitt – ‚Leitung selbst legen‘ gesperrt …“, „in Planung, beim Bestellen und im Bau …“. 4.17 `a92-sperre-schloss`: „Hauskarte ohne Bauabschnitt …“, „Hauskarte mit offenem Bauabschnitt – beide Knöpfe frei“ (→ ein Knopf). 4.18 `a92-sperre`: „Hauskarte ohne Abschnitt – ‚Hausanschluss ziehen‘ zeigt den Philipp-Hinweis“ → an „Leitung selbst legen“.
+   *Umbauen, Sofort-Tausch → Ersatz im Bauabschnitt (Kern-Teile rot bis P2, Knopf-Teile rot bis P3):* 4.19 `a88-freischalt-leiter`: `test_a88_kern_setzt_durch` (Ersatz auf d50 bei Stufe 1 abgelehnt, im offenen Abschnitt), `test_a88_flussleitung_tauschbar` (Ersatz einer Flussleitung im Abschnitt erlaubt), `test_a88_gebautes_bleibt`, „Leitungskarte – Tausch nur auf freigeschaltete …“ (Knöpfe „Ersetzen: …“ nur im offenen Abschnitt). 4.20 `a88-review-p2-luecken`: K4 „Leitungskarte zeigt ‚Dickere‘ nur, wenn …“ (im offenen Abschnitt prüfen). 4.21 `anpassungen`: „A30: Leitungstausch kostet den Neupreis minus 50 % des Altpreises“ → `abschnittKosten_eur()` steigt um Neupreis − 50 % Altpreis (E1), Geld erst bei `materialBestellen`, Typ erst nach Bauende. 4.22 `menue-v2`: W2 „Was Euro kostet, ist Gold – auch … Leitung tauschen“ (Quelltext-Muster `Tauschen:` → `Ersetzen:`).
+5. Nach P0: in `tests/` kein Aufruf von `hausanschlussPlanen`, `leitungTauschen`; in den 19 Dateien kein `neuerSpielstand(` außer im A29-Test.
 
-*Umbauen – Aufbau nutzte die Wegsuche nur als Werkzeug (Leitung stattdessen per `platzieren` im offenen Abschnitt zeichnen, Erwartung sonst gleich):*
-10. `a88-freischalt-leiter`: `test_a88_stufe1_durchspielbar`.
-11. `a92-sperrtexte`: B5 „Hausanschluss schon im Abschnitt“, B8 „Material bestellen mit 0,25 € zu wenig“, Regel 3 „jeder aria-disabled-Knopf …“, „Baumenü mit einem geplanten Anschluss – Zählung …“.
-12. `a92-anschlussweg`: „Hauskarte mit geplantem Hausanschluss – gesperrte Knöpfe …“, „hausanschlussGeplant – nur das Haus mit geplantem Anschluss …“, „nach ‚Hausanschluss ziehen‘ zeigt das Haus ‚Hausanschluss geplant‘“ → „nach selbst gezeichneter Leitung …“.
-13. `nr12-ebenen`: „Ablauf – gleicher Schlüssel ⇒ gleiche Befehlsfolge“ (Spielaktion Hausanschluss → gezeichnete Leitung).
-14. `tests/browser/a92-b2b.browser.cjs:29` `TEXT_46` ist ein Mustertext der entfallenden Meldung – durch eine bleibende Meldung gleicher Länge ersetzen.
+*Teil B – Abnahme `tests/nr18-abnahme.test.ts` auf dem leeren Dorf (rot bis P2 + P3 + P5; eigener Commit, der Projektleiter merged ihn nach P5):* Aufbau: `new Spiel(neuerSpielstand(T0), uhr)`, `ersteQuelleWaehlen('kessel')`, `abschnittPlanen()`, Uhr bis Phase `offen`. Werte nur aus dem Katalog (d25 15 kW, d32 25 kW, EFH 15.000 kWh/a ÷ 1.500 h = 10 kW über `bedarfKw`); Vorbedingung `netz.spreizung_faktor === 1` und beide Häuser `efh` prüfen.
+- `test_nr18_kein_knopf_hausanschluss_ziehen` (a): Hausblatt jedes Hauses ohne Station bei offenem Abschnitt hat keinen Knopf mit „Hausanschluss ziehen“; `'hausanschlussPlanen' in s` ist `false`.
+- `test_nr18_selbst_gezogen_warm` (b): 25er per `platzieren` auf (10|10)…(10|14), (11|14); `stationKaufen(haus(12|14), passendeStation(10).id)` → kein Hinweis; abschließen ohne Hinweis, bestellen, Bauzeit → Haus (12|14) warm, `erledigt.c1`.
+- `test_nr18_zu_duenn_warnt` (c): Fortsetzung; neuer Abschnitt nicht nötig – `stationKaufen(haus(9|13), 'st_15')` → `ok === true`, Geld um den Stationspreis gesunken, `hinweis` enthält „25er“ und „es fehlen 5 kW“, Ereignis `engstelle` mit Feldern der 25er ab (10|10); `netz.kalt.get(9|13) === 'leitung'`.
+- `test_nr18_ersatz_macht_warm` (d): neuer Abschnitt, 32er per echter Steuerung über (10|10)…(10|13) → Typ bleibt bis Bauende `d25`, `abschnittKosten_eur() > 0`; nach Bau Typ `d32`, beide Häuser warm, keins kalt wegen Leitung, `erledigt.c2`.
+- `test_nr18_mehrere_haeuser_warnung_beim_abschliessen`: leeres Dorf, ein Abschnitt: 25er wie (b), beide Stationen, dazu (13|12) per Leitung und Station → `abschnittAbschliessen` ok, Hinweis nennt die 25er, Phase `bestellen`, `abschnittWarnungen()` nicht leer.
 
-*Umbauen – Erwartung ändert sich (Knopf „Hausanschluss ziehen“ fehlt, nur „Leitung selbst legen“ bzw. „Hausanschluss geplant“):*
-15. `a92-sperrtexte`: 12.20 B1, B2, B3 und 12.21 B1, B2, B3, B4 („genau ein Knopf ‚Hausanschluss ziehen…‘“ → genau ein Knopf „Leitung selbst legen“ mit derselben Zeile 2/Hinweis).
-16. `a92-anschlussweg`: „ohne Bauabschnitt – ‚Leitung selbst legen‘ gesperrt …“, „in Planung, beim Bestellen und im Bau …“.
-17. `a92-sperre-schloss`: „Hauskarte ohne Bauabschnitt …“, „Hauskarte mit offenem Bauabschnitt – beide Knöpfe frei“ (→ ein Knopf).
-18. `a92-sperre`: „Hauskarte ohne Abschnitt – ‚Hausanschluss ziehen‘ zeigt den Philipp-Hinweis“ → an „Leitung selbst legen“.
+**Tester-Vorarbeit P0b** (Betreff „Tester-Vorarbeit NR19-P0b“, unmittelbar vor P6; Änderungen auf neue Erwartungen sind rot bis P6):
+1. `anpassungen` „A71: … ÷ 1.800 h“ (gemessen rot): `VOLLLASTSTUNDEN` = `{ 1500, 2000 }`; statt `hauspufferEinbauen`: `stationKaufen(efh, 'hp_800')` → `hauspuffer === true`, `bedarfKw` = 15.000 ÷ 2.000, Geld − `stationspreis_eur`; Haus mit Wandstation → `stationKaufen(…, 'hp_800')` abgelehnt; Büro abgelehnt. Zeilen 1139–1141 (RH mit Puffer → 24.000 ÷ 2.000 = 12 kW, Kommentar anpassen), 1154–1155 (zu wenig Geld für `hp_800`).
+2. `a88-freischalt-leiter`: `'hauspuffer'` aus `FUNKTIONEN` (:35), Stufe-3-Liste (:42), `s3` (:69); `:118` Zeile `hauspufferEinbauen` streichen; `:568–578` Knopf „Puffer einbauen“ → Hausblatt Stufe 1 zeigt Reihe „Mit Pufferspeicher“ frei.
+3. `a92-sperrtexte` „H2 + H5 + Regel 4“ (:462): Puffer-Teil streichen; „H5: Stufe 3, 1.799 € …“ (:475) löschen.
+4. `menue-v2` :53: `'Puffer einbauen'` aus der Musterliste.
+5. `tests/ohne-leiter.ts`: Schlüssel `hauspuffer` entfernen.
+6. Danach: `grep -rn "hauspufferEinbauen\|hauspuffer_eur\|'Puffer einbauen'" tests` leer, außer `a92-b2a-sperrgrenzen` (nutzt den Text nur als Beispielbeschriftung).
 
-*Umbauen – Sofort-Tausch → Ersatz im Bauabschnitt:*
-19. `a88-freischalt-leiter`: `test_a88_kern_setzt_durch` (Ersatz auf d50 bei Stufe 1 abgelehnt, im offenen Abschnitt), `test_a88_flussleitung_tauschbar` (Ersatz einer Flussleitung im Abschnitt erlaubt), `test_a88_gebautes_bleibt`, „Leitungskarte – Tausch nur auf freigeschaltete …“ (Knöpfe „Ersetzen: …“ nur im offenen Abschnitt).
-20. `a88-review-p2-luecken`: K4 „Leitungskarte zeigt ‚Dickere‘ nur, wenn …“ (im offenen Abschnitt prüfen).
-21. `anpassungen`: „A30: Leitungstausch kostet den Neupreis minus 50 % des Altpreises“ → `abschnittKosten_eur()` steigt um Neupreis − 50 % Altpreis (E1), Geld erst bei `materialBestellen`, Typ erst nach Bauende.
-22. `menue-v2`: W2 „Was Euro kostet, ist Gold – auch … Leitung tauschen“ (Quelltext-Muster `Tauschen:` → `Ersetzen:`).
+**Architekt-Vorarbeit:** erledigt in diesem Commit: neu `tests/architektur/nr18-f2-struktur.test.ts` (F1 Spielstart an einer Stelle, F2 Schritt-Ereignis nur im Kern, F3 Stationsprüfung an einer Stelle, greift ab `stationReicht`).
 
-*Neu (bewusst rot bis P2/P3):* `tests/nr18-abnahme.test.ts` nur über öffentliche Wege (Spiel-API von heute, `tests/hilfen/nr18.ts`, `tests/hilfen/echte-steuerung.ts`, Blatt-DOM):
-- `test_nr18_kein_knopf_hausanschluss_ziehen` (Abnahme a): neues Spiel, Hausblatt jedes Hauses ohne Station, offener Abschnitt → kein Knopf mit „Hausanschluss ziehen“; `'hausanschlussPlanen' in s` ist `false`.
-- `test_nr18_selbst_gezogen_warm` (b): Startdorf, Abschnitt offen, 25er per `platzieren` von der Start-40er bis an (13|12) (Leitungsende am Haus), Station `passendeStation`, Abschnitt abschließen → kein Warnhinweis, bestellen, Bauzeit → Haus warm, `erledigt.c2`.
-- `test_nr18_zu_duenn_warnt` (c): Haus mit Bedarf > 15 kW per 25er anschließen; `stationKaufen` → `ok === true`, Geld abgezogen, `hinweis` beginnt mit „Eine 25er“ oder „Die eingezeichnete 25er“ und enthält „es fehlen {⌈bedarf − 15⌉} kW“, Ereignis `engstelle` mit den 25er-Feldern; nach Bau `netz.kalt.get(id) === 'leitung'`.
-- `test_nr18_ersatz_macht_warm` (d): Fortsetzung von (c): neuer Abschnitt, 32er/40er per echter Steuerung über die 25er gezeichnet → Felder behalten bis Bauende Typ d25, `abschnittKosten_eur()` > 0; nach Bau Typ neu, Haus warm, kein Haus wegen Leitung kalt.
-- `test_nr18_mehrere_haeuser_warnung_beim_abschliessen`: drei Häuser über eine gemeinsame 25er im selben Abschnitt mit Station → `abschnittAbschliessen` ok, Hinweis nennt die 25er, Phase `bestellen`, `abschnittWarnungen()` nicht leer.
-Werte: Kapazitäten aus dem Katalog (d25 15, d32 25, d40 40 kW), Bedarf aus `bedarfKw` – keine eigenen Rechenwerte des Architekten. Vorbedingung `spreizung_faktor === 1` prüfen.
-
-**Architekt-Vorarbeit:** erledigt in diesem Commit: `tests/architektur/a93-engstelle.test.ts` → `tests/architektur/nr18-engstelle.test.ts` (Namen NR18, `engstellenFinden`), neu R4.
-
-### Bauplan P1 – Engstelle und Vertrag (mittel: reine Funktion, viele Randfälle)
-- **Liefert** `src/core/engstelle.ts`:
+### Bauplan P1 – Engstelle, Vertrag, Spielstart verschieben (mittel: reine Funktion mit vielen Randfällen)
+- **Liefert `src/core/engstelle.ts`:**
   - `export interface Engstelle { felder: number[] /* y*N+x, ab Heizzentrale geordnet */; typ: TypId; last_kw: number /* am ersten Feld */; kapazitaet_kw: number /* Katalog × spreizung_faktor */; an_heizzentrale: boolean /* tiefe(erstes) === 1 */; geplant: boolean /* ein Feld-Objekt hat geplant oder ersatz */; empfohlen: TypId | null }`
-  - `export function engstellenFinden(netz: Netz, kunden: Iterable<number>): Engstelle[]` – je Kunde Weg `netz.anschluss.get(id).feld` über `netz.eltern` bis −1; zu voll = `last_kw > kapazitaet_kw` (Katalog × Faktor); Stück = erstes zu volles Feld ab der Heizzentrale plus anschließende zu volle Felder gleichen Typs. Doppelte Stücke (gleiches erstes Feld) einmal. Sortiert nach Tiefe, dann Feldnummer. Kunden ohne Anschluss/Feld −1 übersprungen.
+  - `export function engstellenFinden(netz: Netz, kunden: Iterable<number>): Engstelle[]` – je Kunde Weg `netz.anschluss.get(id).feld` über `netz.eltern` bis −1; zu voll = `last_kw > kapazitaet_kw`; Stück = erstes zu volles Feld ab der Heizzentrale plus anschließende zu volle Felder gleichen Typs. Doppelte Stücke (gleiches erstes Feld) einmal. Sortiert nach Tiefe, dann Feldnummer. Kunden ohne Anschluss/Feld −1 übersprungen. Typ über `netz.nachId.get(netz.belegung[f])`; Großabnehmer-Felder sind keine Leitung.
   - `export function engstelleText(e: Engstelle, empfohlenAbStufe: number | null): string` – Abschnitt 6.
-  - `export const ENGPASS_ERSATZ`, `export const WEITERE_STELLEN = 'Weitere zu dünne Stellen stehen im Baumenü.'`
-- **Vertrag** (nur das): `typen.ts` `ersatz?: { typ: TypId; nr: number }` (Kommentar NR18). `spiel.ts`: Ereignis `| { art: 'engstelle'; felder: number[] }`; `ersatzPlanen(id: number, neu: TypId): Ergebnis { throw new Error('NR18-P2 noch nicht gebaut'); }`; `abschnittWarnungen(): string[] { return []; }` (kein Wurf: das Baumenü ruft es bei jedem Aufbau). `effekte.ts`: `engstelle(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {}`.
-- **Tests** `tests/nr18-engstelle-kern.test.ts` (Netze mit `tests/hilfen.ts`, gerechnet mit `berechneNetz`; Katalogwerte d25 15, d32 25, d40 40, d50 60 kW; EFH 10 kW): `test_nr18_engstelle_ab_heizzentrale` (25er-Strang, 2 EFH → last 20, kap 15, an_heizzentrale, empfohlen d32), `test_nr18_engstelle_erste_von_zwei` (32er dann 25er, beide zu voll → zwei Einträge, 32er zuerst), `test_nr18_typwechsel_trennt_stueck`, `test_nr18_doppelt_einmal` (zwei Kunden hinter demselben Stück → 1), `test_nr18_leer` (alles passt / Kunde ohne Anschluss / Feld −1), `test_nr18_spreizung` (Faktor ≠ 1), `test_nr18_geplant` (geplant bzw. ersatz → geplant true), `test_nr18_text` (genaue Sätze 3 Orte × 3 Enden; `{f}` bei last 20,1 / kap 15 → 6; bei last 15,2 → 1), Erzeuger: alle gültigen Typpaare × last 1…9999 → Länge ≤ 90.
-- **Randfälle:** Großabnehmer-Felder sind keine Leitung; Typ über `netz.nachId.get(netz.belegung[f])`.
-- **Risiko-Auslöser:** nein (keine Daten von außen, keine Rechte, keine Geheimnisse).
+  - `export const ENGPASS_ERSATZ`, `export const WEITERE_STELLEN`.
+- **Liefert `src/core/start.ts`:** `neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT): Spielstand` und `ueberlappt` **wörtlich** aus `spiel.ts:35–77` verschoben (Verhalten gleich, Startnetz bleibt bis P5). `spiel.ts`: `export { neuerSpielstand } from './start';`. Importe von `start.ts`: `./katalog`, `./netz` (`groesse`), `./orte`, `./zufall`, `./typen` – nicht `./spiel`.
+- **Vertrag in `spiel.ts`:** Ereignis `| { art: 'engstelle'; felder: number[] } | { art: 'schritt'; schritt: Schritt; objekt_id?: number }`, `export type Schritt` (Abschnitt 5.4); `ersatzPlanen(id: number, neu: TypId): Ergebnis` und `geplanteLeitungTyp(id: number, neu: TypId): Ergebnis` werfen `new Error('NR18-P2 noch nicht gebaut')`; `abschnittWarnungen(): string[] { return []; }`. `typen.ts`: `ersatz?: { typ: TypId; nr: number }`, `gruppe` bleibt bis P2. `effekte.ts`: `engstelle(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {}`.
+- **Tests `tests/nr18-engstelle-kern.test.ts`** (Netze mit `tests/hilfen.ts`, gerechnet mit `berechneNetz`; Katalog d25 15, d32 25, d40 40, d50 60 kW; EFH 10 kW): `test_nr18_engstelle_ab_heizzentrale` (25er-Strang, 2 EFH → last 20, kap 15, an_heizzentrale, empfohlen d32), `test_nr18_engstelle_erste_von_zwei` (32er dann 25er, beide zu voll → zwei Einträge, 32er zuerst), `test_nr18_typwechsel_trennt_stueck`, `test_nr18_doppelt_einmal`, `test_nr18_leer` (alles passt / Kunde ohne Anschluss / Feld −1), `test_nr18_spreizung` (Faktor ≠ 1), `test_nr18_geplant`, `test_nr18_text` (genaue Sätze 3 Orte × 3 Enden; `{f}` bei last 20,5 / kap 15 → 6; bei last 15,5 → 1; Erzeuger: alle gültigen Typpaare × last 1…9999 → Länge ≤ 90), dazu `test_nr13_start_verschoben`: `neuerSpielstand` aus `spiel` und aus `start` ist dieselbe Funktion, `neuerSpielstand(0)` liefert dasselbe wie vor dem Verschieben (Objektzahl, Startnetz noch vorhanden).
+- **Eskalation:** ein vorhandener Test wird durch das Verschieben rot.
+- **Risiko-Auslöser:** nein.
 
-### Bauplan P2 – Kern: Rückbau, Ersatz, Warnungen (schwer: Netzregeln, Spielstand, Laufzeit)
+### Bauplan P2 – Kern: Rückbau, Ersatz, Warnungen, Schritt-Ereignisse (schwer: Netzregeln, Spielstand, Laufzeit)
 - **Nutzt:** alles aus P1.
 - **Entfernt:** Abschnitt 4 (Kern-Zeilen), `gruppe` überall.
 - **Liefert** (`spiel.ts`):
-  - `private probeNetz(anpassen?: (o: Objekt) => Objekt): Netz` (AE-NR18-3).
-  - `ersatzPlanen(id: number, neu: TypId): Ergebnis` – Regeln Abschnitt 5; ersetzt einen schon geplanten Ersatz, wenn `neu` dicker als der alte Typ ist.
+  - `private probeNetz(anpassen?: (o: Objekt) => Objekt): Netz` (AE-NR18-3): alle Objekte inkl. geplanter, gebaute Leitungen mit `ersatz` als `{ ...o, typ: o.ersatz.typ }`.
+  - `ersatzPlanen(id: number, neu: TypId): Ergebnis` – Regeln 5.1; ersetzt einen schon geplanten Ersatz, wenn `neu` dicker ist.
   - `geplanteLeitungTyp(id: number, neu: TypId): Ergebnis` – geplante Leitung im offenen Abschnitt bekommt neuen Typ (freigeschaltet, Grenze bleibt gleich).
   - `geplanteLeitungEntfernen(x, y)`: ohne geplantes Objekt auf dem Feld nimmt es den Ersatz der gebauten Leitung zurück. `letzteLeitungZurueck()`: das jüngste von geplanter Leitung (größte `id`) und Ersatz (größte `ersatz.nr`). `abschnittLeitungen()` zählt Ersatz mit. `abschnittVerwerfen()` löscht alle `ersatz`.
-  - `ersatz_eur(): number` = Σ (Neupreis − Rückkauf alt (E1)) + Spülbohrung je Flussfeld; in `abschnittKosten_eur()` addiert.
-  - `stationKaufen`: Warnung nach AE-NR18-1/Abschnitt 5, `Ergebnis.hinweis` = Text. Eine größere Station für ein Haus mit Station prüft nicht.
-  - `abschnittAbschliessen`: Warnliste + Hinweis + Ereignis; `abschnittWarnungen(): string[]` (Texte mit `freigeschaltet`/`abStufe` für `{e}`).
-  - Bauende (`spiel.ts:1051`): Ersatz anwenden, `_pop`; danach `neuBerechnen` wie heute.
-  - Leitungsgrenze: Ersatz zählt nicht als neue Leitung.
+  - `ersatz_eur(): number` = Σ (Neupreis − 50 % Altpreis (E1)) + Spülbohrung je Flussfeld; in `abschnittKosten_eur()` addiert.
+  - `stationKaufen`: Warnung nach AE-NR18-1/5.1, `Ergebnis.hinweis` = Text. Größere Station für ein Haus mit Station prüft nicht.
+  - `abschnittAbschliessen`: Warnliste + Hinweis + Ereignis; `abschnittWarnungen(): string[]`. Die Liste füllen `abschnittAbschliessen` und der Konstruktor (Phase `bestellen` nach dem Laden); `abschnittWiederOeffnen`, `abschnittVerwerfen`, `materialBestellen` und Bauende leeren sie.
+  - Bauende (`spiel.ts:1058`): Ersatz anwenden, `_pop`; danach `neuBerechnen`. Leitungsgrenze: Ersatz zählt nicht als neue Leitung.
 - `speichern.ts` (nach `gueltig`): `gruppe` an allen Objekten löschen; `ersatz` löschen, wenn Objekt keine gebaute Leitung, `ersatz.typ` keine Leitung oder nicht dicker, `nr` keine Zahl. Version bleibt 3.
-- `auftraege.ts`: c2-Text Abschnitt 5.
-- `tools/a91-laufzeit.messung.ts`: M4/M5 raus; neu **M7** `stationKaufen` mit Warnprüfung im vollen Startdorf (Aufbau M1) ≤ 4 ms; **M8** dasselbe im Extremnetz (Aufbau M3) ≤ 12 ms; **M9** `abschnittAbschliessen` im Extremnetz ≤ 8 ms. M1–M3, M6 unverändert mit ihren Grenzen. Bezug: NR17-Messung M1 0,53 ms, M3 1,82 ms je Netzrechnung (gelesen aus NR17-Plan, nicht neu gemessen); Station = 2 Probe-Rechnungen + `neuBerechnen`.
-- **Tests** `tests/nr18-kern.test.ts`: `test_nr18_station_warnt_ohne_sperre` (Geld weg, `ohne_station` weg, Hinweis = `engstelleText`, Ereignis), `test_nr18_station_mit_geplanter_leitung` (nur eingezeichnete Leitung → Warnung schon jetzt), `test_nr18_station_alte_kalte_nicht_genannt` (schon vorher wegen Leitung kalte Häuser lösen keine Warnung aus), `test_nr18_station_ersatztext` (`vi.mock` `engstellenFinden → []` bei echter Überlast → `ENGPASS_ERSATZ`), `test_nr18_waermemangel_warnt_nicht`, `test_nr18_ersatz_regeln` (nicht offen / dünner / gleich / gesperrt / geplant → abgelehnt; dicker → `ersatz` gesetzt, Typ unverändert, Live-Netz unverändert), `test_nr18_ersatz_kosten` (E1, Flussfeld mit Bohrung, keine Gestattung), `test_nr18_ersatz_zurueck_radierer_verwerfen`, `test_nr18_ersatz_bauende` (Typ neu, Vorsehung bleibt), `test_nr18_ersatz_in_probe` (Warnung verschwindet, sobald Ersatz geplant ist), `test_nr18_abschliessen_warnliste` (Liste, Hinweis, „Weitere …“ bei 2 Stellen, Leeren bei Wieder-öffnen/Verwerfen/Bestellen), `test_nr18_keine_wegsuche` (`'hausanschlussPlanen' in s === false`, `'leitungTauschen' in s === false`).
-- `tests/nr18-spielstand.test.ts`: alter Stand mit offenem Abschnitt und geplanten Leitungen mit `gruppe` → lädt, `gruppe` weg, „Zurück“ nimmt nur ein Feld, Bau macht sie zu gebauten; Stand in Phase `bestellen` → `abschnittWarnungen()` nach dem Laden gefüllt; kaputtes `ersatz` (Typ `hz`, an geplanter Leitung, `nr` Text) → entfernt, Stand bleibt gültig.
-- **Eskalation:** ein Test außerhalb der P0-Liste wird rot; M2 oder eine neue Grenze reißt; Startdorf-Abnahme (b) ergibt eine Warnung.
-- **Risiko-Auslöser:** ja, eingeschränkt – Spielstand ist Eingabe von außen (Laden aus dem Gerätespeicher); Prüfung an der Grenze in `speichern.ts`. Sonst nein.
+- `tools/a91-laufzeit.messung.ts`: M4/M5 raus; neu M7 `stationKaufen` mit Warnprüfung im vollen alten Startdorf (Aufbau M1) ≤ 4 ms; M8 dasselbe im Extremnetz (Aufbau M3) ≤ 12 ms; M9 `abschnittAbschliessen` im Extremnetz ≤ 8 ms. M1–M3, M6 unverändert. Bezug: NR17-Messung M1 0,53 ms, M3 1,82 ms je Netzrechnung (aus dem NR17-Plan gelesen, nicht neu gemessen).
+- **Nicht mehr in P2:** `auftraege.ts` (geht an P5).
+- **Neu: Schritt-Ereignisse** an den Stellen aus 5.4, jeweils nach Erfolg. `haus_warm` in `neuBerechnen`: vorher `this.netz?.warm` merken; ist es `undefined` (erste Rechnung im Konstruktor), nichts melden; sonst je Id in neu-warm und nicht alt-warm ein Ereignis.
+- **Tests** `tests/nr18-kern.test.ts`: `test_nr18_station_warnt_ohne_sperre` (Geld weg, `ohne_station` weg, Hinweis = `engstelleText`, Ereignis), `test_nr18_station_mit_geplanter_leitung` (nur eingezeichnete Leitung → Warnung schon jetzt; auch Variante „Leitung läuft am Haus vorbei“), `test_nr18_station_ohne_leitung` (keine Leitung am Haus → gekauft, keine Warnung, kein Fehler), `test_nr18_station_alte_kalte_nicht_genannt`, `test_nr18_station_ersatztext` (`vi.mock` `engstellenFinden → []` bei echter Überlast → `ENGPASS_ERSATZ`), `test_nr18_waermemangel_warnt_nicht`, `test_nr18_ersatz_regeln` (nicht offen / dünner / gleich / gesperrt / geplant → abgelehnt; dicker → `ersatz` gesetzt, Typ und Live-Netz unverändert), `test_nr18_ersatz_kosten` (E1, Flussfeld mit Bohrung, keine Gestattung), `test_nr18_ersatz_zurueck_radierer_verwerfen`, `test_nr18_ersatz_bauende` (Typ neu, Vorsehung bleibt, warme Häuser bleiben während der Bauzeit warm), `test_nr18_ersatz_in_probe`, `test_nr18_abschliessen_warnliste` (Liste, Hinweis, „Weitere …“ bei 2 Stellen, Leeren bei Wieder-öffnen/Verwerfen/Bestellen), `test_nr18_keine_wegsuche` (`'hausanschlussPlanen' in s === false`, `'leitungTauschen' in s === false`).
+  `tests/nr18-spielstand.test.ts`: alter Stand mit offenem Abschnitt und geplanten Leitungen mit `gruppe` → lädt, `gruppe` weg, „Zurück“ nimmt nur ein Feld; Stand in Phase `bestellen` → `abschnittWarnungen()` nach dem Laden gefüllt; kaputtes `ersatz` (Typ `hz`, an geplanter Leitung, `nr` Text) → entfernt, Stand gültig.
+  Aufbau über `tests/hilfen.ts` (`dorf`, `neu`) oder `altesStartdorf`, **nicht** über die Erwartung „neues Spiel hat ein Startnetz“ (P5 läuft parallel). Neu `tests/nr13-schritte.test.ts`: `test_nr13_schritt_je_handlung` (jede der neun Arten genau nach ihrer Handlung, `objekt_id` bei Leitung/Station/Haus), `test_nr13_kein_schritt_bei_ablehnung` (Leitung ohne offenen Abschnitt, Station ohne Geld), `test_nr13_haus_warm_nicht_beim_laden` (Konstruktor auf `altesStartdorf` → kein `haus_warm`; danach Bau → genau ein `haus_warm`).
+- **Eskalation:** ein Test außerhalb der P0-Liste wird rot; M2 oder eine neue Zeitgrenze reißt.
+- **Risiko-Auslöser:** ja, eingeschränkt – Spielstand ist Eingabe von außen; Prüfung an der Grenze in `speichern.ts`.
 
-### Bauplan P3 – Oberfläche (mittel)
+### Bauplan P3 – Oberfläche (mittel: viele Zustände, Sperrtexte-Regeln aus B2b)
 - **Nutzt:** `ersatzPlanen`, `geplanteLeitungTyp`, `abschnittWarnungen`, Ereignis `engstelle`, `effekte.engstelle` (P1-Vertrag; Tests ersetzen Kern-Methoden per `vi.spyOn`).
 - `kontext.ts` `anschlussWeg`: Knopf „Hausanschluss ziehen“ weg; Reihe = „Hausanschluss geplant“ (gesperrt) wenn `hausanschlussGeplant`, sonst „Leitung selbst legen“. Leitungskarte (gebaute Leitung): im offenen Abschnitt `leitungsKnoepfe` mit `Ersetzen: {Name}` (Gold, `unter` = Nettopreis nach E1) bzw. bei geplantem Ersatz Satz + „Ersatz zurücknehmen“; außerhalb ein Knopf „Dickere Leitung“ mit Sperre wie `abschnittSperre`/Kurzform 12.21.
 - `ui/katalog.ts` (Baumenü, Phase `bestellen`): Kasten „Nach dem Bau zu dünn“ mit `abschnittWarnungen()`, nur wenn nicht leer.
 - `sperrtexte.ts`: Sperre „Dickere Leitung“ (Grund/Kurzform aus den vorhandenen Abschnitt-Sperren, nichts Neues erfinden).
-- `steuerung.ts` `stempelnBei` (`:424`): belegtes Feld → gebaute Leitung: `ersatzPlanen` nur, wenn Stempeltyp dicker; geplante Leitung anderen Typs: `geplanteLeitungTyp`; sonst still weiter. Hinweis nur beim ersten Feld einer Geste (kein Schwall). `ereignisse()`: Zweig `engstelle` → `effekte.engstelle(felder → [f % N, ⌊f / N⌋], ruhig)`, auch bei `ruhig`.
-- **Tests** `tests/nr18-oberflaeche.test.ts` (echtes Blatt, `tests/hilfen/echte-steuerung.ts`): `test_nr18_hausblatt_knoepfe` (je Phase), `test_nr18_leitungskarte_ersetzen` (offen/zu, Gold, Preis, gesperrt mit Grund ≤ 90, Ersatz zurücknehmen), `test_nr18_ueberzeichnen` (dicker über gebaut → Ersatz; dünner → nichts, keine Meldung; über geplant → Typ neu), `test_nr18_baumenue_warnliste`, `test_nr18_ereignis_markiert` (auch bei „Weniger Bewegung“).
+- `steuerung.ts` `stempelnBei` (`:424`): belegtes Feld → gebaute Leitung: `ersatzPlanen` nur, wenn Stempeltyp dicker; geplante Leitung anderen Typs: `geplanteLeitungTyp`; sonst still weiter. Hinweis nur beim ersten Feld einer Geste. `ereignisse()`: Zweig `engstelle` → `effekte.engstelle(felder → [f % N, ⌊f / N⌋], ruhig)`, auch bei `ruhig`. Ereignis `schritt` bekommt **keinen** Zweig (wird still übergangen, NR13 hängt sich später ein).
+- **Tests** `tests/nr18-oberflaeche.test.ts` (echtes Blatt, `tests/hilfen/echte-steuerung.ts`, Aufbau auf `altesStartdorf` oder eigenem Dorf): `test_nr18_hausblatt_knoepfe` (je Phase), `test_nr18_leitungskarte_ersetzen` (offen/zu, Gold, Preis, gesperrt mit Grund ≤ 90, Ersatz zurücknehmen), `test_nr18_ueberzeichnen` (dicker über gebaut → Ersatz; dünner → nichts, keine Meldung; über geplant → Typ neu), `test_nr18_baumenue_warnliste`, `test_nr18_ereignis_markiert` (auch bei „Weniger Bewegung“).
 - **Eskalation:** ein a92-/nr12-Test außerhalb der P0-Liste wird rot.
 - **Risiko-Auslöser:** nein. Designer-Fotoprüfung: Hausblatt, Leitungskarte offen/zu/mit Ersatz, Baumenü mit Warnliste, Markierung neben offenem Blatt.
 
 ### Bauplan P4 – Darstellung (mittel)
-- `effekte.ts`: `engstelle(...)` mit Markierung Abschnitt 5, `ENGSTELLE_DAUER_S = 6`, `aktiv()` zählt mit. `szene.ts`: gebaute Leitung mit `ersatz` zusätzlich im Stil „geplant“ in neuer Farbe/Breite zeichnen (gleicher Stil wie geplante Leitungen, Designer bestätigt).
+- `effekte.ts`: `engstelle(...)` mit Markierung 5.1, `ENGSTELLE_DAUER_S = 6`, `aktiv()` zählt mit. `szene.ts`: gebaute Leitung mit `ersatz` zusätzlich im Stil „geplant“ zeichnen (Designer bestätigt).
 - **Tests** `tests/nr18-darstellung.test.ts` (Maler-Attrappe wie `tests/nr12-*`): Markierung aktiv 6 s, ruhig ohne Puls; Ersatz-Leitung im Befehlsstrom; NR12-Taktgrenzen bleiben grün.
 - **Eskalation:** NR12-Takt- oder Schlüssel-Test rot.
 - **Risiko-Auslöser:** nein.
 
+### Bauplan P5 – Neuer Spielstart (einfach: zwei Zeilen weg, Texte, aber Wirkung auf 128 Tests – Vorarbeit P0 trägt sie)
+- **Dateien:** `src/core/start.ts` (Startnetz-Zeilen und `starthaeuser` weg, alle Häuser `ohne_station: true`, Kommentar A29/A59/A67/A74 → NR13), `src/core/auftraege.ts` (c1, c2 ≥ 2, h3-Text nach 5.3), neu `tests/nr13-start.test.ts`.
+- **Liefert:** `export const ERSTE_HAEUSER: ReadonlyArray<readonly [number, number]>` in `start.ts`.
+- **Tests:** `test_nr13_start_ohne_leitung_und_station` (keine Leitung, kein Objekt mit `station`, jedes Haus `ohne_station`; nach `ersteQuelleWaehlen('kessel')` ist `netz.warm.size === 0`; Geld 30.000, Taler, Preisstufe wie vorher); `test_nr13_erste_haeuser` (beide Felder sind Häuser ohne Station, Tutorial-Reihenfolge); `test_nr13_alter_stand_behaelt_netz` (Stand aus `altesStartdorf` → `serialisieren` → `ladenMitBefund` → Leitungen, Vorsehung, Stationen gleich, beide Häuser warm); `test_nr13_auftraege` (c1 beim Start offen, c1 nach einem warmen Haus, c2 nach zwei; Texte enthalten keine „Starthäuser“); `test_nr13_geld_reicht` (leeres Dorf: zwei nächste Häuser per 25er und Wandstation anschließen und bauen → Geld ≥ 0, Restgeld im Test-Namen-Kommentar festhalten, Messwert in den Bericht).
+- **Randfälle:** Deko-Zufall unverändert (Probe: Deko-Positionen gleich wie vor P5); `naechste_id` passt zur Objektzahl.
+- **Eskalation:** mehr als die bewusst roten Tests aus P0 Teil B werden rot (dann fehlt etwas in P0); Restgeld nach zwei Häusern unter 5.000 €.
+- **Risiko-Auslöser:** nein (keine Umwandlung alter Stände).
+
+### Bauplan P6 – NR19 Puffer-Übergabestation (mittel: Fachregel mit zwei Leistungen, Spielstand, Oberfläche)
+- **Nutzt:** `stationKaufen` mit NR18-Warnung (P2), Hausblatt nach P3, `bedarfKw`.
+- **Liefert:** Abschnitt 5.5 – `VOLLLASTSTUNDEN`, `PufferStation`, `PUFFER_STATIONEN`, `istPufferStation`, `passendePufferStation(netz_kw: number, spitze_kw: number): PufferStation | null`, erweitertes `stationHolen`, `stationReicht(st: Station, o: Objekt): boolean`; `stationKaufen`-Regeln; Reparatur in `speichern.ts`; Merkmal `hauspuffer` weg; Hausblatt.
+- **Tests** `tests/nr19-puffer-kern.test.ts`: `test_nr19_volllaststunden` (1.500 / 2.000); `test_nr19_katalog` (drei Puffer-Stationen mit den Werten der Tabelle, Preis = Station + 3.570, `STATIONEN` unverändert, kein Firmenname, Beschreibung ≤ 90); `test_nr19_puffer_kaufen` (EFH ohne Station + `hp_800` → `hauspuffer`, `bedarfKw` 7,5, Netz warm); `test_nr19_wand_kaufen` (EFH + `st_15` → kein `hauspuffer`, 10 kW); `test_nr19_kein_nachruesten` (Haus mit Wandstation → `hp_800` abgelehnt mit Satz 5.5, Geld unverändert); `test_nr19_altstand_puffer_bleibt` (Haus `hauspuffer` + `st_15` → lädt, bleibt, 7,5 kW, darf `hp_1000` kaufen); `test_nr19_spitze` (Bäckerei: `hp_800` abgelehnt – 15 kW Netz > 14; EFH ×2,1: `hp_800` abgelehnt, `hp_1000` ok; Haus mit `hp_800` nach Aufstockung über 19 kW Spitze → kalt „station“); `test_nr19_grossabnehmer_ohne_puffer`; `test_nr19_ohne_stationstypen` (genau zwei erlaubte Ids: kleinste Wand + kleinste Puffer); `test_nr19_zwei_efh_an_25er` (zwei EFH mit `hp_800` an einer 25er: 7,5 + 7,5 = 15 kW ≤ 15 → keine Warnung, beide warm; mit Wandstationen 20 kW → Warnung – Grenzfall genau 15,0, exakt darstellbar); `test_nr19_spielstand_reparatur`; `test_nr19_kein_hauspufferEinbauen` (`'hauspufferEinbauen' in s === false`, Merkmal weg).
+  `tests/nr19-puffer-oberflaeche.test.ts`: zwei Reihen, Empfehlung Gold, Großabnehmer nur Wand, Haus mit Wandstation ohne Puffer-Reihe, Texte [F] wörtlich, Zeile „Übergabestation“, kein Kasten „Pufferspeicher im Haus“, `anfrageKasten`-Chip über `stationReicht`.
+- **Randfälle:** Interessenten-Nachlass gilt auch für Puffer-Stationen; Tausch Puffer → größere Puffer-Station mit 50 % Rückkauf; MFH ×2,1 ohne passende Puffer-Station → nur Wandreihe.
+- **Eskalation:** ein Test außerhalb von P0b wird rot; Tabellenwerte widersprechen dem Fachprüfer; Hausblatt passt auf 844×390 nicht ohne Scrollen in die Seitenfläche (Designer fragen).
+- **Risiko-Auslöser:** ja, eingeschränkt – Spielstand-Reparatur an der Grenze (`speichern.ts`).
+
 ## 8. Prüf-Schwerpunkt
-1. Leitung läuft am Haus vorbei statt dort zu enden (A57) → Haus hängt an vorbeilaufender Leitung; Warnung nennt das richtige Stück (P1/P2, `test_nr18_station_mit_geplanter_leitung` mit vorbeilaufender Variante).
-2. Station gekauft, Leitung nur eingezeichnet → Warnung schon jetzt; Hausblatt sagt weiter „heizt mit Öl“, bis gebaut ist (P2/P3).
-3. Ersatz auf einem Stück, an dem warme Häuser hängen → während der Bauzeit bleiben sie warm, danach mit neuer Größe (P2 `test_nr18_ersatz_bauende`).
-4. Nur 3 von 5 Feldern ersetzt → beim Abschließen Warnung für das Reststück, A67-Warnung „dünner ohne Abzweig“ erscheint (P2).
-5. Wischen mit dünner Leitung über dicke Hauptleitung → nichts passiert, keine Meldungsflut (P3).
+1. Zwei EFH mit Puffer an einer 25er: genau 15,0 kW gegen 15 kW – darf **nicht** warnen; mit Wandstation 20 kW – muss warnen (P6 `test_nr19_zwei_efh_an_25er`).
+2. Neues Spiel, Spieler kauft Station, bevor eine Leitung liegt → Station gekauft, Haus bleibt „heizt mit Öl“, kein Absturz, keine Warnung (P2, in `test_nr18_station_*` ergänzen).
+3. Alter Spielstand mit Startnetz, `gruppe`-Resten und Haus „Puffer + Wandstation“ lädt ohne Verlust (P2 `nr18-spielstand`, P6 `test_nr19_altstand_puffer_bleibt`).
+4. Aufstockung macht eine Puffer-Station zu klein (Spitze) → Haus kalt „Station zu klein“, Hausblatt bietet größere Station an (P6 `test_nr19_spitze`).
+5. Wischen mit dünner Leitung über dicke Hauptleitung → nichts passiert, keine Meldungsflut; ebenso keine Flut von `schritt`-Toasts (P3, P2 `test_nr13_schritt_je_handlung`).
 
 ## 9. Offene Fragen an Simon (Fachentscheidungen)
-- **E1 Rückkauf beim Ersetzen (A30):** (a) **empfohlen:** 50 % des alten Leitungspreises werden mit der Materialbestellung gutgeschrieben – deine A30-Regel, Ersetzen bleibt bezahlbar; (b) kein Rückkauf – in echt bleibt die alte Leitung meist im Boden oder ist Schrott, Ersetzen wird teurer.
-- **E2 Alte Leitung bis Bauende:** (a) **empfohlen:** Die alte Leitung liefert weiter, bis der Abschnitt gebaut ist – Spielvereinfachung (in echt kurze geplante Unterbrechung, meist im Sommer); (b) Häuser am Stück sind während der Bauzeit kalt – ehrlicher, aber straft jedes Ersetzen.
+- **E1 Rückkauf beim Ersetzen (A30):** (a) **empfohlen:** 50 % des alten Leitungspreises werden mit der Materialbestellung gutgeschrieben – deine A30-Regel; (b) kein Rückkauf – ehrlicher (alte Leitung bleibt im Boden), Ersetzen wird teurer.
+- **E2 Alte Leitung bis Bauende:** (a) **empfohlen:** Die alte Leitung liefert weiter, bis der Abschnitt gebaut ist (Spielvereinfachung); (b) Häuser am Stück sind während der Bauzeit kalt.
+- **E3 Entfällt auch die Hauptleitung am Start?** (a) **empfohlen:** ja, das Dorf startet ganz ohne Leitung – das Tutorial zeigt das Ziehen ab der Heizzentrale, und „reicht die Leitung für zwei Häuser?“ wird gleich die erste Lernfrage; (b) die 40er in der Straße bleibt, nur die Hausanschlüsse fehlen – kürzerer Einstieg, aber das Tutorial zeigt dann nur zwei Felder Leitung. Der Plan ist auf (a) gebaut; (b) hieße in P5 die 40er-Zeile behalten.
+- **E4 Startgeld:** Bisher gab es ca. 9.200 € Netz und Stationen geschenkt. Zwei Häuser selbst anschließen kostet ca. 9.200 € (Wandstation) bzw. 15.500 € (Puffer). (a) **empfohlen:** 30.000 € bleiben – es bleiben 14.500–20.800 €, P5 misst nach; (b) 35.000 €, damit der Spieler nach dem Tutorial mehr Spielraum hat.
+- **E5 Muss der Puffer die Spitze des Hauses schaffen?** (a) **empfohlen:** ja – eine Puffer-Station passt nur, wenn ihre Netz-Ladeleistung die Anschlussleistung (2.000 h) **und** ihre Spitze die Hausspitze (1.500 h) schafft; so zählen beide Herstellerwerte und die Bäckerei braucht den größeren Speicher; (b) nur die Netz-Ladeleistung zählt, die Spitze steht nur zur Info da – einfacher, aber dann wäre die getrennte Spitzenangabe ohne Wirkung.
+- **E6 Preise der Wandstationen:** (a) **empfohlen:** bleiben (2.400 / 3.600 / 4.800 / 7.000 / 9.000 €, bisherige Spielwerte); (b) an Adelsdorf angleichen (2.000 / 3.000 / 4.000 € bis 50 kW) – passt zur Puffer-Herleitung, verschiebt aber das Gleichgewicht und mehrere Tests.
 
 ## 10. Zurückgestellt
-- „Leitung selbst legen“ stempelt weiter die 25er; Vorauswahl der passenden Größe würde das Nachdenken abnehmen (Simon: gehört zum Spiel).
-- Hinweis beim Stationskauf ohne jede Leitung am Haus; „Ganzes Stück ersetzen“ in einem Zug (Überzeichnen deckt es weitgehend ab).
-- `anfrageAnnehmen` und `vertragUnterschreiben` erhöhen die Last ohne Warnung; `engstellenFinden` ließe sich dort später nutzen.
-- NR13 Tutorial: plant auf diesem Ablauf (selbst zeichnen, Station, Warnung lesen, dicker darüberzeichnen); Tipp „erst dickere Leitung legen“ aus der Sammelliste.
-- **Fachprüfer:** alle [F]-Texte; „Ersatz unter dem Fluss braucht neue Spülbohrung, keine neue Gestattung“; „nötig“ = Summe der Anschlussleistungen ohne Gleichzeitigkeit (Spielvereinfachung).
-- `docs/ARCHITEKTUR.md` gibt es im Projekt nicht; die Festlegungen stehen in diesem Bauplan.
-
-## 11. Nachtrag Simon 2026-11-06 (unvollständig, Kontext des Architekten voll – Fassung 2 nötig)
-- **Start ohne angeschlossene Häuser.** Prototyp (getestet, Scratchpad): Auf den NR18-Prototyp kamen hinzu: kein Startnetz (40er + 25er) mehr und keine Starthäuser mit Station. Ergebnis: **147 rot / 879 grün**, davon **98 zusätzlich** zu den 49 aus Abschnitt 7. Betroffen: anpassungen 38, a88-kundenanfrage 21, a88-kundenanfrage-abnahme 16, a88-freischalt-leiter 10, a92-b2b-zeichenleiste 4, spiel 3, a88-review-p2-luecken 2, a92-anschlussweg 2, a92-sperre-weg-aktion-laeuft 1, nr12-ebenen 1. Offen für Simon (**E3**): Entfällt auch das Startnetz (40er/25er)? Empfehlung: ja, das Tutorial zeigt das Zeichnen ab der Heizzentrale. Für die Tester-Vorarbeit wird eine Testhilfe „altes Startdorf“ empfohlen (`tests/hilfen`), damit die 98 Tests ihren Aufbau behalten. Der Umbau `neuerSpielstand` wäre ein eigenes Paket vor P2. Diese Einschätzung ist nicht durchgeplant.
-- **Schnittstelle Tutorial NR13 (Vorschlag):** Ereignis `{ art: 'schritt'; schritt: 'abschnitt_geplant' | 'abschnitt_offen' | 'leitung_gezeichnet' | 'station_gekauft' | 'abschnitt_abgeschlossen' | 'material_bestellt' | 'abschnitt_gebaut' }`, Typ im P1-Vertrag, Aussenden in P2/P3. Nicht durchgeplant.
-- **NR19 (Puffer-Übergabestation, 2.000 Volllaststunden mit Puffer, Wahl beim Anschluss, kein Nachrüsten):** Vorschlag: ein eigenes Paket nach NR18-P2. Es berührt `stationKaufen`/`stationswahl`, `VOLLLASTSTUNDEN`, `hauspufferEinbauen` (entfällt) und A71-Tests. Die Recherche `docs/recherche/puffer-uebergabestation.md` ist **nicht gelesen**.
+- „Leitung selbst legen“ stempelt weiter die 25er (Simon: Nachdenken gehört zum Spiel).
+- Hinweis beim Stationskauf ohne jede Leitung am Haus; „Ganzes Stück ersetzen“ in einem Zug.
+- `anfrageAnnehmen` und `vertragUnterschreiben` erhöhen die Last ohne Engstellen-Warnung.
+- ÜP 800 (gleiche Netz-Ladeleistung wie ÜP 1000, im Spiel ohne Unterschied) und HP 600; Puffer-Stationen für Großabnehmer (Übergabestation Typ 100–500 ohne Puffer).
+- Tutorial-Ablauf, Tutorial-Zustand im Spielstand, Bediensperren während des Tutorials – NR13, sobald DESIGN.md „Tutorial (NR13)“ vorliegt.
+- `docs/ARCHITEKTUR.md` gibt es im Projekt nicht; die Festlegungen stehen in diesem Bauplan (Bitte an den Projektleiter: nach Welle 1 die AE-Regeln dorthin übernehmen lassen).
