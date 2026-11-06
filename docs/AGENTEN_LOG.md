@@ -304,3 +304,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:14 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig (Paket NR18-P1, Branch nr18-p1, Commit 9892344 gegen Basis 91bbc70)  ([Bericht](docs/pruefberichte/20261106-081421-reviewer-a482e59faa49e5b47.md)) |
 | 2026-11-06 08:14 | ▶ | entwickler | NR18-P1 Fix-Runde 1 |
 | 2026-11-06 08:16 | ■ 🟢 | kritiker | ## Freigabe NR18-P0 (Testlöschung / Testzahl): 🟢 freigegeben, aber nur für den geprüften Teil  ([Bericht](docs/pruefberichte/20261106-081657-kritiker-a0b6134cb98540576.md)) |
+| 2026-11-06 08:17 | ▶ | tester | NR18-P0 Ersatz-Teil abtrennen |
