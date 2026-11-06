@@ -15,6 +15,7 @@ import { echteSteuerung } from './hilfen/echte-steuerung';
 // tests/nr13-abnahme.test.ts aufdeckt (Muster NR19). Bis dahin bewusst rot (P0–P4 fehlen).
 // Grundlage: Lastenheft NR13 (mit Präzisierung 06.11.), A29; DESIGN.md 13.5, 13.7, 13.8, 13.9 und 13.15 K1–K10 (13.15 geht
 // 13.2–13.11 vor); Bauplan docs/bauplaene/NR13-tutorial.md Fassung 2 (Abschnitte 1, 4–6, 11, 12).
+// Nachtrag 2026-11-06 (Basis f8766f7): DESIGN 13.15 K11 „2 Häuser fehlen“; Weg b T14-Geldmangel (K12, Bauplan F3 Punkt 11).
 //
 // Erwartete Werte von Hand (nicht mit dem Spielcode gerechnet):
 // - Texte: DESIGN 13.5 wörtlich nach 13.15 (K1 T17, K3 Platzhalter mit Einheit, U+00A0 vor der Einheit), **-Marken entfernt.
@@ -47,6 +48,7 @@ interface TutorialObj {
   aktiv(): boolean; ansicht(jetzt_ms: number): Ansicht | null; tipp(m: TippMeldung): void;
   schritt(e: { schritt: Schritt; objekt_id?: number }): void; sperre(b: Bedienung): { kurz: string; satz: string } | null;
   gesperrtGetippt(b: Bedienung): void; handlung(): void;
+  zustandPruefen(): void; // Bauplan F3: Übergänge ohne Ereignis (T13 ↔ T14), läuft in der Steuerung bei jedem Takt
 }
 interface TutorialModul {
   Tutorial: new (lage: unknown, opt?: { wiedereinstieg?: boolean }) => TutorialObj;
@@ -727,7 +729,7 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
     const l = await neuesSpiel();
     laufen(l, { bis: 'T13' });
     for (const [x, y] of SPUR.slice(0, 2)) { expect(l.s.platzieren(l.leitung, x, y).ok).toBe(true); pumpen(l); }
-    expect(l.tut.sperre('abschliessen')).toEqual({ kurz: `noch 2${NB}Häuser fehlen`, satz: HAEUSER_SATZ });
+    expect(l.tut.sperre('abschliessen')).toEqual({ kurz: `2${NB}Häuser fehlen`, satz: HAEUSER_SATZ });
     expect(l.tut.sperre('blatt_schliessen')?.satz).toBe(LEISTE_SATZ);
     for (const [x, y] of SPUR.slice(2, 4)) { expect(l.s.platzieren(l.leitung, x, y).ok).toBe(true); pumpen(l); }
     expect(l.tut.sperre('abschliessen')).toEqual({ kurz: `noch 1${NB}Haus fehlt`, satz: HAEUSER_SATZ });
@@ -758,19 +760,41 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     l.tut.handlung();
     zeichne(SPUR.slice(4));
+    l.tut.zustandPruefen();
     expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(1_140);
+    // Weg b (ENTSCHEIDUNGEN 2026-11-06, DESIGN 13.15 K12, Bauplan F3 Punkt 11): beide Häuser erreicht, Geld fehlt → T13 bleibt
     const a = jetzt(l);
-    expect(a.schritt).toBe('T14');
-    expect(ohneMarken(a.text), 'T14 mit Geld-Lücke zeigt den Geld-Satz (K7 Muss)').toBe(GELD_SATZ);
-    expect(a.finger, 'Finger zeigt nicht auf den gesperrten Knopf').toBe('aus');
+    expect(a.schritt, 'beide erreicht, Geld fehlt → Schritt bleibt T13 (Weg b)').toBe('T13');
+    expect(ohneMarken(a.text), 'Blase zeigt den Geld-Satz (K7)').toBe(GELD_SATZ);
+    expect(a.finger, 'kein Finger auf einem gesperrten Knopf').toBe('aus');
     expect(l.tut.sperre('abschliessen')).toEqual({ kurz: GELD_KURZ, satz: GELD_SATZ });
+    // K12 Muss: alle Häuser-Sätze weichen dem Geld-Satz – Hilfe nach drei Fehltipps, Sperr-Satz bei [X], Sperr-Satz Abschließen
+    for (let i = 0; i < 3; i++) tippen(l, 'daneben');
+    expect(jetzt(l).schritt).toBe('T13');
+    expect(ohneMarken(jetzt(l).text), 'Hilfe-Satz nach drei Fehltipps weicht dem Geld-Satz (K12)').toBe(GELD_SATZ);
+    expect(l.tut.sperre('blatt_schliessen'), 'Leiste bleibt in T13 offen').not.toBeNull();
+    expect(l.tut.sperre('blatt_schliessen')?.satz, 'Sperr-Satz bei [X] sagt nicht „bis beide Häuser erreicht“ (K12)').not.toBe(LEISTE_SATZ);
+    l.tut.gesperrtGetippt('blatt_schliessen');
+    expect(ohneMarken(jetzt(l).text), 'Sperr-Satz bei [X] weicht dem Geld-Satz (K12)').toBe(GELD_SATZ);
+    l.tut.handlung();
+    expect(ohneMarken(jetzt(l).text), 'nach der Handlung weiter der Geld-Satz, kein Häuser-/Hilfe-Satz').toBe(GELD_SATZ);
+    l.tut.gesperrtGetippt('abschliessen');
+    expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
+    l.tut.handlung();
+    // Zurück/Radieren: erst zwei Felder (Geld fehlt noch) → weiter T13 mit Geld-Satz
     for (const [x, y] of [[9, 11], [7, 12]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
+    l.tut.zustandPruefen();
     expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(340);
+    expect(jetzt(l).schritt, '340 € fehlen noch → T13').toBe('T13');
+    expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     expect(l.tut.sperre('abschliessen')?.kurz).toBe(GELD_KURZ);
+    // drittes Feld weg → Geld reicht → T14
     expect(l.s.geplanteLeitungEntfernen(8, 12).ok).toBe(true); pumpen(l);
+    l.tut.zustandPruefen();
     expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '7 Felder: 13.940 € ≤ 14.000 €').toBe(0);
-    expect(l.tut.sperre('abschliessen')).toBeNull();
     const b = jetzt(l);
+    expect(b.schritt, 'beide erreicht und Geld reicht → T14').toBe('T14');
+    expect(l.tut.sperre('abschliessen')).toBeNull();
     expect(ohneMarken(b.text)).toBe(TEXTE(NAME).T14);
     expect(b.finger).toBe('tippen');
     laufen(l);
