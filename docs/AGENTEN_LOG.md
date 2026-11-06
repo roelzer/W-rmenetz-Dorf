@@ -337,3 +337,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:04 | ▶ | reviewer | Nachprüfung NR18-P4 |
 | 2026-11-06 09:05 | ■ 🟢 | tester | 🟢 Der Beleg stimmt. Ich habe die Erwartung im Test angepasst; der Test ist jetzt grün.  ([Bericht](docs/pruefberichte/20261106-090500-tester-aca97fba99c4fe490.md)) |
 | 2026-11-06 09:06 | ■ 🟢 | reviewer | 🟢 Nachprüfung NR18-P4 (Fix 08b2ede auf 68a1c36): alle vier Befunde sind behoben. Neue Probleme habe ich keine gefunden.  ([Bericht](docs/pruefberichte/20261106-090613-reviewer-a14e2a586eb7f7a77.md)) |
+| 2026-11-06 09:09 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-06 09:09 | ■ 🟡 | entwickler | 🟡 **Status: formal BLOCKIERT, aber nur an der Schranke.** Weg A ist gebaut und committet. Beide Häuser halten jetzt bis zum Bauende durch, und die Abnahme ( ([Bericht](docs/pruefberichte/20261106-090917-entwickler-a94ebfcbac706398d.md)) |
+| 2026-11-06 09:09 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten** (gilt nur für den gemeinsamen Merge mit P3; P2 allein ist erwartungsgemäß rot)  ([Bericht](docs/pruefberichte/20261106-090918-reviewer-a4db1f6e34346df3b.md)) |
