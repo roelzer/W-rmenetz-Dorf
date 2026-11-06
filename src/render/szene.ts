@@ -359,6 +359,10 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
+  /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
+  const planRaute = (cx: number, cy: number): void => {
+    X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = '#2a6fb0'; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
+  };
   for (const o of rohre) {
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
     for (const [dx, dy] of NACHBARN) {
@@ -429,7 +433,12 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       m.symbol('ausruf', cx, cy - tw * 0.14, tw * 0.07);
     }
     if (plan) {
-      X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = '#2a6fb0'; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
+      planRaute(cx, cy);
+      X.restore();
+    } else if (o.ersatz) {
+      // NR18: Gebaute Leitung mit geplantem Ersatz zeigt dieselbe gestrichelte Planraute wie eine geplante Leitung;
+      // die alte Leitung bleibt bis zum Bauende sichtbar, weil sie bis dahin das Wasser führt.
+      X.save(); X.globalAlpha = 0.6; planRaute(cx, cy);
       X.restore();
     }
   }
