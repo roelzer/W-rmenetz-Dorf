@@ -444,3 +444,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 13:10 | ■ 🟢 | entwickler | 🟢 FERTIG. Branch nr13-p3a-fix, Commit 27f06369e90325ac3c40e896f91842215b81fe21 (nicht gepusht). Worktree: /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a ([Bericht](docs/pruefberichte/20261106-131037-entwickler-a59727e6117782833.md)) |
 | 2026-11-06 13:10 | ▶ | reviewer | Nachprüfung NR13 P3a-Fix |
 | 2026-11-06 13:14 | ■ 🟢 | reviewer | 🟢 Freigegeben: alle 5 Befunde behoben, durch die Fixes ist kein neues Problem entstanden. Verträgt sich mit P3b.  ([Bericht](docs/pruefberichte/20261106-131418-reviewer-a3bf25302a23ff26f.md)) |
+| 2026-11-06 13:15 | ▶ | entwickler | NR13 Paket P4 Steuerung |
