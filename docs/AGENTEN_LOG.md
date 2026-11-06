@@ -369,3 +369,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 10:27 | ■ 🟡 | designer | 🟡 Fotoprüfung Stationswahl NR19 (Stand 960c7b8, Branch p6-nr19)  ([Bericht](docs/pruefberichte/20261106-102737-designer-a89e129aa870d1535.md)) |
 | 2026-11-06 10:28 | ▶ | entwickler | Entwickler Fixrunde P6 |
 | 2026-11-06 10:28 | ▶ | tester | Tester NR19-Abnahme Texte |
+| 2026-11-06 10:34 | ■ 🟡 | tester | 🟡 **Die verdeckte NR19-Abnahme ist auf die neuen Texte und die Tausch-Entscheidung W1 umgestellt und committet.** Gelb, weil zwei ältere Tests aus der Datei ([Bericht](docs/pruefberichte/20261106-103406-tester-a4e01f62facc8b2ac.md)) |
