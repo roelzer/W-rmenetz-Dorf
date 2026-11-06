@@ -431,3 +431,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:43 | ▶ | reviewer | Review NR13 P2 |
 | 2026-11-06 12:44 | ▶ | entwickler | NR13 Paket P3b Blätter/HUD/Kamera |
 | 2026-11-06 12:46 | ■ 🟢 | reviewer | 🟢 Freigegeben. Plan-Treue: ✅ Alle vier Dateien aus dem Bauplan sind geändert, sonst keine; alle Methodennamen stimmen mit Abschnitt 6 überein.  ([Bericht](docs/pruefberichte/20261106-124641-reviewer-af17868a470a0b80f.md)) |
+| 2026-11-06 12:49 | ■ 🟢 | entwickler | 🟢 FERTIG: Paket P1 (Tutorial-Schrittlogik) ist gebaut, auf Branch nr13-p1, Commit d5c5725088072553b548196ae3a7bd8696d8d9ac (nicht gepusht, Worktree sauber).  ([Bericht](docs/pruefberichte/20261106-124913-entwickler-ab880a9ca9b702f8c.md)) |
+| 2026-11-06 12:49 | ▶ | reviewer | Review NR13 P1 |
