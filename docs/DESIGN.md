@@ -628,7 +628,7 @@ Tokens: keine neuen.
 **Neuer Mangel (älter als NR19, im Fall 5 sichtbar): Wandstations-Knöpfe nebeneinander (844).** „Wandstation Typ / 15 · 15 kW“ trennt „Typ“ von der Zahl (alle Fälle mit freier Wahl), und „CAD-Großabnehmerstation · 150 kW“ läuft über: „CAD- / Großabnehmerstatio|n / · 150 kW“, Text am Rand abgeschnitten (Knopf 84 px). Bei 667 „CAD-Großabnehmerstation · / 150 kW“. **Abhilfe:** Zeile 1 `Wandstation Typ 15 · 15 kW` mit `\u00a0` in „Typ 15“, „15 kW“ und vor „·“ (bricht dann als „Wandstation“ / „Typ 15 · 15 kW“); CAD im Knopf kurz „CAD-Station · 150 kW“ (`\u00a0` in „150 kW“), der lange Name bleibt in der Hauskarte.
 
 ## 13. Tutorial (NR13) – „Simon zeigt dir dein erstes Netz“ (Entwurf 2026-11-06)
-Anlass: Lastenheft NR13 mit Präzisierung Simon 2026-11-06 („ganz wichtig“), dazu NR2 (die ersten Minuten) und NR3 (Begriffe, „Wusstest du?“). Grundlage für den Ablauf mit Leitung und Station: Bauplan NR18 Fassung 1 (selbst zeichnen, Station kaufen, Warnung statt Sperre) und NR19 (Puffer-Übergabestation als Standard). Designer, Modus `entwurf`. **Ergänzt** Abschnitt 7 Ablauf 1 und S2 „leer/neu“: Für ein **neues Spiel** startet nach dem Namensfenster (A79) dieses Tutorial statt des ersten Auftrags. Alte Spielstände sind nicht betroffen (13.8).
+Anlass: Lastenheft NR13 mit Präzisierung Simon 2026-11-06 („ganz wichtig“), dazu NR2 (die ersten Minuten) und NR3 (Begriffe, „Wusstest du?“). Grundlage für den Ablauf mit Leitung und Station: Bauplan NR18 Fassung 1 (selbst zeichnen, Station kaufen, Warnung statt Sperre) und NR19 (Puffer-Übergabestation als Standard). Designer, Modus `entwurf`. **Ergänzt** Abschnitt 7 Ablauf 1 und S2 „leer/neu“: Für ein **neues Spiel** startet nach dem Namensfenster (A79) dieses Tutorial statt des ersten Auftrags. Alte Spielstände sind nicht betroffen (13.8). **Klärungen zum Bauplan NR13 vom 06.11. stehen in 13.15 und gehen bei Widerspruch den Einzelstellen in 13.2–13.11 vor.**
 
 ### 13.1 Wer, wo, was
 - **Wer:** auch Menschen ohne jede Ahnung von Wärme (Simon). Sie kennen weder kW noch Übergabestation und wollen nach fünf Minuten nicht das Gefühl haben, eine Prüfung zu schreiben. Sie spielen am Handy im Querformat, oft nebenbei.
@@ -751,10 +751,10 @@ Grundregel: **unten links in der freien Kartenfläche**, nie über einer offenen
 │░░░░░░░░░░░░░░░░░░░░░░░░░  ohne Finger)        │ │ ┏━━━━━━━━━━━━━━━━━━━━━━━━┓ │ │ Loch + Finger
 │░░┌──────┐┌──────────────────────────────────┐░│ │ ┃ Puffer-Übergabestation ┃ │ │ (`geld`, Preis)
 │░░│Figur │ │ Simon                ● ● ● ● ○ ○ │░│ │ ┃ 7,5 kW · 5.570 €       ┃ │ │ Zahlen = Spielwerte
-│░░│Simon │ │ Nimm die mit **Pufferspeicher**: │░│ │ ┗━━━━━━━━━━━━━━━━━━━━━━━━┛ │ │ aus NR19
-│░░│      │ │ Der Tank sammelt Wärme vorab. So │░│ │ [Wandstation · später  S] │ │ Tutorial-Sperre
-│░░│      │ │ braucht das Haus nur 7,5 statt   │░│ │ (abgedunkelt)               │ │
-│░░│      │ │ 10 kW aus dem Netz.              │░│ ╰─────────────────────────────╯ │
+│░░│Simon │ │ Nimm die mit **Pufferspeicher**. │░│ │ ┗━━━━━━━━━━━━━━━━━━━━━━━━┛ │ │ aus NR19
+│░░│      │ │ Ihr Tank sammelt Wärme vorab, so │░│ │ [Wandstation · später  S] │ │ Tutorial-Sperre
+│░░│      │ │ reichen 7,5 kW statt 10 kW aus   │░│ │ (abgedunkelt)               │ │
+│░░│      │ │ dem Netz – genauso warm.         │░│ ╰─────────────────────────────╯ │
 │░░└──────┘└──────────────────────────────────┘░│                                │
 └───────────────────────────────────────────────┴────────────────────────────────┘
  (S = gezeichnetes Schloss-Symbol `schloss`, kein Schriftzeichen.)
@@ -771,7 +771,7 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 |---|---|---|---|---|---|
 | T01 | H | „Hallo {Name}! Ich bin Simon und zeige dir, wie dein Dorf warm wird. Tippe auf die Heizzentrale.“ | Loch Heizzentrale, Finger | Heizzentrale antippen (öffnet hier **kein** Blatt) | Kamera steht auf der Heizzentrale (Zoom 3, Ziel 38 % Höhe). Karte blendet nach dem Namensfenster ein. Nach dem Tippen: kurzes Federn der Heizzentrale, Rauch wird für 2 s kräftiger |
 | T02 | W | „Hier steht dein **Wärmeerzeuger**, ein **Hackschnitzelkessel**. Er verbrennt Holzreste und macht damit Wasser heiß.“ **[F]** | Loch Heizzentrale | [Weiter] | – |
-| T03 | W | „Wie viel Wärme er in jedem Moment schafft, misst man in **Kilowatt (kW)**. Dein Kessel schafft {kessel_kw} kW.“ **[F]** (60) | Löcher Heizzentrale **und** Wärme-Pille („0 / 60 kW“) | [Weiter] | Die Wärme-Pille hüpft einmal (240 ms, 12.9) |
+| T03 | W | „Wie viel Wärme er in jedem Moment schafft, misst man in **Kilowatt (kW)**. Dein Kessel schafft {kessel_kw}.“ **[F]** (60 kW; Platzhalter mit Einheit, 13.15 K3) | Löcher Heizzentrale **und** Wärme-Pille („0 / 60 kW“) | [Weiter] | Die Wärme-Pille hüpft einmal (240 ms, 12.9) |
 | T04 | W | „Das heiße Wasser fließt durch Rohre unter der Straße zu den Häusern. Das nennt man **Wärmenetz** oder **Nahwärme**.“ **[F]** | Loch Heizzentrale | [Weiter] | Nach [Weiter] fährt die Kamera (13.6) |
 | T05 | W | „Diese Häuser heizen noch mit Öl – siehst du den grauen Rauch? Du willst die ersten zwei anschließen.“ | Löcher um beide Tutorial-Häuser | [Weiter] | **Kamerafahrt** zur Mitte der beiden Häuser, 1.200 ms. Abdunkeln erst nach der Ankunft |
 | T06 | W | „Ein Haus braucht im Jahr {kwh} Wärme. An den kältesten Tagen braucht es bis zu {kw_ohne} gleichzeitig.“ **[F]** (15.000 kWh / 10 kW) | Loch Haus 1; darüber eine Info-Kapsel (Chip `neutral`, 26 px) „15.000 kWh im Jahr · bis 10 kW“ | [Weiter] | **kWh** wird hier eingeführt (fett) |
@@ -788,17 +788,17 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 **Kapitel 3 – Leitung ziehen**
 | Nr | Art | Text | Licht / Finger | Weiter mit | Kamera, Sonstiges |
 |---|---|---|---|---|---|
-| T12 | H | „Fertig geplant! Nimm die {leitung} – sie trägt im Spiel bis {kap} kW, genug für beide Häuser.“ **[F]** („25er“, 15) | Loch Katalogkarte {leitung} | Karte antippen → Zeichenleiste öffnet | `{leitung}` = dünnste Leitung, die beide Tutorial-Häuser **mit Puffer** trägt (aus dem Katalog gerechnet, nicht fest „25er“; siehe Hinweis 13.9). Die Erst-Hilfe der Zeichenleiste (12.18 „Erste Nutzung“) erscheint im Tutorial nicht und gilt danach als gesehen |
+| T12 | H | „Fertig geplant! Nimm die {leitung} – sie trägt im Spiel bis {kap_kw}, genug für beide Häuser.“ **[F]** („25er“, 15 kW; 13.15 K3) | Loch Katalogkarte {leitung} | Karte antippen → Zeichenleiste öffnet | `{leitung}` = dünnste Leitung, die beide Tutorial-Häuser **mit Puffer** trägt (aus dem Katalog gerechnet, nicht fest „25er“; siehe Hinweis 13.9). Die Erst-Hilfe der Zeichenleiste (12.18 „Erste Nutzung“) erscheint im Tutorial nicht und gilt danach als gesehen |
 | T13 | H | „Zieh die Leitung mit dem Finger von der Heizzentrale bis an beide Häuser. Folge der gelben Spur.“ | **Kein** Abdunkeln über der Karte; HUD abgedunkelt. Leitungs-Spur, Finger fährt die Spur ab (2.400 ms je Durchgang) bis zum ersten eigenen Strich | Beide Tutorial-Häuser sind über eingezeichnete Leitungen mit der Heizzentrale verbunden | Kamera: Heizzentrale + beide Häuser passen mit 24 px Rand in die freie Fläche (Zoom 2–3). Zwei-Finger-Zoom erlaubt. Farbknöpfe, Radierer, Zurück frei |
 | T13b | (Zwischenmeldung) | „Das erste Haus ist erreicht. Jetzt weiter bis zum zweiten.“ | „Erreicht“-Zeichen über Haus 1 | ersetzt den T13-Text, sobald ein Haus erreicht ist; Schritt bleibt T13 | – |
-| T14 | H | „Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.“ | Loch [Abschnitt abschließen] (Aktionsleiste der Zeichenleiste), Finger | Knopf antippen | Leiste schließt, Kamera bleibt. Eine NR18-Warnung darf hier nicht kommen (13.9) |
+| T14 | H | „Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.“ | Loch [Abschnitt abschließen] (Aktionsleiste der Zeichenleiste), Finger | Knopf antippen | Leiste schließt, das Baumenü öffnet **nicht** wieder (13.15 K8), Kamera bleibt. Eine NR18-Warnung darf hier nicht kommen (13.9) |
 
 **Kapitel 4 – Übergabestationen**
 | Nr | Art | Text | Licht / Finger | Weiter mit | Kamera, Sonstiges |
 |---|---|---|---|---|---|
 | T15 | H | „Damit ein Haus die Wärme nehmen kann, braucht es eine **Übergabestation**. Tippe auf das erste Haus.“ | Loch Haus 1, Finger | Haus 1 antippen → Hausblatt öffnet | Kamera: Haus 1 in die Mitte der freien Fläche (12.21 Punkt 4, aber 38 % Höhe) |
 | T16 | W | „Sie holt die Wärme aus dem Netz ins Haus. Ein **Wärmetauscher** trennt dabei das Netzwasser vom Heizwasser im Haus.“ **[F]** | Loch Kasten „Übergabestation wählen“ | [Weiter] | Das Blatt scrollt so, dass der Kasten ganz sichtbar ist |
-| T17 | H | „Nimm die mit **Pufferspeicher**: Der Tank sammelt Wärme vorab. So zieht das Haus nur {kw_puffer} statt {kw_ohne} aus dem Netz – warm wird es genauso.“ **[F]** (7,5 / 10 kW) | Loch Knopf „Puffer-Übergabestation“ (Variante `geld`, Preis in Zeile 2); zweites Loch ohne Finger um Haus 1 auf der Karte | Knopf antippen (Kauf) | Wandstation sichtbar, aber gesperrt nach 12.19 mit Zeile 2 „später wählbar“ und Hinweis „Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.“ (siehe Frage T-F2). Nach dem Kauf schließt das Blatt von selbst (200 ms) |
+| T17 | H | „Nimm die mit **Pufferspeicher**. Ihr Tank sammelt Wärme vorab, so reichen {kw_puffer} statt {kw_ohne} aus dem Netz – genauso warm.“ **[F]** (7,5 kW / 10 kW; gekürzt 06.11., 13.15 K1) | Loch Knopf „Puffer-Übergabestation“ (Variante `geld`, Preis in Zeile 2); zweites Loch ohne Finger um Haus 1 auf der Karte | Knopf antippen (Kauf) | Wandstation sichtbar, aber gesperrt nach 12.19 mit Zeile 2 „später wählbar“ und Hinweis „Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.“ (siehe Frage T-F2). Nach dem Kauf schließt das Blatt von selbst (200 ms) |
 | T18 | H | „Prima! Jetzt bekommt das zweite Haus auch eine. Tippe darauf.“ | Loch Haus 2, Finger | Haus 2 antippen | Kamera: Haus 2 in die Mitte der freien Fläche |
 | T19 | H | „Wieder die Puffer-Übergabestation, bitte.“ | Loch Knopf „Puffer-Übergabestation“ | Kauf | Blatt schließt von selbst |
 
@@ -817,7 +817,7 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 | T25 | W, „Wusstest du?“ | „In jeder Leitung liegen zwei Rohre: Heißes Wasser fließt hin (**Vorlauf**), abgekühltes zurück (**Rücklauf**).“ **[F]** | Loch um ein Leitungsstück mit Fließpunkten | [Weiter] | Vorlauf/Rücklauf erst hier, weil man jetzt die Fließpunkte sieht und nicht vorher etwas Unsichtbares lernen muss |
 | T26 | W | „Am Monatsende zahlen deine Kunden ihre Wärmerechnung. Damit schließt du die nächsten Häuser an.“ | kein Loch, Abdunkeln blendet aus | Knopf **[Los geht’s]** (`los`, statt [Weiter]) | Tutorial ist fertig (Merke im Spielstand). Anleiter-Karte gleitet hinaus, Zoomknöpfe, [Dörfer] und Auftragskarte kommen zurück, der erste Auftrag nach NR2 erscheint mit kurzem Federn |
 
-**Hilfe nach drei Fehltipps** (13.7) – ein Satz, ersetzt die zweite Hälfte der Blase, bis richtig getippt wird:
+**Hilfe nach drei Fehltipps** (13.7) – genaue Regel in 13.15 K4 (Handlungs-Schritt: Hilfe-Satz ersetzt den ganzen Blasentext; Erklär-Schritt: Text bleibt, „Tippe auf Weiter.“ gedämpft in der Knopfzeile):
 | Schritt | Hilfe-Satz |
 |---|---|
 | T01 | „Tippe auf das große Gebäude, das gelb leuchtet.“ |
@@ -829,7 +829,7 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 | T14 | „Unten in der Leiste: Abschnitt abschließen.“ |
 | T15, T18 | „Tippe auf das leuchtende Haus.“ |
 | T17, T19 | „Tippe auf Puffer-Übergabestation.“ |
-| Erklär-Schritte | „Tippe auf Weiter, wenn du bereit bist.“ |
+| Erklär-Schritte | „Tippe auf Weiter.“ (gedämpft in der Knopfzeile, Text bleibt stehen – 13.15 K4) |
 
 ### 13.6 Kamera
 - **Steht** in allen Schritten außer Kapitel 3 (Gesten aus). Ziel: Mitte der freien Breite, 38 % der Höhe, Zoom 3 am Handy, 1,9 am Desktop (Abschnitt 3).
@@ -847,7 +847,7 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 | **Abschließen zu früh** (T13, noch nicht beide Häuser erreicht) | [Abschnitt abschließen] gesperrt nach 12.19/12.21, Zeile 2 „noch 1 Haus fehlt“ bzw. „noch 2 Häuser fehlen“ (≤ 18 Zeichen, geschütztes Leerzeichen), Hinweis in der Blase: „Zieh die Leitung bis an beide Häuser – folge der gelben Spur.“ Mit 0 Leitungen gilt weiter B6 „nichts gezeichnet“ |
 | **Leitung neben der Spur** | erlaubt (kostet nur etwas mehr). Radierer und Zurück funktionieren normal. Der Schritt prüft nur „beide Häuser verbunden“ |
 | **Zurück nimmt ein Haus wieder weg** | „Erreicht“-Zeichen verschwindet, Blase springt auf den T13-Text zurück |
-| **Kamera verlassen** (nur Kapitel 3 möglich) | Liegt ein Tutorial-Haus ganz außerhalb des Bildes, zeigt am Bildrand ein kleiner Pfeil (Chip `gold`, 26 px, gezeichneter Pfeil) in seine Richtung; Tippen auf den Pfeil fährt die Kamera zurück |
+| **Kamera verlassen** (nur Kapitel 3 möglich) | Ersetzt durch eine **Kamera-Grenze** in Kapitel 3 (13.15 K5): Die Bildmitte bleibt im Rahmen um Heizzentrale und beide Häuser, weiter hinaus als die Startansicht von T13 lässt sich nicht zoomen. Der Pfeil am Bildrand entfällt (nur nötig, falls die Grenze nicht baubar ist – dann Muss, kein Folgepaket) |
 | **Warten** (Planung T11, Bau T23) | Restzeit gedämpft in der Blase, [Weiter] erst bei „fertig“. Die Wartezeit ist absichtlich mit einer Erklärung gefüllt |
 | **App mitten im Tutorial geschlossen / neu geladen** | Der Spielstand merkt sich das Kapitel (an der einen Stelle im Spielstand, Architekturregel). Beim Wiederöffnen liest das Spiel den **Zustand** (nicht die letzte Blase) und setzt am Anfang des passenden Schritts wieder ein (Tabelle unten). Erste Blase dann: „Weiter geht’s, {Name}! Wir waren gerade bei: {Kapitelname}.“ mit [Weiter]. „Willkommen zurück“ (A38) entfällt im Tutorial; die Zeit wird trotzdem nachgerechnet (Planung/Bau können fertig sein) |
 | **Hochformat** | Dreh-Hinweis wie immer; Tutorial ruht und läuft beim Zurückdrehen im selben Schritt weiter |
@@ -923,6 +923,7 @@ Spielwerte (Kern, nicht Tokens): Tutorial-Planung 10 s, Tutorial-Bau 20 s.
 - **Weniger Bewegung:** siehe 13.7. **Farbe nie allein:** Ziel = Loch **und** Ring **und** Finger; „erreicht“ = Haken-Symbol **und** Grün.
 
 ### 13.12 Prüfkriterien (Fotos 844×390 und 667×375, Prüfumgebung wie 12.21 Punkt 4)
+*Hinweis 06.11.: Die vom Projektleiter als „13.12“ angefragten Klärungen zum Bauplan stehen in **13.15** – die Nummer 13.12 bleibt bei den Prüfkriterien, weil der Bauplan NR13 auf „13.12 Punkt 4/5/6“ verweist.*
 Fotos: T01, T03 (zwei Löcher), T05 nach der Fahrt, T10, T11 wartend und fertig, T13 frisch und nach dem ersten Haus, T13 [Abschließen] gesperrt, T14, T17, T21 mit Laura-Sprecher, T23 wartend, T24, T25, T26; dazu „falsch getippt“ nach drei Fehltipps; Wiedereinstieg nach Neuladen in T11 und T18; „Weniger Bewegung“ an bei T13.
 1. Anleiter-Karte überdeckt nie Ziel, Seitenfläche, Zeichenleiste oder Anzeigenreihe (per Skript: Rechtecke schneiden sich nicht).
 2. Text höchstens 4 Zeilen, nichts abgeschnitten, keine Scrollleiste in der Blase.
@@ -980,3 +981,67 @@ Fachprüfer bitte prüfen: Wirkungsgrad „1 kWh Strom → 1 kWh Wärme“ (Elek
 - **T-F3 Überspringen für Tester?** Wer oft neu anfängt (du, Mitspieler beim Testen), muss jedes Mal ~5 Minuten Tutorial spielen. **Empfehlung:** kein Überspringen für Spieler; nur wenn in den Einstellungen das Vorführ-Tempo (×10/×60) an ist, gibt es im Namensfenster „Ohne Tutorial starten“.
 - **T-F4 (= Q11) „Abgleich“:** Was meinst du damit? **Empfehlung:** Ist der hydraulische Abgleich gemeint, gehört er nicht ins erste Tutorial (zu viel auf einmal), sondern als kurze geführte Szene zum Rücklauf-Helfer ab Heizzentrale Stufe 3.
 - **T-F5 Bild für die Figur:** Für die Figur brauche ich ein Foto von dir, Oberkörper, möglichst vor ruhigem Hintergrund, Blick leicht zur Seite (die Figur steht links und schaut nach rechts zur Sprechblase). Bis dahin der Platzhalter aus 13.2.
+
+### 13.15 Klärungen zum Bauplan (06.11.)
+Anlass: Kritiker-Bericht zum Bauplan NR13 Fassung 1 (`docs/pruefberichte/20261106-114059-kritiker-a46afa1f8187f3f64.md`). Designer, Modus `entwurf`. Diese Klärungen gehen bei Widerspruch den Einzelstellen in 13.2–13.11 vor; die betroffenen Zellen in 13.5/13.7 sind schon angepasst. (Angefragt als „13.12“; die Nummer bleibt bei den Prüfkriterien, auf die der Bauplan verweist.)
+Zeichen sind mit einem Zählskript nachgezählt (sichtbarer Text ohne `**`, Name mit 20 Zeichen, Zahlen mit Einheit).
+
+**K1 – T17 gekürzt.** Neuer Wortlaut:
+„Nimm die mit **Pufferspeicher**. Ihr Tank sammelt Wärme vorab, so reichen {kw_puffer} statt {kw_ohne} aus dem Netz – genauso warm.“
+- 117 Zeichen mit den Spielwerten („7,5 kW“, „10 kW“), 120 Zeichen im schlechtesten Fall (je 7 Zeichen, z. B. „12,5 kW“ / „17,5 kW“). Zwei Sätze.
+- Fachlich unverändert: Mit Puffer kommen {kw_puffer} statt {kw_ohne} **aus dem Netz**, das Haus wird genauso warm. Der Satz „Tank sammelt Wärme vorab“ bleibt, weil T17 zugleich der Erklärsatz „Pufferspeicher“ der Begriffsliste ist (13.9). Nichts Neues behauptet; nur „zieht nur … – warm wird es genauso“ wurde zu „reichen … – genauso warm“. **Bitte an den Projektleiter:** Fachprüfer kurz den neuen Wortlaut bestätigen lassen (nur Wortlaut, keine neue Aussage).
+
+**K2 – Satzregel „höchstens 2 Sätze“.**
+- Satzende = „.“, „!“ oder „?“, gefolgt von Leerzeichen oder Textende. „…“ ist kein Satzende. Abkürzungen mit Punkt („z. B.“) sind in Blasen verboten.
+- Ein **Zuruf** am Textanfang zählt **nicht** mit. Erlaubte Zurufe (feste Liste, damit der Test zählen kann): „Hallo {Name}!“, „Prima!“, „Fertig geplant!“, „Geschafft, {Name}!“, „Weiter geht’s, {Name}!“. Höchstens ein Zuruf je Blase, nur am Anfang.
+- Damit bleibt **T01 unverändert** (Zuruf + 2 Sätze, 109 Zeichen mit 20-Zeichen-Namen). Die Regel deckt auch T18 („Prima! Jetzt bekommt … Tippe darauf.“), das sonst ebenfalls drei Sätze hätte.
+- Wiedereinstieg: Endet der Kapitelname mit „!“ („Warm!“), entfällt der Schlusspunkt: „Weiter geht’s, {Name}! Wir waren gerade bei: Warm!“
+
+**K3 – Platzhalter enthalten die Einheit.**
+- Jeder Platzhalter für eine Größe liefert die **fertig formatierte Zahl mit Einheit**; im Text steht nie eine Einheit hinter einem Platzhalter. Der Name trägt die Einheit (Architekturregel): `{kessel_kw}` → „60 kW“, `{kap_kw}` (bisher `{kap}`) → „15 kW“, `{kwh}` → „15.000 kWh“, `{kw_ohne}` → „10 kW“, `{kw_puffer}` → „7,5 kW“, `{Preis}` → „2.000 €“, `{Restzeit}` → „8 s“. Ohne Einheit: `{Name}`, `{leitung}` („25er“), `{Kapitelname}`.
+- Format: Tausenderpunkt, Dezimalkomma, höchstens eine Nachkommastelle, „,0“ fällt weg; zwischen Zahl und Einheit ein **geschütztes Leerzeichen** (U+00A0, zählt als 1 Zeichen), damit „7,5“ und „kW“ nie auf zwei Zeilen stehen. Gleiche Schreibweise wie in den Anzeigen-Pillen.
+- Angepasst: T03 „Dein Kessel schafft {kessel_kw}.“, T12 „… bis {kap_kw}, genug für beide Häuser.“ T06 und T17 waren schon so.
+- Gilt für Blasentexte, Hilfe-Sätze und die Info-Kapsel (K9). Die Anzeigen-Pillen zeigen weiter wie heute.
+
+**K4 – Hilfe nach drei Fehltipps, genau.**
+- **Handlungs-Schritt:** Der Hilfe-Satz aus 13.5 **ersetzt den ganzen Blasentext** (auch den Zuruf). Die Hilfe-Sätze stehen jeder für sich (längster 72 Zeichen, T13), die 120er-Grenze ist damit immer eingehalten. Grund: Eine Hälfte-Regel ergibt bei T13 146 Zeichen (gezählt) und ist bei Ein-Satz-Schritten (T19) nicht definiert. Nach drei Fehlversuchen braucht der Spieler eine klare Anweisung, keine Wiederholung der Erklärung.
+- **Erklär-Schritt:** Der Text bleibt ganz stehen (er ist der Inhalt). Links in der Knopfzeile neben [Weiter] erscheint gedämpft „Tippe auf Weiter.“ (Manrope 600 12, `text_gedaempft`, 17 Zeichen, passt auch bei 256 px Blasenbreite neben den Knopf). Die Blase wird nicht höher. Während des Wartens (T11, T23, noch kein [Weiter]) steht dort die Restzeit; dann gibt es keine Hilfe.
+- **Dauer:** Die Hilfe bleibt, bis der Schritt wechselt. In T13 ersetzt der Zwischenstand T13b („Das erste Haus ist erreicht …“) die Hilfe, weil die Rückmeldung wichtiger ist. Der Zähler läuft weiter; beim nächsten Fehltipp kommt die Hilfe zurück.
+- **Vorrang in der Blase:** Sperr-Satz (gesperrter Knopf im Loch angetippt, 13.7 und K7) vor Hilfe-Satz vor T13b vor Grundtext. Ein Sperr-Satz bleibt bis zur nächsten Handlung im Loch (Strich, Zurück, Radierer, anderer Knopf).
+
+**K5 – Pfeil am Bildrand: entfällt, ersetzt durch eine Kamera-Grenze (Muss).**
+- Zweck des Pfeils war: Niemand verliert in Kapitel 3 die Häuser. Das erreicht eine Grenze einfacher und ohne zusätzliches Bedienelement.
+- **Muss:** In Kapitel 3 bleibt die Bildmitte im Rechteck um Heizzentrale und beide Tutorial-Häuser. Hinauszoomen geht höchstens bis zur Startansicht von T13 (in der alles mit 24 px Rand passt), hineinzoomen bis 3. Am Rand bleibt die Karte einfach stehen, ohne Rückfedern. Gilt für Ziehen, Zwei-Finger-Zoom und Mausrad.
+- Ist die Grenze technisch nicht baubar, ist der Pfeil nach der alten Fassung von 13.7 Pflicht in NR13 – **kein** Folgepaket, weil ein Pflicht-Tutorial ohne Rückweg festhängen kann.
+
+**K6 – „Willkommen zurück“ (A38) entfällt im Tutorial ganz.** Es wird nicht für die Zeit nach T26 aufgehoben. Die Zeit wird trotzdem nachgerechnet (13.7). Grund: Nach T26 käme eine Abwesenheits-Bilanz aus dem Nichts; der Spieler war ja gerade da. Erst beim nächsten echten Wiederöffnen nach dem Tutorial erscheint A38 wie gewohnt. Der Update-Hinweis (A83) wartet weiter bis nach T26 und erscheint erst, wenn der erste Auftrag ausgefedert ist (frühestens 600 ms nach [Los geht’s]).
+
+**K7 – Geld-Sperre beim Abschließen (neue Spielregel E-NR13-d), Wortlaut bestätigt und gefasst.**
+- [Abschnitt abschließen] gesperrt nach 12.19, Zeile 2 (kurz, ≤ 18 Zeichen): **„Geld reicht nicht“** (17 Zeichen, statt „zu teuer“ – sagt, was fehlt).
+- Satz in der Blase (wie die anderen Sperr-Sätze): **„Dann reicht dein Geld nicht mehr für die Stationen. Nimm mit Zurück ein paar Leitungen weg.“** (91 Zeichen, 2 Sätze). Simons Wort „nimm mit Zurück ein paar weg“ bleibt; „für die Stationen“ erklärt, warum es fehlt, obwohl noch Geld da ist.
+- Fehlen gleichzeitig Häuser und Geld, gilt die Geld-Sperre (Zeile 2 und Satz), weil Weiterzeichnen es nur schlimmer macht.
+- In T14 (beide Häuser erreicht, Geld fehlt) zeigt der Finger nicht auf einen gesperrten Knopf. **Muss:** Die Blase zeigt den Geld-Satz statt des T14-Textes. **Kann:** Loch und Finger wandern auf [↶ Zurück]. Sobald das Geld reicht, kommen T14-Text, Loch und Finger zurück.
+
+**K8 – Nach „Abschnitt abschließen“ im Tutorial:** Die Zeichenleiste schließt, **das Baumenü öffnet nicht wieder**, die Kamera bleibt stehen. Danach kommt sofort T15. Grund: Ein offenes Baumenü würde das Hausblatt-Ziel in T15 verdecken und bräuchte ein eigenes [X], das im Tutorial gesperrt ist. Außerhalb des Tutorials bleibt das heutige Verhalten.
+
+**K9 – Sichtbare Kleinigkeiten: Muss/Kann und Vorgabe** (für die Paketzuordnung durch den Architekten)
+| Punkt | Muss/Kann | Vorgabe |
+|---|---|---|
+| Info-Kapsel T06/T07 | **Muss** | Chip `neutral` 26 px (12.7), Text „{kwh} im Jahr · bis {kw_ohne}“ (Spielwert 30 Zeichen) aus dem Kern. Sitzt mittig 8 px über dem oberen Rand des Lochs um Haus 1; reicht der Platz unter der Anzeigenreihe (top 64) nicht, 8 px unter dem Loch. Blendet mit T06 ein (200 ms), bleibt in T07, blendet mit T08 aus. Nicht tippbar, `aria-hidden` (die Blase sagt dasselbe). Bewegt sich mit der Kamera (in T06/T07 steht sie). |
+| Erst-Hilfe der Zeichenleiste in T12/T13 | **Muss** | Öffnet die Zeichenleiste im Tutorial, klappt die Erst-Hilfe (12.18) **nicht** auf. Nach dem Tutorial gilt sie als gesehen: Auch beim nächsten Öffnen außerhalb des Tutorials erscheint sie nicht von selbst; [?] öffnet sie wie immer. Wann das Merkmal gesetzt wird (beim ersten Öffnen im Tutorial oder bei T26), entscheidet der Architekt – Hauptsache nicht beim Spielstart (Test „Startdorf gleich“). Wer mit „Ohne Tutorial starten“ beginnt, sieht die Erst-Hilfe normal. |
+| Blatt scrollt zum Ziel (T16, auch T17/T19) | **Muss** | Allgemeine Regel: Liegt ein Ziel in einem scrollbaren Blatt nicht ganz im sichtbaren Bereich, scrollt das Blatt zuerst (kürzester Weg, 200 ms weich; bei „Weniger Bewegung“ sofort), **dann** erscheint das Loch. Während das Blatt scrollt, ist das Abdunkeln schon da, aber noch ohne Loch. Nach dem Scrollen 8 px Abstand zur Kante. |
+| Vorlesenamen und Fokus (13.11) | **Muss** (Pflichtboden) | Fokus wie 13.11: Erklär-Schritt → [Weiter]; Handlungs-Schritt mit Bedienelement → das Element im Loch, mit sichtbarem Ring. Für Kartenobjekte im Loch (Heizzentrale, Haus 1, Haus 2) liegt für die Dauer des Schritts ein unsichtbares, fokussierbares Ersatz-Element über dem Loch, Name „Heizzentrale“ / „Haus 1“ / „Haus 2“. Enter löst den Tipp aus. Das Element lässt Fingertipps durch auf die Karte (`pointer-events: none`), der sichtbare Ring zeigt sich nur bei Tastaturfokus. Tab wechselt nur zwischen Ziel und [Weiter]. Blasentext über `aria-live="polite"`, Spotlight, Finger, Spur und Kapsel `aria-hidden`. |
+| Finger fährt die Spur ab (T13) | **Muss** | Finger startet am Abgang der Heizzentrale, fährt die Spur in 2.400 ms gleichmäßig ab (über die Abzweigung zuerst zu Haus 1, dann weiter zu Haus 2), blendet am Ende aus, 600 ms Pause, von vorn. Verschwindet beim ersten eigenen Strich. „Weniger Bewegung“: Finger steht still am Abgang. |
+| Wärme-Pille hüpft (T03) | Kann | Einmal 240 ms, Größe 1 → 1,08 → 1, `kurve.weich` (12.9). „Weniger Bewegung“: entfällt. Das Loch um die Pille zeigt sie auch ohne Hüpfen. |
+| Heizzentrale federt, Rauch kräftiger (T01) | Kann | Nach dem Tipp: Federn 450 ms mit `plopp_staerke` (wie das „Erreicht“-Zeichen), Rauch 2 s mit doppelter Menge. „Weniger Bewegung“: entfällt. Die Rückmeldung auf den Tipp ist schon der Wechsel zu T02 (neue Blase, [Weiter]). |
+| Loch um das Leitungsstück (T25) | **Muss** | Ziel ist das eingezeichnete Leitungsfeld auf dem Weg Heizzentrale → Haus 1, das der Mitte zwischen beiden am nächsten liegt; Loch als Ellipse um dieses Feld und seine beiden Nachbarfelder + 12 px. Darin laufen die Fließpunkte. |
+| Wiedereinstieg „Wir waren gerade bei: {Kapitelname}“ | **Muss** | Kapitelname des Schritts, an dem es tatsächlich weitergeht (berechnet aus dem Zustand, 13.7), nicht aus der Merke. Beispiel: Merke 2, Zustand ergibt T15 → „Übergabestationen“. |
+| Zwischenschritt Reiter „Leitungen“ (T09 / bei T20) | – | Öffnet das Baumenü im Tutorial immer auf „Leitungen“ (Bauplan), entfallen beide Schritte. Wird er doch gebraucht, gilt der T09-Text und die T09-Hilfe. |
+| Technik der Löcher im Abdunkeln | – | Frei (Canvas oder CSS), solange das Bild 13.2 entspricht: Ellipse/Rechteck, 3 px hellgelb, 2 px Kontur außen, 16 px Schein. |
+
+**K10 – Leitungs-Spur T13 (nur Gestaltung).**
+- **Wann:** erscheint mit T13 (Zeichenleiste offen), **nicht** in T12 (da ist die Karte abgedunkelt und das Ziel ist die Katalogkarte). Ab T14 ist sie ganz weg, auch wenn noch Spurfelder übrig sind (der Spieler darf neben der Spur zeichnen, 13.7).
+- **Ebene:** Sie wird in der **oberen, jedes Bild neu gezeichneten Ebene** gezeichnet, nicht in der zwischengespeicherten Bodenebene. Reihenfolge von unten: Boden/Straße → eingezeichnete Leitungen → **Spur** → Strich, der gerade gezogen wird → Gebäude → Kunden-Blasen und „Erreicht“-Zeichen → Finger. So liegt die Spur auf der Straße, endet sichtbar **an** den Häusern statt darüber, und der eigene Strich liegt über ihr.
+- **Verschwinden:** Ein Spurfeld verschwindet, sobald auf diesem Feld eine Leitung eingetragen ist – auch schon während des Ziehens, wenn das Spiel die Felder dabei einträgt. Zurück oder Radierer bringen das Spurfeld zurück. Bleiben in einem Abschnitt der Spur nur einzelne Felder übrig, behalten sie ihre Pfeilspitzen (alle drei Felder, gezählt ab dem Abgang).
+- **Wiedereinstieg** in T12/T13: Spur nur für die noch freien Felder (13.7).
+- „Weniger Bewegung“: Die Spur ist ohnehin unbewegt; nur der Finger steht still (K9).
