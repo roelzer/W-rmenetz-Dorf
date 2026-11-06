@@ -438,3 +438,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 13:00 | ▶ | reviewer | Review NR13 P3a |
 | 2026-11-06 13:00 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Commit c47bb9e333b9f46f36fb82e7872ad6721d233eb8 auf Branch nr13-p3b (Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-ab4906 ([Bericht](docs/pruefberichte/20261106-130037-entwickler-ab4906391fe4e95d5.md)) |
 | 2026-11-06 13:00 | ▶ | reviewer | Review NR13 P3b |
+| 2026-11-06 13:03 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig, wegen eines Befunds. Plan-Treue ✅: alle Dateien aus Teil a sind im Diff und alle Namen stimmen mit dem Bauplan. Teil b fehlt wie ab ([Bericht](docs/pruefberichte/20261106-130350-reviewer-a38e82b6792a75a65.md)) |
+| 2026-11-06 13:04 | ▶ | entwickler | NR13 P3a Fix-Runde |
