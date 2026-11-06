@@ -564,11 +564,14 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
 
   it('test_nr13_sperren – Grundzustand gesperrt, Gesten nur in T13, Abschließen-Sperre in T13, außerhalb nichts', () => {
     const IMMER: Bedienung[] = ['zoom', 'doerfer', 'auftrag', 'verwerfen', 'sofort', 'express', 'weiter_einzeichnen', 'blatt_schliessen'];
+    // DESIGN 13.16 K4: Aktionen, die das Tutorial nie freigibt, zeigen „nach dem Tutorial“; alle übrigen Sperren „später wählbar“
+    const NACH_TUTORIAL: Bedienung[] = ['verwerfen', 'sofort', 'express', 'weiter_einzeichnen'];
+    const kurzErwartet = (b: Bedienung): string => (NACH_TUTORIAL.includes(b) ? 'nach dem Tutorial' : 'später wählbar');
     const l = lageBauen();
     const t = new Tutorial(l);
     for (const b of [...IMMER, 'karte_gesten' as const]) {
       const s = t.sperre(b)!;
-      expect([b, s.kurz]).toEqual([b, 'später wählbar']);
+      expect([b, s.kurz]).toEqual([b, kurzErwartet(b)]);
     }
     expect(t.sperre('abschliessen')).toBeNull();
     bis(t, l, 'T13');
@@ -587,7 +590,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(t.sperre('karte_gesten')!.kurz).toBe('später wählbar');
     l.geldFehlt = 1;
     expect(t.sperre('abschliessen')).toBeNull();
-    for (const b of IMMER) expect(t.sperre(b)!.kurz).toBe('später wählbar');
+    for (const b of IMMER) expect([b, t.sperre(b)!.kurz]).toEqual([b, kurzErwartet(b)]);
 
     const alt = lageBauen();
     delete alt.stand.tutorial;
