@@ -318,3 +318,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:39 | ▶ | reviewer | Review NR18-P5 Spielstart |
 | 2026-11-06 08:39 | ▶ | tester | Tester: Starttest umbauen |
 | 2026-11-06 08:44 | ■ 🟢 | tester | 🟢 Beide Aufgaben sind erledigt. Ich habe keinen echten Fehler im neuen Spielstart (P5) gefunden. Geändert habe ich nur zwei Testdateien, keinen Programmcode ([Bericht](docs/pruefberichte/20261106-084410-tester-af5f7d2b1f14ca806.md)) |
+| 2026-11-06 08:44 | ■ 🟡 | reviewer | 🟡 **NR18-P5 (neuer Spielstart): freigegeben mit kleinen Punkten.** Vor dem Merge muss aber ein alter Test umgebaut werden. Das ist kein Fehler des Entwickler ([Bericht](docs/pruefberichte/20261106-084421-reviewer-ae051d5c482a40d8b.md)) |
