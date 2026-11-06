@@ -142,6 +142,10 @@ describe('NR13 P2 Kern-Anbindung', () => {
       expect(w.leitung).toBe('d32'); // 2 × 9 kW = 18 kW > 15 kW
     });
     expect(s.tutorialWerte().leitung).toBe('d25');
+    // Kessel Stufe 2 = 90 kW (Katalog): die Zahl im Text folgt dem Netz, nicht einer festen 60
+    s.stand.innen[0].stufe = 2;
+    s.aenderung();
+    expect(s.tutorialWerte().kessel_kw).toBe(90);
   });
 
   it('test_nr13_leitung_traegt_ohne_warnung: Spur mit berechneter Leitung, keine Warnung, beide Häuser warm (auch mit 32er)', () => {
