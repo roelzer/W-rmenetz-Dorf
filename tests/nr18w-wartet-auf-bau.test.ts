@@ -17,12 +17,20 @@ const BAUZEIT_S = KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor;
 const haus = (s: Spiel, x: number, y: number): Objekt =>
   objektBei(s, x, y, (o) => KATALOG[o.typ].kategorie === 'haus') as Objekt;
 
+/** Ersatz 32er auf (10|10)…(10|13) im offenen Abschnitt: 25 kW tragen die 20 kW beider Häuser. */
+function ersatz32(s: Spiel): void {
+  for (const [x, y] of SPUR.slice(0, 4)) {
+    const l = objektBei(s, x, y, (o) => o.typ === 'd25') as Objekt;
+    expect(ersatzPlanen(s, l.id, 'd32').ok).toBe(true);
+  }
+}
+
 /** Erstes Haus gebaut und warm, dann Station am zweiten Haus → beide kalt wegen Leitung. */
-function zweiHaeuserKalt(): { s: Spiel; z: Uhr; h1: Objekt; h2: Objekt } {
+function zweiHaeuserKalt(zusatz: ReadonlyArray<readonly [number, number]> = []): { s: Spiel; z: Uhr; h1: Objekt; h2: Objekt } {
   const z: Uhr = { t: T0 };
   const s = new Spiel(neuerSpielstand(T0), () => z.t);
   expect(abschnittOeffnen(s, z)).toBe(true);
-  for (const [x, y] of SPUR) expect(s.platzieren('d25', x, y).ok).toBe(true);
+  for (const [x, y] of [...SPUR, ...zusatz]) expect(s.platzieren('d25', x, y).ok).toBe(true);
   const h1 = haus(s, 12, 14), h2 = haus(s, 9, 13);
   expect(s.stationKaufen(h1.id, passendeStation(10).id).ok).toBe(true);
   abschnittBauen(s, z);
@@ -68,6 +76,65 @@ describe('NR18-W: Häuser warten auf den Bau', () => {
     expect(abschnittOeffnen(s, z)).toBe(true);
     vorstellen(s, z, BAUZEIT_S);
     expect(s.stand.abschnitt?.phase, 'Abschnitt läuft noch').toBe('offen');
+    expect(h1.gekuendigt).toBe(true);
+    expect(h2.gekuendigt).toBe(true);
+  });
+
+  // Review W1: Erst ein abgeschlossener Abschnitt ist verbindlich. Offen mit eingezeichnetem Ersatz zählt nicht, sonst bliebe ein
+  // nie abgeschlossener Abschnitt ein Dauer-Freibrief. Vorgespult wird die Bauzeit (900 s): 3 Spieltage (≈ 59 s) reichen von
+  // etwa 40 % nicht bis unter 20 % (Zeitkonstante 90 s, Ziel unter 20 % braucht gut 180 s).
+  it('test_nr18w_offen_mit_ersatz_kuendigt – Abschnitt offen, Ersatz eingezeichnet, nie abgeschlossen: beide kündigen', () => {
+    const { s, z, h1, h2 } = zweiHaeuserKalt();
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    ersatz32(s);
+    vorstellen(s, z, BAUZEIT_S);
+    expect(s.stand.abschnitt?.phase).toBe('offen');
+    expect(h1.gekuendigt).toBe(true);
+    expect(h2.gekuendigt).toBe(true);
+  });
+
+  it('test_nr18w_bestellen_kuendigt_nicht – Abschnitt abgeschlossen (Phase bestellen) mit Ersatz: keine Kündigung', () => {
+    const { s, z, h1, h2 } = zweiHaeuserKalt();
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    ersatz32(s);
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    vorstellen(s, z, BAUZEIT_S);
+    expect(s.stand.abschnitt?.phase).toBe('bestellen');
+    expect(h1.gekuendigt).toBeFalsy();
+    expect(h2.gekuendigt).toBeFalsy();
+  });
+
+  // Review W2: Ändert sich das gebaute Netz (hier: Station am dritten Haus (9|15) über die 25er (10|15)), muss das Probe-Netz neu
+  // gerechnet werden. 3 × 10 kW = 30 kW > 25 kW der 32er → auch nach dem Bau kalt → Kälte-Abzug wie bisher.
+  it('test_nr18w_netz_aendert_sich_im_bau – drittes Haus im Bau: auch nach dem Bau zu dünn → beide kündigen', () => {
+    const { s, z, h1, h2 } = zweiHaeuserKalt([[10, 15]]);
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    ersatz32(s);
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    expect(s.materialBestellen().ok).toBe(true);
+    vorstellen(s, z, 10);
+    expect(h1.gekuendigt || h2.gekuendigt, 'Vorbedingung: noch keiner gekündigt').toBeFalsy();
+    const h3 = haus(s, 9, 15);
+    expect(s.stationKaufen(h3.id, passendeStation(10).id).ok).toBe(true);
+    vorstellen(s, z, BAUZEIT_S / 2);
+    expect(s.stand.abschnitt?.phase, 'noch im Bau').toBe('bau');
+    expect(h1.gekuendigt).toBe(true);
+    expect(h2.gekuendigt).toBe(true);
+  });
+
+  // Review W2: Wieder geöffnet und einen Ersatz wegradiert (gebautes Netz unverändert, nur der Abschnitt) → Probe-Netz neu.
+  it('test_nr18w_ersatz_wegradiert_kuendigt – abgeschlossen, wieder geöffnet, Ersatz auf (10|12) entfernt, erneut abgeschlossen: beide kündigen', () => {
+    const { s, z, h1, h2 } = zweiHaeuserKalt();
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    ersatz32(s);
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    vorstellen(s, z, 10);
+    expect(s.abschnittWiederOeffnen().ok).toBe(true);
+    // Ohne Ersatz auf (10|12) bleibt dort die 25er mit 20 kW > 15 kW – auch nach dem Bau zu dünn.
+    expect(s.geplanteLeitungEntfernen(10, 12).ok).toBe(true);
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    vorstellen(s, z, BAUZEIT_S);
+    expect(s.stand.abschnitt?.phase).toBe('bestellen');
     expect(h1.gekuendigt).toBe(true);
     expect(h2.gekuendigt).toBe(true);
   });

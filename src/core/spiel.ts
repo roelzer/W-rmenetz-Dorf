@@ -238,12 +238,14 @@ export class Spiel {
     return berechneNetz(objekte, this.stand.innen, this.stand.preisstufe, this.vorlauf_c, this.grundgebuehr_eur);
   }
   /**
-   * NR18-W (Entscheidung 06.11., Weg A): Häuser, die nur wegen der Leitung kalt sind, während ein Bauabschnitt läuft, und im
-   * Netz „wie nach dem Bau“ warm wären – sie warten auf den Bau und verlieren keine Zufriedenheit. Ohne laufenden Abschnitt
-   * oder ohne Haus kalt wegen Leitung wird nichts gerechnet (das ist der Normalfall in jedem Spieltakt).
+   * NR18-W (Entscheidung 06.11., Weg A): Häuser, die nur wegen der Leitung kalt sind und nach dem laufenden Bauabschnitt warm
+   * wären – sie warten auf den Bau und verlieren keine Zufriedenheit. Nur in den Phasen bestellen und bau: Erst der
+   * abgeschlossene Abschnitt ist verbindlich, ein offener, nie abgeschlossener wäre sonst ein Dauer-Freibrief (Review W1).
+   * Ohne solchen Abschnitt oder ohne Haus kalt wegen Leitung wird nichts gerechnet (der Normalfall in jedem Spieltakt).
    */
   private wartenAufBau(): Set<number> {
-    if (!this.stand.abschnitt) return new Set();
+    const phase = this.stand.abschnitt?.phase;
+    if (phase !== 'bestellen' && phase !== 'bau') return new Set();
     const kalt = [...this.netz.kalt].filter(([, grund]) => grund === 'leitung').map(([id]) => id);
     if (!kalt.length) return new Set();
     const probe = this.probeGespeichert();
@@ -256,7 +258,7 @@ export class Spiel {
   private probeGespeichert(): Netz {
     const schluessel = this.stand.objekte
       .filter((o) => o.geplant || o.ersatz)
-      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}`).join('|');
+      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}`).join('|');
     const sp = this.probeSpeicher;
     if (sp && sp.zu === this.netz && sp.schluessel === schluessel) return sp.netz;
     const netz = this.probeNetz();
