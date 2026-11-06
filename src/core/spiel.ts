@@ -39,6 +39,8 @@ const tageText = (t: number): string => `${t} ${t === 1 ? 'Tag' : 'Tage'}`;
 /** Bauplan NR18 Abschnitt 6: Ablehnungen des Ersatzes (außerhalb des offenen Abschnitts) und des Entfernens während des Baus (W5). */
 /** NR18-D (Designer 2026-11-06): einmalige Start-Meldung nach der Begrüßung, bis das Tutorial (NR13) sie ablöst. */
 export const START_TIPP = `Tipp ein Haus an – ${ABSCHNITT_HELFER.planung} plant dort deinen ersten Bauabschnitt.`;
+/** AE-NR13-7: Satz, mit dem die Oberfläche die gesperrte Wandstation im Tutorial erklärt. */
+export const WANDSTATION_TUTORIAL = 'Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.';
 const ERSATZ_NUR_IM_ABSCHNITT = `Dickere Leitungen entstehen nur im Bauabschnitt – lass ${ABSCHNITT_HELFER.planung} einen planen.`;
 const ERSATZ_IM_BAU = 'Diese Leitung wird gerade ersetzt – warte, bis der Abschnitt gebaut ist.';
 const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
@@ -89,6 +91,10 @@ export class Spiel {
 
   /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind
    *  (mit oder ohne Station), aufsteigend. Dieselbe Probe-Rechnung wie die Warnprüfung (AE-NR18-3). */
+  /** NR13: Das Tutorial läuft, solange die Merke im Spielstand steht (AE-NR13-3). */
+  tutorialAktiv(): boolean { return !!this.stand.tutorial; }
+  /** AE-NR13-7: Die Wandstation ist erst nach dem Tutorial wählbar. */
+  wandstationFrei(): boolean { return !this.stand.tutorial; }
   erreichteHaeuser(): number[] { return this.erreichteIn(this.probeNetz()); }
   /** NR18: Warnsätze „Nach dem Bau zu dünn“ des abgeschlossenen Bauabschnitts (Phase bestellen). */
   abschnittWarnungen(): string[] { return [...this.warnliste]; }

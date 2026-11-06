@@ -5,7 +5,8 @@ import '@fontsource/manrope/latin-800.css';
 import './ui/stil.css';
 
 import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL, speichernErlaubt } from './core/speichern';
-import { neuerSpielstand, Spiel } from './core/spiel';
+import { Spiel } from './core/spiel';
+import { neuesSpielMitTutorial } from './core/start';
 import { Maler } from './render/maler';
 import { bodenEbeneEinrichten, bodenEbeneVerwerfen, zeichneSzene } from './render/szene';
 import { animationBedarf, szenenSchluessel } from './render/szene-schluessel';
@@ -45,7 +46,7 @@ try {
   console.warn('Spielstand führte zu einem Fehler, neues Dorf', fehler);
   sichern(gelesen);
   startHinweis = 'Dein alter Spielstand ließ sich nicht öffnen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).';
-  spiel = new Spiel(neuerSpielstand(uhr()), uhr);
+  spiel = new Spiel(neuesSpielMitTutorial(uhr()), uhr);
 }
 
 const leinwand = document.getElementById('karte') as HTMLCanvasElement;

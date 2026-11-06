@@ -121,6 +121,9 @@ export interface Spielstand {
   start_tipp_gezeigt?: boolean;
   /** DESIGN.md 12.18 „Erste Nutzung“: Die Zeichenleiste wurde in diesem Spielstand schon einmal geöffnet (fehlt = noch nie) */
   zeichenhilfe_gesehen?: boolean;
+  /** NR13: Tutorial läuft (nur neue Spiele, AE-NR13-3). kapitel 1–6 = zuletzt begonnenes Kapitel (DESIGN 13.5).
+   *  Fehlt = kein Tutorial (alte Stände, fertig, übersprungen). */
+  tutorial?: { kapitel: number };
   /** A50: Sekunden, in denen die Anschlussnehmer zufrieden waren (Mundpropaganda) */
   zufrieden_s?: number;
   /** A81: monatliche Grundgebühr je Anschluss in € */
