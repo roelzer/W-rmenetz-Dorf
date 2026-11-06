@@ -9,6 +9,8 @@ import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
 const kw = (n: number): string => n.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+/** Kurzname einer Leitung ohne „-Leitung“ („40er“), wie in den NR18-Sätzen (Bauplan NR18 Abschnitt 6). */
+const kurzname = (t: TypId): string => KATALOG[t].name.replace(/-Leitung$/, '');
 import type { Ui } from './schnittstelle';
 import { zeitText } from '../render/gebaeude';
 
@@ -47,11 +49,13 @@ export const kurzGrund = (m: Merkmal): string => `ab Stufe\u00a0${abStufe(m)}`;
 
 /** A88: freigeschaltete Leitungen als Knöpfe (ohne `ohne`) plus höchstens ein deaktivierter Knopf „Dickere“ mit dem Grund –
  *  für Zeichenleiste und Leitungskarte. LEITUNGEN ist dünn → dick sortiert, die erste gesperrte ist also die nächste Freischaltung.
- *  `kurz`: In der engen Zeichenleiste reicht „ab Stufe X“ (DESIGN.md 12.15), die Leitungskarte behält den langen Grund. */
-export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement, kurz = false): HTMLButtonElement[] {
-  const knoepfe = LEITUNGEN.filter((t) => t !== ohne && sp.freigeschaltet(t)).map(knopfFuer);
+ *  `kurz`: In der engen Zeichenleiste reicht „ab Stufe X“ (DESIGN.md 12.15), die Leitungskarte behält den langen Grund.
+ *  `nurDicker`: nur Leitungen, die dicker sind als `ohne` (Ersetzen auf der Leitungskarte). */
+export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement, kurz = false, nurDicker = false): HTMLButtonElement[] {
   // Auf der Leitungskarte zählt nur eine gesperrte Leitung, die dicker ist als die vorhandene (`ohne`) – sonst gäbe es dort nichts „Dickeres“.
   const ab = ohne ? LEITUNGEN.indexOf(ohne) + 1 : 0;
+  // NR18 `nurDicker`: Ersetzen lohnt nur mit einer dickeren Leitung, der Kern lehnt dünnere ohnehin ab.
+  const knoepfe = LEITUNGEN.filter((t, i) => t !== ohne && sp.freigeschaltet(t) && (!nurDicker || i >= ab)).map(knopfFuer);
   const naechste = LEITUNGEN.slice(ab).find((t) => !sp.freigeschaltet(t));
   const grund = naechste ? (kurz ? kurzGrund(naechste) : sp.sperrgrund(naechste)) : null;
   // DESIGN.md 12.19: Hinweis beim Antippen nennt die volle Stufe, auch wenn der Knopf nur den kurzen Grund trägt
@@ -211,7 +215,7 @@ export class Kontext {
     c.append(h('p', { class: 'gedaempft' }, 'Gebäude stehen fest. Wer näher am Netz liegt, hat es leichter – wer weit weg ist, braucht eine lange Leitung.'));
   }
 
-  /** A92 (NR16): Knöpfe zum Anschließen eines Hauses ohne Anschluss. Ohne offenen Bauabschnitt sind beide gesperrt und nennen den Grund;
+  /** A92 (NR16): Knöpfe zum Anschließen eines Hauses ohne Anschluss. Ohne offenen Bauabschnitt ist „Leitung selbst legen“ gesperrt und nennt den Grund;
    *  gibt es noch gar keinen Abschnitt, lässt er sich hier gleich planen (dieselbe Aktion und derselbe Preis wie im Baumenü). */
   private anschlussWeg(o: Objekt): HTMLElement[] {
     const sp = this.ui.spiel, sperre = abschnittSperreKurz(sp, () => this.ui.jetzt_ms());
@@ -220,11 +224,10 @@ export class Kontext {
       const preis = KONSTANTEN.abschnitt_planung_eur;
       reihen.push(h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Bauabschnitt planen lassen`, () => { sp.abschnittPlanen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(preis), sperre: geldSperre(sp, preis) })));
     }
-    const ziehen = sp.hausanschlussGeplant(o.id)
+    // NR18: Keine automatische Wegsuche – der Spieler zeichnet die Leitung selbst bis ans Haus.
+    reihen.push(h('div', { class: 'knopfreihe' }, sp.hausanschlussGeplant(o.id)
       ? knopf('Hausanschluss geplant', () => undefined, '', { klein: true, sperre: ANSCHLUSS_GEPLANT })
-      : knopf('Hausanschluss ziehen', () => { sp.hausanschlussPlanen(o.id); this.ui.geaendert(); }, 'los', { klein: true, unter: 'zur nächsten Leitung', sperre });
-    const selbst = knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, sperre });
-    reihen.push(h('div', { class: 'knopfreihe' }, ziehen, selbst));
+      : knopf('Leitung selbst legen', () => this.ui.stempeln('d25'), '', { klein: true, sperre })));
     return reihen;
   }
 
@@ -379,9 +382,27 @@ export class Kontext {
     // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
     const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
     if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, hinweis: tStueckHinweis(), unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
-    const tausch = o.geplant ? [] : leitungsKnoepfe(sp, o.typ, (t) => knopf(`Tauschen: ${KATALOG[t].name}`, () => { sp.leitungTauschen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(KATALOG[t].kosten_eur![0]), klein: true }));
-    if (tausch.length) c.append(h('div', { class: 'knopfreihe' }, ...tausch));
+    if (!o.geplant) this.ersatzBereich(c, o);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
+  }
+
+  /** NR18: Eine gebaute Leitung wird nur im offenen Bauabschnitt dicker (bezahlt mit der Materialbestellung, getauscht beim
+   *  Bauende). Außerhalb zeigt ein gesperrter Knopf „Dickere Leitung“, woran es hängt. */
+  private ersatzBereich(c: HTMLElement, o: Objekt): void {
+    const sp = this.ui.spiel, offen = sp.abschnitt?.phase === 'offen';
+    if (o.ersatz) {
+      c.append(h('p', {}, `Wird im Bauabschnitt durch eine ${kurzname(o.ersatz.typ)} ersetzt.`));
+      if (offen) c.append(h('div', { class: 'knopfreihe' }, knopf('Ersatz zurücknehmen', () => { sp.geplanteLeitungEntfernen(o.x, o.y); this.ui.geaendert(); }, '', { klein: true })));
+      return;
+    }
+    if (offen) {
+      // E1: Neupreis minus 50 % des Altpreises; im Fluss kommt die Spülbohrung dazu (Bauplan NR18 5.1)
+      const preis = (t: TypId): number => KATALOG[t].kosten_eur![0] - sp.rueckkauf_eur(o.typ, 1) + (sp.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0);
+      const ersatz = leitungsKnoepfe(sp, o.typ, (t) => knopf(`Ersetzen: ${KATALOG[t].name}`, () => { sp.ersatzPlanen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(preis(t)), klein: true }), false, true);
+      if (ersatz.length) c.append(h('div', { class: 'knopfreihe' }, ...ersatz));
+    } else if (LEITUNGEN.indexOf(o.typ) < LEITUNGEN.length - 1) {
+      c.append(h('div', { class: 'knopfreihe' }, knopf('Dickere Leitung', () => undefined, '', { klein: true, sperre: abschnittSperreKurz(sp, () => this.ui.jetzt_ms()) })));
+    }
   }
 
   private heizzentrale(c: HTMLElement, o: Objekt): void {

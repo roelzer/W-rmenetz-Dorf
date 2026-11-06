@@ -36,8 +36,6 @@ export interface Objekt {
   station?: string;
   /** Gebäude des Ortes (A21): zählen nicht gegen die Baugrenzen der Heizzentralen-Stufe */
   bestand?: boolean;
-  /** Geplante Leitungen eines automatischen Hausanschlusses (gemeinsam zurücknehmbar) */
-  gruppe?: number;
   /** NR18 (AE-NR18-4): gebaute Leitung, die im laufenden Bauabschnitt durch eine dickere ersetzt wird; `nr` ordnet „Zurück“
    *  (aus `naechste_id`). Bis zum Bauende rechnet das Netz mit dem alten Typ. */
   ersatz?: { typ: TypId; nr: number };
