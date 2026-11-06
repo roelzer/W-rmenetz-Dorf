@@ -289,3 +289,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 07:25 | ■ 🟡 | architekt | 🟡 NR18-Bauplan Fassung 2 ist fertig. Commit **c84b274** auf Branch `architekt/nr18-f2` (Basis 124952e). Gelb, weil der Kritiker den Plan noch nicht geprüft  ([Bericht](docs/pruefberichte/20261106-072548-architekt-a097cdcc1b6a538da.md)) |
 | 2026-11-06 07:27 | ▶ | kritiker | Kritik NR18 Fassung 2 |
 | 2026-11-06 07:27 | ▶ | fachpruefer | Fachprüfung NR18 F2 Texte |
+| 2026-11-06 07:31 | ■ 🟡 | fachpruefer | Ampel: GELB  ([Bericht](docs/pruefberichte/20261106-073129-fachpruefer-a91af8299137dff02.md)) |
