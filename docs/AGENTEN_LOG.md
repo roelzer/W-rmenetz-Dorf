@@ -347,3 +347,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 09:20 | ■ 🟢 | reviewer | 🟢 Nachprüfung NR18-W (Fix 17b68e1 auf e1969dc): freigegeben. Ein kleiner Punkt wird nur gesammelt und blockiert nicht.  ([Bericht](docs/pruefberichte/20261106-092049-reviewer-a1bbd5e8f154c4b35.md)) |
 | 2026-11-06 09:22 | ▶ | tester | Tester P0b NR19-Vorarbeit |
 | 2026-11-06 09:22 | ▶ | designer | Designer Sichtprüfung NR18 |
+| 2026-11-06 09:33 | ■ 🟡 | designer | 🟡 **Sichtprüfung NR18 (Stand e99e48f)**  ([Bericht](docs/pruefberichte/20261106-093307-designer-a94ed031ff6a1184e.md)) |

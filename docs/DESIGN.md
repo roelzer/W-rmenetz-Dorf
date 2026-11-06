@@ -585,6 +585,14 @@ Tokens: neu `menue.mass_px.zeichen_abschluss_hoehe` 52. Sonst keine neuen.
 
 **Prüfkriterium (Foto), zusätzlich zu 12.16–12.20:** 844×390 und 667×375: Zeichenleiste frisch geöffnet ohne Leitung (Abschließen grau mit „nichts gezeichnet“, Zurück grau) und direkt nach dem Antippen von beiden (Meldung links der Leiste, Leiste bleibt offen); nach dem ersten Strich (beide frei, Aktionsleiste gleich hoch); Hausblatt mit Helfer-Knopf ohne Geld (Preis in Zeile 2, kein Schloss) und nach dem Antippen (Meldung mit aufgerundetem Fehlbetrag). Per Skript: Abschließen mit 0 Leitungen → Leiste noch offen, Abschnitt-Phase unverändert `offen`, Meldung = B6-Text; Zurück mit 0 Leitungen → Meldung = neuer B7-Text; Helfer ohne Geld → Geld unverändert, kein Auftrag; Fall „Helfer frei, Haus ohne Station“ aus Punkt 3 → Meldung H4, Zeile 2 danach „erst Station wählen“.
 
+### 12.22 NR18 Ersatz, Engstelle, Warnliste – Vorgaben aus der Sichtprüfung (2026-11-06, Stand e99e48f)
+Fotos 844×390 und 667×375, Gerätefaktor 2. Bestätigt: Engstellen-Raute `#d8392f` 3 px (auch auf der 25er gut lesbar, weil sie feldgroß ist und über Wiese/Straße läuft); goldene Ersetzen-Knöpfe (`knopf.geld`); „Hausanschluss geplant“ grau ohne Schloss; Sperre „Dickere Leitung · kein Bauabschnitt“.
+- **Ersetzen-Knopf:** Aufschrift mit Kurzname, `Ersetzen: 32er` (nicht „32er-Leitung“ – bricht sonst als „32er-/Leitung“ dreizeilig um, 67 px hoch).
+- **Planraute bei Ersatz in Zielfarbe:** gestrichelte Raute in der Farbe der neuen Leitung (`leitung.d32` …), Deckkraft 0,8, statt Plan-Blau. Grund: Ersatz sieht sonst aus wie eine neu eingezeichnete Leitung, und man sieht nicht, welche Dicke kommt.
+- **Warnliste im Baumenü:** kein Kasten im Kasten. Ein Streifen im Kasten „Bauabschnitt“: Grund `chip.rot` (`#ffd9d1`), Überschrift „Nach dem Bau zu dünn“ in `#8f2117` mit Symbol „!“, Sätze in `text`, Radius 12, Innenabstand 8/12.
+- **Mehrfach-Hinweis beim Abschließen:** höchstens 3 Zeilen Meldung (12.17). Bei mehr als einem Stück nur „{n} Stellen sind nach dem Bau zu dünn – die Liste steht im Baumenü.“ (≤ 64); bei genau einem Stück der Satz selbst (≤ 90).
+- **Prüfung:** Meldung mit Warnliste bei 667×375 neben offenem Baumenü ≤ 74 px hoch.
+
 ## 13. Tutorial (NR13) – „Simon zeigt dir dein erstes Netz“ (Entwurf 2026-11-06)
 Anlass: Lastenheft NR13 mit Präzisierung Simon 2026-11-06 („ganz wichtig“), dazu NR2 (die ersten Minuten) und NR3 (Begriffe, „Wusstest du?“). Grundlage für den Ablauf mit Leitung und Station: Bauplan NR18 Fassung 1 (selbst zeichnen, Station kaufen, Warnung statt Sperre) und NR19 (Puffer-Übergabestation als Standard). Designer, Modus `entwurf`. **Ergänzt** Abschnitt 7 Ablauf 1 und S2 „leer/neu“: Für ein **neues Spiel** startet nach dem Namensfenster (A79) dieses Tutorial statt des ersten Auftrags. Alte Spielstände sind nicht betroffen (13.8).
 
