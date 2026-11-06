@@ -35,6 +35,8 @@ const N = KONSTANTEN.feldanzahl;
 /** Bauplan NR13 P4: Abstand nach [Los geht’s], bevor aufgesparte Hinweise kommen */
 const NACH_TUTORIAL_MS = 600;
 const istKartenziel = (z: ZielName): z is keyof typeof KARTEN_VORLESENAME => z === 'heizzentrale' || z === 'haus1' || z === 'haus2';
+/** Ziele im Baumenü (Gruppe „Baumenü“ in src/core/tutorial-vertrag.ts); alle liegen im Reiter „Leitungen“ */
+const BAUMENUE_ZIELE: ReadonlySet<ZielName> = new Set<ZielName>(['reiter_leitungen', 'philipp', 'kasten_abschnitt', 'leitungskarte', 'laura']);
 /** DESIGN 13.6 / Bauplan NR13 P4 „Kamera“: Rand beim Einpassen mehrerer Ziele und höchster Zoom (= Startzoom am Handy) */
 const EINPASS_RAND_PX = 24;
 const ZIEL_ZOOM_MAX = T.karte.zoom_start_handy;
@@ -86,6 +88,8 @@ export class Steuerung implements Ui {
   private mitteDreh: { x: number } | null = null;
   /** NR13 (U1): laufendes Pflicht-Tutorial; `null`, wenn keines läuft. Heißt nicht `tutorial`, weil nur der Kern die Merke schreibt. */
   private anleitung: Tutorial | null = null;
+  /** Nach dem Neuladen ist kein Blatt offen: Der erste Schritt nach der Wiedereinstiegs-Blase stellt sein Ziel selbst her */
+  private zielHerstellenOffen = false;
   /** Aufgaben, die erst nach dem Tutorial dran sind (z. B. der Update-Hinweis, K6) */
   private nachTutorialListe: Array<() => void> = [];
   /** Läuft in diesem Bild eine Kamerafahrt? Einmal je Bild aus der Bildzeit bestimmt (tick). */
@@ -130,6 +134,7 @@ export class Steuerung implements Ui {
     if (spiel.tutorialAktiv()) {
       // Wiedereinstieg: Wer den Namen schon gesetzt hat, hat das Tutorial vorher verlassen (DESIGN 13.7)
       this.anleitung = new Tutorial(spiel, { wiedereinstieg: spiel.stand.namen_gefragt !== false });
+      this.zielHerstellenOffen = spiel.stand.namen_gefragt !== false;
       meldungenStumm(true);
       this.hud.tutorialModus(true);
     }
@@ -831,6 +836,7 @@ export class Steuerung implements Ui {
   private anleitungAnwenden(): void {
     const a = this.anleitung?.ansicht(this.uhr()) ?? null;
     if (!a) return;
+    if (this.zielHerstellenOffen && !a.wiedereinstieg) { this.zielHerstellenOffen = false; this.zielHerstellen(a); }
     const k = this.kamera, frei = this.freieFlaeche(), vorher = this.angewendet;
     const schritt = `${a.schritt}|${a.wiedereinstieg}`, wechsel = vorher?.schritt !== schritt, breiteNeu = !!vorher && vorher.frei_b !== frei.b;
     if (!a.kamera_grenze && k.grenze) k.grenzeSetzen(null);
@@ -905,6 +911,12 @@ export class Steuerung implements Ui {
         tab_ziele: () => this.tabZiele,
       });
     }
+  }
+  /** ENTSCHEIDUNGEN 2026-11-06 (Muss M1): Kein Schritt steht nach dem Neuladen ohne erreichbares Ziel. Fehlt ein Baumenü-Ziel
+   *  (T11 kasten_abschnitt, T12 leitungskarte), öffnet der Wiedereinstieg das Baumenü auf „Leitungen“ – sonst sperrte das
+   *  Abdunkeln auch [Bauen], und das Tutorial hinge. Vor dem Messen der freien Fläche, weil das Blatt sie verkleinert. */
+  private zielHerstellen(a: TutorialAnsicht): void {
+    if (a.ziele.some((z) => BAUMENUE_ZIELE.has(z) && !document.querySelector(`[data-ziel="${z}"]`))) this.katalog('netz');
   }
   private hudJetzt(): void { this.hud.aktualisieren(this.auftrag); }
   private hinweiseZeigen(): void { this.ereignisse(); }
