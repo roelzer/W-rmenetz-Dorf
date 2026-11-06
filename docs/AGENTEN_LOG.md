@@ -297,3 +297,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 07:49 | ▶ | tester | NR18 P0 Tester-Vorarbeit |
 | 2026-11-06 08:03 | ■ 🟡 | tester | 🟡 STATUS: BLOCKIERT – mein Kontext ist voll. Teil A ist zum Teil fertig und committet. Teil B (die Abnahmetests `tests/nr18-abnahme.test.ts`) ist noch nich ([Bericht](docs/pruefberichte/20261106-080316-tester-a06680e1b358a6db7.md)) |
 | 2026-11-06 08:03 | ▶ | tester | NR18 P0 Rest + Teil B |
+| 2026-11-06 08:06 | ■ 🟡 | entwickler | ## NR18-P1 – Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261106-080638-entwickler-ad16f49a49abc7014.md)) |
