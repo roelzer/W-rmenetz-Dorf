@@ -5,12 +5,19 @@ interface Muenze { x0: number; y0: number; x1: number; y1: number; t: number; da
 interface Schwebtext { x: number; y: number; t: number; text: string; farbe: string }
 
 const SCHWEBZEIT_S = 1.4;
+/** NR18 (Bauplan 5.1): so lange bleibt die Markierung der zu dünnen Leitungsfelder stehen. */
+export const ENGSTELLE_DAUER_S = 6;
+const ENGSTELLE_PULS_HZ = 1.5;
+const WARNROT = '#d8392f';
+
+interface Engstelle { felder: ReadonlyArray<readonly [number, number]>; ruhig: boolean; t: number }
 
 /** Kurzlebige Effekte (Funken, fliegende Münzen, Schwebetexte). Reine Darstellung, laufen über Zeitdifferenzen. */
 export class Effekte {
   private funken_: Funke[] = [];
   private muenzen_: Muenze[] = [];
   private texte: Schwebtext[] = [];
+  private engstelle_: Engstelle | null = null;
   /** Sparmodus: weniger Teilchen für ältere Handys (6 statt 24 Funken, höchstens 2 Münzen). */
   sparsam = false;
 
@@ -31,9 +38,11 @@ export class Effekte {
     this.texte.push({ x: feldX, y: feldY, t: 0, text, farbe });
   }
   /** NR18 (AE-NR18-6): Markierung der zu dünnen Felder [x, y]; `ruhig` = „Weniger Bewegung“ (fest statt Puls).
-   *  Schnittstelle steht, damit Steuerung und Darstellung getrennt gebaut werden können; das Zeichnen folgt mit der Darstellung. */
-  engstelle(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {}
-  aktiv(): boolean { return this.funken_.length + this.muenzen_.length + this.texte.length > 0; }
+   *  Eine neue Markierung ersetzt die alte, damit nach einer Änderung nur die aktuellen Stellen leuchten. */
+  engstelle(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {
+    this.engstelle_ = felder.length ? { felder: felder.map(([x, y]) => [x, y] as const), ruhig, t: 0 } : null;
+  }
+  aktiv(): boolean { return this.funken_.length + this.muenzen_.length + this.texte.length > 0 || this.engstelle_ !== null; }
 
   /** dt_s = Sekunden seit dem letzten Bild (auf 0,1 begrenzt, damit nach Pausen nichts springt). */
   zeichnen(m: Maler, dt_s: number, mitte: (x: number, y: number) => [number, number]): void {
@@ -53,6 +62,7 @@ export class Effekte {
       X.fillStyle = '#f6c22c'; X.strokeStyle = '#9a6a08'; X.lineWidth = 2; X.beginPath();
       X.ellipse(x, y, 9 * Math.abs(Math.cos(c.t * 10)) + 2, 9, 0, 0, Math.PI * 2); X.fill(); X.stroke();
     }
+    this.engstelleZeichnen(m, dt, mitte);
     this.texte = this.texte.filter((f) => (f.t += dt) < SCHWEBZEIT_S);
     for (const f of this.texte) {
       const [cx, cy] = mitte(f.x, f.y);
@@ -60,5 +70,21 @@ export class Effekte {
       m.text(f.text, cx, cy - m.tw * (0.9 + f.t * 0.7), Math.max(16, m.tw * 0.32), f.farbe);
       X.globalAlpha = 1;
     }
+  }
+
+  private engstelleZeichnen(m: Maler, dt: number, mitte: (x: number, y: number) => [number, number]): void {
+    const e = this.engstelle_;
+    if (!e) return;
+    e.t += dt;
+    if (e.t >= ENGSTELLE_DAUER_S) { this.engstelle_ = null; return; }
+    const { X } = m;
+    // Eigene Uhr statt m.zeit_s: die steht bei „Weniger Bewegung“ still, die 6 s sollen aber trotzdem ablaufen.
+    X.globalAlpha = e.ruhig ? 1 : 0.65 + 0.35 * Math.cos(2 * Math.PI * ENGSTELLE_PULS_HZ * e.t);
+    X.strokeStyle = WARNROT; X.lineWidth = 3; X.lineJoin = 'round';
+    for (const [x, y] of e.felder) {
+      const [cx, cy] = mitte(x, y);
+      m.raute(cx, cy, 0.92); X.stroke();
+    }
+    X.globalAlpha = 1;
   }
 }

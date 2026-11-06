@@ -41,6 +41,7 @@ export function szenenSchluessel(s: Szene): string {
       o.id, o.typ, o.x, o.y, o.stufe, ja(!!o.bau), ja(o.geplant), ja(o.gekuendigt), ja(o.interessent), o.anfrage ?? '',
       ja(o.ohne_station), o.station ?? '', o.zustand ?? '', ja(o.vorsehung), o.upgrade ?? 0, ja(o.hauspuffer),
       ja(o.vollversorgung), ja(o.aufgestockt), ja((o.zufriedenheit_pct ?? 80) < 40), ja(ploppAktiv(o, s.jetzt_ms)),
+      o.ersatz?.typ ?? '', // NR18: geplanter Ersatz zeigt die Planraute
     ].join(','));
   }
   teile.push('innen');
