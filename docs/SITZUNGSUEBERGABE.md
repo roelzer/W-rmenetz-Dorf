@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: Entwickler NR18-P2 Lauf 2 (ab c9d3fa4), P4 (ab 849be23); Reviewer P3 (c123e25, fertig gebaut, 4 Rote nur P2). P0, P1, P5 + Teil B gemergt. P2+P3 gemeinsam mergen (P2 auf P3 abstimmen: ersatz_eur inkl. 8.000 € je Flussfeld wie Knopfpreis). Danach P4; Welle 2 P0b → P6.
+Laufende Agenten: Entwickler NR18-P2 Lauf 2 (ab c9d3fa4), P4 (ab 849be23); P3 c123e25 Review 🟡 (bereit zum gemeinsamen Merge mit P2). P0, P1, P5 + Teil B gemergt. P2+P3 gemeinsam mergen (P2 auf P3 abstimmen: ersatz_eur inkl. 8.000 € je Flussfeld wie Knopfpreis). Danach P4; Welle 2 P0b → P6.
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.
