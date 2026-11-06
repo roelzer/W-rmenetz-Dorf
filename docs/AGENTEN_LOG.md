@@ -285,3 +285,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 07:15 | ▶ | fachpruefer | Fachprüfung Tutorial-Texte |
 | 2026-11-06 07:18 | ■ 🟡 | fachpruefer | 🟡 GELB – Fachprüfung der Tutorial-Texte, DESIGN.md Abschnitt 13 (Modus: plan, nur gelesen, nichts geändert)  ([Bericht](docs/pruefberichte/20261106-071829-fachpruefer-ad07ce0c947c71945.md)) |
 | 2026-11-06 07:18 | ▶ | designer | Tutorial-Texte nachschärfen |
+| 2026-11-06 07:19 | ■ 🟢 | designer | 🟢 Die Korrekturen des Fachprüfers stehen jetzt in docs/DESIGN.md, Abschnitt 13. Commit **57dc2c5** auf dem Branch `design-nr13-texte` (Basis a73cfe9). Geän ([Bericht](docs/pruefberichte/20261106-071920-designer-a8e2e813bae3dc2e0.md)) |
