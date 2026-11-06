@@ -456,3 +456,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 14:06 | ▶ | reviewer | Review NR13 P4 gesamt |
 | 2026-11-06 14:06 | ▶ | tester | NR13 Abnahme-Probelauf |
 | 2026-11-06 14:06 | ▶ | entwickler | NR13 Paket P4b Browser-Durchklick |
+| 2026-11-06 14:06 | ■ 🟢 | tester | 🟢 Probelauf der verdeckten NR13-Abnahme: 37 von 38 Tests grün. Der eine rote Test liegt am Test, nicht am Spiel.  ([Bericht](docs/pruefberichte/20261106-140654-tester-a7245f70907d65348.md)) |
