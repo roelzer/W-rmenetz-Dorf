@@ -597,9 +597,12 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     expect(ohne.ohne_station).toBe(true);
     const kOhne = await karte(eins, ohne);
     expect(kOhne.text).toContain('Mit Pufferspeicher');
-    const puffer = mit(kOhne.knoepfe, 'Puffer-Übergabestation');
+    // umgebaut NR19 12.23 06.11.: Knopf-Zeile 1 in Kurzform „Puffer HP 800“ / „Puffer HP 1000“ / „Puffer ÜP 1000“
+    // (geschütztes Leerzeichen zwischen Kürzel und Zahl, DESIGN 12.23 Punkt 1); der Katalogname bleibt lang.
+    const puffer = kOhne.knoepfe.filter((x) => /^Puffer (HP|ÜP)\u00a0\d/.test(x.text));
     expect(puffer.length).toBe(1); // ohne Stationswahl genau ein Knopf: die kleinste passende
-    expect(puffer[0].text.startsWith('Puffer-Übergabestation HP 800')).toBe(true);
+    expect(puffer[0].text.startsWith('Puffer HP\u00a0800')).toBe(true);
+    expect(puffer[0].text).not.toContain('Übergabestation'); // umgebaut NR19 12.23 06.11.: langer Name nicht mehr im Knopf
     expect(puffer[0].aus).toBe(false);
     expect(puffer[0].text).not.toContain('ab Heizzentrale Stufe');
     expect(mit(kOhne.knoepfe, "Puffer einbauen")).toEqual([]);

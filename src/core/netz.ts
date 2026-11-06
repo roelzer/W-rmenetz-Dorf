@@ -1,6 +1,6 @@
 import {
-  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, GRUNDGEBUEHR, SPIELJAHR_MS, istLeitung, stationHolen,
-  type TypId,
+  KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, GRUNDGEBUEHR, SPIELJAHR_MS, istLeitung, istPufferStation, stationHolen, PUFFER_STATIONEN,
+  type Station, type TypId,
 } from './katalog';
 import type { InnenQuelle, Netz, Objekt } from './typen';
 
@@ -400,7 +400,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     bedarf_kw += n;
     if (a.feld >= 0 && !kapazitaet_ok.get(a.feld)) { kalt.set(o.id, 'leitung'); continue; }
     const st = stationHolen(o.station);
-    if (st && st.leistung_kw < n) { kalt.set(o.id, 'station'); continue; } // A32: Station zu klein
+    if (st && !stationReicht(st, o)) { kalt.set(o.id, 'station'); continue; } // A32/NR19: Station zu klein
     if (genutzt_kw + n <= verfuegbar_kw) { genutzt_kw += n; warm.add(o.id); } else kalt.set(o.id, 'waerme');
   }
 
@@ -447,11 +447,25 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
 export function nutzungsfaktor(o: Objekt): number {
   return (o.vollversorgung ? KONSTANTEN.vollversorgung_faktor : 1) * (o.aufgestockt ? KONSTANTEN.aufstockung_faktor : 1);
 }
-/** A71: Anschlussleistung = Jahresverbrauch ÷ Volllaststunden (1.800 h mit Pufferspeicher im Haus, sonst 1.500 h), mal Nutzung (Kamin aus, aufgestockt). */
+/** A71: Anschlussleistung = Jahresverbrauch ÷ Volllaststunden (2.000 h mit Pufferspeicher im Haus, sonst 1.500 h), mal Nutzung (Kamin aus, aufgestockt). */
 export function bedarfKw(o: Objekt): number {
   const D = KATALOG[o.typ];
   const basis = D.verbrauch_kwh_a ? D.verbrauch_kwh_a / (o.hauspuffer ? VOLLLASTSTUNDEN.mit_puffer_h : VOLLLASTSTUNDEN.ohne_puffer_h) : (D.bedarf_kw ?? 0);
   return basis * nutzungsfaktor(o);
+}
+
+/**
+ * A32/NR19: Schafft die Station das Gebäude? Jede Station muss die Leistung aus dem Netz übergeben. Eine Puffer-Station muss
+ * zusätzlich die Spitze im Haus abgeben – das ist die Leistung, die das Haus ohne Puffer aus dem Netz bräuchte.
+ */
+export function stationReicht(st: Station, o: Objekt): boolean {
+  if (st.leistung_kw < bedarfKw(o)) return false;
+  return !istPufferStation(st) || st.spitze_kw >= bedarfKw({ ...o, hauspuffer: false });
+}
+
+/** NR19: Reicht für das Haus noch eine der Puffer-Stationen? Solange ja, tauscht ein Haus mit Puffer-Station nur gegen eine größere Puffer-Station. */
+export function pufferStationReicht(o: Objekt): boolean {
+  return PUFFER_STATIONEN.some((st) => stationReicht(st, { ...o, hauspuffer: true }));
 }
 
 /** Dorfwert für die Rangliste. */

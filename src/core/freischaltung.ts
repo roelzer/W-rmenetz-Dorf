@@ -8,7 +8,7 @@ import type { Spielstand } from './typen';
  */
 export type Funktion =
   | 'stationstypen' | 'express' | 'gestattung' | 'spuelbohrung'
-  | 'vorlauf' | 'ruecklauf_helfer' | 'hauspuffer' | 'vorsehung' | 'dach_pv' | 'baugebiet';
+  | 'vorlauf' | 'ruecklauf_helfer' | 'vorsehung' | 'dach_pv' | 'baugebiet';
 export type Merkmal = TypId | Funktion;
 
 /** Merkmal → ab Heizzentralen-Stufe; fehlt = 1. Spielwerte, Simon kann jede Zeile ändern (Bauplan Abschnitt 4). */
@@ -26,7 +26,6 @@ export const FREISCHALTUNGEN: Readonly<Partial<Record<Merkmal, number>>> = {
   brunnen: 2,
   vorlauf: 3,
   ruecklauf_helfer: 3,
-  hauspuffer: 3,
   pellet: 3, gas: 3,
   sonde: 3, klinik: 3,
   vorsehung: 4,
@@ -44,7 +43,6 @@ export const FUNKTION_NAME: Readonly<Record<Funktion, string>> = {
   spuelbohrung: 'Spülbohrung',
   vorlauf: 'Vorlauf-Regler',
   ruecklauf_helfer: 'Rücklauf-Helfer',
-  hauspuffer: 'Puffer im Haus',
   vorsehung: 'T-Stück mit Vorsehung',
   dach_pv: 'PV auf dem Heizhaus-Dach',
   baugebiet: 'Baugebiet',
