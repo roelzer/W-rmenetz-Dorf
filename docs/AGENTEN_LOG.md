@@ -317,3 +317,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:39 | ■ 🟡 | entwickler | 🟡 Status: BLOCKIERT, aber nur formal. Das Paket P5 ist inhaltlich fertig und committet. Die Test-Schranke meldet „NICHT OK“, weil 20 Tests rot sind: die  ([Bericht](docs/pruefberichte/20261106-083915-entwickler-ab00795e4bc36d996.md)) |
 | 2026-11-06 08:39 | ▶ | reviewer | Review NR18-P5 Spielstart |
 | 2026-11-06 08:39 | ▶ | tester | Tester: Starttest umbauen |
+| 2026-11-06 08:44 | ■ 🟢 | tester | 🟢 Beide Aufgaben sind erledigt. Ich habe keinen echten Fehler im neuen Spielstart (P5) gefunden. Geändert habe ich nur zwei Testdateien, keinen Programmcode ([Bericht](docs/pruefberichte/20261106-084410-tester-af5f7d2b1f14ca806.md)) |
