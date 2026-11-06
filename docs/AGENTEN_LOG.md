@@ -404,3 +404,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:01 | ▶ | tester | Tester verdeckte Abnahme NR13 |
 | 2026-11-06 12:06 | ■ 🟡 | kritiker | 🟡 **Nachprüfung des Bauplans NR13 Tutorial, Fassung 2: Gelb. Alle acht Muss-Punkte und alle Rückfragen sind bearbeitet. Drei neue Lücken müssen aber vor  ([Bericht](docs/pruefberichte/20261106-120649-kritiker-a92c5aa886f76cdd1.md)) |
 | 2026-11-06 12:08 | ▶ | architekt | NR13 Bauplan Fassung 3 |
+| 2026-11-06 12:16 | ■ 🟡 | tester | 🟡 Gelb: Die verdeckten Abnahmetests für NR13 sind angelegt und committet. Heute sind sie wie gewollt rot, weil NR13 noch nicht gebaut ist. Ob sie gegen eine ([Bericht](docs/pruefberichte/20261106-121604-tester-aec5e44abae5f0e8f.md)) |
