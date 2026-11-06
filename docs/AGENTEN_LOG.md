@@ -421,3 +421,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 12:27 | ■ 🟢 | architekt | 🟢 Der Bauplan `/home/user/W-rmenetz-Dorf/docs/bauplaene/NR13-tutorial.md` steht jetzt auf Fassung 3.1. Beide Punkte sind eingetragen und mit „(F3.1)“ mar ([Bericht](docs/pruefberichte/20261106-122757-architekt-a5f2a600c4593ce31.md)) |
 | 2026-11-06 12:31 | ■ 🟢 | entwickler | 🟢 FERTIG: Paket P0 aus NR13 ist gebaut, auf Branch nr13-p0 committet und nicht gepusht.  ([Bericht](docs/pruefberichte/20261106-123147-entwickler-ab9b46551d8a9e2b6.md)) |
 | 2026-11-06 12:31 | ▶ | reviewer | Review NR13 P0 |
+| 2026-11-06 12:34 | ■ 🟡 | reviewer | 🟡 Freigegeben mit einem kleinen Punkt. Plan-Treue ✅: Alle zehn Dateien aus dem P0-Bauplan sind im Diff, die Namen stimmen mit Abschnitt 6 überein, und es  ([Bericht](docs/pruefberichte/20261106-123423-reviewer-a0089388aab4f0d61.md)) |
