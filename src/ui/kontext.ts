@@ -3,8 +3,8 @@ import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzung
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
-import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, zeile, type Sperre } from './bausteine';
-import { ANSCHLUSS_GEPLANT, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
+import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, zeile, type Sperre } from './bausteine';
+import { ANSCHLUSS_GEPLANT, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
 /** kW mit einer Nachkommastelle (8,3 kW) */
@@ -59,9 +59,23 @@ export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: Ty
   return knoepfe;
 }
 
+/** Zeichenleiste (DESIGN.md 12.18): die gesperrten dickeren Leitungen als EIN grauer Farbknopf mit Schloss über „St. N“
+ *  (geschütztes Leerzeichen); der Vorleser hört den ganzen Satz, Tippen zeigt den Hinweis mit der vollen Stufe (12.19).
+ *  `null`, wenn alle Leitungen frei sind. Gleiche Regel wie in `leitungsKnoepfe`: die erste gesperrte ist die nächste Freischaltung. */
+export function dickereFarbknopf(sp: Spiel): HTMLButtonElement | null {
+  const naechste = LEITUNGEN.find((t) => !sp.freigeschaltet(t));
+  if (!naechste) return null;
+  const k = knopf(h('span', { class: 'farb-sperre' }, symbol('schloss', 'sym schloss-klein'), `St.\u00a0${abStufe(naechste)}`), () => undefined, '', { aus: true, hinweis: stufenHinweis(naechste, 'Dickere Leitungen') });
+  k.classList.add('farbknopf');
+  k.setAttribute('aria-label', `Dickere Leitungen ab Heizzentrale Stufe ${abStufe(naechste)}`);
+  return k;
+}
+
 function signatur(c: HTMLElement): string {
   const k = c.cloneNode(true) as HTMLElement;
   k.querySelectorAll('[data-live]').forEach((e) => { e.textContent = ''; e.removeAttribute('style'); });
+  // Wackeln nach dem Antippen (12.19) ist kein neuer Inhalt – sonst baute der nächste Takt das Blatt mitten im Wackeln neu
+  k.querySelectorAll('.wackelt').forEach((e) => e.classList.remove('wackelt'));
   return k.innerHTML;
 }
 
@@ -200,7 +214,7 @@ export class Kontext {
   /** A92 (NR16): Knöpfe zum Anschließen eines Hauses ohne Anschluss. Ohne offenen Bauabschnitt sind beide gesperrt und nennen den Grund;
    *  gibt es noch gar keinen Abschnitt, lässt er sich hier gleich planen (dieselbe Aktion und derselbe Preis wie im Baumenü). */
   private anschlussWeg(o: Objekt): HTMLElement[] {
-    const sp = this.ui.spiel, sperre = abschnittSperre(sp, () => this.ui.jetzt_ms());
+    const sp = this.ui.spiel, sperre = abschnittSperreKurz(sp, () => this.ui.jetzt_ms());
     const reihen: HTMLElement[] = [];
     if (!sp.abschnitt) {
       const preis = KONSTANTEN.abschnitt_planung_eur;
@@ -258,7 +272,9 @@ export class Kontext {
       // Fachprüfung A73: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
       const gewinn = Math.round(spreizungHaus_k({ ...o, upgrade: n + 1 }, sp.vorlauf_c) - spreizungHaus_k(o, sp.vorlauf_c));
       if (gewinn < u.senkung_k) k.append(h('p', { class: 'gedaempft' }, gewinn > 0 ? `Bei ${sp.vorlauf_c} °C Vorlauf bringt das nur +${gewinn} K Spreizung: Der Rücklauf fällt nicht unter ${MIN_RUECKLAUF_C} °C. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.` : `Der Rücklauf liegt bei ${sp.vorlauf_c} °C Vorlauf schon bei ${MIN_RUECKLAUF_C} °C – mehr Spreizung geht nicht. Das Haus braucht danach aber ${u.senkung_k} K weniger Vorlauf.`));
-      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, sperre: ersteSperre(helferSperre(() => this.naechsterHelferFrei_ms(), () => this.ui.jetzt_ms()), o.ohne_station ? OHNE_STATION : null) })));
+      k.append(h('p', { class: 'gedaempft' }, u.beschreibung), h('div', { class: 'knopfreihe' }, knopf(frei ? `${frei} beauftragen · ${gewinn > 0 ? `Spreizung +${gewinn} K` : 'weniger Vorlauf nötig'}` : 'Alle Helfer beschäftigt', () => { sp.upgradeKaufen(o.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${eur(u.kosten_eur)} · ${zeitText(u.dauer_s * KONSTANTEN.bauzeit_faktor)}`, id: 'helfer', neuAufbau: () => this.ui.geaendert(),
+        // 12.21 Punkt 2/3: Rangfolge beschäftigt › ohne Station › Geld (H7), beim Tippen neu gelesen
+        sperre: () => ersteSperre(helferSperre(() => this.naechsterHelferFrei_ms(), () => this.ui.jetzt_ms()), o.ohne_station ? OHNE_STATION : null, geldSperre(sp, u.kosten_eur)) })));
     } else k.append(h('p', { class: 'gedaempft' }, 'Alle Upgrades erledigt.'));
     c.append(k);
   }

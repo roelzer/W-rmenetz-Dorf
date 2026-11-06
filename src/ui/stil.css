@@ -78,8 +78,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 .balken i{display:block;height:100%;background:var(--farbe-hud-fuellung-fortschritt-0)}
 
 /* ---------- Reiter + Katalog ---------- */
-.reiter{display:flex;overflow-x:auto;touch-action:pan-x;-webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);flex:none}
-.reiter .knopf{flex:none}
 .raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(var(--groesse-px-katalog-karte-min-breite),46%),1fr));gap:var(--abstand-px-1)}
 .bkarte{display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;min-height:var(--groesse-px-tippflaeche-min);min-width:0}
 .bkarte canvas,.bkarte .bild{width:100%;height:var(--groesse-px-katalog-bild-hoehe);object-fit:cover;background:var(--farbe-karte-wiese-a);display:block}
@@ -92,9 +90,13 @@ button{font:inherit;color:inherit;cursor:pointer}
 .bkarte .abzeichen{align-self:flex-start}
 
 /* ---------- Toast / Banner ---------- */
-#toast{position:absolute;left:0;right:0;top:30%;display:flex;justify-content:center;pointer-events:none;padding:0 var(--groesse-px-rand-bildschirm)}
-#toast .toast{max-width:min(92%,420px);text-align:center;font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-toast);line-height:1.2;opacity:0;transition:opacity var(--zeit-ms-toast-blende)}
-#toast .toast.sichtbar{opacity:1}
+/* DESIGN.md 12.17: Lage (top/bottom/width/--toast-max) setzt toast.ts aus dem offenen Blatt; Berührungen gehen durch */
+#toast{--toast-max:min(var(--menue-mass-px-toast-max-breite),calc(100% - 176px));position:absolute;left:0;top:auto;bottom:var(--menue-mass-px-toast-rand);width:100%;z-index:40;display:flex;justify-content:center;pointer-events:none;padding:0;
+  transition:width var(--menue-zeit-ms-toast-wandern) var(--menue-kurve-weich),bottom var(--menue-zeit-ms-toast-wandern) var(--menue-kurve-weich)}
+#toast .toast{max-width:var(--toast-max);text-align:center;font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-toast);line-height:1.2;opacity:0;transform:translateY(var(--menue-mass-px-toast-versatz-ein));transition:opacity var(--menue-zeit-ms-toast-blende),transform var(--menue-zeit-ms-toast-blende)}
+#toast .toast.sichtbar{opacity:1;transform:none}
+#toast .am-stueck{white-space:nowrap}
+#toast .toast.sichtbar.weg{opacity:0}
 .banner{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92%,420px);display:flex;align-items:center;gap:var(--abstand-px-1);flex-wrap:wrap;padding:var(--abstand-px-1) var(--abstand-px-2);background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);box-shadow:var(--schatten-schild)}
 .banner .wer{flex:1 1 140px;font-family:var(--schrift-anzeige);font-weight:700}
 .banner .wer small{display:block;font-family:var(--schrift-text);font-weight:700;color:var(--farbe-ui-text-gedaempft)}
@@ -184,8 +186,15 @@ button{font:inherit;color:inherit;cursor:pointer}
 .balken i{border-radius:999px;box-shadow:inset 0 3px 0 rgba(255,255,255,.4)}
 
 /* ---------- Reiter ---------- */
-.reiter{gap:8px;padding:10px 12px 8px;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
-.reiter .knopf{padding:2px 12px 6px}
+/* DESIGN.md 12.16: eine Reihe über die volle Blattbreite, scrollt nie; Wortstufe per Container-Abfrage auf der Leiste */
+.reiter{display:flex;gap:var(--menue-mass-px-reiter-luecke);box-sizing:border-box;height:calc(var(--menue-mass-px-reiter-hoehe) + 12px);margin:-12px -12px 0;padding:6px var(--menue-mass-px-reiter-leiste-innen) 4px;overflow:hidden;container-type:inline-size;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
+.reiter .knopf{flex:1 1 auto;min-width:var(--menue-mass-px-reiter-min-breite);height:var(--menue-mass-px-reiter-hoehe);min-height:0;padding:0 var(--menue-mass-px-reiter-innen-seite);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.reiter .reiter-sym{flex:none;width:var(--menue-mass-px-reiter-symbol);height:var(--menue-mass-px-reiter-symbol)}
+.reiter .wort{font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-reiter);line-height:1.2;white-space:nowrap;color:var(--k);-webkit-text-stroke:0;text-shadow:none}
+.reiter .knopf.gewaehlt .wort{color:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-klein) var(--k);paint-order:stroke fill}
+.reiter .wort.kurz{display:none}
+@container (max-width:355.9px){.reiter .wort.lang{display:none}.reiter .wort.kurz{display:inline}}
+@container (max-width:280.9px){.reiter .wort.kurz{display:none}}
 .reiter .knopf.gewaehlt{--f:var(--menue-farbe-kopfband);--u:var(--menue-knopf-info-1);--t:#fff;-webkit-text-stroke:var(--menue-schrift-kontur-px-klein) var(--k);paint-order:stroke fill;text-shadow:0 2px 0 var(--k)}
 
 /* ---------- Bau-Katalog-Karte (tippbar wie ein Knopf) ---------- */
@@ -251,10 +260,12 @@ button{font:inherit;color:inherit;cursor:pointer}
   .blatt{border-radius:var(--radius-px-popup);margin-bottom:var(--groesse-px-rand-bildschirm)}
 }
 @media (prefers-reduced-motion:reduce){
-  .pille .fuell i,#toast .toast{transition:none}
+  .pille .fuell i,#toast,#toast .toast{transition:none}
+  #toast .toast{transform:none;transition:opacity var(--menue-zeit-ms-toast-blende)}
   #laden .bahn i{animation:none}
 }
-.weniger-bewegung .pille .fuell i,.weniger-bewegung #toast .toast{transition:none}
+.weniger-bewegung .pille .fuell i,.weniger-bewegung #toast,.weniger-bewegung #toast .toast{transition:none}
+.weniger-bewegung #toast .toast{transform:none;transition:opacity var(--menue-zeit-ms-toast-blende)}
 /* ---------- Weniger Bewegung (Systemeinstellung und Spiel-Schalter) ---------- */
 @media (prefers-reduced-motion:reduce){
   .blatt,.blatt.popup{animation:none}
@@ -307,8 +318,6 @@ button{font:inherit;color:inherit;cursor:pointer}
   .zoom{display:grid;grid-template-columns:repeat(2,var(--groesse-px-zoomknopf));gap:var(--abstand-px-2)}
 }
 
-.durchmesser{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-.durchmesser .knopf{min-width:0;padding-left:4px;padding-right:4px}
 /* A51: Figuren mit Sprechblase */
 #sprecher{position:absolute;left:50%;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom));transform:translateX(-50%);width:min(88%,460px);pointer-events:none;z-index:30}
 .sprecher-karte{display:flex;align-items:flex-end;gap:10px;opacity:0;transform:translateY(14px);transition:opacity .25s,transform .25s}
@@ -369,3 +378,32 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 /* A84 Treue Nr. 3: schmalere Handys quer (bis 667 px) – HUD-Kapseln dürfen Dorfschild und Zahnrad nicht überdecken */
 @media (orientation:landscape) and (max-width:799px){.hud-links{width:170px}.pille{min-width:0}.pillen{gap:var(--abstand-px-1)}}
 @media (orientation:landscape) and (max-width:699px){.hud-links{width:160px}.pille{padding-left:18px;padding-right:var(--abstand-px-1)}}
+
+/* ---------- Zeichenleiste (DESIGN.md 12.18 / 12.21): 216 px, Kopf 48, Mittelteil scrollt nur im Notfall, Aktionsleiste fest ---------- */
+.blatt.zeichenleiste{width:var(--menue-mass-px-zeichenleiste-breite);height:100%;max-height:100%}
+.blatt.zeichenleiste .kopf{min-height:var(--menue-mass-px-zeichenleiste-kopf);padding:0 4px 4px 12px;gap:4px}
+.blatt.zeichenleiste .kopf h2{font-size:var(--menue-schrift-groesse-px-zeichen-titel)}
+.blatt.zeichenleiste .kopf .frage{width:var(--menue-mass-px-schliessen);height:var(--menue-mass-px-schliessen);min-width:0;min-height:0;padding:0;flex:none;display:grid;place-items:center}
+.blatt.zeichenleiste .kopf .frage .sym{width:24px;height:24px}
+.blatt.zeichenleiste .inhalt{flex:1 1 auto;min-height:0;padding:8px}
+.blatt.zeichenleiste .zeichen-werkzeug{display:flex;flex-direction:column;gap:8px}
+.blatt.zeichenleiste [hidden]{display:none}
+.farbknoepfe{display:grid;grid-template-columns:repeat(4,var(--menue-mass-px-farbknopf));gap:var(--menue-mass-px-farbknopf-luecke)}
+.knopf.farbknopf{--streifen:transparent;position:relative;width:var(--menue-mass-px-farbknopf);height:var(--menue-mass-px-farbknopf);min-width:0;min-height:0;padding:0 0 var(--menue-mass-px-farbknopf-streifen);overflow:hidden;font-size:var(--menue-schrift-groesse-px-farbknopf)}
+/* Farbstreifen der Leitung unten im Knopf – die Zahl allein sagt nicht, welche Farbe in der Karte liegt */
+.knopf.farbknopf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--menue-mass-px-farbknopf-streifen);background:var(--streifen)}
+.knopf.farbknopf .farb-sperre{display:flex;flex-direction:column;align-items:center;gap:1px;font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-farbknopf-sperre);letter-spacing:0;white-space:nowrap}
+.knopf.farbknopf .farb-sperre .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein)}
+/* 4 px unter den Farbknöpfen statt 8 (12.18 Höhenrechnung) – die Kennzeile gehört zur gewählten Leitung */
+.blatt.zeichenleiste .kennzeile{margin:-4px 0 0;line-height:16px;font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zeichen-reihe{display:grid;grid-template-columns:1fr 1fr;gap:var(--abstand-px-1)}
+.zeichen-reihe .knopf{min-width:0;padding:0 var(--menue-mass-px-zeichen-knopf-innen-seite)}
+.zeichen-reihe .mit-sym{display:inline-flex;align-items:center;gap:4px}
+.zeichen-reihe .mit-sym .sym{width:18px;height:18px}
+.knopf.t-stueck{height:var(--menue-mass-px-zeichen-abschluss-hoehe);min-height:0;white-space:nowrap;padding:2px var(--menue-mass-px-zeichen-knopf-innen-seite) 6px}
+.blatt.zeichenleiste .zeichen-hilfe p{font-size:14px}
+.blatt.zeichenleiste .zeichen-hilfe .knopf{width:100%}
+.blatt.zeichenleiste .aktionsleiste{flex:none;padding:6px 8px;border-top:2px solid var(--k)}
+/* Abschließen immer 52 px hoch, auch ohne Zeile 2 – sonst springt die Aktionsleiste (12.21 Punkt 1) */
+.aktionsleiste .knopf{width:100%;height:var(--menue-mass-px-zeichen-abschluss-hoehe);min-height:0;padding:0 8px;font-size:var(--menue-schrift-groesse-px-knopf-klein);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.aktionsleiste .knopf small{margin-top:0}

@@ -59,12 +59,11 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
     }
   });
 
-  it('A84: Sofort fertig ist ein Taler-Knopf, Ja löschen ein Gefahr-Knopf, Radierer/T-Stück an und Tempo sind Gewählt', () => {
+  // Radierer/T-Stück „gewählt“ prüft seit NR16-B2b das Verhalten in tests/a92-b2b-zeichenleiste.test.ts (aria-pressed,
+  // Kennzeile, DESIGN 12.18/12.21): das Wort bleibt „Radierer“, „Radierer an“/„T-Stück an“ gibt es nicht mehr.
+  it('A84: Sofort fertig ist ein Taler-Knopf, Ja löschen ein Gefahr-Knopf, Tempo ist Gewählt', () => {
     expect(knopfZeile(lies('src/ui/katalog.ts'), "'Sofort fertig'")).toMatch(/'taler'/);
     expect(knopfZeile(lies('src/ui/einstellungen.ts'), "'Ja, löschen'")).toMatch(/'gefahr'/);
-    const st = lies('src/steuerung.ts');
-    expect(knopfZeile(st, "radieren ? 'Radierer an")).toMatch(/radieren \? 'gewaehlt' : ''/);
-    expect(knopfZeile(st, "this.vorsehen ? 'T-Stück an")).toMatch(/this\.vorsehen \? 'gewaehlt' : ''/);
     expect(lies('src/ui/einstellungen.ts')).toContain("tempo() === t.faktor ? 'gewaehlt' : ''");
   });
 

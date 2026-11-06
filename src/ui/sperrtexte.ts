@@ -66,8 +66,21 @@ export function abschnittSperre(sp: Spiel, jetzt_ms: () => number): Sperre | nul
 /** 12.20 B5 */
 export const ANSCHLUSS_GEPLANT: Sperre = { grund: 'kommt mit dem Bauabschnitt', schloss: false, hinweis: 'Der Hausanschluss ist schon eingeplant. Gebaut wird er mit dem Bauabschnitt.' };
 
+/** DESIGN.md 12.21 Punkt 1: Kurzformen für Zeile 2 in der engen Zeichenleiste (≤ 18 Zeichen); Hinweise wie im Seitenblatt. */
+const ABSCHNITT_KURZ = { keiner: 'kein Bauabschnitt', planung: 'wird noch geplant', bestellen: 'Bestellung offen', bau: 'Abschnitt im Bau' } as const;
+export function abschnittSperreKurz(sp: Spiel, jetzt_ms: () => number): Sperre | null {
+  const s = abschnittSperre(sp, jetzt_ms), phase = sp.abschnitt?.phase ?? 'keiner';
+  return s && phase !== 'offen' ? { ...s, grund: ABSCHNITT_KURZ[phase] } : s;
+}
+
 /** 12.20 B6 */
 export const NICHTS_GEZEICHNET: Sperre = { grund: 'noch nichts gezeichnet', schloss: false, hinweis: 'Noch nichts gezeichnet. Wähle eine Leitung und zieh sie in der Karte.' };
+
+/** 12.21 Punkt 1 B6 in der Zeichenleiste (Kurzform) */
+export const NICHTS_GEZEICHNET_KURZ: Sperre = { ...NICHTS_GEZEICHNET, grund: 'nichts gezeichnet' };
+
+/** 12.21 Punkt 1 B7: „Zurück“ ohne geplante Leitung – der schmale Knopf hat keine Zeile 2 */
+export const NICHTS_ZURUECK: Sperre = { grund: null, schloss: false, hinweis: 'Noch nichts gezeichnet – es gibt nichts zurückzunehmen.' };
 
 /** 12.20 S3 */
 export const ZIELE_OFFEN: Sperre = { grund: 'Ziele noch offen', schloss: true, hinweis: 'Erst alle Ziele für die nächste Stufe erreichen – sie stehen weiter oben im Blatt.' };

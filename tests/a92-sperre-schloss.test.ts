@@ -5,6 +5,7 @@ import type { Objekt } from '../src/core/typen';
 import { SYMBOLE } from '../src/ui/symbole';
 import { attrappe, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
+import { echteSteuerung, tippe as echtTippe } from './hilfen/echte-steuerung';
 
 // A92 / DESIGN.md 12.19 (NR16-B1, Nachbesserung nach Review W1/K-b):
 // - Jeder gesperrte Knopf zeigt in Zeile 2 das Schloss vor dem Grund („Dickere“, „Hausanschluss ziehen“, „Leitung selbst legen“,
@@ -208,25 +209,25 @@ const knopfStufe2 = (a: Attrappe, c: AttrappenElement) => mit(a, c, 'Stufe 2').f
 
 describe('A92 / K-b – „Gefällt mir“ beim Dorfbesuch', () => {
   it('A92: zweimal tippen → einmal mögen, eine Meldung, Knopf danach gesperrt mit „Gefällt dir“', async () => {
-    await mitAttrappe(async (a, toasts, app) => {
-      const { Steuerung } = await import('../src/steuerung');
-      const s = neu(1);
-      let gemocht = 0;
-      const echt = s.moegen.bind(s);
-      s.moegen = (name: string) => { gemocht++; return echt(name); };
-      const hz = s.stand.objekte.find((o) => o.typ === 'hz')!;
-      const dorf: Nachbardorf = { name: 'Lindenau', besitzer: 'Ana', stufe: 2, objekte: [hz], innen: [], netz: s.netz, dorfwert: 1 };
-      const st = Object.assign(Object.create(Steuerung.prototype), { spiel: s, hud: { sichtbar: () => {} }, kamera: { zentrieren: () => {} } });
-      (st as unknown as { besuchStarten: (v: Nachbardorf) => void }).besuchStarten(dorf);
-      const knopf = mit(a, app, 'Gefällt mir');
+    // Echte Steuerung (tests/hilfen/echte-steuerung.ts) statt Object.create(Steuerung.prototype), Tester-Vorarbeit NR16-B2b.
+    const s = neu(1);
+    let gemocht = 0;
+    const echt = s.moegen.bind(s);
+    s.moegen = (name: string) => { gemocht++; return echt(name); };
+    const hz = s.stand.objekte.find((o) => o.typ === 'hz')!;
+    const dorf: Nachbardorf = { name: 'Lindenau', besitzer: 'Ana', stufe: 2, objekte: [hz], innen: [], netz: s.netz, dorfwert: 1 };
+    await echteSteuerung(s, (u) => {
+      (u.st as unknown as { besuchStarten: (v: Nachbardorf) => void }).besuchStarten(dorf);
+      u.meldungen.splice(0);
+      const knopf = u.knoepfe().filter((e) => e.isConnected && e.textContent.startsWith('Gefällt mir'));
       expect(knopf).toHaveLength(1);
       expect('aria-disabled' in knopf[0].attrs, 'vorher frei').toBe(false);
-      tippe(knopf[0]);
-      tippe(knopf[0]);
+      echtTippe(knopf[0]);
+      echtTippe(knopf[0]);
       expect(gemocht).toBe(1);
       expect(s.stand.gemocht).toEqual({ Lindenau: true });
-      expect(toasts).toEqual(['Lindenau gefällt dir!']);
-      expect(a.text(knopf[0])).toBe('Gefällt dir');
+      expect(u.meldungen).toEqual(['Lindenau gefällt dir!']);
+      expect(knopf[0].textContent).toBe('Gefällt dir');
       expect(gesperrtMitHinweis(knopf[0])).toBe(true);
     });
   });

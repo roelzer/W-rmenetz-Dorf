@@ -20,6 +20,12 @@ export const SYMBOLE = {
   plus: SVG(`<path d="M12 5v14M5 12h14" stroke="#1a1208" stroke-width="3.5" stroke-linecap="round"/>`),
   minus: SVG(`<path d="M5 12h14" stroke="#1a1208" stroke-width="3.5" stroke-linecap="round"/>`),
   schloss: SVG(`<path d="M8 10V7.500a4 4 0 0 1 8 0V10" fill="none" stroke="#1a1208" stroke-width="2.200" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="2.500" fill="#f6c22c" ${U}/><circle cx="12" cy="14.300" r="1.500" fill="#7a5200"/><path d="M12 15.500v2" stroke="#7a5200" stroke-width="1.600" stroke-linecap="round"/>`),
+  // DESIGN.md 12.16 Reiter (Vorlage design/reiter-symbole.svg) und 12.18 Zeichenleiste – gleicher Linienstil
+  sonne: SVG(`<circle cx="12" cy="12" r="4.5" fill="#f6c22c" ${U}/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" ${U} fill="none"/>`),
+  rohr: SVG(`<rect x="2.5" y="6" width="19" height="5" rx="1.5" fill="#e2582b" ${U}/><rect x="2.5" y="13" width="19" height="5" rx="1.5" fill="#3d7fd6" ${U}/>`),
+  baum: SVG(`<path d="M12 3a6 6 0 0 1 6 6 5 5 0 0 1-2 8.5H8A5 5 0 0 1 6 9a6 6 0 0 1 6-6z" fill="#5fae4a" ${U}/><path d="M12 13v8" stroke="#1a1208" stroke-width="2.4" stroke-linecap="round"/>`),
+  frage: SVG(`<circle cx="12" cy="12" r="9.5" fill="#fff6e2" ${U}/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1v.6" fill="none" stroke="#1a1208" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#1a1208"/>`),
+  zurueck: SVG(`<path d="M9 5L4 10l5 5" fill="none" stroke="#1a1208" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10H14a5.5 5.5 0 0 1 0 11h-3" fill="none" stroke="#1a1208" stroke-width="2.4" stroke-linecap="round"/>`),
 } as const;
 
 export type SymbolName = keyof typeof SYMBOLE;
