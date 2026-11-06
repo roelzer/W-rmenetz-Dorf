@@ -34,14 +34,15 @@ const lege = (s: Spiel, typ: TypId, x: number, y: number, extra: Partial<Objekt>
   s.stand.objekte.push(o); return o;
 };
 const startHaeuser = (s: Spiel) => s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
-const FUNKTIONEN: Funktion[] = ['stationstypen', 'express', 'gestattung', 'spuelbohrung', 'vorlauf', 'ruecklauf_helfer', 'hauspuffer', 'vorsehung', 'dach_pv', 'baugebiet'];
+// NR19-P0b (P0b Punkt 2): Merkmal 'hauspuffer' entfällt – Puffer-Übergabestationen sind ab Stufe 1 frei.
+const FUNKTIONEN: Funktion[] = ['stationstypen', 'express', 'gestattung', 'spuelbohrung', 'vorlauf', 'ruecklauf_helfer', 'vorsehung', 'dach_pv', 'baugebiet'];
 
 describe('A88 Freischalt-Leiter – Tabelle', () => {
   it('A88: test_a88_tabelle_stufen – abStufe je Merkmal wie Abschnitt 4', () => {
     const soll: Record<number, Merkmal[]> = {
       1: ['d25', 'd32', 'd40', 'kessel', 'buero', 'huette', 'baum', 'blumen', 'hecke', 'bank', 'laterne', 'efh'],
       2: ['d50', 'd63', 'stationstypen', 'express', 'gestattung', 'spuelbohrung', 'wpg', 'puffer', 'solar', 'bad', 'gewerbe', 'brunnen'],
-      3: ['d75', 'd90', 'd110', 'vorlauf', 'ruecklauf_helfer', 'hauspuffer', 'pellet', 'gas', 'sonde', 'klinik'],
+      3: ['d75', 'd90', 'd110', 'vorlauf', 'ruecklauf_helfer', 'pellet', 'gas', 'sonde', 'klinik'],
       4: ['vorsehung', 'bhkw', 'ptk', 'pv', 'dach_pv', 'baugebiet'],
     };
     for (const [stufe, liste] of Object.entries(soll)) for (const m of liste) expect(abStufe(m), m).toBe(Number(stufe));
@@ -68,7 +69,7 @@ describe('A88 Freischalt-Leiter – je Stufe, was baubar ist (T2)', () => {
   const welt: Merkmal[] = [...(Object.keys(KATALOG) as TypId[]).filter((t) => t !== 'hz' && (BAU_KATEGORIEN.some(([k]) => k === KATALOG[t].kategorie) || KATALOG[t].kategorie === 'gross')), ...FUNKTIONEN];
   const s1: Merkmal[] = ['kessel', 'd25', 'd32', 'd40', 'buero', 'huette', 'baum', 'blumen', 'hecke', 'bank', 'laterne'];
   const s2: Merkmal[] = [...s1, 'wpg', 'puffer', 'solar', 'd50', 'd63', 'bad', 'gewerbe', 'brunnen', 'stationstypen', 'express', 'gestattung', 'spuelbohrung'];
-  const s3: Merkmal[] = [...s2, 'pellet', 'gas', 'sonde', 'd75', 'd90', 'd110', 'klinik', 'vorlauf', 'ruecklauf_helfer', 'hauspuffer'];
+  const s3: Merkmal[] = [...s2, 'pellet', 'gas', 'sonde', 'd75', 'd90', 'd110', 'klinik', 'vorlauf', 'ruecklauf_helfer'];
   const s4: Merkmal[] = [...s3, 'bhkw', 'ptk', 'pv', 'vorsehung', 'dach_pv', 'baugebiet'];
   for (const [n, soll] of [[1, s1], [2, s2], [3, s3], [4, s4], [5, s4]] as Array<[number, Merkmal[]]>) {
     it(`A88: test_a88_stufe_${n}_baubar`, () => {
@@ -119,7 +120,6 @@ describe('A88 Freischalt-Leiter – neues Spiel und Durchsetzung im Kern (T3, T4
     expect(geplant.vorsehung).toBeUndefined();
     const start = startHaeuser(s)[0];
     expect(s.upgradeKaufen(start.id).ok).toBe(false);
-    expect(s.hauspufferEinbauen(start.id).ok).toBe(false);
     const v = s.vorlaufSetzen(65);
     expect(v.ok).toBe(false);
     expect(v.hinweis).toContain('ab Heizzentrale Stufe 3');
@@ -587,19 +587,30 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
   });
 
   it('A88: Hauskarte – Puffer und Helfer vor Stufe 3 deaktiviert mit Grund, Bestand und laufender Auftrag zuerst', async () => {
+    // NR19-P0b (P0b Punkt 2): Den Knopf „Puffer einbauen“ gibt es nicht mehr. Der Puffer kommt mit der Puffer-Übergabestation
+    // beim Anschluss; die Reihe „Mit Pufferspeicher“ ist schon auf Stufe 1 frei (Bauplan 5.5). Rot bis P6. Helfer-Teil unverändert.
     const eins = neu(1).s, h = startHaeuser(eins)[0];
     const k = await karte(eins, h);
-    expect(mit(k.knoepfe, 'Puffer einbauen')).toEqual([expect.objectContaining({ text: 'Puffer einbauenab Heizzentrale Stufe 3', aus: true })]);
-    expect(k.text).not.toContain('Ohne Puffer:');
+    expect(mit(k.knoepfe, "Puffer einbauen")).toEqual([]);
     expect(k.knoepfe.filter((x) => x.text.includes('beauftragen'))).toEqual([expect.objectContaining({ text: 'Helfer beauftragenab Heizzentrale Stufe 3', aus: true })]);
+    const ohne = eins.stand.objekte.find((o) => o.x === 13 && o.y === 12)!; // EFH ohne Station, 10 kW
+    expect(ohne.ohne_station).toBe(true);
+    const kOhne = await karte(eins, ohne);
+    expect(kOhne.text).toContain('Mit Pufferspeicher');
+    const puffer = mit(kOhne.knoepfe, 'Puffer-Übergabestation');
+    expect(puffer.length).toBe(1); // ohne Stationswahl genau ein Knopf: die kleinste passende
+    expect(puffer[0].text.startsWith('Puffer-Übergabestation HP 800')).toBe(true);
+    expect(puffer[0].aus).toBe(false);
+    expect(puffer[0].text).not.toContain('ab Heizzentrale Stufe');
+    expect(mit(kOhne.knoepfe, "Puffer einbauen")).toEqual([]);
     h.hauspuffer = true; h.upgrade_auftrag = { helfer: 'Sebastian', ende_ms: T0 + 60_000 };
     const bestand = await karte(eins, h);
-    expect(bestand.text).toContain('Eingebaut.');
+    expect(bestand.text).toContain('Wandstation Typ 15 · 15 kW, mit Puffer'); // alter Stand: Puffer + Wandstation (Bauplan 5.5, Zeile „Übergabestation“)
     expect(bestand.text).toContain('Sebastian arbeitet an');
-    expect(mit(bestand.knoepfe, 'Puffer einbauen')).toEqual([]);
+    expect(mit(bestand.knoepfe, "Puffer einbauen")).toEqual([]);
     const drei = neu(3).s, h3 = startHaeuser(drei)[0];
     const k3 = await karte(drei, h3);
-    expect(mit(k3.knoepfe, 'Puffer einbauen')[0].aus).toBe(false);
+    expect(mit(k3.knoepfe, "Puffer einbauen")).toEqual([]);
     expect(mit(k3.knoepfe, 'Sebastian beauftragen')[0].aus).toBe(false);
   });
 

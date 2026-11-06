@@ -26,7 +26,6 @@ export const WIE_VOR_A88: Readonly<Record<string, number>> = {
   brunnen: 2,
   vorlauf: 1,
   ruecklauf_helfer: 1,
-  hauspuffer: 1,
   pellet: 1, gas: 1,
   sonde: 3, klinik: 3,
   vorsehung: 1,

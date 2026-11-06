@@ -1,0 +1,609 @@
+import { describe, expect, it } from 'vitest';
+import { Spiel, neuerSpielstand, type Ereignis } from '../../src/core/spiel';
+import * as katalog from '../../src/core/katalog';
+import * as netzModul from '../../src/core/netz';
+import * as freischaltung from '../../src/core/freischaltung';
+import { ladenMitBefund, serialisieren } from '../../src/core/speichern';
+import { ERSTE_HAEUSER } from '../../src/core/start';
+import type { Objekt } from '../../src/core/typen';
+import { altesStartdorf } from '../hilfen/altes-startdorf';
+import { kontextKarte, type Attrappe, type AttrappenElement } from '../hilfen/kontext-attrappe';
+import { gesperrt } from '../hilfen/gesperrt';
+import { abschnittOeffnen, abschnittWarnungen, erreichteHaeuser, objektBei, vorstellen, type Uhr } from '../hilfen/nr18';
+
+// NR19 Puffer-Übergabestation – verdeckte Abnahmetests (Tester-Vorarbeit NR19-P0b).
+// Grundlage: Bauplan docs/bauplaene/NR18-ohne-autoanschluss.md Fassung 3, Abschnitt 5.5, Bauplan P6, Abschnitt 8 und 9 (E5, E6);
+// Lastenheft NR19; Werte Simon 2026-11-06, Fachprüfer bestätigt. Bewusst rot bis NR19-P6.
+//
+// Erwartete Werte von Hand (nicht mit dem Spielcode gerechnet):
+// - Volllaststunden: mit Puffer 2.000 h, ohne 1.500 h. Jahresverbrauch: EFH 15.000, RH 24.000, Bäckerei 30.000, MFH 45.000 kWh/a.
+//   Kamin aus ×1,5, aufgestockt ×1,4 (beides ×2,1). Netzbedarf = kWh ÷ h × Faktor; Hausspitze = kWh ÷ 1.500 h × Faktor.
+// - Puffer-Stationen: HP 800 14 kW Netz / 19 kW Haus / 5.570 €; HP 1000 20 / 27 / 6.570 €; ÜP 1000 40 / 54 / 7.570 €.
+// - Wandstationen unverändert (E6): 15/2.400, 25/3.600, 40/4.800, 60/7.000, 80/9.000, CAD 150/20.000.
+// - Rückkauf 50 % des alten Stationspreises; Interessenten-Nachlass 20 %.
+// Neue Kern-Namen (PUFFER_STATIONEN, passendePufferStation, istPufferStation, stationReicht) über einen Typumweg, damit die Datei
+// vor und nach P6 die Typprüfung besteht.
+
+type Station = katalog.Station;
+type PufferStation = Station & { spitze_kw: number; speicher_l: number };
+type Nr19Katalog = {
+  PUFFER_STATIONEN?: ReadonlyArray<PufferStation>;
+  istPufferStation?: (st: Station | undefined) => boolean;
+  passendePufferStation?: (netz_kw: number, spitze_kw: number) => PufferStation | null;
+};
+type Nr19Netz = { stationReicht?: (st: Station, o: Objekt) => boolean };
+const K = katalog as unknown as Nr19Katalog;
+const NZ = netzModul as unknown as Nr19Netz;
+const pufferStationen = (): ReadonlyArray<PufferStation> => {
+  if (!K.PUFFER_STATIONEN) throw new Error('NR19: PUFFER_STATIONEN fehlt noch (kommt mit P6)');
+  return K.PUFFER_STATIONEN;
+};
+const passendePuffer = (netz_kw: number, spitze_kw: number): PufferStation | null => {
+  if (!K.passendePufferStation) throw new Error('NR19: passendePufferStation fehlt noch (kommt mit P6)');
+  return K.passendePufferStation(netz_kw, spitze_kw);
+};
+const istPuffer = (st: Station | undefined): boolean => {
+  if (!K.istPufferStation) throw new Error('NR19: istPufferStation fehlt noch (kommt mit P6)');
+  return K.istPufferStation(st);
+};
+const stationReicht = (st: Station, o: Objekt): boolean => {
+  if (!NZ.stationReicht) throw new Error('NR19: stationReicht fehlt noch (kommt mit P6)');
+  return NZ.stationReicht(st, o);
+};
+
+const T0 = 1_000_000_000_000;
+
+// ─────────────── Handtabellen (Bauplan 5.5 / Simon 06.11.) ───────────────
+const PUFFER_SOLL = [
+  { id: 'hp_800', name: 'Puffer-Übergabestation HP 800', leistung_kw: 14, spitze_kw: 19, speicher_l: 800, kosten_eur: 5570,
+    beschreibung: '800-l-Speicher mit Rohrwendel: lädt mit 14 kW, gibt im Haus bis 19 kW ab.' },
+  { id: 'hp_1000', name: 'Puffer-Übergabestation HP 1000', leistung_kw: 20, spitze_kw: 27, speicher_l: 1000, kosten_eur: 6570,
+    beschreibung: '1.000-l-Speicher mit Rohrwendel: lädt mit 20 kW, gibt im Haus bis 27 kW ab.' },
+  { id: 'up_1000', name: 'Puffer-Übergabestation ÜP 1000', leistung_kw: 40, spitze_kw: 54, speicher_l: 1000, kosten_eur: 7570,
+    beschreibung: '1.000-l-Speicher mit Plattentauscher: lädt mit 40 kW, gibt im Haus bis 54 kW ab.' },
+] as const;
+const WAND_SOLL: ReadonlyArray<readonly [string, number, number]> = [
+  ['st_15', 15, 2400], ['st_25', 25, 3600], ['st_40', 40, 4800], ['st_60', 60, 7000], ['st_80', 80, 9000], ['st_cad', 150, 20000],
+];
+const VERBRAUCH: Readonly<Record<'efh' | 'rh' | 'baeck' | 'mfh', number>> = { efh: 15000, rh: 24000, baeck: 30000, mfh: 45000 };
+type HausTyp = keyof typeof VERBRAUCH;
+const HAUSTYPEN: HausTyp[] = ['efh', 'rh', 'baeck', 'mfh'];
+/** Nutzungsfaktor wie im Lastenheft A88: Kamin aus ×1,5, aufgestockt ×1,4 (gleiche Rechenreihenfolge wie im Kern). */
+const faktor = (o: { vollversorgung?: boolean; aufgestockt?: boolean }): number => (o.vollversorgung ? 1.5 : 1) * (o.aufgestockt ? 1.4 : 1);
+const netzSoll = (typ: HausTyp, o: { vollversorgung?: boolean; aufgestockt?: boolean }, mitPuffer: boolean): number =>
+  (VERBRAUCH[typ] / (mitPuffer ? 2000 : 1500)) * faktor(o);
+const spitzeSoll = (typ: HausTyp, o: { vollversorgung?: boolean; aufgestockt?: boolean }): number => (VERBRAUCH[typ] / 1500) * faktor(o);
+/** Orakel: kleinste Puffer-Station aus der Handtabelle mit Netz-Ladeleistung ≥ netz und Spitze ≥ Hausspitze (E5). */
+const pufferOrakel = (netz: number, spitze: number): string | null =>
+  PUFFER_SOLL.find((p) => p.leistung_kw >= netz && p.spitze_kw >= spitze)?.id ?? null;
+/** Orakel: kleinste Wandstation aus der Handtabelle (passendeStation bleibt, Fallback größte). */
+const wandOrakel = (kw: number): string => (WAND_SOLL.find(([, l]) => l >= kw) ?? WAND_SOLL[WAND_SOLL.length - 1])[0];
+
+/** Fester Zufall (mulberry32, Startwert 42). */
+function zufall(start = 42): () => number {
+  let a = start >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ─────────────── Aufbau ───────────────
+/** Altes Startdorf (Startnetz mit 40er, Häuser (9|13) und (12|14) mit Wandstation Typ 15), Kessel gewählt, echte Freischalt-Leiter. */
+function dorf(stufe = 1): { s: Spiel; z: Uhr } {
+  const z: Uhr = { t: T0 };
+  const s = new Spiel(altesStartdorf(T0), () => z.t);
+  s.ersteQuelleWaehlen('kessel');
+  s.hz.stufe = stufe;
+  s.stand.geld_eur = 1_000_000;
+  s.neuBerechnen();
+  s.ereignisse.splice(0);
+  return { s, z };
+}
+const bei = (s: Spiel, x: number, y: number): Objekt => {
+  const o = objektBei(s, x, y, (a) => katalog.KATALOG[a.typ].kategorie === 'haus' || katalog.KATALOG[a.typ].kategorie === 'gross');
+  if (!o) throw new Error(`Testaufbau: kein Gebäude auf (${x}|${y})`);
+  return o;
+};
+/** Haus ohne Station, ohne Interessent, ohne Anfrage: (13|12) im alten Startdorf, auf Typ und Nutzung gesetzt. */
+function freiesHaus(s: Spiel, typ: HausTyp = 'efh', nutzung: { vollversorgung?: boolean; aufgestockt?: boolean } = {}): Objekt {
+  const h = bei(s, 13, 12);
+  h.typ = typ; h.ohne_station = true; delete h.station; delete h.hauspuffer; delete h.interessent; delete h.anfrage;
+  if (nutzung.vollversorgung) h.vollversorgung = true; else delete h.vollversorgung;
+  if (nutzung.aufgestockt) h.aufgestockt = true; else delete h.aufgestockt;
+  s.neuBerechnen();
+  return h;
+}
+const hinweise = (s: Spiel): string[] =>
+  s.ereignisse.filter((e): e is Extract<Ereignis, { art: 'hinweis' }> => e.art === 'hinweis').map((e) => e.text);
+type EngstelleEreignis = { art: 'engstelle'; felder: number[] };
+const engstellen = (s: Spiel): EngstelleEreignis[] =>
+  (s.ereignisse as ReadonlyArray<Ereignis | EngstelleEreignis>).filter((e): e is EngstelleEreignis => e.art === 'engstelle');
+const norm = (t: string): string => t.replace(/[  ]/g, ' ');
+
+// ─────────────── Oberfläche ───────────────
+type Knopf = { z1: string; z2: string; aus: boolean; klasse: string };
+async function hausblatt(s: Spiel, o: Objekt): Promise<{ text: string; knoepfe: Knopf[] }> {
+  const { a, c } = await kontextKarte(s, o, T0);
+  const knoepfe = a.alle(c).filter((e) => e.tag === 'button').map((e) => knopfTeile(a, e));
+  return { text: norm(a.text(c)), knoepfe };
+}
+function knopfTeile(a: Attrappe, e: AttrappenElement): Knopf {
+  const istSmall = (n: unknown): boolean => !!n && typeof n === 'object' && (n as { tag?: string }).tag === 'small';
+  return {
+    z1: norm(e.kinder.filter((n) => !istSmall(n)).map(a.text).join('')),
+    z2: norm(e.kinder.filter(istSmall).map(a.text).join('')),
+    aus: gesperrt(e as unknown as { attrs: Record<string, string> }),
+    klasse: e.className || e.attrs.class || '',
+  };
+}
+const pufferKnoepfe = (k: Knopf[]): Knopf[] => k.filter((x) => x.z1.startsWith('Puffer-Übergabestation'));
+
+// ═══════════════════════════ Katalog ═══════════════════════════
+describe('NR19 Katalog', () => {
+  it('test_nr19_volllaststunden_2000_und_1500', () => {
+    expect(katalog.VOLLLASTSTUNDEN).toEqual({ ohne_puffer_h: 1500, mit_puffer_h: 2000 });
+  });
+
+  it('test_nr19_drei_puffer_stationen_mit_den_werten_von_simon', () => {
+    const ist = pufferStationen().map((p) => ({ id: p.id, name: p.name, leistung_kw: p.leistung_kw, spitze_kw: p.spitze_kw, speicher_l: p.speicher_l, kosten_eur: p.kosten_eur, beschreibung: p.beschreibung }));
+    expect(ist).toEqual(PUFFER_SOLL.map((p) => ({ ...p })));
+  });
+
+  it('test_nr19_beschreibungen_kurz_und_ohne_firmennamen', () => {
+    const FIRMEN = /enerpipe|rehau|brugg|isoplus|danfoss|viessmann|vaillant|uponor|logstor|buderus|bosch|kermi|samson|siemens|meibes|pewo|cetetherm|alfa ?laval/i;
+    for (const p of pufferStationen()) {
+      expect(p.beschreibung.length, p.id).toBeLessThanOrEqual(90);
+      expect(p.beschreibung, p.id).not.toMatch(FIRMEN);
+      expect(p.name, p.id).not.toMatch(FIRMEN);
+    }
+  });
+
+  it('test_nr19_wandstationen_unveraendert_e6', () => {
+    expect(katalog.STATIONEN.map((s) => [s.id, s.leistung_kw, s.kosten_eur])).toEqual(WAND_SOLL);
+    expect(katalog.STATIONEN.some((s) => s.id.startsWith('hp_') || s.id.startsWith('up_'))).toBe(false);
+  });
+
+  it('test_nr19_stationHolen_findet_puffer_passendeStation_nur_wand', () => {
+    expect(katalog.stationHolen('hp_1000')?.name).toBe('Puffer-Übergabestation HP 1000');
+    expect(katalog.stationHolen('up_1000')?.leistung_kw).toBe(40);
+    expect(katalog.stationHolen('st_40')?.leistung_kw).toBe(40);
+    expect(katalog.stationHolen('hp_900')).toBeUndefined();
+    expect(istPuffer(katalog.stationHolen('hp_800'))).toBe(true);
+    expect(istPuffer(katalog.stationHolen('st_15'))).toBe(false);
+    expect(istPuffer(katalog.stationHolen('st_cad'))).toBe(false);
+    expect(istPuffer(undefined)).toBe(false);
+    // passendeStation sucht weiter nur unter den Wandstationen
+    for (const kw of [0, 7.5, 14, 19, 26, 41, 61, 80, 81, 500]) expect(katalog.passendeStation(kw).id, `${kw} kW`).toBe(wandOrakel(kw));
+  });
+
+  it('test_nr19_merkmal_hauspuffer_und_einbau_entfallen', () => {
+    expect(Object.keys(freischaltung.FREISCHALTUNGEN)).not.toContain('hauspuffer');
+    const { s } = dorf(1);
+    expect('hauspufferEinbauen' in s).toBe(false);
+  });
+});
+
+// ═══════════════════════════ Fachregeln (Eigenschaftstests) ═══════════════════════════
+describe('NR19 Fachregeln über viele Fälle', () => {
+  it('test_nr19_f_volllaststunden_bedarf_mit_und_ohne_puffer', () => {
+    const r = zufall(42);
+    const faelle: Array<{ typ: HausTyp; vollversorgung: boolean; aufgestockt: boolean }> = [];
+    for (const typ of HAUSTYPEN) for (const vollversorgung of [false, true]) for (const aufgestockt of [false, true]) faelle.push({ typ, vollversorgung, aufgestockt });
+    for (let i = 0; i < 400; i++) faelle.push({ typ: HAUSTYPEN[Math.floor(r() * 4)], vollversorgung: r() < 0.5, aufgestockt: r() < 0.5 });
+    for (const f of faelle) {
+      const o: Objekt = { id: 1, typ: f.typ, x: 0, y: 0, stufe: 1, bau: null, kasse_eur: 0, vollversorgung: f.vollversorgung, aufgestockt: f.aufgestockt };
+      const ohne = netzModul.bedarfKw({ ...o, hauspuffer: false });
+      const mit = netzModul.bedarfKw({ ...o, hauspuffer: true });
+      expect(ohne, JSON.stringify(f)).toBeCloseTo(netzSoll(f.typ, f, false), 9);
+      expect(mit, JSON.stringify(f)).toBeCloseTo(netzSoll(f.typ, f, true), 9);
+      expect(mit * 2000, JSON.stringify(f)).toBeCloseTo(ohne * 1500, 6); // gleicher Jahresverbrauch, nur andere Stunden
+    }
+  });
+
+  it('test_nr19_f_passende_puffer_kleinste_die_netz_und_spitze_schafft', () => {
+    const r = zufall(42);
+    const faelle: Array<[number, number]> = [
+      [0, 0], [14, 19], [14, 19.000001], [14.000001, 19], [14, 0], [0, 19], [20, 27], [20, 27.5], [20.5, 27], [40, 54], [40, 54.5], [40.5, 1],
+      [7.5, 10], [12, 16], [15, 20], [22.5, 30], [15.75, 21], [47.25, 63], [1e6, 1e6],
+    ];
+    for (let i = 0; i < 600; i++) faelle.push([Math.round(r() * 600) / 10, Math.round(r() * 700) / 10]);
+    for (const [netz, spitze] of faelle) expect(passendePuffer(netz, spitze)?.id ?? null, `${netz} kW Netz / ${spitze} kW Spitze`).toBe(pufferOrakel(netz, spitze));
+  });
+
+  it('test_nr19_f_station_reicht_puffer_muss_netz_und_hausspitze_decken_e5', () => {
+    // Auch erfundene Puffer-Stationen mit beliebiger Netz-/Spitzenleistung: nur so kann die Spitzenregel allein entscheiden
+    // (bei den drei Katalogstationen ist Spitze/Netz > 4/3, dort entscheidet immer die Netzleistung zuerst).
+    const r = zufall(42);
+    const katalogStationen: Station[] = [...katalog.STATIONEN, ...pufferStationen()];
+    let spitzeEntschied = 0;
+    for (let i = 0; i < 800; i++) {
+      const typ = HAUSTYPEN[Math.floor(r() * 4)];
+      const o: Objekt = { id: 1, typ, x: 0, y: 0, stufe: 1, bau: null, kasse_eur: 0, vollversorgung: r() < 0.5, aufgestockt: r() < 0.5, hauspuffer: r() < 0.5 };
+      const netz = netzSoll(typ, o, !!o.hauspuffer), spitze = spitzeSoll(typ, o);
+      const erfunden = r() < 0.5;
+      const st: Station = erfunden
+        ? ({ id: 'probe', name: 'Probe', kosten_eur: 1, beschreibung: '', leistung_kw: Math.round(r() * 800) / 10, spitze_kw: Math.round(r() * 800) / 10, speicher_l: 800 } as PufferStation)
+        : katalogStationen[Math.floor(r() * katalogStationen.length)];
+      const puffer = 'spitze_kw' in st;
+      const soll = st.leistung_kw >= netz && (!puffer || (st as PufferStation).spitze_kw >= spitze);
+      if (puffer && st.leistung_kw >= netz && (st as PufferStation).spitze_kw < spitze) spitzeEntschied++;
+      expect(stationReicht(st, o), `${st.id} ${st.leistung_kw}/${(st as PufferStation).spitze_kw ?? '-'} für ${JSON.stringify(o)}`).toBe(soll);
+    }
+    expect(spitzeEntschied, 'Fälle, in denen nur die Spitze fehlt').toBeGreaterThan(20);
+    // Grenzwerte exakt darstellbar: EFH mit Puffer 7,5 kW Netz, 10 kW Spitze
+    const efh: Objekt = { id: 1, typ: 'efh', x: 0, y: 0, stufe: 1, bau: null, kasse_eur: 0, hauspuffer: true };
+    const probe = (l: number, sp: number): PufferStation => ({ id: 'probe', name: 'Probe', kosten_eur: 1, beschreibung: '', leistung_kw: l, spitze_kw: sp, speicher_l: 800 });
+    expect(stationReicht(probe(7.5, 10), efh)).toBe(true);
+    expect(stationReicht(probe(7.5, 9.5), efh)).toBe(false);
+    expect(stationReicht(probe(7, 10), efh)).toBe(false);
+    // Wandstation: nur die Leistung zählt (gegen den Bedarf mit dem Puffer-Merkmal des Hauses)
+    expect(stationReicht(katalog.stationHolen('st_15')!, { ...efh, hauspuffer: false, vollversorgung: true })).toBe(true); // 15,0 ≤ 15
+    expect(stationReicht(katalog.stationHolen('st_15')!, { ...efh, hauspuffer: false, aufgestockt: true, vollversorgung: true })).toBe(false); // 21 > 15
+  });
+
+  it('test_nr19_f_kauf_ohne_stationswahl_genau_kleinste_wand_und_kleinste_puffer', () => {
+    // Stufe 1 (keine freie Stationswahl): erlaubt sind genau passendeStation(Bedarf ohne Puffer) und
+    // passendePufferStation(Bedarf mit Puffer, Hausspitze) – Orakel aus den Handtabellen.
+    const r = zufall(42);
+    const { s } = dorf(1);
+    const alle = [...WAND_SOLL.map(([id]) => id), ...PUFFER_SOLL.map((p) => p.id)];
+    const faelle: Array<{ typ: HausTyp; vollversorgung: boolean; aufgestockt: boolean }> = [];
+    for (const typ of HAUSTYPEN) for (const vollversorgung of [false, true]) for (const aufgestockt of [false, true]) faelle.push({ typ, vollversorgung, aufgestockt });
+    for (let i = 0; i < 30; i++) faelle.push({ typ: HAUSTYPEN[Math.floor(r() * 4)], vollversorgung: r() < 0.5, aufgestockt: r() < 0.5 });
+    for (const f of faelle) {
+      const erlaubt = new Set([wandOrakel(netzSoll(f.typ, f, false)), pufferOrakel(netzSoll(f.typ, f, true), spitzeSoll(f.typ, f))].filter((x): x is string => x !== null));
+      for (const id of alle) {
+        const h = freiesHaus(s, f.typ, f);
+        s.stand.geld_eur = 1_000_000;
+        const ok = s.stationKaufen(h.id, id).ok;
+        expect(ok, `${id} für ${JSON.stringify(f)}`).toBe(erlaubt.has(id));
+        expect(!!h.hauspuffer, `hauspuffer nach ${id} für ${JSON.stringify(f)}`).toBe(ok && !id.startsWith('st_'));
+      }
+    }
+  });
+
+  it('test_nr19_f_kauf_mit_stationswahl_jede_puffer_station_die_reicht', () => {
+    // Stufe 2 (freie Stationswahl): jede Puffer-Station, die Netz und Spitze schafft; Preis genau der Katalogpreis.
+    const r = zufall(42);
+    const { s } = dorf(2);
+    for (let i = 0; i < 120; i++) {
+      const f = { typ: HAUSTYPEN[Math.floor(r() * 4)], vollversorgung: r() < 0.5, aufgestockt: r() < 0.5 };
+      const p = PUFFER_SOLL[Math.floor(r() * 3)];
+      const h = freiesHaus(s, f.typ, f);
+      s.stand.geld_eur = 50_000;
+      const soll = p.leistung_kw >= netzSoll(f.typ, f, true) && p.spitze_kw >= spitzeSoll(f.typ, f);
+      const e = s.stationKaufen(h.id, p.id);
+      expect(e.ok, `${p.id} für ${JSON.stringify(f)}`).toBe(soll);
+      if (soll) {
+        expect(h.station).toBe(p.id); expect(h.hauspuffer).toBe(true); expect(s.stand.geld_eur).toBe(50_000 - p.kosten_eur);
+        expect(netzModul.bedarfKw(h)).toBeCloseTo(netzSoll(f.typ, f, true), 9);
+      } else {
+        expect(h.station).toBeUndefined(); expect(h.ohne_station).toBe(true); expect(!!h.hauspuffer).toBe(false); expect(s.stand.geld_eur).toBe(50_000);
+      }
+    }
+  });
+});
+
+// ═══════════════════════════ Kern: Kauf, Ablehnung, Preise ═══════════════════════════
+describe('NR19 Kern – Stationskauf', () => {
+  it('test_nr19_reihenhaus_mit_hp800_braucht_12_kw', () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'rh');
+    expect(netzModul.bedarfKw(h)).toBe(16); // 24.000 ÷ 1.500
+    const e = s.stationKaufen(h.id, 'hp_800');
+    expect(e.ok).toBe(true);
+    expect(h.station).toBe('hp_800'); expect(h.hauspuffer).toBe(true); expect(h.ohne_station).toBeFalsy();
+    expect(netzModul.bedarfKw(h)).toBe(12); // 24.000 ÷ 2.000
+    expect(s.stand.geld_eur).toBe(1_000_000 - 5570);
+  });
+
+  it('test_nr19_baeckerei_hp800_abgelehnt_mit_satz_hp1000_ok', () => {
+    const { s } = dorf(2); // freie Stationswahl, damit die Ablehnung vom Bedarf kommt, nicht von der Freischaltung
+    const h = freiesHaus(s, 'baeck');
+    const e = s.stationKaufen(h.id, 'hp_800');
+    expect(e.ok).toBe(false);
+    expect(norm(e.hinweis ?? '')).toBe('Puffer-Übergabestation HP 800 schafft nur 14 kW, das Gebäude braucht 15 kW');
+    expect(h.station).toBeUndefined(); expect(!!h.hauspuffer).toBe(false); expect(s.stand.geld_eur).toBe(1_000_000);
+    expect(s.stationKaufen(h.id, 'hp_1000').ok).toBe(true);
+    expect(h.hauspuffer).toBe(true); expect(s.stand.geld_eur).toBe(1_000_000 - 6570);
+  });
+
+  it('test_nr19_kein_nachruesten_an_wandstation', () => {
+    const { s } = dorf(2);
+    const h = bei(s, 9, 13); // EFH mit Wandstation Typ 15, ohne Puffer
+    expect(h.station).toBe('st_15'); expect(!!h.hauspuffer).toBe(false);
+    for (const id of ['hp_800', 'hp_1000', 'up_1000']) {
+      s.ereignisse.splice(0);
+      const e = s.stationKaufen(h.id, id);
+      expect(e.ok, id).toBe(false);
+      expect(norm(e.hinweis ?? ''), id).toBe('Den Puffer gibt es nur beim Anschluss. Für dieses Haus geht nur eine Wandstation.');
+      expect(hinweise(s).map(norm), id).toContain('Den Puffer gibt es nur beim Anschluss. Für dieses Haus geht nur eine Wandstation.');
+      expect(h.station).toBe('st_15'); expect(!!h.hauspuffer).toBe(false); expect(s.stand.geld_eur).toBe(1_000_000);
+    }
+    // eine größere Wandstation geht weiter (Rückkauf 50 %: 3.600 − 1.200)
+    expect(s.stationKaufen(h.id, 'st_25').ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(1_000_000 - 2400);
+    expect(!!h.hauspuffer).toBe(false);
+  });
+
+  it('test_nr19_grossabnehmer_bekommt_keine_puffer_station', () => {
+    const { s } = dorf(2);
+    const bad = s.stand.objekte.find((o) => o.typ === 'bad')!;
+    expect(bad, 'Vorbedingung: Hallenbad im Dorf').toBeDefined();
+    bad.ohne_station = true; delete bad.station; s.neuBerechnen();
+    for (const id of ['hp_800', 'hp_1000', 'up_1000']) {
+      expect(s.stationKaufen(bad.id, id).ok, id).toBe(false);
+      expect(bad.station).toBeUndefined(); expect(!!bad.hauspuffer).toBe(false); expect(s.stand.geld_eur).toBe(1_000_000);
+    }
+    // Gegenprobe: Wandstation geht (67.500 ÷ 1.500 = 45 kW → Typ 60)
+    expect(s.stationKaufen(bad.id, 'st_60').ok).toBe(true);
+    expect(!!bad.hauspuffer).toBe(false);
+  });
+
+  it('test_nr19_mfh_kamin_aus_und_aufgestockt_keine_puffer_station', () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'mfh', { vollversorgung: true, aufgestockt: true }); // 47,25 kW Netz / 63 kW Spitze
+    expect(passendePuffer(netzSoll('mfh', h, true), spitzeSoll('mfh', h))).toBeNull();
+    for (const id of ['hp_800', 'hp_1000', 'up_1000']) expect(s.stationKaufen(h.id, id).ok, id).toBe(false);
+    expect(!!h.hauspuffer).toBe(false);
+    expect(s.stationKaufen(h.id, 'st_80').ok).toBe(true); // 63 kW ohne Puffer
+  });
+
+  it('test_nr19_interessent_bekommt_nachlass_auch_auf_puffer', () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'efh');
+    h.interessent = true;
+    expect(s.stationspreis_eur(h, katalog.stationHolen('hp_800')!)).toBe(4456); // 5.570 × 0,8
+    expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(1_000_000 - 4456);
+  });
+
+  it('test_nr19_tausch_auf_groessere_puffer_station_mit_rueckkauf', () => {
+    const { s } = dorf(2);
+    const h = freiesHaus(s, 'efh');
+    expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
+    s.stand.geld_eur = 100_000;
+    expect(s.stationspreis_eur(h, katalog.stationHolen('hp_1000')!)).toBe(3785); // 6.570 − 2.785
+    expect(s.stationKaufen(h.id, 'hp_1000').ok).toBe(true);
+    expect(h.station).toBe('hp_1000'); expect(h.hauspuffer).toBe(true); expect(s.stand.geld_eur).toBe(100_000 - 3785);
+    // zurück auf die kleinere geht nicht
+    expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(false);
+    expect(h.station).toBe('hp_1000'); expect(s.stand.geld_eur).toBe(100_000 - 3785);
+  });
+
+  it('test_nr19_altstand_puffer_mit_wandstation_darf_puffer_station_kaufen', () => {
+    const { s } = dorf(2);
+    const h = bei(s, 12, 14); // EFH mit Wandstation Typ 15
+    h.hauspuffer = true; s.neuBerechnen(); // alter Stand: Puffer nachgerüstet + Wandstation
+    expect(netzModul.bedarfKw(h)).toBe(7.5);
+    expect(s.netz.warm.has(h.id)).toBe(true);
+    expect(s.stationKaufen(h.id, 'hp_1000').ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(1_000_000 - 5370); // 6.570 − 1.200
+    expect(h.station).toBe('hp_1000'); expect(h.hauspuffer).toBe(true);
+  });
+
+  it('test_nr19_aufstockung_macht_hp800_zu_klein_haus_kalt_station', () => {
+    const { s } = dorf(1);
+    const h = bei(s, 9, 13); // hängt an der 40er, Leitung ist nie der Engpass
+    h.station = 'hp_800'; h.hauspuffer = true; s.neuBerechnen();
+    expect(s.netz.warm.has(h.id)).toBe(true);
+    h.aufgestockt = true; s.neuBerechnen(); // 10,5 kW Netz / 14 kW Spitze
+    expect(s.netz.warm.has(h.id)).toBe(true);
+    h.vollversorgung = true; s.neuBerechnen(); // 15,75 kW Netz > 14 kW
+    expect(s.netz.kalt.get(h.id)).toBe('station');
+    // ohne Stationswahl wird die passende größere angeboten und gekauft: HP 1000, Rückkauf 2.785 €
+    expect(s.stationKaufen(h.id, 'hp_1000').ok).toBe(true);
+    expect(s.stand.geld_eur).toBe(1_000_000 - 3785);
+    expect(s.netz.warm.has(h.id)).toBe(true);
+  });
+
+  it('test_nr19_reihenhaus_kamin_aus_mit_hp800_kalt_station', () => {
+    const { s } = dorf(1);
+    const h = bei(s, 9, 13);
+    h.typ = 'rh'; h.station = 'hp_800'; h.hauspuffer = true; s.neuBerechnen(); // 12 kW ≤ 14
+    expect(s.netz.warm.has(h.id)).toBe(true);
+    h.vollversorgung = true; s.neuBerechnen(); // 18 kW > 14
+    expect(s.netz.kalt.get(h.id)).toBe('station');
+  });
+});
+
+// ═══════════════════════════ Spielstand ═══════════════════════════
+describe('NR19 Spielstand', () => {
+  it('test_nr19_spielstand_reparatur_beim_laden', () => {
+    const st = altesStartdorf(T0);
+    const finde = (x: number, y: number): Objekt => st.objekte.find((o) => o.x === x && o.y === y && (katalog.KATALOG[o.typ].kategorie === 'haus' || katalog.KATALOG[o.typ].kategorie === 'gross'))!;
+    const ohneMerkmal = finde(13, 12); ohneMerkmal.station = 'hp_1000'; delete ohneMerkmal.ohne_station; delete ohneMerkmal.hauspuffer;
+    const alt = finde(12, 14); alt.station = 'st_15'; alt.hauspuffer = true;
+    const wand = finde(9, 13); wand.station = 'st_15'; delete wand.hauspuffer;
+    const bad = st.objekte.find((o) => o.typ === 'bad')!; bad.station = 'up_1000'; delete bad.ohne_station;
+    const text = serialisieren(st);
+    expect(JSON.parse(text).version).toBe(3);
+    const { stand } = ladenMitBefund(text, T0);
+    expect(stand.version).toBe(3);
+    const nach = (o: Objekt): Objekt => stand.objekte.find((a) => a.id === o.id)!;
+    expect(nach(ohneMerkmal).station).toBe('hp_1000');
+    expect(nach(ohneMerkmal).hauspuffer).toBe(true);
+    expect(nach(alt).station).toBe('st_15'); expect(nach(alt).hauspuffer).toBe(true);
+    expect(nach(wand).station).toBe('st_15'); expect(!!nach(wand).hauspuffer).toBe(false);
+    expect(nach(bad).station).toBeUndefined(); expect(nach(bad).ohne_station).toBe(true); expect(!!nach(bad).hauspuffer).toBe(false);
+    expect(stand.objekte.length).toBe(st.objekte.length); // nichts geht verloren
+  });
+
+  it('test_nr19_puffer_station_ueberlebt_speichern_und_laden', () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'rh');
+    expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
+    const { stand } = ladenMitBefund(serialisieren(s.stand), T0);
+    const s2 = new Spiel(stand, () => T0);
+    const h2 = s2.stand.objekte.find((o) => o.id === h.id)!;
+    expect(h2.station).toBe('hp_800'); expect(h2.hauspuffer).toBe(true);
+    expect(netzModul.bedarfKw(h2)).toBe(12);
+  });
+});
+
+// ═══════════════════════════ Zusammenspiel: Tutorial-Ablauf ═══════════════════════════
+describe('NR19 Zusammenspiel', () => {
+  it('test_nr19_abnahme_zwei_efh_mit_hp800_an_25er_genau_15_kw_ohne_warnung', () => {
+    // Bauplan P6 test_nr19_tutorial_reihenfolge / Prüf-Schwerpunkt 1: 2 × 7,5 = 15,0 kW ≤ 15 kW → keine Warnung.
+    expect(katalog.KONSTANTEN.abschnitt_planung_eur, 'Planungsgebühr laut Bauplan – sonst stoppen und melden').toBe(2000);
+    expect(katalog.KATALOG.d25.kosten_eur, '25er kostet 400 € je Feld').toEqual([400]);
+    const z: Uhr = { t: T0 };
+    const s = new Spiel(neuerSpielstand(T0), () => z.t); // Kessel ist vorgewählt – kein ersteQuelleWaehlen
+    expect(s.stand.geld_eur).toBe(30_000);
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    for (const [x, y] of [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]] as const) expect(s.platzieren('d25', x, y).ok, `25er auf (${x}|${y})`).toBe(true);
+    const haeuser = ERSTE_HAEUSER.map(([x, y]) => bei(s, x, y));
+    for (const h of haeuser) { expect(h.typ).toBe('efh'); expect(h.ohne_station).toBe(true); expect(erreichteHaeuser(s)).toContain(h.id); }
+    const ab = s.abschnittAbschliessen();
+    expect(ab.ok).toBe(true); expect(ab.hinweis).toBeUndefined(); expect(abschnittWarnungen(s)).toEqual([]);
+    expect(s.stand.abschnitt?.phase).toBe('bestellen');
+    for (const h of haeuser) {
+      const e = s.stationKaufen(h.id, 'hp_800');
+      expect(e.ok).toBe(true); expect(e.hinweis).toBeUndefined(); expect(h.hauspuffer).toBe(true);
+    }
+    expect(abschnittWarnungen(s)).toEqual([]);
+    expect(s.materialBestellen().ok).toBe(true);
+    vorstellen(s, z, katalog.KONSTANTEN.abschnitt_bau_s * katalog.KONSTANTEN.bauzeit_faktor + 10);
+    for (const h of haeuser) { expect(s.netz.warm.has(h.id), `(${h.x}|${h.y}) warm`).toBe(true); expect(s.netz.kalt.has(h.id)).toBe(false); }
+    expect(engstellen(s)).toEqual([]);
+    expect(s.stand.geld_eur).toBe(14_460); // 30.000 − 2.000 − 6 × 400 − 2 × 5.570
+  });
+
+  it('test_nr19_abnahme_zwei_efh_mit_wandstation_an_25er_warnen', () => {
+    // Gegenstück: mit Wandstationen 2 × 10 = 20 kW > 15 kW → Warnung beim Kauf der zweiten Station.
+    const z: Uhr = { t: T0 };
+    const s = new Spiel(neuerSpielstand(T0), () => z.t);
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    for (const [x, y] of [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]] as const) s.platzieren('d25', x, y);
+    const [h1, h2] = ERSTE_HAEUSER.map(([x, y]) => bei(s, x, y));
+    expect(s.stationKaufen(h1.id, 'st_15').hinweis).toBeUndefined();
+    const e = s.stationKaufen(h2.id, 'st_15');
+    expect(e.ok).toBe(true);
+    expect(norm(e.hinweis ?? '')).toContain('es fehlen 5 kW');
+    expect(engstellen(s).length).toBeGreaterThan(0);
+  });
+
+  it('test_nr19_abnahme_puffer_haus_und_wand_haus_an_25er_warnen', () => {
+    // Gemischt: 7,5 + 10 = 17,5 kW > 15 kW → Warnung; es fehlen 2,5 kW (gerundet nach oben: 3 kW).
+    const z: Uhr = { t: T0 };
+    const s = new Spiel(neuerSpielstand(T0), () => z.t);
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    for (const [x, y] of [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]] as const) s.platzieren('d25', x, y);
+    const [h1, h2] = ERSTE_HAEUSER.map(([x, y]) => bei(s, x, y));
+    expect(s.stationKaufen(h1.id, 'hp_800').ok).toBe(true);
+    const e = s.stationKaufen(h2.id, 'st_15');
+    expect(e.ok).toBe(true);
+    expect(norm(e.hinweis ?? '')).toContain('Die 25er an der Heizzentrale ist zu dünn');
+    expect(engstellen(s).length).toBeGreaterThan(0);
+  });
+});
+
+// ═══════════════════════════ Oberfläche: Hausblatt ═══════════════════════════
+describe('NR19 Hausblatt', () => {
+  it('test_nr19_hausblatt_zwei_reihen_mit_erklaerung_efh', async () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'efh');
+    const b = await hausblatt(s, h);
+    expect(b.text).toContain('Übergabestation wählen');
+    expect(b.text).toContain('Mit Pufferspeicher');
+    expect(b.text).toContain('Wandstation ohne Puffer');
+    expect(b.text).toContain('Mit Puffer: 15.000 kWh ÷ 2.000 h = 7,5 kW aus dem Netz. Der Speicher fängt die Spitze ab.');
+    expect(b.text).toContain('Ohne Puffer: 15.000 kWh ÷ 1.500 h = 10 kW – das Netz muss die Spitze liefern.');
+    expect(b.text).toContain('Den Puffer wählst du nur beim Anschluss.');
+    const p = pufferKnoepfe(b.knoepfe);
+    expect(p.map((k) => [k.z1, k.z2, k.aus])).toEqual([['Puffer-Übergabestation HP 800', '7,5 kW aus dem Netz · 5.570 €', false]]);
+    expect(p[0].klasse).toMatch(/\bgeld\b/); // empfohlen = Gold
+    expect(b.knoepfe.filter((k) => k.z2.startsWith('Wandstation Typ 15')).length).toBe(1);
+    expect(b.text).not.toContain('Pufferspeicher im Haus');
+    expect(b.knoepfe.some((k) => k.z1.startsWith('Puffer einbauen'))).toBe(false);
+  });
+
+  it('test_nr19_hausblatt_reihenhaus_andere_werte', async () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'rh');
+    const b = await hausblatt(s, h);
+    expect(b.text).toContain('Mit Puffer: 24.000 kWh ÷ 2.000 h = 12 kW aus dem Netz. Der Speicher fängt die Spitze ab.');
+    expect(b.text).toContain('Ohne Puffer: 24.000 kWh ÷ 1.500 h = 16 kW – das Netz muss die Spitze liefern.');
+    expect(pufferKnoepfe(b.knoepfe).map((k) => [k.z1, k.z2])).toEqual([['Puffer-Übergabestation HP 800', '12 kW aus dem Netz · 5.570 €']]);
+    expect(b.knoepfe.filter((k) => k.z2.startsWith('Wandstation Typ 25')).length).toBe(1);
+  });
+
+  it('test_nr19_hausblatt_mit_stationswahl_hoechstens_zwei_puffer_kleinste_gold', async () => {
+    const { s } = dorf(2);
+    const h = freiesHaus(s, 'efh');
+    const p = pufferKnoepfe((await hausblatt(s, h)).knoepfe);
+    expect(p.map((k) => k.z1)).toEqual(['Puffer-Übergabestation HP 800', 'Puffer-Übergabestation HP 1000']);
+    expect(p.map((k) => k.z2)).toEqual(['7,5 kW aus dem Netz · 5.570 €', '7,5 kW aus dem Netz · 6.570 €']);
+    expect(p[0].klasse).toMatch(/\bgeld\b/);
+    expect(p[1].klasse).not.toMatch(/\bgeld\b/);
+  });
+
+  it('test_nr19_hausblatt_baeckerei_beginnt_bei_hp1000', async () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'baeck');
+    const p = pufferKnoepfe((await hausblatt(s, h)).knoepfe);
+    expect(p.map((k) => [k.z1, k.z2])).toEqual([['Puffer-Übergabestation HP 1000', '15 kW aus dem Netz · 6.570 €']]);
+  });
+
+  it('test_nr19_hausblatt_ohne_puffer_reihe_fuer_grossabnehmer_wandhaus_und_zu_grosses_mfh', async () => {
+    const { s } = dorf(2);
+    const bad = s.stand.objekte.find((o) => o.typ === 'bad')!;
+    bad.ohne_station = true; delete bad.station; s.neuBerechnen();
+    const bBad = await hausblatt(s, bad);
+    expect(pufferKnoepfe(bBad.knoepfe)).toEqual([]);
+    expect(bBad.text).not.toContain('Mit Pufferspeicher');
+    const wand = bei(s, 9, 13); // Wandstation Typ 15, ohne Puffer
+    wand.aufgestockt = true; wand.vollversorgung = true; s.neuBerechnen(); // Station zu klein → Stationswahl erscheint
+    const bWand = await hausblatt(s, wand);
+    expect(pufferKnoepfe(bWand.knoepfe)).toEqual([]);
+    expect(bWand.text).not.toContain('Mit Pufferspeicher');
+    const mfh = freiesHaus(s, 'mfh', { vollversorgung: true, aufgestockt: true });
+    const bMfh = await hausblatt(s, mfh);
+    expect(pufferKnoepfe(bMfh.knoepfe)).toEqual([]);
+    expect(bMfh.knoepfe.some((k) => k.z1.startsWith('Wandstation Typ 80') || k.z2.startsWith('Wandstation Typ 80'))).toBe(true);
+  });
+
+  it('test_nr19_hausblatt_zeile_uebergabestation_und_anschlussleistung', async () => {
+    const { s } = dorf(1);
+    const h = freiesHaus(s, 'efh');
+    expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
+    const b = await hausblatt(s, h);
+    expect(b.text).toContain('Puffer-Übergabestation HP 800 · 14 kW Netz, 19 kW im Haus');
+    expect(b.text).toContain('7,5 kW (÷ 2.000 h)');
+    const alt = bei(s, 12, 14); alt.hauspuffer = true; s.neuBerechnen();
+    expect((await hausblatt(s, alt)).text).toContain('Wandstation Typ 15 · 15 kW, mit Puffer');
+    const wand = bei(s, 9, 13);
+    const bWand = await hausblatt(s, wand);
+    expect(bWand.text).toContain('Wandstation Typ 15 · 15 kW');
+    expect(bWand.text).not.toContain('mit Puffer');
+    expect(bWand.text).toContain('10 kW (÷ 1.500 h)');
+  });
+
+  it('test_nr19_hausblatt_zu_kleine_puffer_station_bietet_groessere_an', async () => {
+    const { s } = dorf(1);
+    const h = bei(s, 9, 13);
+    h.station = 'hp_800'; h.hauspuffer = true; h.aufgestockt = true; h.vollversorgung = true; s.neuBerechnen(); // 15,75 kW > 14
+    expect(s.netz.kalt.get(h.id)).toBe('station');
+    const b = await hausblatt(s, h);
+    expect(b.text).toContain('Station zu klein');
+    const p = pufferKnoepfe(b.knoepfe);
+    expect(p.map((k) => k.z1)).toEqual(['Puffer-Übergabestation HP 1000']);
+    expect(p[0].z2).toMatch(/^15,[78] kW aus dem Netz · 3\.785 €$/); // 15,75 kW (Gleitkomma rundet je nach Rechenweg auf 15,7/15,8); 6.570 − 2.785
+  });
+
+  it('test_nr19_anfrage_chip_station_dann_zu_klein_nutzt_puffer_regel', async () => {
+    const { s } = dorf(1);
+    const h = bei(s, 9, 13);
+    h.station = 'hp_800'; h.hauspuffer = true; h.aufgestockt = true; h.anfrage = 'vollversorgung'; s.neuBerechnen();
+    // vorher 10,5 kW Netz, nach Annahme 15,75 kW > 14 kW
+    expect((await hausblatt(s, h)).text).toContain('Station dann zu klein');
+    delete h.aufgestockt; s.neuBerechnen(); // vorher 7,5, nachher 11,25 kW ≤ 14, Spitze 15 ≤ 19
+    expect((await hausblatt(s, h)).text).not.toContain('Station dann zu klein');
+    const w = bei(s, 12, 14); w.anfrage = 'vollversorgung'; s.neuBerechnen(); // Wandstation 15 kW, nachher genau 15,0 kW
+    expect((await hausblatt(s, w)).text).not.toContain('Station dann zu klein');
+  });
+});
