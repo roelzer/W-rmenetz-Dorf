@@ -7,7 +7,8 @@ import {
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
-import type { Schritt } from './tutorial-vertrag';
+import type { Schritt, TutorialWerte } from './tutorial-vertrag';
+import { ERSTE_HAEUSER } from './start';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
@@ -89,13 +90,53 @@ export class Spiel {
     return grund ? `${merkmalName(m)} ${grund}` : null;
   }
 
-  /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind
-   *  (mit oder ohne Station), aufsteigend. Dieselbe Probe-Rechnung wie die Warnprüfung (AE-NR18-3). */
   /** NR13: Das Tutorial läuft, solange die Merke im Spielstand steht (AE-NR13-3). */
   tutorialAktiv(): boolean { return !!this.stand.tutorial; }
   /** AE-NR13-7: Die Wandstation ist erst nach dem Tutorial wählbar. */
   wandstationFrei(): boolean { return !this.stand.tutorial; }
+  /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind
+   *  (mit oder ohne Station), aufsteigend. Dieselbe Probe-Rechnung wie die Warnprüfung (AE-NR18-3). */
   erreichteHaeuser(): number[] { return this.erreichteIn(this.probeNetz()); }
+  /** NR13: Zahlen für die Tutorial-Texte, aus denselben Rechnungen wie das Spiel (AE-NR18-3: keine zweite Netzrechnung). */
+  tutorialWerte(): TutorialWerte {
+    const [h1, h2] = this.tutorialHaeuser();
+    const kw_puffer = bedarfKw({ ...h1, hauspuffer: true });
+    const leitung = this.passendeLeitung(kw_puffer + bedarfKw({ ...h2, hauspuffer: true }));
+    if (!leitung) throw new Error('NR13: keine Leitung freigeschaltet');
+    return {
+      kessel_kw: this.netz.verfuegbar_kw, kwh: this.jahresverbrauch_kwh(h1), kw_ohne: bedarfKw({ ...h1, hauspuffer: false }), kw_puffer,
+      leitung, kap_kw: KATALOG[leitung].kapazitaet_kw as number,
+    };
+  }
+  /** NR13 (Weg b): Was bis zum Material noch fehlt – eingezeichnete Leitungen plus die Puffer-Stationen der Tutorial-Häuser, die noch
+   *  keine haben, zum Preis, den stationKaufen abbucht. 0 ohne Tutorial und außerhalb der Phasen offen/bestellen. */
+  tutorialGeldFehlt_eur(): number {
+    const phase = this.stand.abschnitt?.phase;
+    if (!this.stand.tutorial || (phase !== 'offen' && phase !== 'bestellen')) return 0;
+    const stationen_eur = this.tutorialHaeuser().filter((h) => !h.station).reduce((summe, h) => {
+      const st = passendePufferStation(bedarfKw({ ...h, hauspuffer: true }), bedarfKw({ ...h, hauspuffer: false }));
+      if (!st) throw new Error(`NR13: keine Puffer-Station für ${KATALOG[h.typ].name}`);
+      return summe + this.stationspreis_eur(h, st);
+    }, 0);
+    return Math.max(0, this.abschnittKosten_eur() + stationen_eur - this.stand.geld_eur);
+  }
+  /** NR13: zuletzt begonnenes Kapitel merken (Wiedereinstieg); nur im laufenden Tutorial und nur Kapitel 1–6. */
+  tutorialKapitelSetzen(kapitel: number): void {
+    if (this.stand.tutorial && Number.isInteger(kapitel) && kapitel >= 1 && kapitel <= 6) this.stand.tutorial.kapitel = kapitel;
+  }
+  /** NR13: Tutorial fertig – die Merke verschwindet, ab jetzt gilt das normale Spiel. */
+  tutorialBeenden(): void { delete this.stand.tutorial; }
+  /** NR13 (T-F3): „Ohne Tutorial“ – wie das Ende; ein laufender Abschnitt behält seine kurze Restzeit. */
+  tutorialUeberspringen(): void { this.tutorialBeenden(); }
+  /** Die zwei Häuser an ERSTE_HAEUSER; speichern.ts löscht die Merke, wenn eins fehlt, darum ist das Fehlen hier ein Fehler. */
+  private tutorialHaeuser(): [Objekt, Objekt] {
+    const [h1, h2] = ERSTE_HAEUSER.map(([x, y]) => {
+      const h = this.stand.objekte.find((o) => o.x === x && o.y === y && KATALOG[o.typ].kategorie === 'haus');
+      if (!h) throw new Error(`NR13: kein Haus bei (${x}|${y})`);
+      return h;
+    });
+    return [h1, h2];
+  }
   /** NR18: Warnsätze „Nach dem Bau zu dünn“ des abgeschlossenen Bauabschnitts (Phase bestellen). */
   abschnittWarnungen(): string[] { return [...this.warnliste]; }
   /** A88: kleinste freigeschaltete Leitung, die den Bedarf trägt, sonst die dickste freigeschaltete. */
@@ -372,7 +413,8 @@ export class Spiel {
    *  mit Übergabestation (wer schon angeschlossen hat, braucht den Tipp nicht; neue Spiele starten ohne Station, NR13). */
   startTippFaellig(): boolean {
     const s = this.stand;
-    if (s.namen_gefragt === false || s.start_tipp_gezeigt) return false;
+    // NR13: Das Tutorial löst die Start-Meldung ab; wer es überspringt, bekommt sie danach.
+    if (s.tutorial || s.namen_gefragt === false || s.start_tipp_gezeigt) return false;
     return !s.objekte.some((o) => KATALOG[o.typ].kategorie === 'haus' && !o.ohne_station);
   }
   /** NR18-D: Text der Start-Meldung und als gezeigt merken; `null`, wenn sie nicht (mehr) dran ist. */
@@ -385,7 +427,7 @@ export class Spiel {
   get spielerName(): string { return this.stand.spieler?.trim() || 'Chef'; }
   private sagt(figur: string, text: string): void { this.ereignisse.push({ art: 'sprecher', figur, text }); }
   /** Lieferzeit des Materials in Spieltagen (1 Spieljahr = 365 Tage); mindestens 1. Wochen wären zu grob (Review: immer „1 Woche“). */
-  liefertage(): number { return Math.max(1, Math.round(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor * 1000 / SPIELTAG_MS)); }
+  liefertage(dauer_ms = KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor * 1000): number { return Math.max(1, Math.round(dauer_ms / SPIELTAG_MS)); }
   private braucheMonteur(): boolean {
     if (this.beschaeftigt() >= this.monteure()) { this.nein('Alle Monteure sind beschäftigt'); return false; }
     return true;
@@ -397,9 +439,9 @@ export class Spiel {
     if (g.stand === 'wartet') { this.hinweis('Vorzeitiger Baubeginn – der Förderantrag ist verfallen'); return false; }
     return true;
   }
-  private neuerBau(art: Bau['art'], dauer_s: number): Bau {
+  private neuerBau(art: Bau['art'], dauer_s: number, faktor: number = KONSTANTEN.bauzeit_faktor): Bau {
     const j = this.uhr();
-    return { art, start_ms: j, ende_ms: j + dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
+    return { art, start_ms: j, ende_ms: j + dauer_s * faktor * 1000 };
   }
   aenderung(): void { this.neuBerechnen(); }
 
@@ -615,6 +657,8 @@ export class Spiel {
     if (!o || !st || !(o.ohne_station || o.station) || o.bau) return { ok: false };
     const puffer = istPufferStation(st);
     if (puffer && KATALOG[o.typ].kategorie !== 'haus') return { ok: false };
+    // AE-NR13-7: Im Tutorial nimmt jedes Haus die Puffer-Station; der Kern setzt das selbst durch, nicht erst die Oberfläche.
+    if (!puffer && this.stand.tutorial && KATALOG[o.typ].kategorie === 'haus') return this.nein(WANDSTATION_TUTORIAL);
     // NR19: Den Speicher gibt es nur beim Anschluss; ein Haus mit Wandstation ohne Puffer behält seine Bauart.
     if (puffer && o.station && !o.hauspuffer) return this.nein('Den Puffer gibt es nur beim Anschluss. Für dieses Haus geht nur eine Wandstation.');
     // NR19 (Review P6, Weg a): Der Speicher gehört zur Puffer-Station. Eine Wandstation statt ihrer gibt es erst, wenn keine
@@ -810,7 +854,9 @@ export class Spiel {
     if (!this.stand.quelle_gewaehlt) return this.nein('Erst eine Wärmequelle wählen');
     const b = this.bezahlen({ eur: KONSTANTEN.abschnitt_planung_eur });
     if (!b.ok) return b;
-    this.stand.abschnitt = { phase: 'planung', bau: this.neuerBau('neu', KONSTANTEN.abschnitt_planung_s) };
+    // NR13: Im Tutorial dauert die Planung feste 10 s statt 30 s × Spieltempo (erster Abschnitt in ca. 1 Minute).
+    const bau = this.stand.tutorial ? this.neuerBau('neu', KONSTANTEN.tutorial_planung_s, 1) : this.neuerBau('neu', KONSTANTEN.abschnitt_planung_s);
+    this.stand.abschnitt = { phase: 'planung', bau };
     this.sagt(ABSCHNITT_HELFER.planung, `Alles klar, ${this.spielerName}, ich kümmere mich um die Planung.`);
     this.schritt('abschnitt_geplant');
     return ok();
@@ -859,9 +905,11 @@ export class Spiel {
     if (!b.ok) return b;
     a.material_eur = kost;
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
-    a.phase = 'bau'; a.bau = this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
+    a.phase = 'bau';
+    a.bau = this.stand.tutorial ? this.neuerBau('neu', KONSTANTEN.tutorial_bau_s, 1) : this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
     this.warnliste = [];
-    const t = this.liefertage();
+    // Laura nennt die tatsächliche Wartezeit (im Tutorial 20 s = 1 Tag), nicht die normale.
+    const t = this.liefertage(a.bau.ende_ms - a.bau.start_ms);
     this.sagt(ABSCHNITT_HELFER.material, `Hey ${this.spielerName}, dein Material ist bestellt. Lieferzeit: ${tageText(t)}.`);
     this.schritt('material_bestellt');
     return ok();

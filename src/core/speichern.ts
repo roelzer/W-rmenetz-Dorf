@@ -1,7 +1,7 @@
 import { KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
 import { belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
-import { neuesSpielMitTutorial } from './start';
+import { ERSTE_HAEUSER, neuesSpielMitTutorial } from './start';
 import type { Spielstand } from './typen';
 
 export const SPEICHER_SCHLUESSEL = 'waermedorf-spielstand-v1';
@@ -70,6 +70,20 @@ function nr19Aufraeumen(stand: Spielstand): void {
     if (KATALOG[o.typ].kategorie === 'haus') o.hauspuffer = true;
     else { delete o.station; o.ohne_station = true; }
   }
+}
+
+/**
+ * NR13 (AE-NR13-3): Die Tutorial-Merke gilt nur als { kapitel: ganze Zahl 1–6 } und nur, solange beide ersten Häuser an ihrem
+ * Platz stehen – sonst würde das Tutorial auf Häuser zeigen, die es nicht gibt. Alles andere wird gelöscht, nie gedeutet;
+ * der übrige Stand bleibt (kein 'defekt', kein 'migriert').
+ */
+function nr13Aufraeumen(stand: Spielstand): void {
+  if (stand.tutorial === undefined) return;
+  const merke: unknown = stand.tutorial;
+  const kapitel = merke !== null && typeof merke === 'object' ? (merke as { kapitel?: unknown }).kapitel : undefined;
+  const kapitelOk = typeof kapitel === 'number' && Number.isInteger(kapitel) && kapitel >= 1 && kapitel <= 6;
+  const haeuserOk = ERSTE_HAEUSER.every(([x, y]) => stand.objekte.some((o) => o.x === x && o.y === y && KATALOG[o.typ].kategorie === 'haus'));
+  if (!kapitelOk || !haeuserOk) delete stand.tutorial;
 }
 
 /**
@@ -147,6 +161,8 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
       nr18Aufraeumen(d as Spielstand);
       nr19Aufraeumen(d as Spielstand);
       if (karteAnpassen(d as Spielstand)) migriert = true;
+      // nach karteAnpassen, damit die Häuser an ihrem endgültigen Platz geprüft werden
+      nr13Aufraeumen(d as Spielstand);
       // A86: Wer den alten Vorgabenamen behalten hat, bekommt den fiktiven Dorfnamen (selbst gewählte Namen bleiben).
       // Bewusst kein 'migriert': der Start-Hinweis dazu spricht von Straßen und Fluss; der neue Name wird beim nächsten Speichern geschrieben.
       if ((d as Spielstand).name === 'Hilpoltstein') (d as Spielstand).name = ortHolen((d as Spielstand).ort).name;
