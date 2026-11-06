@@ -446,3 +446,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 13:14 | ■ 🟢 | reviewer | 🟢 Freigegeben: alle 5 Befunde behoben, durch die Fixes ist kein neues Problem entstanden. Verträgt sich mit P3b.  ([Bericht](docs/pruefberichte/20261106-131418-reviewer-a3bf25302a23ff26f.md)) |
 | 2026-11-06 13:15 | ▶ | entwickler | NR13 Paket P4 Steuerung |
 | 2026-11-06 13:24 | ■ 🔴 | entwickler | 🔴 BLOCKIERT (Kontext voll). Ein Zwischenstand ist committet, alle Tests sind grün. P4 ist damit aber nur etwa zu einem Fünftel gebaut.  ([Bericht](docs/pruefberichte/20261106-132413-entwickler-a7c2401e76cab0b27.md)) |
+| 2026-11-06 13:24 | ▶ | entwickler | NR13 Paket P4-2 Ansicht/Sperre/Kamera |
