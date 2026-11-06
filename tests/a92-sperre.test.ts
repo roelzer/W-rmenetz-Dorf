@@ -217,10 +217,13 @@ describe('A92 stil.css – ein Sperr-Aussehen für alle Knopfarten (K4)', () => 
 });
 
 describe('A92 Hinweise beim Antippen gesperrter Knöpfe ohne offenen Bauabschnitt', () => {
-  it('A92: Hauskarte ohne Abschnitt – „Hausanschluss ziehen“ zeigt den Philipp-Hinweis und plant nichts', async () => {
+  // NR18-P0 (4.18): „Hausanschluss ziehen“ entfällt; der Hinweis hängt an „Leitung selbst legen“. Rot bis NR18-P3 (Knopf noch da).
+  it('A92: Hauskarte ohne Abschnitt – „Leitung selbst legen“ zeigt den Philipp-Hinweis, plant nichts, kein Knopf „Hausanschluss ziehen“', async () => {
     const s = neu(1);
     const haus = s.stand.objekte.find((o) => o.x === 9 && o.y === 15)!;
-    const k = await karte(s, haus, (a, c) => tippe(mit(a, c, 'Hausanschluss ziehen')[0]));
+    let ziehen = -1;
+    const k = await karte(s, haus, (a, c) => { ziehen = mit(a, c, 'Hausanschluss ziehen').length; tippe(mit(a, c, 'Leitung selbst legen')[0]); });
+    expect(ziehen).toBe(0);
     expect(k.toasts).toEqual([SELBST_HINWEIS]);
     expect(s.abschnittLeitungen()).toBe(0);
   });

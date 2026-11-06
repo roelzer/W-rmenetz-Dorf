@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { HELFER, KATALOG, PREISSTUFEN } from '../src/core/katalog';
 import type { Nachbardorf } from '../src/core/nachbarn';
 import type { Objekt } from '../src/core/typen';
@@ -29,7 +30,7 @@ const HA_KURZ = 'Endet eine Leitung an einem Haus, ist es sein Hausanschluss –
 
 type Uhr = { t: number };
 const neu = (stufe = 1, uhr: Uhr = { t: T0 }) => {
-  const s = new Spiel(neuerSpielstand(T0), () => uhr.t);
+  const s = new Spiel(altesStartdorf(T0), () => uhr.t);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;
@@ -229,7 +230,12 @@ describe('A92 / 12.20 S1–S3 – Ausbau-Knöpfe', () => {
 
 // ───────────────────────────── Bauabschnitt (B1–B5, B8–B10) ─────────────────────────────
 
-const ZEICHNEN_KNOEPFE = ['Hausanschluss ziehen', 'Leitung selbst legen'];
+// NR18-P0 (Bauplan NR18 4.15): Der Knopf „Hausanschluss ziehen“ entfällt; im Hausblatt bleibt genau „Leitung selbst legen“ mit derselben
+// Zeile 2 und demselben Hinweis. Die Prüfung „kein Knopf Hausanschluss ziehen“ ist rot bis NR18-P3.
+const ZEICHNEN_KNOEPFE = ['Leitung selbst legen'];
+const KEIN_ZIEHEN = (b: B, lage: string): void => { expect(b.mit('Hausanschluss ziehen'), `${lage}: kein Knopf „Hausanschluss ziehen“ (NR18)`).toEqual([]); };
+/** NR18-P0 (4.11): Hausanschluss selbst zeichnen – (10|15) unter der Vorsehung (10|14), Leitungsende neben dem Haus (9|15). */
+const anschlussZeichnen = (s: Spiel) => s.platzieren('d25', 10, 15);
 
 describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauchen', () => {
   // Stand B2b (Designer-Treue Muss 1, 12.20 Regel 1 / 12.21): Im Hausblatt stehen zwei Knöpfe nebeneinander – Zeile 2 nutzt dort
@@ -238,6 +244,7 @@ describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauch
     const uhr = { t: T0 }, s = neu(1, uhr);
     await karte(s, haus(s), uhr, (b) => {
       for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'kein Bauabschnitt', schloss: true, hinweis: B1_HINWEIS }, n);
+      KEIN_ZIEHEN(b, 'B1');
     });
     await karte(s, bad(s), uhr, (b) => {
       pruefeZeile(b, b.einer('40er-Leitung legen'), { zeile2: 'braucht offenen Bauabschnitt', schloss: true, hinweis: B1_HINWEIS }, 'Großabnehmer');
@@ -254,7 +261,8 @@ describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauch
       uhr.t = T0 + 29_500; // aufgerundet 1 s
       expect(norm(b.tippe(k) ?? '')).toBe('Philipp plant den Bauabschnitt noch (1s). Danach kannst du zeichnen.');
       uhr.t = T0;
-      pruefeZeile(b, b.einer('Hausanschluss ziehen'), { zeile2: 'wird noch geplant', schloss: true, hinweis: 'Philipp plant den Bauabschnitt noch (30s). Danach kannst du zeichnen.' }, 'B2 Anschluss');
+      pruefeZeile(b, b.einer('Leitung selbst legen'), { zeile2: 'wird noch geplant', schloss: true, hinweis: 'Philipp plant den Bauabschnitt noch (30s). Danach kannst du zeichnen.' }, 'B2 volle Restzeit');
+      KEIN_ZIEHEN(b, 'B2');
     });
   });
 
@@ -263,6 +271,7 @@ describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauch
     s.stand.abschnitt = { phase: 'bestellen', bau: null };
     await karte(s, haus(s), uhr, (b) => {
       for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: 'Bestellung offen', schloss: true, hinweis: 'Abschnitt wartet auf Lauras Bestellung. Ändern: Bauen → Leitungen → Weiter einzeichnen.' }, n);
+      KEIN_ZIEHEN(b, 'B3');
     });
   });
 
@@ -282,7 +291,7 @@ describe('A92 / 12.20 B1–B5 – Knöpfe, die einen offenen Bauabschnitt brauch
   it('A92 B5: Hausanschluss schon im Abschnitt – „kommt mit dem Bauabschnitt“, kein Schloss, Hinweis', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.stand.abschnitt = { phase: 'offen', bau: null };
-    expect(s.hausanschlussPlanen(haus(s).id).ok).toBe(true);
+    expect(anschlussZeichnen(s).ok).toBe(true);
     await karte(s, haus(s), uhr, (b) => {
       pruefeZeile(b, b.einer('Hausanschluss geplant'), { zeile2: 'kommt mit dem Bauabschnitt', schloss: false, hinweis: 'Der Hausanschluss ist schon eingeplant. Gebaut wird er mit dem Bauabschnitt.' }, 'B5');
     });
@@ -310,6 +319,7 @@ describe('A92 / 12.21 Kurzformen B1–B4 – Hausblatt kurz, Großabnehmer lang,
       await karte(s, haus(s), uhr, (b) => {
         uhr.t = T0 + 40_000;
         for (const n of ZEICHNEN_KNOEPFE) pruefeZeile(b, b.einer(n), { zeile2: f.kurz, schloss: true, hinweis: f.hinweis }, `${f.nr} Hausblatt ${n}`);
+        KEIN_ZIEHEN(b, `${f.nr} Hausblatt`);
       });
       uhr.t = T0;
       await karte(s, bad(s), uhr, (b) => {
@@ -351,7 +361,7 @@ describe('A92 / 12.20 B6, B8–B10 – Baumenü und Geld', () => {
   it('A92 B8: „Material bestellen“ mit 0,25 € zu wenig – Fehlbetrag „1 €“, kein „0 €“', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.stand.abschnitt = { phase: 'offen', bau: null };
-    expect(s.hausanschlussPlanen(haus(s).id).ok).toBe(true);
+    expect(anschlussZeichnen(s).ok).toBe(true);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     const kost = s.abschnittKosten_eur();
     expect(kost).toBeGreaterThan(1);
@@ -617,7 +627,7 @@ describe('A92 / 12.20 Regel 3 – alle gesperrten Knöpfe in vielen Lagen', () =
       for (const phase of phasen) {
         for (const arm of [false, true]) {
           const uhr = { t: T0 }, s = neu(stufe, uhr);
-          if (phase === 'bestellen') { s.stand.abschnitt = { phase: 'offen', bau: null }; s.hausanschlussPlanen(haus(s).id); s.abschnittAbschliessen(); }
+          if (phase === 'bestellen') { s.stand.abschnitt = { phase: 'offen', bau: null }; expect(anschlussZeichnen(s).ok).toBe(true); s.abschnittAbschliessen(); }
           else if (phase === 'offen') { s.stand.abschnitt = { phase: 'offen', bau: null }; }
           else if (phase) s.stand.abschnitt = { phase, bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 90_000 } };
           if (arm) { s.stand.geld_eur = 0.5; s.stand.taler = 0; }
@@ -671,7 +681,7 @@ describe('A92 / Hausanschluss-Erklärsätze', () => {
   it('A92: Baumenü mit einem geplanten Anschluss – Zählung „– in diesem Abschnitt: 1“ direkt hinter „Hausanschluss“, Satz geht danach weiter', async () => {
     const uhr = { t: T0 }, s = neu(1, uhr);
     s.stand.abschnitt = { phase: 'offen', bau: null };
-    expect(s.hausanschlussPlanen(haus(s).id).ok).toBe(true);
+    expect(anschlussZeichnen(s).ok).toBe(true);
     await baumenue(s, 'netz', uhr, (b) => {
       const t = norm(b.a.text(b.c));
       expect(t).toContain(HA_LANG_1);

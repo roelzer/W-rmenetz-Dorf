@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { Kamera } from '../src/render/kamera';
 import { describe, expect, it, vi } from 'vitest';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
+import { abschnittOeffnen, ersatzPlanen, objektBei, vorstellen } from './hilfen/nr18';
 import { bedarfKw } from '../src/core/netz';
 import { ortHolen } from '../src/core/orte';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
@@ -10,17 +12,15 @@ import { KATALOG, KONSTANTEN, PREISSTUFEN, STATIONEN, istLeitung, passendeStatio
 vi.mock('../src/core/freischaltung', async (orig) => (await import('./ohne-leiter')).ohneLeiter(await orig()));
 
 const T0 = 1_000_000_000_000;
-const neuesSpiel = (): Spiel => new Spiel(neuerSpielstand(T0), () => T0);
+const neuesSpiel = (): Spiel => new Spiel(altesStartdorf(T0), () => T0);
 
 describe('A22/A29 Start', () => {
-  it('A29: Start mit 30.000 €, Wärmepreis 12 ct/kWh, zwei angeschlossene Häuser, ein weiteres nicht', () => {
-    const s = neuesSpiel();
+  // NR18-P0: Häuser und Stationen beim Start prüft seit NR13 der P5-Test (Start ohne angeschlossene Häuser); hier bleiben Geld, Preis, Quelle.
+  it('A29: Start mit 30.000 € und Wärmepreis 12 ct/kWh; die Wärmequelle ist danach gewählt', () => {
+    const s = new Spiel(neuerSpielstand(T0), () => T0);
     expect(s.stand.geld_eur).toBe(30_000);
     expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(12);
     s.ersteQuelleWaehlen('kessel');
-    const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus');
-    expect(haeuser.filter((o) => s.netz.warm.has(o.id))).toHaveLength(2);
-    expect(haeuser.filter((o) => o.station)).toHaveLength(2);
     expect(s.stand.quelle_gewaehlt).toBe(true);
   });
   it('A29: Wärmepreis reicht von 7 bis 15 ct/kWh; die Vergütung folgt dem Preis je kWh', () => {
@@ -29,13 +29,26 @@ describe('A22/A29 Start', () => {
     // A81: Die Vergütung ist jetzt kWh × ct_je_kwh (Monatsabrechnung) – siehe Tests A81
     for (let i = 1; i < PREISSTUFEN.length; i++) expect(PREISSTUFEN[i].ct_je_kwh).toBeGreaterThan(PREISSTUFEN[i - 1].ct_je_kwh);
   });
-  it('A30: Leitungstausch kostet den Neupreis minus 50 % des Altpreises', () => {
-    const s = neuesSpiel();
+  // NR18-P0 (Bauplan NR18 4.21, E1): Der Sofort-Tausch entfällt; dickere Leitung = Ersatz im Bauabschnitt. Rot bis NR18-P2 (ersatzPlanen).
+  it('A30: Leitungsersatz im Bauabschnitt kostet den Neupreis minus 50 % des Altpreises, bezahlt bei der Bestellung, getauscht beim Bauende', () => {
+    const z = { t: T0 };
+    const s = new Spiel(altesStartdorf(T0), () => z.t);
     s.ersteQuelleWaehlen('kessel');
-    const leitung = s.stand.objekte.find((o) => o.typ === 'd40')!;
-    const vorher = s.stand.geld_eur;
-    expect(s.leitungTauschen(leitung.id, 'd63').ok).toBe(true);
-    expect(vorher - s.stand.geld_eur).toBe(KATALOG.d63.kosten_eur![0] - Math.round(KATALOG.d40.kosten_eur![0] * KONSTANTEN.rueckkauf_anteil));
+    expect(abschnittOeffnen(s, z)).toBe(true);
+    const leitung = objektBei(s, 10, 11, (o) => o.typ === 'd40')!;
+    const geld = s.stand.geld_eur;
+    expect(s.abschnittKosten_eur()).toBe(0);
+    expect(ersatzPlanen(s, leitung.id, 'd63').ok).toBe(true);
+    // d63 1.520 € (38 € × Kostenfaktor 40), d40 800 € (20 € × 40) → 1.520 − 400 = 1.120 € (Straße: keine Gestattung, kein Fluss)
+    expect(s.abschnittKosten_eur()).toBe(1120);
+    expect(s.stand.geld_eur).toBe(geld); // noch nichts bezahlt
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    expect(s.materialBestellen().ok).toBe(true);
+    expect(geld - s.stand.geld_eur).toBe(1120);
+    expect(s.stand.objekte.find((o) => o.id === leitung.id)!.typ).toBe('d40'); // liefert bis Bauende als 40er (E2)
+    vorstellen(s, z, KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor + 10);
+    expect(s.stand.abschnitt).toBeUndefined();
+    expect(s.stand.objekte.find((o) => o.id === leitung.id)!.typ).toBe('d63');
   });
 });
 
@@ -163,7 +176,7 @@ describe('A33 Vorlauftemperatur und Hausupgrades', () => {
     s.vorlaufSetzen(65); expect(s.netz.betriebskosten_eur_min).toBeLessThan(hoch);
   });
   it('Upgrade kostet Geld, ein Helfer arbeitet daran und danach sinkt der Mindest-Vorlauf des Hauses', () => {
-    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    let t = T0; const s = new Spiel(altesStartdorf(T0), () => t); s.ersteQuelleWaehlen('kessel');
     const h = haus(s), vor = s.mindestVorlauf_c(h), geld = s.stand.geld_eur;
     expect(s.upgradeKaufen(h.id).ok).toBe(true);
     expect(geld - s.stand.geld_eur).toBe(1500);
@@ -172,7 +185,7 @@ describe('A33 Vorlauftemperatur und Hausupgrades', () => {
     expect(s.mindestVorlauf_c(h)).toBe(vor - 5);
   });
   it('Zu niedriger Vorlauf senkt die Zufriedenheit, ein Upgrade hebt sie wieder', () => {
-    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    let t = T0; const s = new Spiel(altesStartdorf(T0), () => t); s.ersteQuelleWaehlen('kessel');
     const h = haus(s);
     for (let i = 0; i < 200; i++) { t += 10_000; s.bis(t); } // erst Bau fertig, Haus warm
     expect(s.netz.warm.has(h.id)).toBe(true);
@@ -207,7 +220,7 @@ describe('A38 Weiterlauf, A39 Heizzentrale-Ziele, A40 Helfer', () => {
     expect(s.stand.geld_eur).toBe(1_000_000);
   });
   it('A39: Spreizung steigt mit Upgrades und lässt sich nicht durch den Vorlauf-Regler erreichen', () => {
-    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    let t = T0; const s = new Spiel(altesStartdorf(T0), () => t); s.ersteQuelleWaehlen('kessel');
     for (let i = 0; i < 100; i++) { t += 10_000; s.bis(t); }
     const vor = s.spreizung_k();
     const h = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
@@ -218,7 +231,7 @@ describe('A38 Weiterlauf, A39 Heizzentrale-Ziele, A40 Helfer', () => {
     s.vorlaufSetzen(55); expect(s.spreizung_k()).toBeGreaterThan(0);
   });
   it('A40: Drei Helfer arbeiten je an einem Auftrag; der vierte Auftrag wird abgelehnt', () => {
-    const t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    const t = T0; const s = new Spiel(altesStartdorf(T0), () => t); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;
     const haeuser = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus').slice(0, 4);
     for (const o of haeuser) { o.ohne_station = false; o.station = 'st_80'; }
@@ -235,7 +248,7 @@ describe('A38 Weiterlauf, A39 Heizzentrale-Ziele, A40 Helfer', () => {
 });
 
 describe('A41 Bauabschnitte', () => {
-  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
+  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(altesStartdorf(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
   it('Ohne Bauabschnitt lassen sich keine Leitungen legen', () => {
     const { s } = mitUhr();
     const r = s.platzieren('d50', 12, 12);
@@ -284,7 +297,7 @@ describe('A41 Bauabschnitte', () => {
 });
 
 describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
-  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
+  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(altesStartdorf(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
   const lauf = (s: Spiel, z: { t: number }, sek: number) => { for (let i = 0; i < sek / 10; i++) { z.t += 10_000; s.bis(z.t); } };
   const startHaus = (s: Spiel) => s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
   // A34 Kamin aus / Aufstockung automatisch: ersetzt durch tests/a88-kundenanfrage.test.ts (A88/F2)
@@ -350,7 +363,7 @@ describe('A34 Kamin aus, Aufstockung, A36 PV, A43 Baugebiet', () => {
 
 describe('Offene Anforderungen: A20, A27, A28, A35, A37, A42', () => {
   it('A20: Jahreszeiten, Kältewelle und Mehrspieler sind Ideen und nicht Teil der ersten Fassung', () => {
-    const st = neuerSpielstand(T0) as unknown as Record<string, unknown>;
+    const st = altesStartdorf(T0) as unknown as Record<string, unknown>;
     expect(st).not.toHaveProperty('jahreszeit');
     expect(st).not.toHaveProperty('mitspieler');
   });
@@ -383,7 +396,7 @@ describe('Offene Anforderungen: A20, A27, A28, A35, A37, A42', () => {
 });
 
 describe('Review-Nachbesserungen A41', () => {
-  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(neuerSpielstand(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
+  const mitUhr = () => { const z = { t: T0 }; const s = new Spiel(altesStartdorf(T0), () => z.t); s.ersteQuelleWaehlen('kessel'); return { s, z }; };
   it('Verwerfen ist während Planung und Bau verboten, entfernen bestellter Leitungen ebenfalls', () => {
     const { s, z } = mitUhr();
     s.abschnittPlanen();
@@ -408,7 +421,7 @@ describe('Review-Nachbesserungen A41', () => {
 
 describe('A45 Leitungen auf öffentlicher Straße, sonst Gestattung', () => {
   const offen = () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.abschnitt = { phase: 'offen', bau: null };
     return s;
   };
@@ -443,12 +456,12 @@ describe('A45 Leitungen auf öffentlicher Straße, sonst Gestattung', () => {
 
 describe('A46 Straßen frei, Fluss mit Spülbohrung', () => {
   const offen = () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.abschnitt = { phase: 'offen', bau: null };
     return s;
   };
   it('A46: Kein Objekt (außer Leitungen) steht auf Straße oder im Fluss', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     for (const o of s.stand.objekte) {
       if (istLeitung(o.typ)) continue; // Review: vorher Liste mit nicht vorhandenen Typen
       const k = KATALOG[o.typ].groesse ?? 1;
@@ -472,28 +485,9 @@ describe('A46 Straßen frei, Fluss mit Spülbohrung', () => {
   });
 });
 
-describe('A47 Hausanschluss automatisch ziehen', () => {
-  it('A47: Der Hausanschluss führt vom Haus zur nächsten Leitung und verbindet sich', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    s.stand.geld_eur = 200_000; s.stand.abschnitt = { phase: 'offen', bau: null };
-    const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station && !s.netz.warm.has(o.id))!;
-    const vorher = s.abschnittLeitungen();
-    const r = s.hausanschlussPlanen(haus.id);
-    expect(r.ok, r.hinweis).toBe(true);
-    expect(s.abschnittLeitungen()).toBeGreaterThan(vorher);
-    expect(s.stand.objekte.filter((o) => o.geplant).every((o) => o.geplant)).toBe(true);
-    expect(s.hausanschlussPlanen(haus.id).ok).toBe(false); // liegt jetzt schon an einer Leitung
-  });
-  it('A47: Ohne offenen Bauabschnitt wird kein Anschluss geplant', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus')!;
-    expect(s.hausanschlussPlanen(haus.id).ok).toBe(false);
-  });
-});
-
 describe('A46 alter Spielstand wird an Straßen und Fluss angepasst', () => {
   it('A46: Haus auf Straße und Baum im Fluss werden beim Laden bereinigt, nichts steht danach auf Straße oder Fluss', () => {
-    const s0 = neuerSpielstand(0);
+    const s0 = altesStartdorf(0);
     delete s0.karte;
     const haus = s0.objekte.find((o) => o.typ === 'efh' && o.bestand)!;
     haus.x = 10; haus.y = 18; // Straße
@@ -531,7 +525,7 @@ describe('A48/A75 Karte drehen', () => {
 
 describe('A47/A49 Leitungen wegnehmen, Anschlüsse erkennen, Rücklauf bringt Kapazität', () => {
   const offenesSpiel = () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 500_000; s.stand.abschnitt = { phase: 'offen', bau: null };
     return s;
   };
@@ -548,29 +542,24 @@ describe('A47/A49 Leitungen wegnehmen, Anschlüsse erkennen, Rücklauf bringt Ka
   });
   it('A47: Eine geplante Leitung am Haus wird als Hausanschluss dieses Abschnitts erkannt', () => {
     const s = offenesSpiel();
-    const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
+    // NR18-P0 (4.24): Leitung selbst gezeichnet statt automatischer Wegsuche – Haus (13|12) über (11|12), (12|12) an die 40er bei (10|12)
+    const haus = objektBei(s, 13, 12, (o) => KATALOG[o.typ].kategorie === 'haus')!;
+    expect(haus.ohne_station).toBe(true);
     expect(s.abschnittAnschluesse().some((a) => a.id === haus.id)).toBe(false);
-    expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
+    expect(s.platzieren('d25', 11, 12).ok).toBe(true);
+    expect(s.abschnittAnschluesse().some((a) => a.id === haus.id)).toBe(false); // noch nicht am Haus
+    expect(s.platzieren('d25', 12, 12).ok).toBe(true);
     expect(s.abschnittAnschluesse().some((a) => a.id === haus.id)).toBe(true);
   });
-  it('A47: Der automatische Hausanschluss läuft gerade (höchstens eine Biegung bei freiem Weg)', () => {
-    const s = offenesSpiel();
-    const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 15)!;
-    expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
-    const f = s.stand.objekte.filter((o) => o.geplant).map((o) => [o.x, o.y]);
-    let biegungen = 0;
-    for (let i = 2; i < f.length; i++) if ((f[i][0] - f[i - 1][0] !== f[i - 1][0] - f[i - 2][0]) || (f[i][1] - f[i - 1][1] !== f[i - 1][1] - f[i - 2][1])) biegungen++;
-    expect(biegungen).toBeLessThanOrEqual(1);
-  });
   it('A49: Kälterer Rücklauf (größere Spreizung) lässt Leitungen mehr Wärme schaffen', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     expect(s.netz.spreizung_faktor).toBeCloseTo(1);
     for (const o of s.stand.objekte) if (KATALOG[o.typ].kategorie === 'haus' && o.station) o.upgrade = 3;
     s.neuBerechnen();
     expect(s.netz.spreizung_faktor).toBeGreaterThan(1.5);
   });
   it('A49: Eine Station lässt sich auch bei vorhandener Station gegen eine größere tauschen', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     const haus = s.stand.objekte.find((o) => o.station)!;
     expect(s.stationKaufen(haus.id, 'st_25').ok).toBe(true);
     expect(haus.station).toBe('st_25');
@@ -579,11 +568,11 @@ describe('A47/A49 Leitungen wegnehmen, Anschlüsse erkennen, Rücklauf bringt Ka
 
 describe('A50 volle Stadt, Interessenten', () => {
   it('A50: Die Stadt hat deutlich mehr Häuser (mindestens 35)', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     expect(s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus').length).toBeGreaterThanOrEqual(35);
   });
   it('A50: Sind die Kunden lange zufrieden, möchte ein weiteres Haus anschließen (gelb); es bekommt Nachlass auf die Station', () => {
-    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.preisstufe = 4; // 11 ct: Kunden zufrieden
+    let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.preisstufe = 4; // 11 ct: Kunden zufrieden
     expect(s.stand.objekte.some((o) => o.interessent)).toBe(false);
     for (let i = 0; i < 40; i++) { t += 60_000; s.bis(t); }
     const wer = s.stand.objekte.find((o) => o.interessent);
@@ -592,7 +581,7 @@ describe('A50 volle Stadt, Interessenten', () => {
     expect(s.stationspreis_eur(wer!, st)).toBe(Math.round(st.kosten_eur * (1 - KONSTANTEN.interessent_nachlass)));
   });
   it('A50: Höchstens vier Interessenten gleichzeitig', () => {
-    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+    let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel');
     s.stand.preisstufe = 4;
     for (let i = 0; i < 300; i++) { t += 60_000; s.bis(t); }
     expect(s.stand.objekte.filter((o) => o.interessent).length).toBeLessThanOrEqual(KONSTANTEN.interessenten_max);
@@ -601,7 +590,7 @@ describe('A50 volle Stadt, Interessenten', () => {
 
 describe('A51 Helfer sprechen den Spieler an', () => {
   it('A51: Philipp, Laura und die Techniker melden sich mit Sprechblase und Namen des Spielers', () => {
-    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+    let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel');
     s.stand.spieler = 'Simon'; s.stand.geld_eur = 100_000;
     const sagt = () => s.ereignisse.splice(0).filter((e) => e.art === 'sprecher') as Array<{ figur: string; text: string }>;
     sagt();
@@ -618,14 +607,14 @@ describe('A51 Helfer sprechen den Spieler an', () => {
     expect(tech.text).toMatch(/Simon/);
   });
   it('A51: Ohne eigenen Namen heißt der Spieler „Chef“', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     expect(s.spielerName).toBe('Chef');
   });
 });
 
 describe('A52 Wärmepreis in der Heizzentrale', () => {
   it('A52: preisSetzen begrenzt den Wärmepreis auf 7–15 ct', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     s.preisSetzen(0); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7);
     s.preisSetzen(99); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(7); // außerhalb wird ignoriert
     s.preisSetzen(PREISSTUFEN.length - 1); expect(PREISSTUFEN[s.stand.preisstufe].ct_je_kwh).toBe(15);
@@ -713,7 +702,7 @@ describe('A57 Hauptleitung am Haus vorbei knickt nicht ab', () => {
     expect(netz.warm.has(40)).toBe(true);
   });
   it('A57: Eine geplante Leitung, die nur am Haus vorbeiläuft, zählt nicht als Hausanschluss des Abschnitts', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 500_000; s.stand.abschnitt = { phase: 'offen', bau: null };
     const frei = (x: number, y: number) => s.istStrasse(x, y) && !s.stand.objekte.some((o) => o.x === x && o.y === y);
     const haus = s.stand.objekte.find((h) => KATALOG[h.typ].kategorie === 'haus' && (KATALOG[h.typ].groesse ?? 1) === 1 && h.ohne_station && [-2, -1, 0, 1, 2].every((dx) => frei(h.x + dx, h.y - 1)));
@@ -726,7 +715,7 @@ describe('A57 Hauptleitung am Haus vorbei knickt nicht ab', () => {
 
 describe('A58 Heizhaus ausbauen', () => {
   it('A58: Schon Stufe 1 hat zwei Plätze – ein zweiter Kessel passt hinein', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;
     expect(KATALOG.hz.plaetze![0]).toBe(2);
     expect(s.innenEinbauen('pellet').ok).toBe(true);
@@ -734,13 +723,13 @@ describe('A58 Heizhaus ausbauen', () => {
   });
   it('A58: Gaskessel, Pelletkessel und BHKW gibt es; das BHKW erst ab Heizzentrale Stufe 2', () => {
     for (const t of ['pellet', 'gas', 'bhkw'] as const) expect(KATALOG[t].kategorie).toBe('innen');
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;
     expect(s.innenEinbauen('bhkw').ok).toBe(false);
   });
   it('A58: Das BHKW liefert zusätzlich Strom, der Gaskessel läuft als teuerste Quelle zuletzt', async () => {
     const { berechneNetz } = await import('../src/core/netz');
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     const n = berechneNetz(s.stand.objekte, [{ typ: 'bhkw', stufe: 1, bau: null }], 2);
     // Fachprüfung: Strom nur im Verhältnis zur tatsächlich erzeugten Wärme (Startdorf braucht weniger als 35 kW)
     expect(n.genutzt_kw).toBeGreaterThan(0);
@@ -749,18 +738,6 @@ describe('A58 Heizhaus ausbauen', () => {
     expect(n.einspeisung_kw).toBeCloseTo(n.genutzt_kw * 0.8, 6);
     const preise = (['kessel', 'pellet', 'gas', 'bhkw', 'wpg', 'ptk'] as const).map((t) => KATALOG[t].betriebskosten_eur_je_kw_min!);
     expect(Math.max(...preise)).toBe(KATALOG.gas.betriebskosten_eur_je_kw_min);
-  });
-});
-
-describe('A59 Startleitungen in der Straße', () => {
-  it('A59: Die Hauptleitung am Start ist eine 40er und liegt ganz in der Straße; Hausanschlüsse sind 25er', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    const rohre = s.stand.objekte.filter((o) => istLeitung(o.typ));
-    const haupt = rohre.filter((o) => o.typ === 'd40');
-    expect(haupt.length).toBeGreaterThan(0);
-    for (const o of haupt) expect(s.istStrasse(o.x, o.y)).toBe(true);
-    for (const o of rohre.filter((o) => !s.istStrasse(o.x, o.y))) expect(o.typ).toBe('d25');
-    expect(s.stand.objekte.filter((o) => o.station && s.netz.warm.has(o.id))).toHaveLength(2);
   });
 });
 
@@ -784,7 +761,7 @@ describe('A61/A85 Spielname (seit A85 „Heatville“)', () => {
 
 describe('A62 Expresslieferung', () => {
   it('A62: Laura kann einmal Express bestellen – das kostet Aufpreis und verkürzt die Restlieferzeit', () => {
-    let t = T0; const s = new Spiel(neuerSpielstand(T0), () => t); s.ersteQuelleWaehlen('kessel');
+    let t = T0; const s = new Spiel(altesStartdorf(T0), () => t); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 200_000; s.stand.abschnitt = { phase: 'offen', bau: null };
     expect(s.platzieren('d40', 10, 18).ok).toBe(true);
     s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
@@ -797,7 +774,7 @@ describe('A62 Expresslieferung', () => {
     expect(s.expressLiefern().ok).toBe(false); // nur einmal
   });
   it('A62: Ohne laufende Lieferung gibt es keinen Express', () => {
-    const s = new Spiel(neuerSpielstand(T0), () => T0);
+    const s = new Spiel(altesStartdorf(T0), () => T0);
     expect(s.expressLiefern().ok).toBe(false);
   });
 });
@@ -844,16 +821,6 @@ describe('A66 keine Autos', () => {
   });
 });
 
-describe('A67 Startnetz', () => {
-  it('A67: Das Startnetz wird nur am Abzweig dünner (kein Planungsfehler zu Spielbeginn)', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    expect(s.netz.reduzierung.size).toBe(0);
-    expect(s.netz.engpass.size).toBe(0);
-    const start = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
-    expect(start.every((o) => s.netz.warm.has(o.id))).toBe(true);
-  });
-});
-
 describe('A68 Fachprüfung A45–A66 umgesetzt', () => {
   it('A68: Leitungstexte kennzeichnen Spielwerte, BHKW-Strom folgt der erzeugten Wärme', async () => {
     const { readFileSync } = await import('node:fs');
@@ -862,7 +829,7 @@ describe('A68 Fachprüfung A45–A66 umgesetzt', () => {
     // A82 (Simon): Unterzeile ist wieder „Heize dein Dorf klimaneutral“ – siehe Test A82
     expect(vorspann).not.toContain('nur mit einer Spülbohrung');
     const { berechneNetz } = await import('../src/core/netz');
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     const leer = berechneNetz(s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie !== 'haus'), [{ typ: 'bhkw', stufe: 1, bau: null }], 2);
     expect(leer.strom_kw).toBe(0); // ohne Wärmeabnahme kein BHKW-Strom
   });
@@ -870,7 +837,7 @@ describe('A68 Fachprüfung A45–A66 umgesetzt', () => {
 
 describe('A69 Vorsehung und Anbohrung', () => {
   const N = KONSTANTEN.feldanzahl;
-  const offen = () => { const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000; s.stand.abschnitt = { phase: 'offen', bau: null }; return s; };
+  const offen = () => { const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000; s.stand.abschnitt = { phase: 'offen', bau: null }; return s; };
   /** gebaute Leitung bei (x|y) und ein freier Nachbar, auf den eine Leitung passt */
   const andock = (s: Spiel, x: number, y: number) => {
     const ziel = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === x && o.y === y)!;
@@ -920,37 +887,6 @@ describe('A69 Vorsehung und Anbohrung', () => {
     s.platzieren('d25', frei![0], frei![1]);
     expect(s.anbohrungsFelder()).toEqual([]);
   });
-  it('A69: Der automatische Hausanschluss rechnet die Anbohrung ein und weicht zu einer nahen Vorsehung aus', () => {
-    const plane = (vorsehungBei?: [number, number]) => {
-      const s = offen();
-      delete s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 14)!.vorsehung; // Start-Vorsehung (A74) weg, sonst dockt der Weg dort an
-      // A89: Das Starthaus (9|13) hat in diesem Aufbau noch keine Übergabestation. Sonst hängt das Netzmodell es an die neue
-      // 25er bei (9|12), die dann 2 × 10 kW tragen müsste (Nennleistung 15 kW) – die Wegsuche darf diesen Weg seit A89 nicht nehmen.
-      // So trägt die 25er nur das neue Haus, und der Vergleich Vorsehung gegen Anbohrung bleibt derselbe wie vor A89.
-      const nachbar = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 9 && o.y === 13)!;
-      delete nachbar.station; nachbar.ohne_station = true;
-      if (vorsehungBei) s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === vorsehungBei[0] && o.y === vorsehungBei[1])!.vorsehung = true;
-      const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 6 && o.y === 15)!;
-      expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
-      return { s, haus, plan: s.stand.objekte.filter((o) => o.geplant).map((o) => [o.x, o.y] as const) };
-    };
-    const ohne = plane();
-    expect(ohne.s.anbohrungsFelder()).toEqual([14 * N + 10]); // ohne Vorsehung: Weg unten herum, Anbohrung an (10|14)
-    const mit = plane([10, 12]);
-    expect(mit.s.anbohrungsFelder()).toEqual([]);
-    expect(mit.plan).toContainEqual([9, 12]); // endet an der Vorsehung (10|12)
-    expect(mit.s.abschnittKosten_eur()).toBeLessThan(ohne.s.abschnittKosten_eur());
-    // Der Weg zur Vorsehung trägt: nach dem Bau ist das neue Haus warm, das Starthaus (12|14) bleibt warm, keins ist wegen der Leitung kalt.
-    const s = mit.s;
-    expect(s.stationKaufen(mit.haus.id, passendeStation(bedarfKw(mit.haus)).id).ok).toBe(true);
-    expect(s.abschnittAbschliessen().ok).toBe(true);
-    expect(s.materialBestellen().ok).toBe(true);
-    s.bis(s.stand.abschnitt!.bau!.ende_ms);
-    expect(s.stand.abschnitt).toBeUndefined();
-    const warm = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id)).map((o) => `${o.x}|${o.y}`).sort();
-    expect(warm).toEqual(['12|14', '6|15']);
-    expect([...s.netz.kalt.values()].filter((grund) => grund === 'leitung')).toEqual([]);
-  });
   it('A69: Neben der Heizzentrale ist die erste Leitung durchlaufend – Andocken kostet eine Anbohrung', () => {
     const s = offen();
     const { frei } = andock(s, 10, 10);
@@ -958,7 +894,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(s.anbohrungsFelder()).toContain(10 * N + 10);
   });
   it('A69/A67: Während der Bauzeit zählt eine genutzte Vorsehung weiter als Abzweig (kein falsches Warnzeichen)', () => {
-    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000;
+    let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000;
     const d = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 13)!; d.typ = 'd25';
     const v = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 10 && o.y === 12)!; v.vorsehung = true;
     s.neuBerechnen();
@@ -973,7 +909,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(s.netz.reduzierung.size).toBe(0);
   });
   it('A69: Ein verlängertes Leitungsende verbraucht die Vorsehung nicht; eine Vorsehung auf neuer Leitung mit Abzweig ist nach dem Bau belegt', () => {
-    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000;
+    let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 1_000_000;
     s.stand.abschnitt = { phase: 'offen', bau: null };
     const ende = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 11 && o.y === 14)!; ende.vorsehung = true;
     // Leitungsende nach unten verlängern: (11|15), (11|16); auf (11|15) Vorsehung, daran nach rechts ein Abzweig (12|15)
@@ -986,7 +922,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(mitte.vorsehung).toBeUndefined();
   });
   it('A68/K1: Die Bäckerei braucht 75 °C Vorlauf und stockt wie Wohnhäuser auf (Schlüssel „baeck“)', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     const b = { ...s.stand.objekte.find((o) => o.typ === 'efh')!, typ: 'baeck' as const, upgrade: 0 };
     expect(s.mindestVorlauf_c(b)).toBe(75);
     s.neuBerechnen();
@@ -996,7 +932,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
 
 describe('Review A45–A66: Nachbesserungen', () => {
   it('A50: Friert ein angeschlossener Kunde, kommen keine Interessenten, und die Zeit beginnt von vorn', () => {
-    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.preisstufe = 4;
+    let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel'); s.stand.preisstufe = 4;
     const start = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.station);
     // Ein Starthaus wächst über seine 15-kW-Station hinaus: angeschlossen, aber kalt
     Object.assign(start[0], { station: 'st_15', aufgestockt: true, vollversorgung: true });
@@ -1009,7 +945,7 @@ describe('Review A45–A66: Nachbesserungen', () => {
     expect(s.stand.zufrieden_s).toBe(0);
   });
   it('A62: Laura sagt die Lieferzeit in Tagen an; nach Express ist sie kürzer; kurz vor Lieferende gibt es keinen Express mehr', () => {
-    let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+    let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000; s.stand.abschnitt = { phase: 'offen', bau: null };
     const ende = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === 11 && o.y === 14)!;
     const frei = ([[1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [ende.x + dx, ende.y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b))!;
@@ -1031,30 +967,17 @@ describe('Review A45–A66: Nachbesserungen', () => {
     expect(s.stand.geld_eur).toBe(geld);
   });
   it('A62: Bei alten Spielständen ohne gemerkten Materialpreis richtet sich Express nach den Leitungen des Abschnitts', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.objekte.push(...Array.from({ length: 12 }, (_, i) => ({ id: 9000 + i, typ: 'd110' as const, x: i, y: 20, stufe: 1, bau: null, kasse_eur: 0, geplant: true })));
     s.stand.abschnitt = { phase: 'bau', bau: { art: 'neu', start_ms: 0, ende_ms: 10_000_000 } };
     expect(s.expresskosten_eur()).toBe(Math.max(KONSTANTEN.express_min_eur, Math.round(s.abschnittKosten_eur() * KONSTANTEN.express_anteil)));
     expect(s.expresskosten_eur()).toBeGreaterThan(KONSTANTEN.express_min_eur);
   });
-  it('A49: „Letzte zurück“ nimmt einen automatisch gezogenen Hausanschluss als Ganzes zurück', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    s.stand.geld_eur = 1_000_000; s.stand.abschnitt = { phase: 'offen', bau: null };
-    // ein Haus suchen, dessen Anschluss mehrere Felder lang ist
-    for (const haus of s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)) {
-      if (!s.hausanschlussPlanen(haus.id).ok) continue;
-      if (s.abschnittLeitungen() > 1) break;
-      s.abschnittVerwerfen(); s.stand.abschnitt = { phase: 'offen', bau: null };
-    }
-    expect(s.abschnittLeitungen()).toBeGreaterThan(1);
-    expect(s.letzteLeitungZurueck().ok).toBe(true);
-    expect(s.abschnittLeitungen()).toBe(0);
-  });
 });
 
 describe('Review: Anpassung alter Spielstände (A46)', () => {
   it('A46: Das Sägewerk im neuen Fluss zieht auf seinen Platz im Ortsplan; gebaute Leitungen im Fluss werden erstattet', () => {
-    const s0 = neuerSpielstand(0);
+    const s0 = altesStartdorf(0);
     delete s0.karte;
     const ort = ortHolen(s0.ort);
     const fluss = ort.fluss[0];
@@ -1096,7 +1019,7 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
   it('A71: Anschlussleistung = Jahresverbrauch ÷ 1.500 h, mit Pufferspeicher im Haus ÷ 1.800 h', async () => {
     const { VOLLLASTSTUNDEN } = await import('../src/core/katalog');
     expect(VOLLLASTSTUNDEN).toEqual({ ohne_puffer_h: 1500, mit_puffer_h: 1800 });
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.stand.geld_eur = 100_000;
+    const s = new Spiel(altesStartdorf(0), () => 0); s.stand.geld_eur = 100_000;
     const haus = s.stand.objekte.find((o) => o.typ === 'efh' && !o.vollversorgung && !o.aufgestockt)!;
     expect(bedarfKw(haus)).toBeCloseTo(KATALOG.efh.verbrauch_kwh_a! / 1500);
     const geld = s.stand.geld_eur;
@@ -1119,7 +1042,7 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
   });
   it('A73: Der Rücklauf fällt nie unter 40 °C; Upgrades vergrößern die Spreizung', async () => {
     const { spreizungHaus_k } = await import('../src/core/netz');
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     const haus = { ...s.stand.objekte.find((o) => o.typ === 'efh')! };
     for (const vorlauf of [55, 60, 70, 75, 85]) for (const upgrade of [0, 1, 2, 3]) {
       haus.upgrade = upgrade;
@@ -1135,7 +1058,7 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     expect(kontext).not.toContain('−${u.senkung_k} K');
   });
   it('A73: Der 40-°C-Rücklauf wirkt im Netz – Leitungskapazität und Netz-Spreizung folgen dem Vorlauf', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     // letztes Haus am 25er (15 kW): Reihenhaus mit Puffer = 24.000 kWh ÷ 1.800 h = 13,3 kW
     const haus = s.stand.objekte.find((o) => o.x === 12 && o.y === 14)!;
     haus.typ = 'rh'; haus.hauspuffer = true; s.neuBerechnen();
@@ -1149,7 +1072,7 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     expect(s.netz.kapazitaet_ok.get(schluessel)).toBe(false); // 13,3 kW > 15 kW × 0,75
   });
   it('A71: Pufferspeicher ohne genug Geld wird nicht eingebaut; Meldungen nennen gerundete kW', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
+    const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     const haus = s.stand.objekte.find((o) => o.typ === 'efh')!;
     s.stand.geld_eur = KONSTANTEN.hauspuffer_eur - 1;
     expect(s.hauspufferEinbauen(haus.id).ok).toBe(false); expect(haus.hauspuffer).toBeFalsy();
@@ -1158,7 +1081,7 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
   });
   it('A73: Fertig-Meldung eines Upgrades nennt den tatsächlichen Spreizungsgewinn', () => {
     const fertigText = (vorlauf: number, vorUpgrades: number): string => {
-      let t = 0; const s = new Spiel(neuerSpielstand(0), () => t); s.ersteQuelleWaehlen('kessel');
+      let t = 0; const s = new Spiel(altesStartdorf(0), () => t); s.ersteQuelleWaehlen('kessel');
       s.stand.geld_eur = 1e6; s.vorlaufSetzen(vorlauf);
       const haus = s.stand.objekte.find((o) => o.x === 12 && o.y === 14)!; haus.upgrade = vorUpgrades;
       expect(s.upgradeKaufen(haus.id).ok).toBe(true);
@@ -1167,17 +1090,6 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     };
     expect(fertigText(85, 0)).toContain('Spreizung +5 K');
     expect(fertigText(60, 0)).toContain('Rücklauf schon bei 40 °C'); // 60 − 40 = 20 K, Grundwert schon erreicht
-  });
-  it('A74: Startnetz – 40er bis vor das letzte Haus, dort T-Stück mit Vorsehung geradeaus, 25er zum Haus', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0); s.ersteQuelleWaehlen('kessel');
-    const an = (x: number, y: number) => s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === x && o.y === y);
-    for (let y = 10; y <= 14; y++) expect(an(10, y)?.typ).toBe('d40');
-    expect(an(10, 14)?.vorsehung).toBe(true);
-    expect(an(11, 14)?.typ).toBe('d25');
-    expect(an(10, 15)).toBeUndefined();
-    expect(s.netz.reduzierung.size).toBe(0);
-    expect(s.netz.aufteilung.size).toBe(0);
-    for (const h of s.stand.objekte.filter((o) => o.station)) expect(s.netz.warm.has(h.id)).toBe(true);
   });
 });
 
@@ -1193,7 +1105,7 @@ describe('Simon 2026-11-05: Bedienung und Start', () => {
     expect(css).not.toContain('@keyframes vs-laden{to{width:100%}}');
   });
   it('A79: Neues Spiel fragt nach Name und Dorfname; leere Eingaben behalten den Vorschlag; alte Stände werden nicht gefragt', () => {
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     expect(s.stand.namen_gefragt).toBe(false);
     const vorschlag = s.stand.name;
     s.namenSetzen('  Simon  ', '');
@@ -1203,7 +1115,7 @@ describe('Simon 2026-11-05: Bedienung und Start', () => {
     s.namenSetzen('', 'Wärmhausen an der Schwarzach mit Zusatz');
     expect(s.stand.spieler).toBe('Simon');
     expect(s.stand.name.length).toBeLessThanOrEqual(24);
-    const alt = neuerSpielstand(0); delete alt.namen_gefragt;
+    const alt = altesStartdorf(0); delete alt.namen_gefragt;
     const geladen = ladenMitBefund(serialisieren(alt), 0);
     expect(geladen.stand.namen_gefragt).toBeUndefined(); // kein Fragefenster für alte Stände
     const steuerung = readFileSync(new URL('../src/steuerung.ts', import.meta.url), 'utf8');
@@ -1214,7 +1126,7 @@ describe('Simon 2026-11-05: Bedienung und Start', () => {
 describe('A80 Antippen trifft beim ersten Mal', () => {
   it('A80: Tippen auf Dach/Wand eines Hauses trifft das Haus, nicht das Feld dahinter – in jedem Drehwinkel', async () => {
     const { objektAmPunkt } = await import('../src/render/treffer');
-    const s = new Spiel(neuerSpielstand(0), () => 0);
+    const s = new Spiel(altesStartdorf(0), () => 0);
     const k = new Kamera(); k.groesseSetzen(844, 390, 1); k.zoom = 3;
     const haus = s.stand.objekte.find((o) => o.typ === 'efh' && o.x === 12 && o.y === 14)!;
     for (const w of [0, 0.4, Math.PI / 2, 2.5]) {
@@ -1239,7 +1151,7 @@ describe('A80 Antippen trifft beim ersten Mal', () => {
 describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
   const JAN = 12 * 10 * 60 * 1000 * 1000; // Beginn eines Januars (Monatsnummer durch 12 teilbar)
   const spiel = (t0 = JAN) => {
-    const z = { t: t0 }; const s = new Spiel(neuerSpielstand(t0), () => z.t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 10_000; return { s, z };
+    const z = { t: t0 }; const s = new Spiel(altesStartdorf(t0), () => z.t); s.ersteQuelleWaehlen('kessel'); s.stand.geld_eur = 10_000; return { s, z };
   };
   it('A81: Der Jahresverbrauch verteilt sich nach Monatsanteilen – Winter mehr als Sommer, zusammen 100 %', async () => {
     const { MONATSANTEIL_PROMILLE, MONATE } = await import('../src/core/katalog');
@@ -1364,7 +1276,7 @@ describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
 describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
   it('A83: Sicherung – Dateiname aus Dorfname und Datum, nur sichere Zeichen', async () => {
     const { sicherungsDateiname } = await import('../src/core/speichern');
-    const st = neuerSpielstand(0); st.name = 'Groß Ölbach/../x';
+    const st = altesStartdorf(0); st.name = 'Groß Ölbach/../x';
     expect(sicherungsDateiname(st, new Date('2026-11-05T10:00:00Z'))).toBe('heatville-gross-oelbach-x-2026-11-05.json');
   });
   it('A83: Sicherung einspielen übernimmt nur lesbare Spielstände und sperrt danach das Zurückschreiben', async () => {
@@ -1376,11 +1288,11 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
     expect(m.sicherungEinspielen(speicher, 'kein json', 0).ok).toBe(false);
     expect(m.sicherungEinspielen(speicher, '{"version":99}', 0).ok).toBe(false);
     expect(m.sicherungEinspielen(speicher, '', 0).ok).toBe(false); // leere Datei ersetzt das Dorf nicht durch ein neues
-    const gueltig = m.serialisieren(neuerSpielstand(0));
+    const gueltig = m.serialisieren(altesStartdorf(0));
     expect(m.sicherungEinspielen(speicher, gueltig + ' '.repeat(m.SICHERUNG_MAX_ZEICHEN), 0).ok).toBe(false); // gültig, nur zu groß
     expect(ablage.size).toBe(0);
     expect(m.speichernErlaubt()).toBe(true);
-    const st = neuerSpielstand(0); st.name = 'Testdorf'; st.geld_eur = 4321;
+    const st = altesStartdorf(0); st.name = 'Testdorf'; st.geld_eur = 4321;
     const r = m.sicherungEinspielen(speicher, m.serialisieren(st), 0);
     expect(r.ok).toBe(true);
     expect(JSON.parse(ablage.get(m.SPEICHER_SCHLUESSEL)!).geld_eur).toBe(4321);
@@ -1391,7 +1303,7 @@ describe('A83 Veröffentlichung mit Updates (Simon 2026-11-05)', () => {
     vi.resetModules();
     const m = await import('../src/core/speichern');
     const voll = { setItem: () => { throw new Error('QuotaExceededError'); } };
-    const r = m.sicherungEinspielen(voll, m.serialisieren(neuerSpielstand(0)), 0);
+    const r = m.sicherungEinspielen(voll, m.serialisieren(altesStartdorf(0)), 0);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.grund).toMatch(/voll/);
     expect(m.speichernErlaubt()).toBe(true);
@@ -1433,15 +1345,15 @@ describe('A86 Fiktiver Dorfname statt Hilpoltstein (Simon, Review-Chat NR5)', ()
       const q = readFileSync(new URL(f, import.meta.url), 'utf8').replace(/id: 'hilpoltstein'|STANDARD_ORT = 'hilpoltstein'/g, '');
       expect(q, f).not.toMatch(/Hilpoltstein/);
     }
-    expect(neuerSpielstand(0).name).toBe('Wärmlingen');
+    expect(altesStartdorf(0).name).toBe('Wärmlingen');
   });
   it('A86: Alte Spielstände laden weiter; nur der alte Vorgabename wird ersetzt, eigene Namen bleiben', () => {
-    const alt = neuerSpielstand(0); alt.name = 'Hilpoltstein';
+    const alt = altesStartdorf(0); alt.name = 'Hilpoltstein';
     const r = ladenMitBefund(serialisieren(alt), 0);
     expect(r.befund).toBe('ok'); // Review A86: kein Start-Hinweis über Straßen/Fluss, nur weil der Name wechselt
     expect(r.stand.name).toBe('Wärmlingen');
     expect(r.stand.objekte.length).toBe(alt.objekte.length);
-    const eigen = neuerSpielstand(0); eigen.name = 'Simonsdorf';
+    const eigen = altesStartdorf(0); eigen.name = 'Simonsdorf';
     expect(ladenMitBefund(serialisieren(eigen), 0).stand.name).toBe('Simonsdorf');
   });
 });

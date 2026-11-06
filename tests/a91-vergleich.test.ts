@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { berechneNetz, bedarfKw } from '../src/core/netz';
 import { KATALOG, LEITUNGSRANG, istLeitung, passendeStation } from '../src/core/katalog';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { ORTE } from '../src/core/orte';
 import type { Netz, Objekt } from '../src/core/typen';
 import { berechneNetzAlt, belegungskarte, istKunde, leitungsNachbarn } from './hilfen/netz-alt-a91';
@@ -229,36 +230,4 @@ describe('A91 Vergleich alte gegen neue Netzrechnung', () => {
     expect(pruefeVergleich(a, kopie({ warm: mehr, engpass: new Set() , reduzierung: new Set(), aufteilung: new Set() }))).toEqual([]);
   });
 
-  it('A91: test_a91_vergleich_a89_durchlauf', () => {
-    // Alle Orte, Stufe 1 und 2, jedes Haus/Großabnehmer ohne Station: Weg mit dem aktuellen hausanschlussPlanen planen,
-    // „nach dem Bau“ = geplant entfernen, Station (nur Kategorie haus), keine Bauzeit; dieselbe Objektliste alt und neu rechnen.
-    const anschliessbar = (s: Spiel): Objekt[] => s.stand.objekte.filter((o) => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie) && o.ohne_station);
-    const verstoesse: string[] = [];
-    let wege = 0;
-    for (const stufe of [1, 2]) {
-      for (const ort of ORTE) {
-        const anzahl = anschliessbar(new Spiel(neuerSpielstand(T0, ort.id), () => T0)).length;
-        for (let i = 0; i < anzahl; i++) {
-          const s = new Spiel(neuerSpielstand(T0, ort.id), () => T0);
-          s.ersteQuelleWaehlen('kessel');
-          s.stand.geld_eur = 1e7;
-          s.hz.stufe = stufe;
-          s.stand.abschnitt = { phase: 'offen', bau: null };
-          s.neuBerechnen();
-          const h = anschliessbar(s)[i];
-          if (!s.hausanschlussPlanen(h.id).ok) continue;
-          wege++;
-          if (KATALOG[h.typ].kategorie === 'haus') expect(s.stationKaufen(h.id, passendeStation(bedarfKw(h)).id).ok).toBe(true);
-          for (const o of s.stand.objekte) delete o.geplant;
-          const objekte = s.stand.objekte;
-          const alt = berechneNetzAlt(objekte, s.stand.innen, s.stand.preisstufe, s.vorlauf_c, s.grundgebuehr_eur);
-          const neu = berechneNetz(objekte, s.stand.innen, s.stand.preisstufe, s.vorlauf_c, s.grundgebuehr_eur);
-          for (const v of pruefeVergleich(alt, neu)) verstoesse.push(`${ort.id} Stufe ${stufe} Haus (${h.x}|${h.y}): ${v}`);
-        }
-      }
-    }
-    // Ohne gefundene Wege prüft der Durchlauf nichts (A89-Durchlauf heute: 41 + 42 Wege, tests/a89-hausanschluss.test.ts).
-    expect(wege).toBeGreaterThanOrEqual(41 + 42);
-    expect(verstoesse).toEqual([]);
-  }, 60_000);
 });

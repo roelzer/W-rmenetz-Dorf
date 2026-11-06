@@ -25,8 +25,9 @@ const EINSTELLUNGS_SCHLUESSEL = 'waermedorf-einstellungen-v1';
 /** Haus ohne Anschluss neben der Hauptleitung im Startdorf (wie tests/a92-anschlussweg.test.ts) */
 const HAUS = { x: 9, y: 15 };
 const TOL = 1, TOL_MELDUNG = 2, TOL_KAMERA = 16;
-/** 46 Zeichen wie das Beispiel in 12.17 */
-const TEXT_46 = 'Hausanschluss geplant: 1 Felder, 25er-Leitung.';
+/** 46 Zeichen wie das Beispiel in 12.17. NR18-P0 (4.14): die Hausanschluss-Meldung entfällt, daher eine bleibende Meldung
+ * gleicher Länge (Hinweis bei Planungsende, src/core/spiel.ts) */
+const TEXT_46 = 'Bauabschnitt bereit – jetzt Häuser anschließen';
 /** Erwartungen je Größe, von Hand aus DESIGN.md 12.16/12.18/12.21 */
 const GROESSEN = [
   { b: 844, h: 390, worte: ['Außenanlagen', 'Leitungen'], kartenFrei: 620 },

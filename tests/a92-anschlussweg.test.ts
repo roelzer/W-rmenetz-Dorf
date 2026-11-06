@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
+import { Spiel, type Ereignis } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { ABSCHNITT_HELFER, KATALOG, KONSTANTEN, type TypId } from '../src/core/katalog';
 import type { Objekt } from '../src/core/typen';
 import { readFileSync } from 'node:fs';
@@ -25,7 +26,7 @@ const DICKERE_HINWEIS = 'Dickere Leitungen gibt es ab Heizzentrale Stufe 2. Baue
 
 const neu = (stufe = 1) => {
   const z = { t: T0 };
-  const s = new Spiel(neuerSpielstand(T0), () => z.t);
+  const s = new Spiel(altesStartdorf(T0), () => z.t);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;
@@ -170,16 +171,6 @@ const zeichenleiste = async (stufe: number, abschnitt: boolean, tun?: (z: Leiste
 };
 
 describe('A92 Kern – Meldungen und Zustand des Hausanschlusses', () => {
-  it('A92: Hausanschluss-Meldung beugt „Feld“ richtig – 1 Feld, 4 Felder', () => {
-    // Startdorf: Das Haus (9|15) liegt ein Feld neben der Hauptleitung, das Haus (8|7) vier Felder (Wegsuche wie A89).
-    const { s } = neu(1); offen(s);
-    expect(s.hausanschlussPlanen(objektBei(s, 9, 15).id).ok).toBe(true);
-    expect(hinweise(s)).toEqual(['Hausanschluss geplant: 1 Feld, 25er-Leitung']);
-    s.ereignisse.splice(0);
-    expect(s.hausanschlussPlanen(objektBei(s, 8, 7).id).ok).toBe(true);
-    expect(hinweise(s)).toEqual(['Hausanschluss geplant: 4 Felder, 25er-Leitung']);
-  });
-
   it('A92: Fertige Planung meldet „Bauabschnitt bereit – jetzt Häuser anschließen“', () => {
     const { s, z } = neu(1);
     expect(s.abschnittPlanen().ok).toBe(true);
@@ -196,7 +187,8 @@ describe('A92 Kern – Meldungen und Zustand des Hausanschlusses', () => {
     const { s } = neu(1); offen(s);
     const haus = objektBei(s, 9, 15), anderes = objektBei(s, 8, 7);
     expect(s.hausanschlussGeplant(haus.id)).toBe(false);
-    s.hausanschlussPlanen(haus.id);
+    // NR18-P0 (4.12): Leitung selbst gezeichnet – (10|15) unter der Vorsehung (10|14), Leitungsende neben dem Haus (9|15)
+    expect(s.platzieren('d25', 10, 15).ok).toBe(true);
     expect(s.hausanschlussGeplant(haus.id)).toBe(true);
     expect(s.hausanschlussGeplant(anderes.id)).toBe(false);
     for (const o of s.stand.objekte) delete o.geplant; // wie nach dem Bau
@@ -213,7 +205,8 @@ describe('A92 Hausblatt – Weg zum Anschluss', () => {
     const haus = objektBei(s, 9, 15);
     const k = await karte(s, haus);
     expect(mit(k.knoepfe, 'Leitung selbst legen')).toEqual([expect.objectContaining({ aus: true, text: `Leitung selbst legen${OHNE_ABSCHNITT}` })]);
-    expect(mit(k.knoepfe, 'Hausanschluss ziehen')).toEqual([expect.objectContaining({ aus: true, text: `Hausanschluss ziehen${OHNE_ABSCHNITT}` })]);
+    // NR18-P0 (4.16): Der Knopf „Hausanschluss ziehen“ entfällt (NR18). Rot bis NR18-P3.
+    expect(mit(k.knoepfe, 'Hausanschluss ziehen')).toEqual([]);
     const planen = mit(k.knoepfe, PLANEN);
     expect(planen).toEqual([expect.objectContaining({ aus: false, text: `${PLANEN}2.000 €` })]);
     planen[0].klick!();
@@ -239,7 +232,8 @@ describe('A92 Hausblatt – Weg zum Anschluss', () => {
       const k = await karte(s, objektBei(s, 9, 15));
       expect(mit(k.knoepfe, PLANEN), phase).toEqual([]);
       expect(mit(k.knoepfe, 'Leitung selbst legen'), phase).toEqual([expect.objectContaining({ aus: true, text: `Leitung selbst legen${ZEILE2[phase]}` })]);
-      expect(mit(k.knoepfe, 'Hausanschluss ziehen'), phase).toEqual([expect.objectContaining({ aus: true, text: `Hausanschluss ziehen${ZEILE2[phase]}` })]);
+      // NR18-P0 (4.16): Der Knopf „Hausanschluss ziehen“ entfällt (NR18). Rot bis NR18-P3.
+      expect(mit(k.knoepfe, 'Hausanschluss ziehen'), phase).toEqual([]);
     }
   });
 
@@ -253,13 +247,14 @@ describe('A92 Hausblatt – Weg zum Anschluss', () => {
     expect(k.gestempelt).toEqual(['d25']);
   });
 
-  it('A92: nach „Hausanschluss ziehen“ zeigt das Haus „Hausanschluss geplant“ statt eines aktiven Knopfs', async () => {
+  // NR18-P0 (4.12): Die Leitung zeichnet der Spieler selbst (keine automatische Wegsuche mehr).
+  it('A92: nach selbst gezeichneter Leitung zeigt das Haus „Hausanschluss geplant“ statt eines aktiven Knopfs', async () => {
     const { s } = neu(1); offen(s);
     const haus = objektBei(s, 9, 15);
     const vorher = await karte(s, haus);
-    const ziehen = mit(vorher.knoepfe, 'Hausanschluss ziehen');
-    expect(ziehen).toEqual([expect.objectContaining({ aus: false })]);
-    ziehen[0].klick!();
+    expect(mit(vorher.knoepfe, 'Leitung selbst legen')).toEqual([expect.objectContaining({ aus: false })]);
+    expect(mit(vorher.knoepfe, 'Hausanschluss geplant')).toEqual([]);
+    expect(s.platzieren('d25', 10, 15).ok).toBe(true);
     expect(s.abschnittLeitungen()).toBe(1);
     const nachher = await karte(s, haus);
     expect(mit(nachher.knoepfe, 'Hausanschluss ziehen')).toEqual([]);
@@ -378,7 +373,8 @@ describe('A92 / DESIGN 12.19 – gesperrte Knöpfe: nie die Aktion, immer der Hi
   const faelle: Array<[string, () => { s: Spiel; o: Objekt }]> = [
     ['Hauskarte ohne Bauabschnitt (Leitung selbst legen, Hausanschluss ziehen)', () => { const { s } = neu(1); return { s, o: objektBei(s, 9, 15) }; }],
     ['Hauskarte, Geld reicht nicht für die Planung (1.999 €)', () => { const { s } = neu(1); s.stand.geld_eur = 1_999; return { s, o: objektBei(s, 9, 15) }; }],
-    ['Hauskarte mit geplantem Hausanschluss', () => { const { s } = neu(1); offen(s); s.hausanschlussPlanen(objektBei(s, 9, 15).id); s.ereignisse.splice(0); return { s, o: objektBei(s, 9, 15) }; }],
+    // NR18-P0 (4.25): Hausanschluss selbst gezeichnet statt automatisch
+    ['Hauskarte mit geplantem Hausanschluss', () => { const { s } = neu(1); offen(s); s.platzieren('d25', 10, 15); s.ereignisse.splice(0); return { s, o: objektBei(s, 9, 15) }; }],
     ['Hauskarte Starthaus Stufe 1 (Puffer, Helfer)', () => { const { s } = neu(1); return { s, o: objektBei(s, 9, 13) }; }],
     ['Leitungskarte geplante 25er Stufe 1 (T-Stück setzen)', () => { const { s } = neu(1); offen(s); return { s, o: lege(s, 'd25', 3, 3, { geplant: true }) }; }],
     ['Leitungskarte 40er Stufe 1 (Dickere)', () => { const { s } = neu(1); return { s, o: s.stand.objekte.find((x) => x.typ === 'd40' && x.x === 10 && x.y === 12)! }; }],

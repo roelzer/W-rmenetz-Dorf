@@ -178,10 +178,11 @@ describe('A84 (Review W1) Bausteine verhalten sich richtig', () => {
     expect(k).toContain("stepper('plus', 'Vorlauftemperatur erhöhen', () => { sp.vorlaufSetzen(sp.vorlauf_c + VORLAUF.schritt_c)");
     expect(k).toContain("stepper('minus', 'Vorlauftemperatur senken', () => { sp.vorlaufSetzen(sp.vorlauf_c - VORLAUF.schritt_c)");
   });
-  it('A84 (Review W2): Was Euro kostet, ist Gold – auch Vorsehung setzen und Leitung tauschen', () => {
+  it('A84 (Review W2): Was Euro kostet, ist Gold – auch Vorsehung setzen und Leitung ersetzen', () => {
     const k = lies('src/ui/kontext.ts');
     expect(k).toContain("o.vorsehung ? '' : 'geld'");
-    expect(k).toMatch(/knopf\(`Tauschen: \$\{KATALOG\[t\]\.name\}`, [^]*?, 'geld', \{ unter: eur/);
+    // NR18-P0 (4.22): Sofort-Tausch entfällt, der Ersatz im Bauabschnitt heißt „Ersetzen: …“ (rot bis NR18-P3).
+    expect(k).toMatch(/knopf\(`Ersetzen: \$\{KATALOG\[t\]\.name\}`, [^]*?, 'geld', \{ unter: eur/);
   });
 });
 

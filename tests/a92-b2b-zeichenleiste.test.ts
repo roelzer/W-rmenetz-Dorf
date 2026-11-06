@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { HELFER, KATALOG } from '../src/core/katalog';
 import { laden, serialisieren } from '../src/core/speichern';
 import type { Objekt } from '../src/core/typen';
@@ -29,7 +30,7 @@ const GELD_HINWEIS = (betrag: string): string => `Dir fehlen noch ${betrag}. Am 
 
 type Uhr = { t: number };
 const neu = (stufe = 1, uhr: Uhr = { t: T0 }): Spiel => {
-  const s = new Spiel(neuerSpielstand(T0), () => uhr.t);
+  const s = new Spiel(altesStartdorf(T0), () => uhr.t);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;

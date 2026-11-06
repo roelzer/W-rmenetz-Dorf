@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { istLeitung, KATALOG, KONSTANTEN, UPGRADES, type TypId } from '../src/core/katalog';
 import type { Objekt } from '../src/core/typen';
 import { kontextKarte } from './hilfen/kontext-attrappe';
@@ -10,7 +11,7 @@ import { gesperrt } from './hilfen/gesperrt';
 
 const T0 = 1_000_000_000_000;
 const neu = (stufe = 1) => {
-  const s = new Spiel(neuerSpielstand(T0), () => T0);
+  const s = new Spiel(altesStartdorf(T0), () => T0);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;
@@ -58,12 +59,20 @@ describe('A88 Review P2 – Testlücken', () => {
 
   it('A88 (Review P2, K4): Leitungskarte zeigt „Dickere“ nur, wenn es eine dickere gesperrte Leitung gibt', async () => {
     const s = neu(2);
+    // NR18-P0 (4.20): geprüft im offenen Bauabschnitt; „Ersetzen: …“ (statt „Tauschen: …“) nur für dickere, freigeschaltete Leitungen
+    // (rot bis NR18-P3).
+    s.stand.abschnitt = { phase: 'offen', bau: null };
     // 110er ist die dickste Leitung (LEITUNGEN in katalog.ts): auf Stufe 2 sind 75er/90er/110er gesperrt, aber keine ist dicker.
     const k110 = await karte(s, lege(s, 'd110', 3, 3));
     expect(mit(k110.knoepfe, 'Dickere')).toEqual([]);
-    expect(mit(k110.knoepfe, 'Tauschen:').length).toBe(5); // 25er, 32er, 40er, 50er, 63er
+    expect(mit(k110.knoepfe, 'Ersetzen:')).toEqual([]); // nichts ist dicker als die 110er
     // 90er auf Stufe 2: die 110er ist dicker und erst ab Stufe 3 frei.
     const k90 = await karte(s, lege(s, 'd90', 5, 3));
     expect(mit(k90.knoepfe, 'Dickere')).toEqual([expect.objectContaining({ text: 'Dickereab Heizzentrale Stufe 3', aus: true })]);
+    expect(mit(k90.knoepfe, 'Ersetzen:')).toEqual([]); // dicker ist nur die gesperrte 110er
+    // 40er auf Stufe 2: dicker und frei sind 50er und 63er.
+    const k40 = await karte(s, lege(s, 'd40', 7, 3));
+    expect(mit(k40.knoepfe, 'Ersetzen:').map((k) => k.text.replace(/[\d.]+\s€$/, ''))).toEqual(['Ersetzen: 50er-Leitung', 'Ersetzen: 63er-Leitung']);
+    expect(mit(k40.knoepfe, 'Tauschen:')).toEqual([]);
   });
 });

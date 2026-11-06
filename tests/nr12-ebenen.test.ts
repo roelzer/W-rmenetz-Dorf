@@ -3,7 +3,8 @@ import { GRUNDGEBUEHR, istLeitung, KATALOG, KONSTANTEN, passendeStation, PREISST
 import { nachbardoerfer } from '../src/core/nachbarn';
 import { berechneNetz } from '../src/core/netz';
 import { ortHolen, STANDARD_ORT } from '../src/core/orte';
-import { neuerSpielstand, Spiel } from '../src/core/spiel';
+import { Spiel } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import { Effekte } from '../src/render/effekte';
 import { BodenEbene, type Flaeche, type FlaechenFabrik } from '../src/render/ebenen';
 import { Kamera } from '../src/render/kamera';
@@ -82,7 +83,7 @@ function bild(k: Kamera, s: Szene, dt_s = 0.016, zeit_s = 1.7): Aufnahme {
   zeichneSzene(m, k, s, new Effekte(), dt_s);
   return a;
 }
-const mitUhr = () => { const z = { t: T0 }; const sp = new Spiel(neuerSpielstand(T0), () => z.t); return { sp, z }; };
+const mitUhr = () => { const z = { t: T0 }; const sp = new Spiel(altesStartdorf(T0), () => z.t); return { sp, z }; };
 const drawImage = (b: string[]): string[] => b.filter((x) => x.startsWith('drawImage('));
 
 // Kamera 844×390, Faktor 2: Rand = round(0,25 · 844 · 2) = 422 px und round(0,25 · 390 · 2) = 195 px;
@@ -297,7 +298,8 @@ describe('NR12 P3a Bodenebene (A90)', () => {
       ['Abschnitt planen', () => { ok(sp.abschnittPlanen()); return spielSzene(sp, BILD_MS); }],
       ['Abschnitt offen', () => { lauf(600_000); expect(sp.abschnitt?.phase).toBe('offen'); return spielSzene(sp, BILD_MS); }],
       ['Leitung eingezeichnet', () => { ok(sp.platzieren('d50', 12, 12)); return spielSzene(sp, BILD_MS); }],
-      ['Hausanschluss geplant', () => { ok(sp.hausanschlussPlanen(haus().id)); return spielSzene(sp, BILD_MS); }],
+      // NR18-P0 (4.13): keine automatische Wegsuche mehr – der Spieler zeichnet das Verbindungsstück zur Start-40er (10|12) selbst.
+      ['Leitung zum Netz gezeichnet', () => { ok(sp.platzieren('d25', 11, 12)); return spielSzene(sp, BILD_MS); }],
       ['Vorsehung umgeschaltet', () => { const l = sp.stand.objekte.find((o) => o.geplant && o.x === 12 && o.y === 12)!; ok(sp.vorsehungUmschalten(l.id)); return spielSzene(sp, BILD_MS); }],
       ['Abschnitt abgeschlossen', () => { ok(sp.abschnittAbschliessen()); return spielSzene(sp, BILD_MS); }],
       ['Material bestellt', () => { ok(sp.materialBestellen()); return spielSzene(sp, BILD_MS); }],

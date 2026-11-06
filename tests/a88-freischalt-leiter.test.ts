@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
+import { Spiel, type Ereignis } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
+import { ersatzPlanen, ersatzVon } from './hilfen/nr18';
 import { BAU_KATEGORIEN, KATALOG, KONSTANTEN, passendeStation, STATIONEN, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
 import { pruefeAuftraege } from '../src/core/auftraege';
@@ -18,7 +20,7 @@ import { sichtbar } from './hilfen/dom-attrappe';
 const T0 = 1_000_000_000_000;
 const neu = (stufe = 1) => {
   const z = { t: T0 };
-  const s = new Spiel(neuerSpielstand(T0), () => z.t);
+  const s = new Spiel(altesStartdorf(T0), () => z.t);
   s.ersteQuelleWaehlen('kessel');
   s.hz.stufe = stufe;
   s.stand.geld_eur = 1_000_000;
@@ -93,16 +95,18 @@ describe('A88 Freischalt-Leiter – neues Spiel und Durchsetzung im Kern (T3, T4
     expect(s.innenEinbauen('pellet').ok).toBe(false);
     expect(s.innenEinbauen('kessel').ok).toBe(true);
   });
-  it('A88: test_a88_startnetz_bleibt (A74)', () => {
+  it('A88: test_a88_kern_setzt_durch_ersatz – Stufe 1: Ersatz auf eine 50er abgelehnt', () => {
+    // NR18-P0 (4.19): Sofort-Tausch entfällt – der Ersatz auf eine 50er wird auch im offenen Bauabschnitt abgelehnt (rot bis NR18-P2).
     const { s } = neu(1);
-    expect(s.stand.objekte.find((o) => o.typ === 'd40' && o.x === 10 && o.y === 14)?.vorsehung).toBe(true);
-    for (const h of startHaeuser(s)) expect(s.netz.warm.has(h.id)).toBe(true);
-    expect(startHaeuser(s).length).toBe(2);
+    const start40 = s.stand.objekte.find((o) => o.typ === 'd40' && o.x === 10 && o.y === 12)!;
+    offenerAbschnitt(s);
+    expect(ersatzPlanen(s, start40.id, 'd50').ok).toBe(false);
+    expect(ersatzVon(start40)).toBeUndefined();
+    expect(start40.typ).toBe('d40');
   });
   it('A88: test_a88_kern_setzt_durch – Stufe 1 mit genug Geld', () => {
     const { s, z } = neu(1);
-    const start40 = s.stand.objekte.find((o) => o.typ === 'd40' && o.x === 10 && o.y === 12)!;
-    expect(s.leitungTauschen(start40.id, 'd50').ok).toBe(false);
+    // Der Ersatz-Teil (4.19) steht in test_a88_kern_setzt_durch_ersatz (rot bis NR18-P2).
     const haus = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.ohne_station)!;
     expect(bedarfKw(haus)).toBe(10);
     expect(s.stationKaufen(haus.id, 'st_25').ok).toBe(false);
@@ -169,32 +173,26 @@ describe('A88 Freischalt-Leiter – Kosten vor der Freischaltung (T5)', () => {
       expect(s.anbohrungsFelder().length, `Stufe ${stufe}`).toBe(n);
     }
   });
-  it('A88: Hausanschluss jenseits des Flusses auf Stufe 1 – Hinweis mit Spülbohrung statt stillem „kein Weg“', () => {
-    const { s } = neu(1); offenerAbschnitt(s);
-    const ost = s.stand.objekte.find((o) => o.typ === 'gewerbe')!;
-    const r = s.hausanschlussPlanen(ost.id);
-    expect(r.ok).toBe(false);
-    expect(r.hinweis).toBe('Über den Fluss geht es erst mit Spülbohrung – ab Heizzentrale Stufe 2');
-    expect(s.stand.objekte.some((o) => o.geplant)).toBe(false);
-  });
 });
 
 describe('A88 Freischalt-Leiter – Stufe 1 ist durchspielbar (T6)', () => {
   it('A88: test_a88_stufe1_durchspielbar', () => {
     const z = { t: T0 };
-    const s = new Spiel(neuerSpielstand(T0), () => z.t);
+    const s = new Spiel(altesStartdorf(T0), () => z.t);
     s.ersteQuelleWaehlen('kessel');
     const vor = (sek: number) => { for (let i = 0; i < sek / 10; i++) { z.t += 10_000; s.bis(z.t); } };
     expect(s.abschnittPlanen().ok).toBe(true);
     vor(KONSTANTEN.abschnitt_planung_s * KONSTANTEN.bauzeit_faktor + 10);
     const haus = s.stand.objekte.find((o) => o.x === 13 && o.y === 12)!;
-    expect(s.hausanschlussPlanen(haus.id).ok).toBe(true);
+    // NR18-P0 (4.10): Die Leitung zeichnet der Spieler selbst (keine automatische Wegsuche mehr) – zwei 25er von der Start-40er (10|12) zum Haus.
+    expect(s.platzieren('d25', 11, 12).ok).toBe(true);
+    expect(s.platzieren('d25', 12, 12).ok).toBe(true);
     expect(s.stand.objekte.filter((o) => o.geplant).every((o) => s.freigeschaltet(o.typ))).toBe(true);
     expect(s.stationKaufen(haus.id, passendeStation(bedarfKw(haus)).id).ok).toBe(true);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
     vor(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor + 10);
-    // A89: Der automatische Hausanschluss macht kein Haus kalt – ohne Leitungstausch sind nach der Bauzeit alle drei Häuser warm
+    // A89: Der neue Anschluss macht kein Haus kalt – ohne dickere Leitung sind nach der Bauzeit alle drei Häuser warm
     // (die beiden Starthäuser und das neu angeschlossene (13|12)).
     const warm = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && s.netz.warm.has(o.id));
     expect(warm.map((o) => `${o.x}|${o.y}`).sort()).toEqual(['12|14', '13|12', '9|13']);
@@ -243,14 +241,33 @@ describe('A88 Freischalt-Leiter – alte Stände und Bestand (T8, F3)', () => {
     expect(s.stand.objekte.some((o) => o.typ === 'puffer')).toBe(true);
     const r = s.innenAusbauen(s.stand.innen.findIndex((k) => k.typ === 'pellet'));
     expect(r.hinweis ?? '').not.toContain('ab Heizzentrale Stufe');
-    expect(s.leitungTauschen(l50.id, 'd40').ok).toBe(true);
+    // Die gebaute 50er bleibt eine 50er, auch auf Stufe 1; Entfernen geht weiter.
+    // Der Ersatz-Teil (4.19) steht in test_a88_gebautes_bleibt_ersatz (rot bis NR18-P2).
+    offenerAbschnitt(s);
+    expect(l50.typ).toBe('d50');
+    expect(s.entfernen(l50.id).ok).toBe(true);
+  });
+  it('A88: test_a88_gebautes_bleibt_ersatz – Ersatz auf gesperrte 63er abgelehnt, Leitung unverändert', () => {
+    // NR18-P0 (4.19): Die gebaute 50er bleibt eine 50er, auch auf Stufe 1; ein Ersatz auf die gesperrte 63er wird
+    // abgelehnt, ändert aber nichts an der Leitung (rot bis NR18-P2). Entfernen geht weiter.
+    const { s } = neu(1);
+    const l50 = lege(s, 'd50', 9, 12);
+    s.neuBerechnen();
+    offenerAbschnitt(s);
+    expect(ersatzPlanen(s, l50.id, 'd63').ok).toBe(false);
+    expect(l50.typ).toBe('d50');
+    expect(ersatzVon(l50)).toBeUndefined();
     expect(s.entfernen(l50.id).ok).toBe(true);
   });
   it('A88: test_a88_flussleitung_tauschbar', () => {
-    const { s } = neu(1);
-    const l = lege(s, 'd40', 19, 3);
+    // NR18-P0 (4.19): Eine gebaute Flussleitung bekommt im offenen Bauabschnitt einen dickeren Ersatz, auch auf Stufe 1
+    // (die Spülbohrung des Ersatzes ist keine neue Flussquerung). Typ wechselt erst beim Bauende (rot bis NR18-P2).
+    const { s } = neu(1); offenerAbschnitt(s);
+    const l = lege(s, 'd25', 19, 3);
     expect(s.istFluss(19, 3)).toBe(true);
-    expect(s.leitungTauschen(l.id, 'd32').ok).toBe(true);
+    expect(ersatzPlanen(s, l.id, 'd32').ok).toBe(true);
+    expect(ersatzVon(l)?.typ).toBe('d32');
+    expect(l.typ).toBe('d25');
   });
   it('A88: test_a88_vorsehung_ausschalten', () => {
     const { s } = neu(1); offenerAbschnitt(s);
@@ -317,7 +334,7 @@ describe('A88 Review P1 – Blase und ungültige Anfrage', () => {
     expect(blase(s, s.netz, h, true, true)).toBe('anfrage');
   });
   it('A88: ungültiger anfrage-Wert aus dem Spielstand wird beim Laden gelöscht', () => {
-    const st = neuerSpielstand(T0);
+    const st = altesStartdorf(T0);
     const h = st.objekte.find((o) => KATALOG[o.typ].kategorie === 'haus' && o.station)!;
     (h as { anfrage?: string }).anfrage = 'kaputt';
     const s = new Spiel(st, () => T0);
@@ -497,17 +514,24 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     }
   });
 
-  it('A88: Leitungskarte – Tausch nur auf freigeschaltete, Anbohr-Satz erst ab Stufe 4', async () => {
+  it('A88: Leitungskarte – Ersetzen nur im offenen Abschnitt und nur auf dickere freigeschaltete, Anbohr-Satz erst ab Stufe 4', async () => {
+    // NR18-P0 (4.19): Knöpfe „Ersetzen: …“ statt „Tauschen: …“, nur im offenen Bauabschnitt, nur dickere Leitungen (rot bis NR18-P3).
     const eins = neu(1).s, vier = neu(4).s;
     const start40 = (s: Spiel) => s.stand.objekte.find((o) => o.typ === 'd40' && o.x === 10 && o.y === 12)!;
-    const k1 = await karte(eins, start40(eins));
-    expect(mit(k1.knoepfe, 'Tauschen:').map((k) => k.text.replace(/[\d.]+\s€$/, ''))).toEqual(['Tauschen: 25er-Leitung', 'Tauschen: 32er-Leitung']);
+    const start25 = (s: Spiel) => s.stand.objekte.find((o) => o.typ === 'd25' && o.x === 11 && o.y === 14)!;
+    const zu = await karte(eins, start25(eins));
+    expect(mit(zu.knoepfe, 'Ersetzen:')).toEqual([]);
+    expect(mit(zu.knoepfe, 'Tauschen:')).toEqual([]);
+    offenerAbschnitt(eins); offenerAbschnitt(vier);
+    const k1 = await karte(eins, start25(eins));
+    expect(mit(k1.knoepfe, 'Ersetzen:').map((k) => k.text.replace(/[\d.]+\s€$/, ''))).toEqual(['Ersetzen: 32er-Leitung', 'Ersetzen: 40er-Leitung']);
     expect(mit(k1.knoepfe, 'Dickere')).toEqual([expect.objectContaining({ text: 'Dickereab Heizzentrale Stufe 2', aus: true })]);
-    expect(k1.text).not.toContain('angebohrt');
-    const k4 = await karte(vier, start40(vier));
-    expect(mit(k4.knoepfe, 'Tauschen:').length).toBe(7);
+    expect(mit(k1.knoepfe, 'Tauschen:')).toEqual([]);
+    expect((await karte(eins, start40(eins))).text).not.toContain('angebohrt');
+    const k4 = await karte(vier, start25(vier));
+    expect(mit(k4.knoepfe, 'Ersetzen:').length).toBe(7); // 32er, 40er, 50er, 63er, 75er, 90er, 110er
     expect(mit(k4.knoepfe, 'Dickere')).toEqual([]);
-    expect(k4.text).toContain('angebohrt');
+    expect((await karte(vier, start40(vier))).text).toContain('angebohrt');
   });
 
   it('A88: Leitungskarte im offenen Abschnitt – Vorsehung setzen vor Stufe 4 deaktiviert, Wegnehmen immer möglich, Gestattung erst ab 2', async () => {

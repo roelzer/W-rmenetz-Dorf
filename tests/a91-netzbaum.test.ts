@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { berechneNetz, bedarfKw } from '../src/core/netz';
 import { passendeStation, type TypId } from '../src/core/katalog';
-import { neuerSpielstand } from '../src/core/spiel';
+import { altesStartdorf } from './hilfen/altes-startdorf';
 import type { InnenQuelle, Netz, Objekt } from '../src/core/typen';
 import { berechneNetzAlt } from './hilfen/netz-alt-a91';
 import { pruefeVergleich, zufallsNetz } from './hilfen/a91-netze';
@@ -45,7 +45,7 @@ const felder = (von: [number, number], bis: [number, number]): Array<[number, nu
 
 /** Startdorf (neues Spiel) mit Kessel Stufe 1, dazu von Hand d25 (11|12),(12|12) und Station für das EFH (13|12). */
 function startdorfMitAbkuerzung() {
-  const objekte = neuerSpielstand(1_000_000_000_000).objekte;
+  const objekte = altesStartdorf(1_000_000_000_000).objekte;
   let id = Math.max(...objekte.map((o) => o.id)) + 1;
   for (const [x, y] of [[11, 12], [12, 12]]) objekte.push({ id: id++, typ: 'd25', x, y, stufe: 1, bau: null, kasse_eur: 0 });
   const haus = objekte.find((o) => o.x === 13 && o.y === 12) as Objekt;
@@ -184,7 +184,7 @@ describe('A91 P2 – Netzbaum', () => {
     aufbau6.kunde('efh', 1, 5);
     aufbau6.leitung('d25', [[1, 4], [0, 4]]);
     aufbau6.kunde('efh', 0, 5);
-    const netze = [neuerSpielstand(1_000_000_000_000).objekte, startdorfMitAbkuerzung().objekte, aufbau6.objekte, ring(false).objekte, ring(true).objekte];
+    const netze = [altesStartdorf(1_000_000_000_000).objekte, startdorfMitAbkuerzung().objekte, aufbau6.objekte, ring(false).objekte, ring(true).objekte];
     for (const objekte of netze) {
       const { neu, alt } = rechne(objekte);
       expect([...neu.tiefe]).toEqual([...alt.tiefe]);
