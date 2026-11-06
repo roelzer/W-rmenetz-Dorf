@@ -489,10 +489,15 @@ describe('NR19 Zusammenspiel', () => {
     }
     expect(abschnittWarnungen(s)).toEqual([]);
     expect(s.materialBestellen().ok).toBe(true);
-    vorstellen(s, z, katalog.KONSTANTEN.abschnitt_bau_s * katalog.KONSTANTEN.bauzeit_faktor + 10);
+    // Messpunkt genau bei Bauende (Plan: Restgeld „bei Bauende“): in 10-s-Schritten bis der Abschnitt fertig ist, höchstens die
+    // geplante Bauzeit + 10 s. Danach heizen die Häuser, Brennstoff kostet laufend Geld – das Restgeld bewegt sich dann legitim.
+    const bau_s = katalog.KONSTANTEN.abschnitt_bau_s * katalog.KONSTANTEN.bauzeit_faktor;
+    let vergangen_s = 0;
+    while (s.stand.abschnitt && vergangen_s < bau_s + 10) { vorstellen(s, z, 10); vergangen_s += 10; }
+    expect(s.stand.abschnitt, `Bau nach ${vergangen_s} s fertig (geplant ${bau_s} s)`).toBeUndefined();
+    expect(s.stand.geld_eur).toBe(14_460); // 30.000 − 2.000 − 6 × 400 − 2 × 5.570
     for (const h of haeuser) { expect(s.netz.warm.has(h.id), `(${h.x}|${h.y}) warm`).toBe(true); expect(s.netz.kalt.has(h.id)).toBe(false); }
     expect(engstellen(s)).toEqual([]);
-    expect(s.stand.geld_eur).toBe(14_460); // 30.000 − 2.000 − 6 × 400 − 2 × 5.570
   });
 
   it('test_nr19_abnahme_zwei_efh_mit_wandstation_an_25er_warnen', () => {
@@ -519,7 +524,8 @@ describe('NR19 Zusammenspiel', () => {
     expect(s.stationKaufen(h1.id, 'hp_800').ok).toBe(true);
     const e = s.stationKaufen(h2.id, 'st_15');
     expect(e.ok).toBe(true);
-    expect(norm(e.hinweis ?? '')).toContain('Die 25er an der Heizzentrale ist zu dünn');
+    // Eingezeichnete Leitung hat Vorrang vor „an der Heizzentrale“ (Entscheidung NR18-P1); 17,5 − 15 = 2,5 → aufgerundet 3 kW.
+    expect(norm(e.hinweis ?? '')).toContain('Die eingezeichnete 25er ist zu dünn, es fehlen 3 kW.');
     expect(engstellen(s).length).toBeGreaterThan(0);
   });
 });
