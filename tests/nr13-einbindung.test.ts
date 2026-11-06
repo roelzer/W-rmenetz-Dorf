@@ -630,3 +630,118 @@ describe('NR13 P4 Einbindung – Teil 3', () => {
     }, { uhr: () => uhr.t });
   });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Teil 4 (Nachbesserung nach Review): Fehltipp über die echte Eingabesperre, Geld-Prüfung je Bild, Tastensperre,
+// stumme Meldungen über Hinweis-Ereignis und Bestätigen-Weg.
+type Fang = Record<string, Array<(e: unknown) => void>>;
+/** Die Testhilfe stellt ein `window` ohne Listener-Liste bereit; die Eingabesperre hängt sich dort ein (Capture).
+ *  Dieser Test hält die Listener selbst fest – vor dem ersten Anwenden der Ansicht, also vor dem ersten tick. */
+function fensterFangen(): Fang {
+  const fang: Fang = {};
+  const w = window as unknown as { addEventListener: (t: string, f: (e: unknown) => void) => void; removeEventListener: (t: string, f: (e: unknown) => void) => void };
+  w.addEventListener = (t, f) => { (fang[t] ??= []).push(f); };
+  w.removeEventListener = (t, f) => { fang[t] = (fang[t] ?? []).filter((x) => x !== f); };
+  return fang;
+}
+/** Eine Berührung wie der Browser sie ans Fenster gibt: pointerdown, pointerup, click an derselben Stelle. */
+function fensterTipp(u: U, fang: Fang, x: number, y: number): void {
+  for (const typ of ['pointerdown', 'pointerup', 'click']) {
+    const e = { type: typ, clientX: x, clientY: y, pointerId: 9, pointerType: 'touch', detail: 1, target: u.dom.body, preventDefault() {}, stopPropagation() {} };
+    for (const f of [...(fang[typ] ?? [])]) f(e);
+  }
+}
+
+describe('NR13 P4 Einbindung – Teil 4', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('test_nr13_daneben_aendert_nichts: Tipp neben das Ziel ändert Schritt und Blase nicht; ab dem 3. Fehltipp steht der Hilfe-Satz', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      const fang = fensterFangen();
+      bisT01(u, uhr);
+      expect(fang.pointerdown?.length, 'Testaufbau: die Eingabesperre hängt am Fenster').toBe(1);
+      const satz = s2(u).anleitungAnsicht()!.text;
+      expect(satz).not.toBe('Tippe auf das große Gebäude, das gelb leuchtet.');
+      const k = s2(u).kamera, lage = [k.schiebe_x, k.schiebe_y, k.zoom];
+      for (let i = 1; i <= 2; i++) {
+        fensterTipp(u, fang, 5, 5); s2(u).tick(uhr.t);
+        expect(schrittJetzt(u)).toBe('T01');
+        expect(s2(u).anleitungAnsicht()!.text, `nach ${i} Fehltipp(s)`).toBe(satz);
+      }
+      fensterTipp(u, fang, 5, 5); s2(u).tick(uhr.t);
+      expect(schrittJetzt(u)).toBe('T01');
+      // T01 hat einen eigenen Hilfe-Satz (src/core/tutorial.ts, Schritt T01)
+      expect(s2(u).anleitungAnsicht()!.text).toBe('Tippe auf das große Gebäude, das gelb leuchtet.');
+      expect(offeneBlaetter(u)).toHaveLength(0);
+      expect([k.schiebe_x, k.schiebe_y, k.zoom]).toEqual(lage);
+      expect(u.meldungen).toEqual([]);
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr13_geld_pruefung_je_bild: T13, beide Häuser erreicht, Geld knapp → Geld direkt erhöhen → nur tick → T14 ohne Geld-Grund', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      bisT13(u, spiel, uhr);
+      wischeFelder(u, SPUR_BIS_HAUS2);
+      spiel.stand.geld_eur = 0;
+      spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur();
+      wischeFelder(u, [[11, 13]]);
+      s2(u).tick(uhr.t);
+      expect(schrittJetzt(u)).toBe('T13');
+      expect(zeile2(zielEl(u, 'abschliessen')!)).toBe('Geld reicht nicht');
+      // Kein Ereignis, nur mehr Geld: allein die Prüfung im Bild darf weiterschalten
+      spiel.stand.geld_eur += 100_000;
+      expect(spiel.ereignisse).toHaveLength(0);
+      s2(u).tick(uhr.t);
+      expect(schrittJetzt(u)).toBe('T14');
+      expect(zeile2(zielEl(u, 'abschliessen')!)).not.toBe('Geld reicht nicht');
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr13_tasten_gesperrt: in T01 bewegen Pfeile, +, - und Q/E die Karte nicht; in T13 schieben Pfeile, Q/E drehen nicht', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      // Q/E stoßen eine Drehung nur an (Rest in der Kamera, abgebaut je Bild) – darum zählt auch inBewegung()
+      const k = s2(u).kamera as Kam & { inBewegung(): boolean };
+      bisT01(u, uhr);
+      const lage = (): unknown[] => [k.schiebe_x, k.schiebe_y, k.zoom, k.winkel_rad, k.inBewegung()];
+      const vorher = lage();
+      expect(vorher[4], 'Testaufbau: keine Drehung angestoßen').toBe(false);
+      for (const taste of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-', 'q', 'Q', 'e', 'E']) {
+        u.dom.taste(taste);
+        expect(lage(), `Taste ${taste} in T01`).toEqual(vorher);
+      }
+      expect(schrittJetzt(u)).toBe('T01');
+
+      vonT01BisT13(u, spiel, uhr);
+      const winkel = k.winkel_rad;
+      for (const taste of ['q', 'Q', 'e', 'E']) {
+        u.dom.taste(taste);
+        expect(k.winkel_rad, `Taste ${taste} in T13`).toBe(winkel);
+        expect(k.inBewegung(), `Taste ${taste} in T13`).toBe(false);
+      }
+      const x = k.schiebe_x;
+      u.dom.taste('ArrowLeft');
+      expect(k.schiebe_x, 'in T13 darf die Karte geschoben werden').not.toBe(x);
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr13_meldungen_stumm_hinweis_und_bestaetigen: Hinweis-Ereignis und der Bestätigen-Weg zeigen im Tutorial keine Meldung', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      const st = u.st as unknown as { tick(t: number): void; geist: unknown; bestaetigen(): void };
+      bisT01(u, uhr);
+      spiel.ereignisse.push({ art: 'hinweis', text: 'Hinweis aus dem Spiel' } as never);
+      st.tick(uhr.t);
+      expect(u.meldungen, 'Testaufbau: der Hinweis ging an toast()').toContain('Hinweis aus dem Spiel');
+      expect(u.meldung()).toBe('');
+      // Geist auf der Heizzentrale: kein Platz → bestaetigen() meldet über toast()
+      st.geist = { typ: spiel.hz.typ, x: spiel.hz.x, y: spiel.hz.y, kante: groesse(spiel.hz) };
+      st.bestaetigen();
+      expect(u.meldungen, 'Testaufbau: bestaetigen() ging an toast()').toContain('Hier ist kein Platz – such dir freie Wiese.');
+      expect(u.meldung()).toBe('');
+    }, { uhr: () => uhr.t });
+  });
+});
