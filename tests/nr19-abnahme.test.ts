@@ -612,7 +612,9 @@ describe('NR19 Hausblatt', () => {
     // DESIGN 12.23 Punkt 3: zwei Zeilen – „Übergabestation“ → „Puffer HP 800“, „Leistung Station“ → „14 kW Netz · 19 kW Haus“
     expect(b.text).toMatch(/Übergabestation:?\s*Puffer HP 800/);
     expect(b.text).toMatch(/Leistung Station:?\s*14 kW Netz · 19 kW Haus/);
-    expect(b.roh, 'geschützte Leerzeichen zwischen Zahl und kW').toContain(`14${NB}kW Netz · 19${NB}kW Haus`);
+    // umgebaut NR19-K 06.11.: Designer-Nachfoto NR19 (DESIGN 12.23 Punkt 4) – zwei Wortgruppen „14 kW Netz ·“ / „19 kW Haus“,
+    // geschützt zwischen Zahl, kW und Netz/Haus und vor „·“; nach „·“ normales Leerzeichen (einzige Umbruchstelle)
+    expect(b.roh, 'geschützte Leerzeichen: zwei Wortgruppen, Umbruch nur nach „·“').toContain(`14${NB}kW${NB}Netz${NB}· 19${NB}kW${NB}Haus`);
     expect(b.text).not.toContain('19 kW im Haus'); // alte einzeilige Fassung ist weg
     expect(b.text).toContain('7,5 kW (÷ 2.000 h)');
     const alt = bei(s, 12, 14); alt.hauspuffer = true; s.neuBerechnen();

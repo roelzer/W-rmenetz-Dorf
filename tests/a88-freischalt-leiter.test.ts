@@ -575,7 +575,8 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
 
     const zwei = neu(2).s;
     const k2 = await karte(zwei, haus(zwei));
-    expect(k2.knoepfe.filter((x) => x.text.includes('Wandstation')).map((x) => x.text.split(' · ')[0])).toEqual(['Wandstation Typ 15', 'Wandstation Typ 25', 'Wandstation Typ 40']);
+    // umgebaut NR19-K 06.11.: Zeile 1 trägt geschützte Leerzeichen (DESIGN 12.23 Nachfoto) – erst normalisieren, dann am Trenner teilen
+    expect(k2.knoepfe.filter((x) => x.text.includes('Wandstation')).map((x) => x.text.replace(/\u00a0/g, ' ').split(' · ')[0])).toEqual(['Wandstation Typ 15', 'Wandstation Typ 25', 'Wandstation Typ 40']);
     expect(zeilen(k2)).toEqual([]); // mit freier Stationswahl kein Einzelknopf „Station einbauen“
 
     const h = startHaeuser(eins)[0];

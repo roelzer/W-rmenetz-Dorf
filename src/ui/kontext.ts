@@ -39,10 +39,18 @@ function pufferKurzname(st: PufferStation): string {
   return `Puffer ${kuerzel}\u00a0${groesse_l}`;
 }
 
+/** DESIGN 12.23 Nachfoto: Zeile 1 der Wandstations-Knöpfe. Zwei Knöpfe nebeneinander sind schmal; der Text darf nur nach
+ *  „Wandstation“ und nach „·“ umbrechen („Wandstation“ / „Typ 15 · 15 kW“). Der lange CAD-Katalogname läuft im Knopf über,
+ *  deshalb dort kurz „CAD-Station“; Katalog und Hauskarte nennen weiter den langen Namen. */
+function wandKnopfName(st: Station): string {
+  const name = st.id === 'st_cad' ? 'CAD-Station' : st.name.replace(/ Typ (\d)/, ' Typ\u00a0$1');
+  return `${name}\u00a0· ${st.leistung_kw}\u00a0kW`;
+}
+
 /** NR19: Zeile(n) „Übergabestation“ der Hauskarte – Puffer-Station zweizeilig mit beiden Leistungen (DESIGN 12.23 Punkt 3),
  *  alter Stand „Puffer + Wandstation“ mit Zusatz. */
 function stationZeilen(st: Station | undefined, o: Objekt): HTMLDivElement[] {
-  if (istPufferStation(st)) return [zeile('Übergabestation', pufferKurzname(st)), zeile('Leistung Station', `${st.leistung_kw}\u00a0kW Netz · ${st.spitze_kw}\u00a0kW Haus`)];
+  if (istPufferStation(st)) return [zeile('Übergabestation', pufferKurzname(st)), zeile('Leistung Station', `${st.leistung_kw}\u00a0kW\u00a0Netz\u00a0· ${st.spitze_kw}\u00a0kW\u00a0Haus`)];
   return [zeile('Übergabestation', st ? `${st.name} · ${st.leistung_kw} kW${o.hauspuffer ? ', mit Puffer' : ''}` : 'keine')];
 }
 
@@ -311,7 +319,7 @@ export class Kontext {
     const frei = sp.freigeschaltet('stationstypen');
     const k = kasten(alt ? 'Übergabestation tauschen' : 'Übergabestation wählen');
     k.append(h('p', { class: 'gedaempft' }, alt
-      ? `Aktuell: ${istPufferStation(alt) ? pufferKurzname(alt) : alt.name} (${alt.leistung_kw} kW), das Gebäude braucht ${kw(bedarf)} kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)} % zurückgekauft.`
+      ? `Aktuell: ${istPufferStation(alt) ? pufferKurzname(alt) : alt.name} (${alt.leistung_kw}\u00a0kW), das Gebäude braucht ${kw(bedarf)}\u00a0kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)}\u00a0% zurückgekauft.`
       : `Das Gebäude braucht ${kw(bedarf)} kW.${frei ? ' Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.' : ''}`));
     const zuKlein = !!alt && !stationReicht(alt, o);
     if (zuKlein) k.append(chip('Station zu klein', 'rot'));
@@ -326,7 +334,7 @@ export class Kontext {
     }
     if (wandErlaubt && frei) for (const st of STATIONEN.filter((x) => stationReicht(x, wandObjekt) && groesser(x)).slice(0, 3)) {
       const preis = sp.stationspreis_eur(o, st);
-      wand.push(knopf(`${st.name} · ${st.leistung_kw} kW`, () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis) }));
+      wand.push(knopf(wandKnopfName(st), () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis) }));
     }
     const kwh = (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o);
     const ohnePuffer = (): HTMLParagraphElement => h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)}\u00a0kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)}\u00a0h = ${kw(bedarfKw({ ...o, hauspuffer: false }))}\u00a0kW – das Netz muss die Spitze liefern.`);

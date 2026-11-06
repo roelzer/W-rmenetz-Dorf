@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { SYMBOLE } from '../src/ui/symbole';
 import { gesperrt as istGesperrt } from './hilfen/gesperrt';
+import { Spiel } from '../src/core/spiel';
+import { KATALOG } from '../src/core/katalog';
+import { altesStartdorf } from './hilfen/altes-startdorf';
+import { kontextKarte } from './hilfen/kontext-attrappe';
+import { objektBei } from './hilfen/nr18';
 
 const lies = (p: string): string => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 /** Findet den knopf(…)-Aufruf, der mit dem Text beginnt, und liefert die Zeile ab dort (Variante steht in derselben Zeile). */
@@ -50,13 +55,38 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
 
   it('A84: Was Euro kostet, ist ein Geld-Knopf (Regel 12.5)', () => {
     const k = lies('src/ui/kontext.ts');
-    for (const a of ['`Wegräumen', '`Ausbauen auf Stufe', '`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen', "'Zurückgewinnen'", "'Baugebiet erschließen'", '`${st.name}', '`PV aufs Dach', 'frei ? `${frei} beauftragen']) {
+    for (const a of ['`Wegräumen', '`Ausbauen auf Stufe', '`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen', "'Zurückgewinnen'", "'Baugebiet erschließen'", '`PV aufs Dach', 'frei ? `${frei} beauftragen']) {
       expect(knopfZeile(k, a), a).toMatch(/'geld'/);
     }
     const kat = lies('src/ui/katalog.ts');
     for (const a of ['`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`', '`${ABSCHNITT_HELFER.material}: Material bestellen`', '`${ABSCHNITT_HELFER.material}: Expresslieferung`']) {
       expect(knopfZeile(kat, a), a).toMatch(/'geld'/);
     }
+  });
+
+  // umgebaut NR19-K 06.11.: Der Stationsknopf der freien Stationswahl wurde bisher am Quelltext `knopf(`${st.name} …` erkannt.
+  // Mit DESIGN 12.23 (Nachfoto NR19) bekommt Zeile 1 eine Kurzform mit geschützten Leerzeichen („CAD-Station · 150 kW“), die der
+  // Entwickler frei über eine Hilfsfunktion bilden darf – das Quelltextmuster würde dann fehlen oder eine falsche Zeile treffen.
+  // Gleicher Prüfinhalt jetzt über das Verhalten: echte Kontextkarte, Stationsknöpfe der Wandreihe tragen die Knopfart 'geld'.
+  // Der Code setzt 'geld' nur für die empfohlene (kleinste passende) Station (nr19-puffer-oberflaeche: „nur die kleinste passende
+  // in Gold“) – geprüft wird daher: der empfohlene Knopf ist ein Geld-Knopf (Regel 12.5), die größeren nicht.
+  it('A84: Stationsknopf der freien Stationswahl ist ein Geld-Knopf (Regel 12.5, Verhalten statt Quelltextmuster)', async () => {
+    const T0 = 1_000_000_000_000;
+    const s = new Spiel(altesStartdorf(T0), () => T0);
+    s.ersteQuelleWaehlen('kessel');
+    s.hz.stufe = 2; // freie Stationswahl
+    s.stand.geld_eur = 100_000;
+    s.neuBerechnen();
+    const haus = objektBei(s, 13, 12, (o) => KATALOG[o.typ].kategorie === 'haus')!;
+    expect(haus.ohne_station, 'Vorbedingung: Haus ohne Station').toBe(true);
+    const { a, c } = await kontextKarte(s, haus, T0);
+    const istSmall = (n: unknown): boolean => !!n && typeof n === 'object' && (n as { tag?: string }).tag === 'small';
+    const wand = a.alle(c).filter((e) => e.tag === 'button')
+      .map((e) => ({ z1: e.kinder.filter((n) => !istSmall(n)).map(a.text).join('').replace(/\u00a0/g, ' '), klasse: `${e.className} ${e.attrs.class ?? ''}` }))
+      .filter((k) => k.z1.startsWith('Wandstation Typ'));
+    // EFH 15.000 kWh ÷ 1.500 h = 10 kW → kleinste passende Wandstation Typ 15, dazu bis zu zwei größere
+    expect(wand.map((k) => k.z1.split(' · ')[0])).toEqual(['Wandstation Typ 15', 'Wandstation Typ 25', 'Wandstation Typ 40']);
+    expect(wand.map((k) => k.klasse.split(' ').includes('geld'))).toEqual([true, false, false]);
   });
 
   // Radierer/T-Stück „gewählt“ prüft seit NR16-B2b das Verhalten in tests/a92-b2b-zeichenleiste.test.ts (aria-pressed,
