@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { Spiel, neuerSpielstand, type Ereignis } from '../../src/core/spiel';
-import * as katalog from '../../src/core/katalog';
-import * as netzModul from '../../src/core/netz';
-import * as freischaltung from '../../src/core/freischaltung';
-import { ladenMitBefund, serialisieren } from '../../src/core/speichern';
-import { ERSTE_HAEUSER } from '../../src/core/start';
-import type { Objekt } from '../../src/core/typen';
-import { altesStartdorf } from '../hilfen/altes-startdorf';
-import { kontextKarte, type Attrappe, type AttrappenElement } from '../hilfen/kontext-attrappe';
-import { gesperrt } from '../hilfen/gesperrt';
-import { abschnittOeffnen, abschnittWarnungen, erreichteHaeuser, objektBei, vorstellen, type Uhr } from '../hilfen/nr18';
+import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
+import * as katalog from '../src/core/katalog';
+import * as netzModul from '../src/core/netz';
+import * as freischaltung from '../src/core/freischaltung';
+import { ladenMitBefund, serialisieren } from '../src/core/speichern';
+import { ERSTE_HAEUSER } from '../src/core/start';
+import type { Objekt } from '../src/core/typen';
+import { altesStartdorf } from './hilfen/altes-startdorf';
+import { kontextKarte, type Attrappe, type AttrappenElement } from './hilfen/kontext-attrappe';
+import { gesperrt } from './hilfen/gesperrt';
+import { abschnittOeffnen, abschnittWarnungen, erreichteHaeuser, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
 
 // NR19 Puffer-Übergabestation – verdeckte Abnahmetests (Tester-Vorarbeit NR19-P0b).
 // Grundlage: Bauplan docs/bauplaene/NR18-ohne-autoanschluss.md Fassung 3, Abschnitt 5.5, Bauplan P6, Abschnitt 8 und 9 (E5, E6);
