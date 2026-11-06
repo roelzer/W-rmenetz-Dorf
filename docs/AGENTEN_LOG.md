@@ -475,3 +475,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 14:57 | ▶ | reviewer | Nachprüfung NR13 P4-Fix3 |
 | 2026-11-06 14:57 | ▶ | designer | NR13 Designer-Fotos Tutorial |
 | 2026-11-06 15:01 | ■ 🟢 | reviewer | 🟢 Freigegeben. Alle 4 Befunde sind behoben, durch die Umbauten ist nichts Neues kaputtgegangen.  ([Bericht](docs/pruefberichte/20261106-150149-reviewer-aa6e62861b45b2583.md)) |
+| 2026-11-06 15:03 | ▶ | tester | NR13 Abnahme aufdecken |
