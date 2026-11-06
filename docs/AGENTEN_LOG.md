@@ -482,3 +482,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 15:07 | ▶ | kritiker | Kritiker Freigabe NR13-Aufdecken |
 | 2026-11-06 15:08 | ■ 🔴 | kritiker | 🔴 Nicht freigegeben, weil zwei Dinge nicht belegt sind. Die Geltung selbst ist eng genug: Sie nennt genau eine Datei, `tests/nr13-abnahme.test.ts.verdeckt`.  ([Bericht](docs/pruefberichte/20261106-150831-kritiker-acce1102dfcf0f3a3.md)) |
 | 2026-11-06 15:09 | ■ 🟢 | kritiker | 🟢 Freigegeben, die Belege reichen. Zum Eintragen in die Spalte Grund: „reine Umbenennung (100 % gleicher Inhalt, git show --stat -M 29159da: 0 Einfügungen ([Bericht](docs/pruefberichte/20261106-150933-kritiker-acce1102dfcf0f3a3.md)) |
+| 2026-11-06 15:19 | ■ 🔴 | entwickler | 🔴 BLOCKIERT (Wächter), Commit `c4c8e49d334505418823ddabf1f4d8ae7835c162` auf `nr13-design-fix` im Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent ([Bericht](docs/pruefberichte/20261106-151958-entwickler-af9fdd4a8e21d7745.md)) |
+| 2026-11-06 15:20 | ▶ | tester | Tests an Design-Fix M1/K4 anpassen |
