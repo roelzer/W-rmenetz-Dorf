@@ -331,3 +331,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:59 | ▶ | entwickler | NR18 P2+P3 Integrationsfix |
 | 2026-11-06 08:59 | ▶ | reviewer | Review NR18-P2 Kern |
 | 2026-11-06 09:01 | ■ 🔴 | reviewer | **Ampel: 🔴 Nachbesserung nötig.** Es fehlt nur eine kleine Korrektur in der neuen Testdatei. Der Spielcode selbst ist in Ordnung.  ([Bericht](docs/pruefberichte/20261106-090110-reviewer-a7f1c914068081b5c.md)) |
+| 2026-11-06 09:02 | ■ 🔴 | entwickler | 🔴 **Status: BRAUCHT_KONTEXT.** Ich habe nichts committet. Beide Ursachen sind nachgestellt und belegt. Für keine von beiden gibt es einen kleinen Code-Fix,  ([Bericht](docs/pruefberichte/20261106-090238-entwickler-a94ebfcbac706398d.md)) |
