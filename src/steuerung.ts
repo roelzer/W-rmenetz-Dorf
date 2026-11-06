@@ -1,5 +1,5 @@
 import { pruefeAuftraege, type Auftrag } from './core/auftraege';
-import { KATALOG, KONSTANTEN, LEITUNGEN, type TypId } from './core/katalog';
+import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/katalog';
 import { groesse } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
@@ -322,7 +322,7 @@ export class Steuerung implements Ui {
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
-        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelnBei(e.clientX, e.clientY); }
+        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelnBei(e.clientX, e.clientY, true); }
       } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; this.drehAktiv = false; }
     });
     l.addEventListener('pointermove', (e) => {
@@ -394,7 +394,8 @@ export class Steuerung implements Ui {
     g.x = Math.max(0, Math.min(N - g.kante, Math.round(fx - (g.kante - 1) / 2)));
     g.y = Math.max(0, Math.min(N - g.kante, Math.round(fy - (g.kante - 1) / 2)));
   }
-  private stempelnBei(mx: number, my: number): void {
+  /** `gesteStart`: erstes Feld einer Geste (Finger aufgesetzt) – nur dort meldet ein abgelehnter Ersatz etwas. */
+  private stempelnBei(mx: number, my: number, gesteStart = false): void {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
     if (x < 0 || y < 0 || x >= N || y >= N) return;
@@ -421,10 +422,28 @@ export class Steuerung implements Ui {
     }
     let geaendert = false;
     for (const [fx, fy] of felder) {
-      if (!this.spiel.kannPlatzieren(this.stempelTyp, fx, fy)) continue;
+      if (!this.spiel.kannPlatzieren(this.stempelTyp, fx, fy)) {
+        const r = this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1);
+        if (r) { geaendert = true; this.stempelLetzte = [fx, fy]; }
+        continue;
+      }
       if (this.spiel.platzieren(this.stempelTyp, fx, fy).ok) { geaendert = true; this.stempelLetzte = [fx, fy]; } else { this.hinweiseZeigen(); break; }
     }
     if (geaendert) this.geaendert();
+  }
+  /** NR18: Zeichnen über eine vorhandene Leitung. Gebaut und der Stempel dicker als sie (bzw. ihr geplanter Ersatz) → Ersatz
+   *  planen; eingezeichnet mit anderem Typ → Typ neu; sonst still weiter, damit Wischen über eine dicke Hauptleitung nichts
+   *  meldet. Eine Ablehnung des Kerns zeigt nur das erste Feld der Geste, sonst entstünde je Feld dieselbe Meldung. */
+  private ueberzeichnen(typ: TypId, x: number, y: number, melden: boolean): boolean {
+    const sp = this.spiel, o = sp.stand.objekte.find((a) => istLeitung(a.typ) && a.x === x && a.y === y);
+    if (!o) return false;
+    const dicker = (t: TypId, als: TypId): boolean => LEITUNGEN.indexOf(t) > LEITUNGEN.indexOf(als);
+    const vorher = sp.ereignisse.length;
+    let r: { ok: boolean };
+    if (o.geplant) { if (o.typ === typ) return false; r = sp.geplanteLeitungTyp(o.id, typ); }
+    else { if (!dicker(typ, o.ersatz?.typ ?? o.typ)) return false; r = sp.ersatzPlanen(o.id, typ); }
+    if (!r.ok) { if (melden) this.hinweiseZeigen(); else sp.ereignisse.length = vorher; }
+    return r.ok;
   }
   private tippen(mx: number, my: number): void {
     if (this.modus === 'platzieren' || this.modus === 'verschieben') { this.geistSetzen(mx, my); return; }
@@ -469,6 +488,8 @@ export class Steuerung implements Ui {
     for (const ev of this.spiel.ereignisse.splice(0)) {
       if (ev.art === 'hinweis') toast(ev.text);
       else if (ev.art === 'sprecher') sprecherZeigen(ev.figur, ev.text);
+      // NR18 (AE-NR18-6): auch bei „Weniger Bewegung“ markieren – die Darstellung lässt dann nur den Puls weg
+      else if (ev.art === 'engstelle') this.effekte.engstelle(ev.felder.map((f) => [f % N, Math.floor(f / N)] as const), ruhig);
       else if (ev.art === 'funken') {
         if (ruhig) continue;
         const o = ev.objekt_id === 'heizzentrale' ? this.spiel.hz : this.spiel.objekt(ev.objekt_id);
