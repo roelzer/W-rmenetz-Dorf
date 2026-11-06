@@ -91,7 +91,8 @@ describe('NR19 Hausblatt – Stationswahl mit zwei Reihen', () => {
       ['Puffer HP\u00a01000', z2('7,5', '6.570')],
     ]);
     expect(p.map((x) => x.klasse.split(' ').includes('geld'))).toEqual([true, false]);
-    expect(k.knoepfe.filter((x) => x.z1.startsWith('Wandstation')).map((x) => x.z1)).toEqual(['Wandstation Typ 15 · 15 kW', 'Wandstation Typ 25 · 25 kW', 'Wandstation Typ 40 · 40 kW']);
+    // umgebaut NR19-K 06.11.: Zeile 1 „Wandstation Typ 15 · 15 kW“ – geschützt in „Typ 15“, „15 kW“ und vor „·“ (DESIGN 12.23 Nachfoto)
+    expect(k.knoepfe.filter((x) => x.z1.startsWith('Wandstation')).map((x) => x.z1)).toEqual(['Wandstation Typ\u00a015\u00a0· 15\u00a0kW', 'Wandstation Typ\u00a025\u00a0· 25\u00a0kW', 'Wandstation Typ\u00a040\u00a0· 40\u00a0kW']);
   });
 
   it('NR19: Texte [F] wörtlich – Erklärzeilen mit und ohne Puffer und der Satz zum Anschluss', async () => {
@@ -133,7 +134,8 @@ describe('NR19 Hausblatt – Stationswahl mit zwei Reihen', () => {
     expect(k.text).toContain('Station zu klein');
     expect(puffer(k)).toEqual([]);
     expect(k.text).not.toContain('Mit Pufferspeicher');
-    expect(k.knoepfe.filter((x) => x.z1.startsWith('Wandstation')).map((x) => x.z1)).toEqual(['Wandstation Typ 25 · 25 kW', 'Wandstation Typ 40 · 40 kW', 'Wandstation Typ 60 · 60 kW']);
+    // umgebaut NR19-K 06.11.: geschützte Leerzeichen in Zeile 1 (DESIGN 12.23 Nachfoto)
+    expect(k.knoepfe.filter((x) => x.z1.startsWith('Wandstation')).map((x) => x.z1)).toEqual(['Wandstation Typ\u00a025\u00a0· 25\u00a0kW', 'Wandstation Typ\u00a040\u00a0· 40\u00a0kW', 'Wandstation Typ\u00a060\u00a0· 60\u00a0kW']);
   });
 
   it('NR19: MFH Kamin aus und aufgestockt (47,25 kW Netz) – keine Puffer-Station reicht, nur die Wandreihe', async () => {
@@ -150,7 +152,8 @@ describe('NR19 Hausblatt – Stationswahl mit zwei Reihen', () => {
     expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
     const k = await karte(s, h);
     expect(k.text).toContain('Übergabestation tauschen');
-    expect(k.absaetze.some((t) => t.startsWith('Aktuell: Puffer HP\u00a0800 (14 kW), das Gebäude braucht 7,5 kW.'))).toBe(true);
+    // umgebaut NR19-K 06.11.: geschützte Leerzeichen in „(14 kW)“ und „7,5 kW“ (DESIGN 12.23 Nachfoto Punkt 6)
+    expect(k.absaetze.some((t) => t.startsWith('Aktuell: Puffer HP\u00a0800 (14\u00a0kW), das Gebäude braucht 7,5\u00a0kW.'))).toBe(true);
     // Rückkauf der HP 800 zu 50 %: 6.570 − 2.785 = 3.785 €, 7.570 − 2.785 = 4.785 €
     expect(puffer(k).map((x) => [x.z1, x.z2])).toEqual([
       ['Puffer HP\u00a01000', z2('7,5', '3.785')],
@@ -217,7 +220,8 @@ describe('NR19 Hausblatt – Zeile „Übergabestation“, alter Kasten, Anfrage
     expect((await karte(s, w)).text).not.toContain('mit Puffer');
     expect(s.stationKaufen(h.id, 'hp_800').ok).toBe(true);
     const kp = await karte(s, h);
-    expect(kp.text).toContain('Übergabestation' + 'Puffer HP\u00a0800' + 'Leistung Station' + '14\u00a0kW Netz · 19\u00a0kW Haus');
+    // umgebaut NR19-K 06.11.: Stationszeile als zwei Wortgruppen „14 kW Netz ·“ / „19 kW Haus“ (DESIGN 12.23 Nachfoto Punkt 4)
+    expect(kp.text).toContain('Übergabestation' + 'Puffer HP\u00a0800' + 'Leistung Station' + '14\u00a0kW\u00a0Netz\u00a0· 19\u00a0kW\u00a0Haus');
     w.hauspuffer = true;
     expect((await karte(s, w)).text).toContain('Wandstation Typ 15 · 15 kW, mit Puffer');
   });
