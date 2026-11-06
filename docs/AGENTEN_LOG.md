@@ -323,3 +323,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 08:46 | ▶ | entwickler | NR18-P4 Darstellung bauen |
 | 2026-11-06 08:47 | ▶ | reviewer | Review NR18-P3 Oberfläche |
 | 2026-11-06 08:52 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** Paket NR18-P3 (Oberfläche), Commit c123e25 gegen Basis 1df16da.  ([Bericht](docs/pruefberichte/20261106-085201-reviewer-a3147e58e7382b958.md)) |
+| 2026-11-06 08:55 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-06 08:55 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** P4 ist gebaut und getestet. Die Test-Schranke meldet aber „NICHT OK“. Grund sind nur die 24 bekannten, erlaubten roten ([Bericht](docs/pruefberichte/20261106-085535-entwickler-abd8188371b4e73b1.md)) |
+| 2026-11-06 08:55 | ▶ | reviewer | Review NR18-P4 Darstellung |
