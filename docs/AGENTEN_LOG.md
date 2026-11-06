@@ -487,3 +487,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 15:29 | ■ 🟡 | tester | 🟡 Gelb. Beide Testanpassungen und die neue Browserprüfung sind fertig und committet. Alle 1397 Tests laufen grün, im Browserlauf sind nur die Bildratenpunk ([Bericht](docs/pruefberichte/20261106-152959-tester-abd0593afed40dc34.md)) |
 | 2026-11-06 15:30 | ▶ | reviewer | Review Design-Fix M1/K4 |
 | 2026-11-06 15:30 | ▶ | designer | Designer-Nachfoto T13 |
+| 2026-11-06 15:34 | ■ 🟢 | designer | 🟢 **Nachprüfung M1 und K4 (Heatville, Branch `nr13-design-fix`): beide erfüllt. Es gibt keinen neuen Muss-Befund.**  ([Bericht](docs/pruefberichte/20261106-153457-designer-a01d5ac7fcd352ada.md)) |
