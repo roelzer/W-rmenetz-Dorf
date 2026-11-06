@@ -490,3 +490,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 15:34 | ■ 🟢 | designer | 🟢 **Nachprüfung M1 und K4 (Heatville, Branch `nr13-design-fix`): beide erfüllt. Es gibt keinen neuen Muss-Befund.**  ([Bericht](docs/pruefberichte/20261106-153457-designer-a01d5ac7fcd352ada.md)) |
 | 2026-11-06 15:40 | ■ 🟡 | reviewer | **Ampel: GELB – freigegeben mit kleinen Punkten.** Der Code ist in Ordnung. Ein Punkt muss vor dem Abschluss noch geklärt und richtig aufgeschrieben werden:  ([Bericht](docs/pruefberichte/20261106-154009-reviewer-a0d8b4fce8bbaea3d.md)) |
 | 2026-11-06 15:41 | ▶ | entwickler | Bildrate bei Kamerafahrt untersuchen |
+| 2026-11-06 16:09 | ■ 🔴 | entwickler | ## Status: BRAUCHT_KONTEXT 🔴  ([Bericht](docs/pruefberichte/20261106-160906-entwickler-a14047287abb1a9ba.md)) |
