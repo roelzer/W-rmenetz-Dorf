@@ -480,3 +480,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 15:07 | ▶ | entwickler | NR13 Design-Fix M1 T13 |
 | 2026-11-06 15:07 | ■ 🟡 | tester | 🟡 Die Abnahme NR13 ist aufgedeckt und grün. Zwei Punkte sind noch offen: Die Schranke steht auf NICHT OK, weil sie die Umbenennung als gelöschte Datei zäh ([Bericht](docs/pruefberichte/20261106-150747-tester-adb493892441fda75.md)) |
 | 2026-11-06 15:07 | ▶ | kritiker | Kritiker Freigabe NR13-Aufdecken |
+| 2026-11-06 15:08 | ■ 🔴 | kritiker | 🔴 Nicht freigegeben, weil zwei Dinge nicht belegt sind. Die Geltung selbst ist eng genug: Sie nennt genau eine Datei, `tests/nr13-abnahme.test.ts.verdeckt`.  ([Bericht](docs/pruefberichte/20261106-150831-kritiker-acce1102dfcf0f3a3.md)) |
+| 2026-11-06 15:09 | ■ 🟢 | kritiker | 🟢 Freigegeben, die Belege reichen. Zum Eintragen in die Spalte Grund: „reine Umbenennung (100 % gleicher Inhalt, git show --stat -M 29159da: 0 Einfügungen ([Bericht](docs/pruefberichte/20261106-150933-kritiker-acce1102dfcf0f3a3.md)) |
