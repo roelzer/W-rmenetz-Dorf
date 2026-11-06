@@ -3,7 +3,8 @@ import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/k
 import { groesse } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
-import type { Bedienung, TippMeldung } from './core/tutorial-vertrag';
+import { Tutorial } from './core/tutorial';
+import type { Bedienung, TippMeldung, TutorialAnsicht } from './core/tutorial-vertrag';
 import { Effekte } from './render/effekte';
 import { Kamera } from './render/kamera';
 import { drehFrei } from './render/anschluss';
@@ -22,9 +23,11 @@ import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/konte
 import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
-import { toast, toastDauer_ms } from './ui/toast';
+import { meldungenStumm, toast, toastDauer_ms, toastWichtig } from './ui/toast';
 
 const N = KONSTANTEN.feldanzahl;
+/** Bauplan NR13 P4: Abstand nach [Los geht’s], bevor aufgesparte Hinweise kommen */
+const NACH_TUTORIAL_MS = 600;
 type Modus = 'normal' | 'platzieren' | 'verschieben' | 'stempel';
 
 /** Verbindet Eingabe, Karte, Oberfläche und Spiel. Enthält keine Spielregeln – die liegen in src/core. */
@@ -65,6 +68,10 @@ export class Steuerung implements Ui {
   private drehSumme = 0;
   private drehAktiv = false;
   private mitteDreh: { x: number } | null = null;
+  /** NR13 (U1): laufendes Pflicht-Tutorial; `null`, wenn keines läuft. Heißt nicht `tutorial`, weil nur der Kern die Merke schreibt. */
+  private anleitung: Tutorial | null = null;
+  /** Aufgaben, die erst nach dem Tutorial dran sind (z. B. der Update-Hinweis, K6) */
+  private nachTutorialListe: Array<() => void> = [];
 
   jetzt_ms(): number { return this.uhr(); }
   /** Läuft gerade eine Geste auf der Karte (Finger oder gedrückte Mitteltaste)? Die Bildschleife reicht es an die Bodenebene weiter. */
@@ -84,8 +91,21 @@ export class Steuerung implements Ui {
     this.eingabe();
     this.bewegungAnwenden();
     if (!spiel.stand.quelle_gewaehlt) { this.spiel.ersteQuelleWaehlen('kessel'); this.geaendert(); this.zentrieren(); }
+    if (spiel.tutorialAktiv()) {
+      // Wiedereinstieg: Wer den Namen schon gesetzt hat, hat das Tutorial vorher verlassen (DESIGN 13.7)
+      this.anleitung = new Tutorial(spiel, { wiedereinstieg: spiel.stand.namen_gefragt !== false });
+      meldungenStumm(true);
+      this.hud.tutorialModus(true);
+    }
     if (spiel.stand.namen_gefragt === false) this.namenFragen();
   }
+
+  /** Was die Anleiter-Karte gerade zeigen soll (nur lesen, für Tests); `null` ohne laufendes Tutorial. */
+  anleitungAnsicht(): TutorialAnsicht | null { return this.anleitung?.ansicht(this.uhr()) ?? null; }
+  /** Läuft kein Tutorial, sofort; sonst nach dessen Ende (AE-NR13-8: nichts drängt sich ins Tutorial). */
+  nachTutorial(f: () => void): void { if (this.anleitung) this.nachTutorialListe.push(f); else f(); }
+  /** Meldung, die auch im Tutorial erscheint (Speichern/Laden gescheitert, AE-NR13-8). */
+  toastWichtig(text: string): void { toastWichtig(text); }
 
   /** A79 (Simon): Beim Start eines neuen Spiels nach dem eigenen Namen und dem Dorfnamen fragen. */
   private namenFragen(): void {
@@ -498,6 +518,16 @@ export class Steuerung implements Ui {
     if (jetzt_ms - this.letzteHudMs > 250) { this.letzteHudMs = jetzt_ms; this.hudJetzt(); this.kontextUi.aktualisieren(); }
     // A92: Restzeit des Bauabschnitts im Baumenü; einmal je Sekunde reicht für eine Sekundenanzeige und schont die Bildrate (A90)
     if (jetzt_ms - this.letzterKatalogMs >= 1000) { this.letzterKatalogMs = jetzt_ms; this.katalogUi.aktualisieren(); }
+    if (this.anleitung && !this.anleitung.aktiv()) this.anleitungBeenden();
+  }
+
+  /** Nach dem letzten Schritt: Meldungen und HUD wie außerhalb des Tutorials; Aufgesparte Aufgaben 600 ms nach [Los geht’s]. */
+  private anleitungBeenden(): void {
+    this.anleitung = null;
+    meldungenStumm(false);
+    this.hud.tutorialModus(false);
+    const liste = this.nachTutorialListe.splice(0);
+    if (liste.length) window.setTimeout(() => { for (const f of liste) f(); }, NACH_TUTORIAL_MS);
   }
   private hudJetzt(): void { this.hud.aktualisieren(this.auftrag); }
   private hinweiseZeigen(): void { this.ereignisse(); }
@@ -507,6 +537,7 @@ export class Steuerung implements Ui {
     for (const ev of this.spiel.ereignisse.splice(0)) {
       if (ev.art === 'hinweis') toast(ev.text);
       else if (ev.art === 'sprecher') sprecherZeigen(ev.figur, ev.text);
+      else if (ev.art === 'schritt') this.anleitung?.schritt(ev);
       // NR18 (AE-NR18-6): auch bei „Weniger Bewegung“ markieren – die Darstellung lässt dann nur den Puls weg
       else if (ev.art === 'engstelle') this.effekte.engstelle(ev.felder.map((f) => [f % N, Math.floor(f / N)] as const), ruhig);
       else if (ev.art === 'funken') {

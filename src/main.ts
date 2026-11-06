@@ -32,11 +32,13 @@ function sichern(text: string | null): void {
   try { localStorage.setItem(`${SPEICHER_SCHLUESSEL}-defekt`, text); } catch (fehler) { console.warn('Sicherung des alten Spielstands fehlgeschlagen', fehler); }
 }
 let startHinweis = '';
+/** Defekter oder abgestürzter Stand: muss auch im Tutorial erscheinen (AE-NR13-8), darum über toastWichtig. */
+let startWichtig = false;
 let weg: { geld_eur: number; seit_ms: number; bau: number } | null = null;
 const gelesen = lesen();
 const geladen = ladenMitBefund(gelesen, uhr());
 let spiel: Spiel;
-if (geladen.befund === 'defekt') { sichern(gelesen); startHinweis = 'Dein alter Spielstand ließ sich nicht lesen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).'; }
+if (geladen.befund === 'defekt') { sichern(gelesen); startWichtig = true; startHinweis = 'Dein alter Spielstand ließ sich nicht lesen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).'; }
 else if (geladen.befund === 'migriert') startHinweis = 'Das Dorf hat jetzt Straßen und einen Fluss: Gebäude auf Straße oder Wasser wurden verschoben, Leitungen im Fluss entfernt und ihr Preis erstattet. Prüfe die Anschlüsse.';
 try {
   spiel = new Spiel(geladen.stand, uhr);
@@ -45,6 +47,7 @@ try {
 } catch (fehler) {
   console.warn('Spielstand führte zu einem Fehler, neues Dorf', fehler);
   sichern(gelesen);
+  startWichtig = true;
   startHinweis = 'Dein alter Spielstand ließ sich nicht öffnen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).';
   spiel = new Spiel(neuesSpielMitTutorial(uhr()), uhr);
 }
@@ -54,13 +57,15 @@ const maler = new Maler(leinwand.getContext('2d')!);
 const steuerung = new Steuerung(spiel, leinwand, maler, uhr);
 const kamera = steuerung.kamera;
 let ersteMeldung = startHinweis;
-if (!ersteMeldung && weg && uhr() - weg.seit_ms > 5 * 60_000) {
+// K6 (DESIGN 13.15): Im Tutorial entfällt „Willkommen zurück“ ganz und wird nicht nachgeholt.
+if (!ersteMeldung && weg && !spiel.tutorialAktiv() && uhr() - weg.seit_ms > 5 * 60_000) {
   // A38: Willkommen zurück – was ist während der Abwesenheit passiert?
   const min = Math.round((uhr() - weg.seit_ms) / 60_000), dauer = min >= 120 ? `${Math.round(min / 60)} Std.` : `${min} Min.`;
   const diff = Math.round(spiel.stand.geld_eur - weg.geld_eur);
   ersteMeldung = `Willkommen zurück! Du warst ${dauer} weg: ${diff >= 0 ? '+' : '−'}${Math.abs(diff).toLocaleString('de-DE')} € auf dem Konto${weg.bau && !spiel.stand.objekte.some((o) => o.bau) ? ', der Bau ist fertig' : ''}. Deine Kunden haben ihre Monatsrechnungen automatisch bezahlt.`;
 }
-if (ersteMeldung) steuerung.toast(ersteMeldung);
+if (ersteMeldung && startWichtig) steuerung.toastWichtig(ersteMeldung);
+else if (ersteMeldung) steuerung.toast(ersteMeldung);
 // NR18-D: Spielstand, in dem die Start-Meldung noch aussteht (Namensfenster schon erledigt) – nach der ersten Meldung zeigen
 steuerung.startTippPlanen(ersteMeldung || undefined);
 
@@ -179,7 +184,7 @@ function speichern(): void {
   try { localStorage.setItem(SPEICHER_SCHLUESSEL, serialisieren(spiel.stand)); }
   catch (fehler) {
     console.warn('Speichern fehlgeschlagen', fehler);
-    if (!warnungGezeigt) { warnungGezeigt = true; steuerung.toast('Speichern ist auf diesem Gerät gerade nicht möglich – dein Fortschritt geht beim Schließen verloren.'); }
+    if (!warnungGezeigt) { warnungGezeigt = true; steuerung.toastWichtig('Speichern ist auf diesem Gerät gerade nicht möglich – dein Fortschritt geht beim Schließen verloren.'); }
   }
 }
 setInterval(speichern, 5000);
@@ -196,7 +201,8 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   const hatteVersion = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hatteVersion) return;
-    hinweisMitKnopf('Neue Version von Heatville ist da.', 'Neu laden', () => { speichern(); location.reload(); });
+    // Mitten im Tutorial wartet der Hinweis bis zum Ende (Bauplan NR13 P4)
+    steuerung.nachTutorial(() => hinweisMitKnopf('Neue Version von Heatville ist da.', 'Neu laden', () => { speichern(); location.reload(); }));
   });
 }
 // A83: Den Browser bitten, den Spielstand dauerhaft zu behalten (vor allem iPhone/Safari räumen sonst auf).
