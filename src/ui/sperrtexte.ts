@@ -66,7 +66,9 @@ export function abschnittSperre(sp: Spiel, jetzt_ms: () => number): Sperre | nul
 /** 12.20 B5 */
 export const ANSCHLUSS_GEPLANT: Sperre = { grund: 'kommt mit dem Bauabschnitt', schloss: false, hinweis: 'Der Hausanschluss ist schon eingeplant. Gebaut wird er mit dem Bauabschnitt.' };
 
-/** DESIGN.md 12.21 Punkt 1: Kurzformen für Zeile 2 in der engen Zeichenleiste (≤ 18 Zeichen); Hinweise wie im Seitenblatt. */
+/** DESIGN.md 12.21 Punkt 1: Kurzformen für Zeile 2 (≤ 18 Zeichen) in engen Knöpfen – Zeichenleiste, „Leitung selbst legen“ im
+ *  Hausblatt und „Dickere Leitung“ auf der Leitungskarte (NR18: dicker wird eine Leitung nur im offenen Bauabschnitt);
+ *  Hinweise wie im Seitenblatt. */
 const ABSCHNITT_KURZ = { keiner: 'kein Bauabschnitt', planung: 'wird noch geplant', bestellen: 'Bestellung offen', bau: 'Abschnitt im Bau' } as const;
 export function abschnittSperreKurz(sp: Spiel, jetzt_ms: () => number): Sperre | null {
   const s = abschnittSperre(sp, jetzt_ms), phase = sp.abschnitt?.phase ?? 'keiner';

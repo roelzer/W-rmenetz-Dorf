@@ -1,5 +1,5 @@
 import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
-import { chip, knopf, symbol } from './bausteine';
+import { chip, kasten, knopf, symbol } from './bausteine';
 import { NICHTS_GEZEICHNET, ersteSperre, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
@@ -98,6 +98,9 @@ export class Katalog {
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
     } else if (a.phase === 'bestellen') {
       const kost = sp.abschnittKosten_eur();
+      // NR18: Warnen statt sperren – die zu dünnen Stellen stehen über der Bestellung, bestellt wird trotzdem.
+      const warnungen = sp.abschnittWarnungen();
+      if (warnungen.length) k.append(kasten('Nach dem Bau zu dünn', ...warnungen.map((w) => h('p', {}, w))));
       k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${zeitText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}.`),
         h('div', { class: 'knopfreihe' },
           knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }),
