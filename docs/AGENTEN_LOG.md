@@ -451,3 +451,8 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 13:39 | ▶ | entwickler | NR13 P4-2b Tests grün |
 | 2026-11-06 13:50 | ■ 🟢 | entwickler | 🟢 FERTIG – Branch nr13-p4-2b, Commit 4646f62d3638e59c24f88c9f0710e839d897cbfe (Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a4b8a0e6162790401 ([Bericht](docs/pruefberichte/20261106-135024-entwickler-a4b8a0e6162790401.md)) |
 | 2026-11-06 13:50 | ▶ | entwickler | NR13 Paket P4-3 Abschluss |
+| 2026-11-06 14:06 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-06 14:06 | ■ 🟢 | entwickler | 🟢 FERTIG – Branch nr13-p4-3, Commit 9e896b0, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a991242b0784d46b1 (sauber, nicht gepusht).  ([Bericht](docs/pruefberichte/20261106-140602-entwickler-a991242b0784d46b1.md)) |
+| 2026-11-06 14:06 | ▶ | reviewer | Review NR13 P4 gesamt |
+| 2026-11-06 14:06 | ▶ | tester | NR13 Abnahme-Probelauf |
+| 2026-11-06 14:06 | ▶ | entwickler | NR13 Paket P4b Browser-Durchklick |
