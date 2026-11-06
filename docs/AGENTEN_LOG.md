@@ -276,3 +276,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 06:50 | ▶ | reviewer | Review B2b Fix1 + Kurzform |
 | 2026-11-06 06:52 | ■  | rechercheur | Ampel: GRÜN für die Begriffe, Größen, Leistungen, Maße und das Rechenbeispiel. GELB bei den Preisen und bei der Deutung der kW-Spalte "HP".  ([Bericht](docs/pruefberichte/20261106-065231-rechercheur-aca1e3c4cb428926c.md)) |
 | 2026-11-06 06:52 | ▶ | rechercheur | Gegenprüfung Puffer-Übergabe |
+| 2026-11-06 06:56 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Branch `nr16-b2b-nach` (d32123a gegen 40a83f8) setzt alle vier Designer-Punkte um. Alle Tests laufen grün. Ich habe keinen kritischen und ([Bericht](docs/pruefberichte/20261106-065625-reviewer-a7c032bbeb652d790.md)) |
