@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: B2b komplett auf main (20a3fc5). Recherche Puffer (NR19) fertig, Gegenprüfung läuft; Architekt NR18 Fassung 2 (frisch, nach 57ef29a). NR17 aufgegangen in NR18. Designer entwirft Tutorial NR13 (DESIGN.md). Reihenfolge: NR18 (+NR19) → NR13.
+Laufende Agenten: Kritiker + Fachprüfer auf NR18-Plan Fassung 2 (docs/bauplaene/NR18-ohne-autoanschluss.md). Danach Fragen E1–E6 + T-F1–T-F5 an Simon, dann P0 Tester + P1. B2b auf main. Tutorial-Design (DESIGN.md 13) fertig inkl. Fachprüfung.
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.
