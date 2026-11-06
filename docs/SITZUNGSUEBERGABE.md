@@ -1,7 +1,7 @@
 # Sitzungsübergabe (Kontext-Wächter, 2026-11-05 spät)
 
 Stand: main = d214666 live (A92 NR16-A + B1). Arbeitsbranch claude/keen-mccarthy-f4p5us.
-Laufende Agenten: Review P6 (960c7b8, Branch p6-nr19), Designer-Fotoprüfung Stationswahl + Wortlaut Zeile 2 (12.23). Danach: Fixrunde (Wortlaut, Tausch Puffer→Wand), verdeckte NR19-Abnahme aktivieren, Schranke, main aktualisieren, Fachprüfer.
+Laufende Agenten: Designer-Fotoprüfung Stationswahl + Wortlaut Zeile 2 (12.23). Review P6 🟡: W1 entschieden (Weg a, siehe ENTSCHEIDUNGEN), K1–K3. Danach: Fixrunde P6 auf p6-nr19 (W1, K1–K3, Wortlaut), Nachprüfung, verdeckte NR19-Abnahme aktivieren, Schranke, main, Fachprüfer.
 Nächste Schritte:
 1. B2a-Vorarbeit annehmen → Hash in .dev-team/vorarbeit/<hash> eintragen (gitignored, lokal) → Entwickler B2a starten vom Vorarbeits-Commit (Basis = Hash von claude/keen… im Vorarbeitszweig) → Reviewer paket → Merge + pruefe-tests.sh --rolle projektleiter → push Branch + HEAD:main (Simon will Updates).
 2. P0 annehmen (Reviewer prüft Test-Infrastruktur), eintragen; Plan-Nachbesserung committen; dann Entwickler P1.

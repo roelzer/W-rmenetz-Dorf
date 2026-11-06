@@ -365,3 +365,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 10:19 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** P6 (NR19 Puffer-Übergabestation) ist gebaut, committet und durch die Test-Schranke. Offen ist eine Wortlaut-Entscheidung, ([Bericht](docs/pruefberichte/20261106-101947-entwickler-a30509dfe6b020c78.md)) |
 | 2026-11-06 10:20 | ▶ | reviewer | Review P6 NR19 |
 | 2026-11-06 10:20 | ▶ | designer | Designer Fotoprüfung Stationswahl |
+| 2026-11-06 10:24 | ■ 🔴 | reviewer | 🟡 Paket P6 (NR19 Puffer-Übergabestation, 105d4dc..960c7b8f82): Nachbesserung nötig, ein wichtiger Befund  ([Bericht](docs/pruefberichte/20261106-102416-reviewer-ac83bcc7f92d74f35.md)) |
