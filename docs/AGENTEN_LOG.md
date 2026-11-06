@@ -279,3 +279,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 06:56 | ■ 🟢 | reviewer | 🟢 **Freigegeben.** Branch `nr16-b2b-nach` (d32123a gegen 40a83f8) setzt alle vier Designer-Punkte um. Alle Tests laufen grün. Ich habe keinen kritischen und ([Bericht](docs/pruefberichte/20261106-065625-reviewer-a7c032bbeb652d790.md)) |
 | 2026-11-06 06:58 | ■ 🟡 | rechercheur | 🟡 GELB. Gegenprüfung steht in `/home/user/W-rmenetz-Dorf/docs/recherche/puffer-uebergabestation.md`, Abschnitt "Gegenprüfung 2026-11-06". Sonst habe ich ni ([Bericht](docs/pruefberichte/20261106-065815-rechercheur-a950666064f754503.md)) |
 | 2026-11-06 07:03 | ▶ | designer | Entwurf Tutorial NR13 |
+| 2026-11-06 07:06 | ■ 🟡 | architekt | 🟡 Kontext voll. Plan NR18 Fassung 1 committet (57ef29a); Startdorf/Tutorial/NR19 nur als Nachtrag ([Bericht](docs/pruefberichte/20261106-070624-architekt-a124cf1b42c6739e4.md)) |
