@@ -373,3 +373,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 10:37 | ■ 🟢 | tester | 🟢 **Beide Punkte erledigt: Neuer Commit `7176afb62321c21057838ffc06da55b20adfc6f5` auf `nr19-abnahme-texte`, direkt nach 8500953, nicht gepusht.** Geändert  ([Bericht](docs/pruefberichte/20261106-103716-tester-a4e01f62facc8b2ac.md)) |
 | 2026-11-06 10:42 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Ein Punkt aus der Designer-Liste ist absichtlich nicht gebaut: die kurze Knopfbeschriftung „Puffer HP 800“. Grund: Sie ([Bericht](docs/pruefberichte/20261106-104218-entwickler-adbcab74f3ddc0e73.md)) |
 | 2026-11-06 10:42 | ▶ | tester | Tester a88 Knopftext umstellen |
+| 2026-11-06 10:44 | ■ 🟢 | tester | 🟢 Vorarbeit erledigt. Ein Test ist jetzt absichtlich rot, bis die Kurzform „Puffer HP 800“ im Hausblatt eingebaut ist.  ([Bericht](docs/pruefberichte/20261106-104426-tester-a9eff91c14cc2df72.md)) |
