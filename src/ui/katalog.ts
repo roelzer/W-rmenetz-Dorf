@@ -26,6 +26,9 @@ function werte(t: TypId): string {
   return teile.join(' · ');
 }
 
+/** NR13: Ziel-Name fürs Tutorial (Loch, Finger) an einem fertigen Knopf – der `knopf(`-Aufruf selbst bleibt unverändert. */
+const ziel = (k: HTMLButtonElement, name: string): HTMLButtonElement => { k.setAttribute('data-ziel', name); return k; };
+
 /** Bau-Katalog (S4): Blatt von unten mit Reitern. Jede Karte ist ein Knopf und erklärt, warum etwas nicht geht. */
 export class Katalog {
   private blatt: Blatt | null = null;
@@ -38,7 +41,7 @@ export class Katalog {
 
   oeffnen(kategorie?: string): void {
     if (kategorie && BAU_KATEGORIEN.some(([k]) => k === kategorie)) this.kategorie = kategorie as Kategorie;
-    this.blatt = blattOeffnen({ titel: 'Bauen', art: 'hoch', beiZu: () => { this.blatt = null; } });
+    this.blatt = blattOeffnen({ titel: 'Bauen', art: 'hoch', beiZu: () => { this.blatt = null; }, zuSperre: () => this.ui.tutorialSperreKnopf('blatt_schliessen') });
     this.aufbauen();
   }
   schliessen(): void { this.blatt?.zu(); }
@@ -61,7 +64,7 @@ export class Katalog {
     // DESIGN.md 12.16: alle fünf Reiter in einer Reihe, Symbol über dem Wort; beide Wortlängen stehen im HTML, die
     // Container-Abfrage in stil.css zeigt je nach Leistenbreite das lange, das kurze oder keins. Vorleser hört immer den vollen Namen.
     const reiter = h('div', { class: 'reiter', role: 'tablist' }, ...BAU_KATEGORIEN.map(([k, name]) =>
-      h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === this.kategorie), 'aria-label': name, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, onclick: () => { this.kategorie = k; this.aufbauen(); } },
+      h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === this.kategorie), 'aria-label': name, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, 'data-ziel': k === 'netz' ? 'reiter_leitungen' : null, onclick: () => { this.kategorie = k; this.aufbauen(); if (k === 'netz') this.ui.tutorialMelden({ art: 'tipp', tipp: 'reiter_leitungen' }); } },
         symbol(REITER[k]?.symbol ?? 'bauen', 'sym reiter-sym'), h('span', { class: 'wort lang' }, name), h('span', { class: 'wort kurz' }, REITER[k]?.kurz ?? name))));
     const raster = h('div', { class: 'raster' });
     const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz');
@@ -73,13 +76,13 @@ export class Katalog {
 
   /** A41: Bauabschnitt – Philipp plant, Laura bestellt das Material, dann wird gebaut. */
   private abschnittKasten(): HTMLElement {
-    const sp = this.ui.spiel, a = sp.abschnitt, k = h('div', { class: 'kasten' });
+    const sp = this.ui.spiel, a = sp.abschnitt, k = h('div', { class: 'kasten', 'data-ziel': 'kasten_abschnitt' });
     const neu = (): void => { this.ui.geaendert(); this.aufbauen(); };
     const rest = (): HTMLElement => { this.restzeit = h('span', {}, this.restText()); return this.restzeit; };
     k.append(h('h3', {}, 'Bauabschnitt')); // Mini-Kopfband wie jeder Kasten (DESIGN.md 12.7)
     if (!a) {
       k.append(h('p', { class: 'gedaempft' }, `Leitungen werden abschnittsweise gebaut: ${ABSCHNITT_HELFER.planung} plant, du zeichnest die Leitungen ein, ${ABSCHNITT_HELFER.material} bestellt das Material, danach dauert der Bau.`),
-        h('div', { class: 'knopfreihe' }, knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'geld', { unter: eur(KONSTANTEN.abschnitt_planung_eur), sperre: geldSperre(sp, KONSTANTEN.abschnitt_planung_eur) })));
+        h('div', { class: 'knopfreihe' }, ziel(knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'geld', { unter: eur(KONSTANTEN.abschnitt_planung_eur), sperre: geldSperre(sp, KONSTANTEN.abschnitt_planung_eur) }), 'philipp')));
     } else if (a.phase === 'planung') {
       k.append(h('p', {}, `${ABSCHNITT_HELFER.planung} plant den Abschnitt … noch `, rest()));
     } else if (a.phase === 'offen') {
@@ -95,7 +98,7 @@ export class Katalog {
       k.append(h('p', { class: 'gedaempft' }, saetze.filter(Boolean).join(' ')),
         h('div', { class: 'knopfreihe' },
           knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, sperre: n ? null : NICHTS_GEZEICHNET }),
-          knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
+          knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('verwerfen') })));
     } else if (a.phase === 'bestellen') {
       const kost = sp.abschnittKosten_eur();
       // NR18: Warnen statt sperren – die zu dünnen Stellen stehen über der Bestellung, bestellt wird trotzdem.
@@ -104,17 +107,17 @@ export class Katalog {
       if (warnungen.length) k.append(h('div', { class: 'warnstreifen', role: 'note' }, h('h3', {}, 'Nach dem Bau zu dünn'), ...warnungen.map((w) => h('p', {}, w))));
       k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${dauerText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}`),
         h('div', { class: 'knopfreihe' },
-          knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }),
-          knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true }),
-          knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true })));
+          ziel(knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }), 'laura'),
+          knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('weiter_einzeichnen') }),
+          knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('verwerfen') })));
     } else {
       const c = a.bau ? sp.beschleunigungskosten_taler(a.bau) : 0;
       const ex = sp.expresskosten_eur();
       k.append(h('p', {}, 'Der Bauabschnitt wird gebaut … noch ', rest(), a.express ? ' (Expresslieferung)' : ''),
         h('div', { class: 'knopfreihe' },
           // A88: gesperrt = deaktiviert mit Grund statt Preis; fehlt nur Geld, bleibt der Preis (DESIGN.md 12.20 Regel 4/5)
-          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
-          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null })));
+          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(this.ui.tutorialSperreKnopf('express'), stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
+          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: ersteSperre(this.ui.tutorialSperreKnopf('sofort'), a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null) })));
     }
     return k;
   }
@@ -130,7 +133,9 @@ export class Katalog {
     const kostetText = c.taler != null ? `${c.taler} Taler` : eur(c.eur ?? 0);
     const zuTeuer = c.taler != null ? s.taler < c.taler : s.geld_eur < (c.eur ?? 0);
     const antrag = s.antraege[t];
-    const kind = h('button', { type: 'button', class: `bkarte ${gesperrt || voll ? 'gesperrt' : ''}`, 'aria-label': `${D.name}, ${kostetText}`, onclick: () => this.waehlen(t) },
+    // NR13: erst die normale Aktion (Zeichenleiste öffnet), dann die Meldung – so ist die Leiste offen, wenn das Tutorial weiterzählt
+    const leitung = istLeitung(t);
+    const kind = h('button', { type: 'button', class: `bkarte ${gesperrt || voll ? 'gesperrt' : ''}`, 'aria-label': `${D.name}, ${kostetText}`, 'data-ziel': leitung ? 'leitungskarte' : null, 'data-typ': leitung ? t : null, onclick: () => { this.waehlen(t); if (leitung) this.ui.tutorialMelden({ art: 'tipp', tipp: 'leitungskarte', typ: t }); } },
       katalogBild(t),
       h('span', { class: 'titel' }, D.name),
       h('span', { class: 'werte' }, werte(t)),

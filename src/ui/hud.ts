@@ -48,6 +48,9 @@ export class Hud {
   kwZeigen(an: boolean): void { this.kwKnopf.setAttribute('aria-pressed', String(an)); this.kwKnopf.classList.toggle('aus', !an); }
   private links: HTMLElement;
   private pillen: HTMLElement;
+  private besuch: HTMLButtonElement;
+  /** NR13: Tutorial läuft – Auftragskarte und [Dörfer] bleiben versteckt, auch wenn aktualisieren/sichtbar sie zeigen würden */
+  private tutorialModusAn = false;
 
   constructor(private readonly spiel: () => Spiel, a: HudAktionen) {
     const schild = h('button', { type: 'button', class: 'dorfschild', 'aria-label': 'Dorf-Einstellungen', onclick: a.einstellungen }, this.name, this.unter, symbol('zahnrad', 'zahnrad'));
@@ -57,7 +60,12 @@ export class Hud {
     this.pillen = h('div', { class: 'pillen' }, this.geld.wurzel, this.waerme.wurzel, this.ruf.wurzel, this.taler.wurzel, this.monteure.wurzel);
     const rund = (art: string, sym: SymbolName, text: string, bei: () => void): HTMLButtonElement =>
       h('button', { type: 'button', class: `rund ${art}`, onclick: bei, 'aria-label': text }, h('span', { class: 'kreis' }, symbol(sym)), h('span', { class: 'etikett umriss' }, text));
-    this.runde = h('div', { class: 'runde' }, rund('besuch', 'karte', 'Dörfer', a.besuchen), rund('bauen', 'bauen', 'Bauen', a.bauen));
+    this.besuch = rund('besuch', 'karte', 'Dörfer', a.besuchen);
+    const bauen = rund('bauen', 'bauen', 'Bauen', a.bauen);
+    bauen.setAttribute('data-ziel', 'bauen');
+    this.geld.wurzel.setAttribute('data-ziel', 'geld_pille');
+    this.waerme.wurzel.setAttribute('data-ziel', 'waerme_pille');
+    this.runde = h('div', { class: 'runde' }, this.besuch, bauen);
     this.kwKnopf = h('button', { type: 'button', class: 'zoomknopf kwknopf', 'aria-label': 'Verbrauch der Häuser anzeigen', 'aria-pressed': String(a.kwAn()), onclick: () => this.kwZeigen(a.kwUmschalten()) }, 'kW');
     this.kwZeigen(a.kwAn());
     // A77 (Simon): keine Knöpfe für Zoomen und Drehen – das geht mit zwei Fingern (am Rechner Mausrad, mittlere Maustaste, Q/E); nur der kW-Schalter bleibt.
@@ -68,7 +76,16 @@ export class Hud {
   /** Ein- und Ausblenden für Startwahl und Besuch (S1, S7). */
   sichtbar(teile: { alles?: boolean; eigene?: boolean }): void {
     this.wurzel.classList.toggle('versteckt', teile.alles === false);
+    // Schaltet nur die Gruppen; die Tutorial-Verstecke sitzen an Auftragskarte und [Dörfer] selbst und bleiben davon unberührt.
     for (const e of [this.links, this.pillen, this.zoom, this.runde]) e.classList.toggle('versteckt', teile.eigene === false);
+  }
+
+  /** NR13 (Bauplan §6): Im Tutorial sind nur Auftragskarte und [Dörfer] weg; [Bauen], Pillen, Dorfschild und kW-Schalter bleiben. */
+  tutorialModus(an: boolean): void {
+    this.tutorialModusAn = an;
+    // Außerhalb des Tutorials ist die Auftragskarte immer da (ohne Auftrag mit „Alle Aufträge erledigt“), daher zeigt `false` beide
+    this.auftragKarte.classList.toggle('versteckt', an);
+    this.besuch.classList.toggle('versteckt', an);
   }
 
   geldPillePunkt(): [number, number] {
@@ -81,7 +98,7 @@ export class Hud {
     this.name.textContent = s.name;
     this.unter.textContent = `Stufe ${sp.hzStufe} · Wert ${zahl(sp.dorfwert())}`;
     if (auftrag) {
-      this.auftragKarte.classList.remove('versteckt');
+      if (!this.tutorialModusAn) this.auftragKarte.classList.remove('versteckt');
       this.auftragText.textContent = auftrag.text;
       this.auftragLohn.textContent = `+${auftrag.taler}`;
       this.auftragKarte.setAttribute('aria-label', `Auftrag: ${auftrag.text}. Belohnung ${auftrag.taler} Dorftaler`);

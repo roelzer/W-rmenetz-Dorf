@@ -1,7 +1,7 @@
 import { ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
 import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, pufferStationReicht, spreizungHaus_k, stationReicht } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
-import type { Spiel } from '../core/spiel';
+import { WANDSTATION_TUTORIAL, type Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
 import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, zeile, type Sperre } from './bausteine';
 import { ANSCHLUSS_GEPLANT, OHNE_ABSCHNITT_HINWEIS_HAUS, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
@@ -128,7 +128,7 @@ export class Kontext {
     const D = KATALOG[o.typ];
     // A80: Das alte Blatt wird beim Öffnen des neuen geschlossen – sein Schließen darf das neue nicht leeren (früher: weißes Fenster).
     this.blatt = null;
-    const b: Blatt = blattOeffnen({ titel: D.name, stufe: hatStufen(o.typ) ? `Stufe ${o.stufe}` : '', beiZu: () => { if (this.blatt !== b) return; this.blatt = null; this.id = null; this.beiZu(); } });
+    const b: Blatt = blattOeffnen({ titel: D.name, stufe: hatStufen(o.typ) ? `Stufe ${o.stufe}` : '', beiZu: () => { if (this.blatt !== b) return; this.blatt = null; this.id = null; this.beiZu(); }, zuSperre: () => this.ui.tutorialSperreKnopf('blatt_schliessen') });
     this.blatt = b; this.id = id;
     this.sig = '';
     this.aktualisieren();
@@ -318,6 +318,9 @@ export class Kontext {
     const empfohlen = passendeStation(wandBedarf).id;
     const frei = sp.freigeschaltet('stationstypen');
     const k = kasten(alt ? 'Übergabestation tauschen' : 'Übergabestation wählen');
+    k.setAttribute('data-ziel', 'kasten_station');
+    // AE-NR13-7: Im Tutorial lehnt der Kern Wandstationen ab – die Reihe zeigt das vorab (12.19)
+    const wandSperre: Sperre | null = sp.wandstationFrei() ? null : { grund: 'später wählbar', schloss: true, hinweis: WANDSTATION_TUTORIAL };
     k.append(h('p', { class: 'gedaempft' }, alt
       ? `Aktuell: ${istPufferStation(alt) ? pufferKurzname(alt) : alt.name} (${alt.leistung_kw}\u00a0kW), das Gebäude braucht ${kw(bedarf)}\u00a0kW. Fragt der Kunde nach mehr Wärme und du stimmst zu, steigt der Bedarf – dann brauchst du eine größere Station. Die alte wird zu ${Math.round(KONSTANTEN.rueckkauf_anteil * 100)}\u00a0% zurückgekauft.`
       : `Das Gebäude braucht ${kw(bedarf)} kW.${frei ? ' Eine größere Station kostet mehr, hat aber Reserve für einen späteren Anbau.' : ''}`));
@@ -330,11 +333,11 @@ export class Kontext {
     const wandErlaubt = !pufferAlt || pufferWeg;
     if (wandErlaubt && !frei && (!alt || zuKlein)) {
       const st = passendeStation(wandBedarf);
-      wand.push(knopf(alt ? 'Größere Station einbauen' : 'Station einbauen', () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${st.name} · ${eur(sp.stationspreis_eur(o, st))}` }));
+      wand.push(knopf(alt ? 'Größere Station einbauen' : 'Station einbauen', () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, 'geld', { klein: true, unter: `${st.name} · ${eur(sp.stationspreis_eur(o, st))}`, sperre: wandSperre }));
     }
     if (wandErlaubt && frei) for (const st of STATIONEN.filter((x) => stationReicht(x, wandObjekt) && groesser(x)).slice(0, 3)) {
       const preis = sp.stationspreis_eur(o, st);
-      wand.push(knopf(wandKnopfName(st), () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis) }));
+      wand.push(knopf(wandKnopfName(st), () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen ? 'geld' : '', { klein: true, unter: eur(preis), sperre: wandSperre }));
     }
     const kwh = (KATALOG[o.typ].verbrauch_kwh_a ?? 0) * nutzungsfaktor(o);
     const ohnePuffer = (): HTMLParagraphElement => h('p', { class: 'gedaempft' }, `Ohne Puffer: ${zahl(kwh)}\u00a0kWh ÷ ${zahl(VOLLLASTSTUNDEN.ohne_puffer_h)}\u00a0h = ${kw(bedarfKw({ ...o, hauspuffer: false }))}\u00a0kW – das Netz muss die Spitze liefern.`);
@@ -367,8 +370,10 @@ export class Kontext {
     if (!wahl.length) return null;
     return h('div', { class: 'knopfreihe' }, ...wahl.map((st) => {
       const preis = sp.stationspreis_eur(o, st);
-      return knopf(pufferKurzname(st), () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen?.id ? 'geld' : '',
+      const k = knopf(pufferKurzname(st), () => { sp.stationKaufen(o.id, st.id); this.ui.geaendert(); }, st.id === empfohlen?.id ? 'geld' : '',
         { klein: true, unter: `${kw(netz_kw)}\u00a0kW\u00a0vom\u00a0Netz\u00a0· ${eurGebunden(preis)}`, sperre: geldSperre(sp, preis) });
+      if (st.id === empfohlen?.id) k.setAttribute('data-ziel', 'puffer_knopf');
+      return k;
     }));
   }
 

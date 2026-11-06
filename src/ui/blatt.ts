@@ -1,6 +1,6 @@
 import { h } from './dom';
-import { symbol } from './bausteine';
-import { meldungNebenBlatt } from './toast';
+import { symbol, type SperreJetzt } from './bausteine';
+import { meldungNebenBlatt, toast } from './toast';
 
 export interface BlattOptionen {
   titel: string;
@@ -13,6 +13,8 @@ export interface BlattOptionen {
   /** zusätzlicher Knopf im Kopf vor [X] (Zeichenleiste: [?], DESIGN.md 12.18) – steht so auch in der Tab-Reihenfolge davor */
   kopfKnopf?: HTMLElement;
   beiZu?: () => void;
+  /** NR13: Sperre für [X] und Esc, beim Tippen gelesen – gesperrt wackelt [X], der Hinweis kommt, das Blatt bleibt offen (12.19) */
+  zuSperre?: SperreJetzt;
 }
 
 export interface Blatt {
@@ -41,13 +43,23 @@ export function blattOeffnen(opt: BlattOptionen): Blatt {
   const titel = h('h2', { id: 'blatt-titel' }, opt.titel);
   const stufe = h('span', { class: 'stufe' }, opt.stufe ?? '');
   const inhalt = h('div', { class: 'inhalt' });
-  const zuKnopf = h('button', { type: 'button', class: 'schliessen', 'aria-label': 'Schließen', onclick: () => b.zu() }, symbol('schliessen'));
+  const zuKnopf = h('button', { type: 'button', class: 'schliessen', 'aria-label': 'Schließen', onclick: () => zuWennFrei() }, symbol('schliessen'));
+  zuKnopf.addEventListener('animationend', () => zuKnopf.classList.remove('wackelt'));
+  /** Wie ein gesperrter Knopf (bausteine.ts sperrbar): liefert der Hinweis `null`, gilt die Sperre nicht mehr. */
+  const zuWennFrei = (): void => {
+    const s = opt.zuSperre?.() ?? null;
+    const text = s ? (typeof s.hinweis === 'function' ? s.hinweis() : s.hinweis) : null;
+    if (!s || text === null) { b.zu(); return; }
+    // Klasse neu setzen, damit das Wackeln auch beim zweiten Tippen wieder anläuft
+    zuKnopf.classList.remove('wackelt'); void zuKnopf.offsetWidth; zuKnopf.classList.add('wackelt');
+    if (text) toast(text);
+  };
   const kopf = h('div', { class: 'kopf' }, h('span', { class: 'umriss', style: 'display:contents' }, titel), stufe, opt.kopfKnopf ?? null, opt.schliessbar === false ? null : zuKnopf);
   titel.classList.add('umriss');
   const wurzel = h('section', { class: `blatt ${art === 'hoch' ? 'hoch' : art === 'popup' ? 'popup' : ''} ${opt.klasse ?? ''}`.trim(), role: 'dialog', 'aria-modal': art === 'popup' ? 'true' : null, 'aria-labelledby': 'blatt-titel', tabindex: -1 }, kopf, inhalt);
   const abdunkeln = art === 'popup' ? h('div', { class: 'abdunkeln' }) : null;
   const tasten = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape' && opt.schliessbar !== false) { e.preventDefault(); b.zu(); return; }
+    if (e.key === 'Escape' && opt.schliessbar !== false) { e.preventDefault(); zuWennFrei(); return; }
     if (e.key !== 'Tab') return;
     const f = [...wurzel.querySelectorAll<HTMLElement>('button,input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute('disabled') && x.offsetParent !== null);
     if (!f.length) return;

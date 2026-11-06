@@ -5,6 +5,8 @@ let wurzel: HTMLElement | null = null;
 let timer = 0;
 /** Offenes Blatt, neben dem die Meldung stehen muss (blatt.ts meldet es beim Öffnen und Schließen) */
 let nebenBlatt: { wurzel: HTMLElement; popup: boolean } | null = null;
+/** Tutorial läuft (AE-NR13-8): gewöhnliche Meldungen schweigen, nur `toastWichtig` erscheint. */
+let stumm = false;
 
 /** DESIGN.md 12.17 Lage: unten mittig in der freien Kartenfläche; mit Seitenblatt oder Zeichenleiste in der Fläche links
  *  davon (Breite aus dem Blatt-Rechteck, nicht nachgerechnet), bei einem Popup oben. Liegt unten schon etwas (Sprecher,
@@ -26,7 +28,7 @@ function lageAnwenden(): void {
   // ohne Blatt bleiben Bauen-Knopf und Zoom frei (176 px), neben dem Blatt 12 px Abstand je Seite
   const max_px = Math.min(m.toast_max_breite, seitlich ? frei_px - 2 * m.toast_rand : breite - 176);
   let oben_px = hoehe - m.toast_rand;
-  for (const e of document.querySelectorAll<HTMLElement>('#sprecher, .banner, .update-hinweis')) {
+  for (const e of document.querySelectorAll<HTMLElement>('#sprecher, #anleiter, .banner, .update-hinweis')) {
     const r = e.getBoundingClientRect();
     if (r.height > 0 && r.left < frei_px) oben_px = Math.min(oben_px, r.top - m.toast_stapel_luecke);
   }
@@ -52,8 +54,26 @@ export const toastDauer_ms = (text: string): number => {
 const stuecke = (text: string): Array<string | HTMLElement> =>
   text.split(/(\d+er-Leitung)/).filter(Boolean).map((t) => (/^\d+er-Leitung$/.test(t) ? h('span', { class: 'am-stueck' }, t) : t));
 
-/** Kurze Rückmeldung (DESIGN.md 12.17). Höchstens eine: Eine neue ersetzt die alte; derselbe Text startet nur die Zeit neu. */
+/** Kurze Rückmeldung (DESIGN.md 12.17). Höchstens eine: Eine neue ersetzt die alte; derselbe Text startet nur die Zeit neu.
+ *  Solange `meldungenStumm(true)` gilt, zeigt sie nichts – so schweigen auch alle direkten Aufrufe im Tutorial. */
 export function toast(text: string): void {
+  if (stumm) return;
+  zeigen(text, false);
+}
+
+/** Meldung, die immer erscheint, auch im Tutorial (Fehler beim Speichern/Laden, AE-NR13-8); `wichtig` hebt sie über die Anleiter-Karte. */
+export function toastWichtig(text: string): void {
+  zeigen(text, true);
+}
+
+/** AE-NR13-8: Tutorial-Schalter für gewöhnliche Meldungen. Beim Einschalten verschwindet auch eine stehende, nicht wichtige Meldung. */
+export function meldungenStumm(an: boolean): void {
+  stumm = an;
+  const steht = wurzel?.firstElementChild;
+  if (an && steht && !steht.classList.contains('wichtig')) { clearTimeout(timer); steht.remove(); }
+}
+
+function zeigen(text: string, wichtig: boolean): void {
   if (!wurzel) {
     wurzel = h('div', { id: 'toast', 'aria-live': 'polite', role: 'status' });
     document.getElementById('app')!.append(wurzel);
@@ -61,6 +81,7 @@ export function toast(text: string): void {
   lageAnwenden();
   const alt = wurzel.firstElementChild as HTMLElement | null;
   const t = alt && alt.textContent === text ? alt : h('div', { class: 'toast' }, ...stuecke(text));
+  t.classList.toggle('wichtig', wichtig);
   if (t !== alt) {
     wurzel.replaceChildren(t);
     requestAnimationFrame(() => t.classList.add('sichtbar'));

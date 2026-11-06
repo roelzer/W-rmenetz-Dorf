@@ -51,6 +51,8 @@ export function szenenSchluessel(s: Szene): string {
     `netz,${netzNummer(s.netz)}`, s.modus, `${s.auswahl_id ?? ''}`, `${s.verschiebe_id ?? ''}`,
     g ? `${g.typ},${g.x},${g.y},${g.kante},${ja(g.ok)}` : '', st ? `${st.x},${st.y},${ja(st.ok)}` : '',
     `${s.kw_anzeigen ?? ''}`, s.spiel?.abschnitt?.phase ?? '', `${s.strassen?.length ?? 0}`, `${s.fluss?.length ?? 0}`,
+    // NR13: Spurfelder und „Erreicht“-Zeichen sind sichtbar und ändern sich ohne Objektänderung
+    `spur,${s.tutorial_spur?.length ?? 0}`, `erreicht,${(s.erreicht ?? []).map((e) => e.id).join(';')}`,
   );
   return teile.join('|');
 }
@@ -75,6 +77,7 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   if (s.modus === 'platzieren' || s.modus === 'verschieben') return 'fluessig'; // Pfeil der Vorschau (szene.ts:292)
   if (s.auswahl_id != null) return 'fluessig'; // laufender Auswahlring (szene.ts:218)
   if (s.fluss?.length) return 'fluessig'; // Wasserglitzern (szene.ts:83)
+  if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
   if (s.innen.some((q) => q.typ === 'wpg')) return 'fluessig'; // Rotor der Großwärmepumpe (gebaeude.ts:135)
   for (const o of s.objekte) {
     if (o.bau) return 'fluessig'; // Gerüst mit Arbeiterarm (gebaeude.ts:274)
