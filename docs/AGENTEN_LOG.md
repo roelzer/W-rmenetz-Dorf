@@ -440,3 +440,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 13:00 | ▶ | reviewer | Review NR13 P3b |
 | 2026-11-06 13:03 | ■ 🔴 | reviewer | 🔴 Nachbesserung nötig, wegen eines Befunds. Plan-Treue ✅: alle Dateien aus Teil a sind im Diff und alle Namen stimmen mit dem Bauplan. Teil b fehlt wie ab ([Bericht](docs/pruefberichte/20261106-130350-reviewer-a38e82b6792a75a65.md)) |
 | 2026-11-06 13:04 | ▶ | entwickler | NR13 P3a Fix-Runde |
+| 2026-11-06 13:04 | ■ 🟡 | reviewer | Ampel: GELB. Teil b von P3 ist freigegeben, mit kleinen Punkten und einer Plan-Lücke, über die du entscheiden musst. Plan-Treue: erfüllt. Alle 9 Dateien und  ([Bericht](docs/pruefberichte/20261106-130429-reviewer-a86dc45274335e67c.md)) |
