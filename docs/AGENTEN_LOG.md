@@ -515,3 +515,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 18:08 | ■ 🟢 | fachpruefer | 🟢 **Nachtrag: Die Texte aus DESIGN 13.17 Fassung 2 sind fachlich richtig**  ([Bericht](docs/pruefberichte/20261107-180813-fachpruefer-ad7b1c4a902a56e83.md)) |
 | 2026-11-07 18:10 | ■ 🔴 | kritiker | 🔴 Rot: So nicht bauen. Der Bauplan ist in sich gut gemacht, aber vier Dinge müssen vorher geklärt werden.  ([Bericht](docs/pruefberichte/20261107-181034-kritiker-a7ec8ad651a892cae.md)) |
 | 2026-11-07 18:12 | ▶ | architekt | Bauplan NR20-22 Fassung 2 |
+| 2026-11-07 18:25 | ■ 🟢 | architekt | 🟢 **Fassung 2 des Bauplans NR20–22 ist fertig. Alle sieben Muss-Befunde des Kritikers und alle Rückfragen von V0 bis P7 sind abgearbeitet.** Die Architekt ([Bericht](docs/pruefberichte/20261107-182521-architekt-ab305ceeba55f0962.md)) |

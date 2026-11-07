@@ -36,10 +36,13 @@ describe('NR20–NR22: Struktur', { timeout: 30000 }, () => {
     expect(fremd).toEqual([]);
   });
 
-  it('N4 (AE-NR21-1): Tutorial-Netzprüfung ohne Kreis – tutorial-netz.ts importiert nur Katalog/Typen/Vertrag/Start, genutzt nur von spiel.ts (greift ab der Datei)', () => {
+  it('N4 (AE-NR21-1): Tutorial-Netzprüfung ohne Kreis – tutorial-netz.ts importiert nur Katalog/Typen/Vertrag/Start/Netz, genutzt nur von spiel.ts (greift ab der Datei)', () => {
     const f = 'src/core/tutorial-netz.ts';
     if (!existsSync(f)) return;
-    const erlaubt = ['./katalog', './typen', './tutorial-vertrag', './start'];
+    // Fassung 2 (Kritiker B2): ./netz ist erlaubt, damit „Leitungsende“ eine Regel bleibt (leitungsNachbarn). Kein Kreis,
+    // solange netz.ts weder tutorial-netz noch spiel importiert – das prüft die zweite Erwartung.
+    const erlaubt = ['./katalog', './typen', './tutorial-vertrag', './start', './netz'];
+    expect(importe('src/core/netz.ts').filter((i) => /(^|\/)(tutorial-netz|spiel)$/.test(i))).toEqual([]);
     expect(importe(f).filter((i) => !erlaubt.includes(i))).toEqual([]);
     const nutzer = dateien('src').map(norm)
       .filter((d) => d !== f && importe(d).some((i) => /(^|\/)tutorial-netz$/.test(i)) && !/import\s+type\s[^;]*tutorial-netz/.test(lesen(d)));
