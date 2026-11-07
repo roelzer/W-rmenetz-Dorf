@@ -3,6 +3,7 @@
 Stand 2026-11-04 · Designer, Modus `entwurf` (Überarbeitung) und `vorgabe` · Werte: `design/tokens.json`, Fassung 2. Im Code stehen keine Farben, Maße oder Zeiten direkt.
 **Nachtrag 2026-11-05: Für alle Menüs und Bedienoberflächen (DOM) gilt ab jetzt Abschnitt 12 „Menü-Stil v2“.** Wo die Abschnitte 1, 4 und 9 für Menüs etwas anderes sagen (Haarlinien, kein Textumriss, eine Schrift), gilt Abschnitt 12. Die Kartengrafik (Abschnitt 3) bleibt unverändert.
 **Nachtrag 2026-11-06: Abschnitt 13 „Tutorial (NR13)“** – Ablauf, Texte, Spotlight und Zustände des Pflicht-Tutorials für neue Spiele.
+**Nachtrag 2026-11-07: Abschnitt 13.17.10** – nach Fotocheck P5f-final: Streifen über Gebäuden, Haken live, Rest-Satz, Raute ohne Füllung, Stecker blass beim eigenen Abgang, Klarstellung Abdunkeln/Pfeil.
 **Nachtrag 2026-11-07: Abschnitt 13.17 (NR20–NR22)** – Geisterleitung und Ziel-Häuser in T13, Hauptleitung + Hausanschluss im Tutorial, Überlast mit gelbem Warndreieck statt Rot-Blinken. Ersetzt die Überlast-Angaben in Abschnitt 3 und 9.
 Anlass: Simon wünscht „mach die Optik mehr modern, weniger kindlich“. Der Spielablauf, die Bildschirme und die Zustände aus Fassung 1 bleiben gleich. Neu sind Look, Schrift und Farben. Die offenen Mängel 3, 4, 7 und 14 aus `docs/DESIGN_TREUE_F5.md` sind hier fest eingeplant.
 
@@ -1459,7 +1460,7 @@ Anlass: Fotocheck `docs/pruefberichte/20261107-designer-nr20-fotocheck.md`, alle
 **F3 – Streifen auf dem fremden Stück**
 - Hülle: Rohrbreite + **12 px** (6 px je Seite), folgt dem Rohr wie das Band. Außenlinie 1,5 px `kontur`.
 - Muster: 45°-Schrägstreifen, **dunkel `kontur` 5 px, hell `tafel` 5 px** (Periode 10 px), Deckkraft 0,85 auf der ganzen Hülle.
-- Ebene: **über dem Rohr** und über dem Band, unter Gebäuden, Blasen und dem gerade gezogenen Strich. Das Rohr scheint nur durch die Deckkraft 0,85 durch.
+- Ebene: **über dem Rohr** und über dem Band, unter Gebäuden, Blasen und dem gerade gezogenen Strich. Das Rohr scheint nur durch die Deckkraft 0,85 durch. *(„unter Gebäuden“ geändert durch 13.17.10 G1: über den halb durchsichtigen Gebäuden.)*
 - **Rest-Stück (Entscheidung PL):** Gestreift sind alle Leitungsfelder in T13–T14, die weder Spurfeld noch Teil der echten Hauptleitung (E3) sind. Sie bleiben gestreift – auch als Rest nach einem [Zurück] (Beispiel: 25er auf (12\|12)) –, Satz `satz_eigener_abgang` und Knopfzeile „Stück muss weg“ bleiben, bis alle diese Felder weg sind. [Zurück] nimmt weiter genau ein Feld. Ring in der Zeichenleiste nach Bauplan [2.3] K-c. *Hinweis an PL:* Das schränkt 13.7 „Leitung neben der Spur erlaubt“ in Kapitel 3 ein (neben der Spur gezeichnet = gestreift); so gewollt laut Entscheidung.
 
 **F4 – Finger ohne Bandfüllung**
@@ -1467,7 +1468,7 @@ Anlass: Fotocheck `docs/pruefberichte/20261107-designer-nr20-fotocheck.md`, alle
 
 **F5 – Startfeld (10\|11) und Schleier an der Heizzentrale**
 - **Zeichenreihenfolge (nur Spurfelder, die an die Heizzentrale grenzen, also (10\|11)):** Boden → eingezeichnete Leitungen → Gebäude (auch Heizzentrale) → **Band dieses Felds → Raute-Füllung → Pfeil → Raute-Rand** → übrige Blasen → Zielscheibe (F1) → Finger. Band und Raute auf (10\|11) liegen also **über** der Heizzentrale. Alle anderen Spurfelder bleiben in der Reihenfolge von B2 (unter Gebäuden). Das Bandstück von der Hauswand in das Feld (Vorgänger Osten, `bandVorgaenger`) gehört zu (10\|11) und liegt mit darüber.
-- **Raute-Füllung:** `#ffe08a` mit Deckkraft **0,35** (statt 0,55, damit das Grün der 32er durchscheint), Raute × 0,92; Rand 3 px `spot_ring`, außen 2 px `kontur` wie B3. Gilt für die Raute auf jedem Feld.
+- **Raute-Füllung:** `#ffe08a` mit Deckkraft **0,35** (statt 0,55, damit das Grün der 32er durchscheint), Raute × 0,92; Rand 3 px `spot_ring`, außen 2 px `kontur` wie B3. Gilt für die Raute auf jedem Feld. *(Füllung geändert durch 13.17.10 G4: keine Füllung, Band darunter voll deckend.)*
 - **Pfeil auf der 32er:** `kontur` voll deckend mit **1,5 px Rand `tafel`** (statt Rand `kontur`), Breite `b × 0,6`. Weiße Pfeile (25er usw.) unverändert.
 - **Schleier-Aussparung Heizzentrale:** nur die **Grundfläche** (2×2 Felder als Bodenraute) + 12 px, weicher Rand 12 px wie B1. Gebäudehöhe und Dach werden nicht ausgespart (sie liegen unter dem Schleier). Rauten der Spur × 1,5 und die zwei Tutorial-Häuser (Ellipse + 12 px) unverändert.
 
@@ -1485,3 +1486,35 @@ Anlass: Fotocheck `docs/pruefberichte/20261107-designer-nr20-fotocheck.md`, alle
 - Nach dem Wegnehmen bleibt die Zielscheibe auf (10\|12), bis das betroffene Haus richtig angeschlossen ist (13.17.8 Tabelle, gebaut fehlte das).
 
 **Prüfung beim nächsten Fotocheck (844 und 667):** T13 ohne Finger: Zielscheibe hellstes Ziel, Stecker blass, Grün auf (10\|11) sichtbar; T13w: „bis 25 kW“ frei; T13h: Ring unter der Raute; eigener Abgang im Zug (unverändert) / nach Abheben (Streifen klar erkennbar bei 667) / nach Zurück (Rest gestreift, Zielscheibe da).
+
+#### 13.17.10 Nach Fotocheck P5f-final (2026-11-07, Designer)
+Anlass: Fotocheck `docs/pruefberichte/20261107-designer-p5f-final.md` (Integrationsstand `nr20-int` d711a3a). Geht 13.17.1–13.17.9 bei Widerspruch vor. G1–G3 sind Entscheidungen des Designers auf Frage des Projektleiters; G4 und G5 sind neue Vorgaben; G6 und G7 stellen nur klar, was schon gilt.
+
+**G1 – Streifen über den halb durchsichtigen Gebäuden (K3, angenommen).** Die Streifen (F3) liegen über den eingezeichneten Leitungen, dem Band **und** den halb durchsichtigen Gebäuden der Planungsansicht. Sie liegen weiter unter Ziel-Steckern, Haken, Zielscheibe, Finger, Anleiter-Karte und dem gerade gezogenen Strich. Grund: Der zweite Leitungs-Durchgang (A37) malt die Rohre über die Gebäude. Lägen die Streifen darunter, deckte das Rohr sie genau dort zu, wo sie gebraucht werden. „Das muss weg“ ist in dem Moment die wichtigste Aussage auf der Karte, und die Fläche ist klein (ein bis zwei Felder).
+
+**G2 – Haken am Haus bleibt live.** Der Haken über einem Tutorial-Haus erscheint weiter **sofort**, wenn der Zug das Haus erreicht. Er gehört **nicht** zu „Bild wie vor dem Zug“ (F8). Grund: F8 soll verhindern, dass während des Zugs eine *Anweisung* wechselt (Ring „hier hin“ an einem falschen Ziel). Der Haken ist keine Anweisung, sondern die direkte Antwort auf die eigene Hand: „angekommen, du kannst loslassen“. Er erscheint genau unter dem Finger. Ring, Raute, Satz und Zielscheibe warten weiter bis zum Abheben.
+- **Bedingung:** Der Haken erscheint live nur, wenn der Zug nach dem Abheben auch als richtig zählt. Endet ein eigener Abgang (13.17.8) am Haus, erscheint **kein** Haken, auch nicht kurz. Sonst blitzt „richtig“ auf, und nach dem Abheben kommt „weg damit“.
+- Verlässt der Finger das Haus wieder oder nimmt der Zug das Hausfeld zurück, verschwindet der Haken sofort (ohne Ausblenden).
+
+**G3 – T13h, alle Häuser angeschlossen, aber noch ein gestreifter Rest.** Gilt, wenn beide Häuser richtig angeschlossen sind und noch Felder in `fremd` liegen (Beispiel: Rest (12\|12) nach [Zurück], danach Haus 2 vom Abzweig angeschlossen).
+- **Satz:** nur der erste Satz von `satz_eigener_abgang`: „Nimm das gestreifte Stück mit Zurück oder Radierer weg.“ (55 Zeichen). Der zweite Satz („Zieh die 25er von der Abzweigung.“) entfällt, denn es gibt nichts mehr zu ziehen.
+- **Bild:** Streifen und Ring ohne Finger an [Zurück] bzw. [Radierer] bleiben. **Keine** Zielscheibe, keine Raute, kein Band, kein Ring um ein Haus, kein Finger. Beide Haken voll.
+- Knopfzeile bleibt „Stück muss weg“. Sind die Felder weg, geht es nach T14.
+
+**G4 – Grün der 32er auf dem Rautenfeld (ersetzt die Raute-Füllung aus F5).**
+- Die leuchtende Raute hat **keine Füllung** mehr, nur den Rand (3 px `spot_ring`, außen 2 px `kontur`, Raute × 0,92). Gilt für jede Raute.
+- Das Band auf dem Feld der Raute hat Deckkraft **1** (statt 0,75), mit Doppelrand wie B2. Der Pfeil darüber bleibt wie F5.
+- Grund, gemessen im Foto: Grün in der Raute zur Wiese **1,06:1**, also praktisch gleich hell. Das gelbe 0,35 über dem 0,75-Band wäscht das Grün aus. Voll deckendes `leitung.d32` zur Wiese: 1,43:1, dazu der dunkle Rand zur Wiese 8:1. Damit ist die Form klar, und der Farbton (sattes Grün = Knopf 32) bleibt erkennbar.
+- Token: `faktor.naechstes_feld_deckkraft` = **0**. Neu `faktor.geist_deckkraft_raute` = **1**.
+
+**G5 – Ziel-Stecker unter der Zielscheibe im Zustand „eigener Abgang“.** Solange die Zielscheibe wegen eines eigenen Abgangs zurück ist (13.17.8), ist der Ziel-Stecker des **betroffenen** Hauses blass (0,35, wie F2). Grund, Foto `abgang-vor-zurueck`: Die Zielscheibe auf (10\|12) steht wieder knapp über dem Stecker von Haus 2, also zwei gleiche Zeichen übereinander, wie im Befund 🔴 1 des letzten Fotochecks. Das Haus ist durch den Ring schon als Ziel markiert. Der Stecker wird wieder voll, sobald die Zielscheibe weg ist.
+
+**G6 – Klarstellung „Abdunkeln nur HUD“ (T13, T13w, T13h).** Abgedunkelt (`abdunkeln` 0,55) wird **nur die Anzeigenreihe oben** (Dorfschild, Geld, Pillen), wie 13.5 und 13.17.1 schon sagen. Karte und Zeichenleiste liegen **nicht** unter dem Abdunkeln. Über der Karte liegt nur der leichte Schleier mit Gang (0,30). Gebaut ist heute eine Abdunkel-Fläche über den **ganzen** Bildschirm (Befund im Bericht).
+
+**G7 – Klarstellung Pfeilrichtung.** Die Pfeilspitze im Band zeigt auf dem Bildschirm zur **Mitte des nächsten Felds** (B2), also in einer der vier schrägen Richtungen der Karte. Auf (10\|11) zeigt sie nach links unten zur Zielscheibe. Gebaut zeigen die Spitzen nur nach oben oder nach links (Befund im Bericht).
+
+**Prüfung beim nächsten Fotocheck (844 und 667):**
+- T13: Dorfschild dunkel, Zeichenleiste und Gang hell. Die Raute hat innen kein Gelb, das Grün ist satt. Der Pfeil zeigt zur Zielscheibe.
+- Eigener Abgang: Stecker von Haus 2 blass, solange die Zielscheibe da ist.
+- Zwei Häuser mit Rest: nur der erste Satz, keine Zielscheibe.
+- Zug mit eigenem Abgang bis aufs Haus: kein Haken.
