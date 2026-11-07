@@ -605,3 +605,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 21:01 | ■ 🟢 | tester | 🟢 Beide Testanpassungen sind fertig und committet. Am Programmcode und an Referenzwerten habe ich nichts geändert.  ([Bericht](docs/pruefberichte/20261107-210152-tester-a306405b3057cfc99.md)) |
 | 2026-11-07 21:14 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 21:14 | ■ 🟡 | entwickler | 🟡 Status: FERTIG_MIT_BEDENKEN. Die Punkte 1–3 sind gebaut und getestet. Von Punkt 4 fehlt Test (11): der Kern verhält sich anders als der Bauplan (siehe u ([Bericht](docs/pruefberichte/20261107-211450-entwickler-af5fab199d425729a.md)) |
+| 2026-11-07 21:15 | ▶ | entwickler | P5d Radierzug, Finger, Sammelliste |
+| 2026-11-07 21:15 | ▶ | reviewer | Zwischen-Review P5 Teil1+c |
