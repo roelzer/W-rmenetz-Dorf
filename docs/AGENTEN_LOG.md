@@ -621,3 +621,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:05 | ■ 🟢 | designer | 🟢 Fertig. DESIGN.md hat jetzt den neuen Abschnitt 13.17.9 „Feinschliff P5f“ und ist committet als 31daee1 auf `claude/keen-mccarthy-f4p5us`. Nicht gepush ([Bericht](docs/pruefberichte/20261107-220558-designer-a30d20b8a363625c8.md)) |
 | 2026-11-07 22:06 | ▶ | entwickler | P5f-1 Kern: Rest-Stück, Zielscheibe |
 | 2026-11-07 22:06 | ▶ | entwickler | P5f-2 Darstellung+Steuerung |
+| 2026-11-07 22:18 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-07 22:18 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN 🟡.** Beide Punkte sind gebaut, getestet und committet. Die Schranke meldet NICHT OK, und das war so zu erwarten: 14 bestehende  ([Bericht](docs/pruefberichte/20261107-221812-entwickler-ae42bea0dae407ee8.md)) |
+| 2026-11-07 22:18 | ▶ | tester | Tester: 14 Tests auf neue Regel |
