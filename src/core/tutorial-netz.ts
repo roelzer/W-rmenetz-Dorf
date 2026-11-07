@@ -59,8 +59,9 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
 
   const gezaehlt = haeuser.map((h) => new Set(h.gezaehlt ? h.hausweg : []));
   // Felder aus dem ersten Teil von fremd liegen auf keinem gezählten Hausweg (ein eigener Abgang läuft nicht über den Abzweig)
-  // und nach K-a nie auf dem Hauptweg, haben also keine Rolle. Felder aus dem zweiten Teil können auf einem gezählten Hausweg
-  // liegen (Haus am Ende eines Rings); dort hat fremd Vorrang, sie werden unten aus `felder` genommen.
+  // und nach K-a nie auf dem Hauptweg, haben also keine Rolle. Felder aus dem zweiten Teil (Rest-Stück) können auf einem
+  // gezählten Hausweg liegen (Haus am Ende eines Rings, Stück hinter Haus 1); dort hat fremd Vorrang, sie werden unten aus
+  // `felder` genommen.
   const rolleVon = (k: number): 'haupt' | 'anschluss' | null => {
     if (aufHauptweg.has(k) || (gezaehlt[0].has(k) && gezaehlt[1].has(k))) return 'haupt';
     return gezaehlt[0].has(k) || gezaehlt[1].has(k) ? 'anschluss' : null;
@@ -86,19 +87,17 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
 
   const fehlerFelder = new Set([...netz.reduzierung, ...netz.aufteilung, ...netz.engpass]);
   const planungsfehler = fehlerFelder.size > 0;
-  // fremd, zweiter Teil (Fassung 2.3 M1): Planungsfehler abseits der Spur, obwohl beide Häuser richtig angeschlossen sind.
-  if (haus1_ok && haus2_ok && planungsfehler) {
-    fremd.push(...[...fehlerFelder].filter((k) => !SPUR_FELDER.has(k) && !aufHauptweg.has(k)).sort((p, q) => p - q));
-  }
-  // fremd, dritter Teil (Entscheidung PL 2026-11-07, DESIGN 13.17.9 F3 „Rest-Stück“): Im geführten Kapitel 3 muss jede Leitung
-  // außerhalb von Spur und echtem Hauptweg weg – auch ein Rest nach [Zurück] oder ein unverbundenes Stück. Sonst würde ein
-  // falsches Stück still mitgebaut. Aufsteigend nach Feldnummer, jedes Feld nur einmal.
+  // fremd, zweiter Teil (Entscheidung PL 2026-11-07, DESIGN 13.17.9 F3 „Rest-Stück“): Jede Leitung außerhalb von Spur und echtem
+  // Hauptweg muss weg – auch ein Rest nach [Zurück] oder ein unverbundenes Stück. Sonst würde ein falsches Stück still mitgebaut.
+  // Aufsteigend nach Feldnummer, jedes Feld nur einmal. Das enthält auch jedes Planungsfehler-Feld abseits der Spur (Fassung 2.3
+  // M1), denn Reduzierung, Aufteilung und Engpass liegen immer auf Leitungsfeldern. Das Tutorial wendet diesen Teil erst ab
+  // T13h an (Review P5f-1 W1, Entscheidung (a); Filter in Tutorial.leitungen), der Kern kennt den Schritt nicht.
   for (let k = 0; k < netz.belegung.length; k++) {
     if (typAn(k) !== null && !SPUR_FELDER.has(k) && !aufHauptweg.has(k) && !fremd.includes(k)) fremd.push(k);
   }
 
-  // Entscheidung PL: fremd hat Vorrang vor der Rolle. Die Bewertung oben bleibt, wie sie ist – der zweite Teil von fremd entsteht
-  // ohnehin erst, wenn beide Häuser ok sind, also jedes Feld mit Rolle richtig ist.
+  // Entscheidung PL: fremd hat Vorrang vor der Rolle. Die Bewertung oben (Haus ok, zu dünn, zu dick) bleibt, wie sie ist, und wird
+  // nicht neu gerechnet: Ein Rest-Stück auf einem gezählten Hausweg ändert nichts daran, ob das Haus richtig angeschlossen ist.
   const fremdFelder = new Set(fremd);
   const felder = alleFelder.filter((f) => !fremdFelder.has(nummer([f.x, f.y])));
 
