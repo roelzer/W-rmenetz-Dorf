@@ -575,3 +575,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:02 | ▶ | tester | Testlücken P2 schließen |
 | 2026-11-07 20:04 | ■ 🟡 | reviewer | 🟢 **Freigegeben mit kleinen Punkten (eigentlich 🟡).** P4b – kompakte Anleiterkarte und Schleier  ([Bericht](docs/pruefberichte/20261107-200455-reviewer-afdaf12c0ac48ec29.md)) |
 | 2026-11-07 20:05 | ■ 🟢 | tester | 🟢 Alle sechs Testlücken aus dem P2-Review sind geschlossen. Alle sechs Gegenproben sind ERKANNT. Kein neuer Test widerspricht dem Bauplan, ich habe also kei ([Bericht](docs/pruefberichte/20261107-200516-tester-a7510e12ee8b189c8.md)) |
+| 2026-11-07 20:09 | ■ 🟡 | entwickler | 🟡 Status: BLOCKIERT, aber nur wegen der Test-Schranke. Die Arbeit selbst ist fertig und committet. Die Schranke meldet „NICHT OK“ aus drei Gründen, die  ([Bericht](docs/pruefberichte/20261107-200930-entwickler-afc10940b72120937.md)) |
+| 2026-11-07 20:09 | ▶ | reviewer | Nachprüfung P1 |
