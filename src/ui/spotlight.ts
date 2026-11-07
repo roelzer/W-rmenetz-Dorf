@@ -176,6 +176,42 @@ export function spotlightAus(): void {
   ebene = null; dunkel = null; ringe = []; lochSchluessel = '';
 }
 
+let schleier: HTMLElement | null = null;
+let schleierSchluessel = '';
+
+/** SVG des Schleiers: Fläche in `schleier_leicht`, aus der eine Maske die Löcher des Gangs weich ausspart. Der Rand von
+ *  `gang_rand` (12 px) entspricht etwa ±2 σ der Unschärfe, also σ = gang_rand / 4. Ein Pfad je Loch, damit sich
+ *  überlappende Löcher nicht gegenseitig aufheben. Nur eigene Zahlen gelangen in den Text. */
+function schleierSvg(breite: number, hoehe: number, gang: Loch[]): string {
+  const b = zahl(breite), hh = zahl(hoehe);
+  const loecher = gang.map((l) => `<path d="${lochPfad(l)}" fill="#000" filter="url(#schleier-weich)"/>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${b}" height="${hh}" viewBox="0 0 ${b} ${hh}">`
+    + `<defs><filter id="schleier-weich" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${zahl(M.gang_rand / 4)}"/></filter>`
+    + `<mask id="schleier-gang" maskUnits="userSpaceOnUse" x="0" y="0" width="${b}" height="${hh}"><rect width="${b}" height="${hh}" fill="#fff"/>${loecher}</mask></defs>`
+    + `<rect width="${b}" height="${hh}" fill="${T.menue.farbe.schleier_leicht}" mask="url(#schleier-gang)"/></svg>`;
+}
+
+/** Leichter Schleier über der Spielkarte mit ausgespartem Gang (DESIGN 13.17.1); `null` nimmt ihn weg. Er liegt direkt über
+ *  `#karte`, also unter allen Bedienelementen, fängt per CSS keine Zeiger und ist nicht Teil der Eingabesperre. Gleicher Gang
+ *  bei gleicher Bildgröße baut nichts neu auf, weil der Aufruf in jedem Bild kommt. */
+export function schleierSetzen(gang: Loch[] | null): void {
+  if (gang === null) {
+    schleier?.remove();
+    schleier = null; schleierSchluessel = '';
+    return;
+  }
+  const breite = window.innerWidth, hoehe = window.innerHeight;
+  const schluessel = JSON.stringify({ gang, breite, hoehe });
+  if (schleier && schluessel === schleierSchluessel) return;
+  if (!schleier) {
+    schleier = h('div', { id: 'schleier', 'aria-hidden': 'true' });
+    document.getElementById('karte')!.after(schleier);
+  }
+  schleierSchluessel = schluessel;
+  const svg = new DOMParser().parseFromString(schleierSvg(breite, hoehe, gang), 'image/svg+xml').documentElement;
+  schleier.replaceChildren(document.importNode(svg, true));
+}
+
 /** Antwort auf einen Fehltipp (13.7): Lochrand stupst einmal, der Finger erscheint sofort neu.
  *  `ruhig` (Weniger Bewegung): statt Stupsen wird der Rand kurz dicker. */
 export function stupsen(ruhig: boolean): void {
