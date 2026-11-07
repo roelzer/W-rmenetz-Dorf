@@ -610,3 +610,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 21:28 | ■ 🟡 | reviewer | **Ampel: 🟡 freigegeben mit kleinen Punkten.** Plan-Treue für Teil 1 und Teil c: ✅ (offene Teile von P5d/P5e sind laut ENTSCHEIDUNGEN anderen Paketen zuget ([Bericht](docs/pruefberichte/20261107-212801-reviewer-a2167312b33e1c96e.md)) |
 | 2026-11-07 21:32 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 21:32 | ■ 🟡 | entwickler | ## 🟡 Status: FERTIG_MIT_BEDENKEN  ([Bericht](docs/pruefberichte/20261107-213252-entwickler-a04812e2a4b33746b.md)) |
+| 2026-11-07 21:33 | ▶ | entwickler | P5e Schleier, Spur, Fotos |
+| 2026-11-07 21:33 | ▶ | reviewer | Review P5d |
