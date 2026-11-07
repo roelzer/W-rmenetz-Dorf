@@ -330,4 +330,14 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     expect(svg).toContain(KONTUR);
     expect(svg).toContain(ZIEL);
   });
+
+  // Sammelliste P5 Punkt 14 (ENTSCHEIDUNGEN 2026-11-07): Das Band am ersten Feld (10|11) kommt von der Heizzentrale im Osten
+  // (hz bei (11|10), Größe 2, belegt also (11|11) direkt östlich von (10|11)) – Fließrichtung der Wärme, nicht von Norden.
+  it('Erstes Bandfeld (10|11): Eingang von der Heizzentrale im Osten (Kante zu (11|11)), dann über die Mitte nach Süden', async () => {
+    const { bandVorgaenger } = await import('../src/core/tutorial-band');
+    expect(bandVorgaenger(10, 11)).toEqual([11, 11]);
+    const D32 = '#4caf3e';
+    const b = bild(szene({ tutorial_band: [feld(10, 11, 'd32', [0, 1])] }));
+    gleichePunkte(punkteNach(b, b.indexOf(`strokeStyle=${D32}`)), [mitte(10.5, 11), mitte(10, 11), mitte(10, 11.5)]);
+  });
 });
