@@ -99,3 +99,30 @@ export function ringMitten(u: U): Array<[number, number]> {
 export function knopfRechteck(k: El, x: number, y: number, b = 44, h = 44): void {
   k.rechteck = { left: x, top: y, right: x + b, bottom: y + h, width: b, height: h, x, y };
 }
+
+/** Ab T14 mit echter Bedienung bis nach dem Tutorial-Bau (Ablauf wie tests/nr13-klickweg.test.ts); endet in T24.
+ *  Die Kamerafahrten laufen nach der Bildzeit (performance.now), darum stellt die Hilfe sie von Hand weiter. */
+export function abT14Bauen(u: U, spiel: Spiel, uhr: { t: number }): void {
+  let bild = 50_000;
+  vi.spyOn(performance, 'now').mockImplementation(() => bild);
+  const s = st(u);
+  const naechster = (id: string): void => { s.tick(uhr.t); bild += 1_300; s.tick(uhr.t); expect(schritt(u)).toBe(id); };
+  const klicke = (name: string): void => { const el = zielEl(u, name); expect(el, `[data-ziel=${name}] in ${schritt(u)}`).not.toBeNull(); el!.click(); };
+  const [h1, h2] = ERSTE_HAEUSER.map((k) => hausBei(spiel, k));
+  naechster('T14'); klicke('abschliessen');
+  naechster('T15'); tippePunkt(u, objektMitte(u, h1));
+  naechster('T16'); weiterTippen(u);
+  naechster('T17'); klicke('puffer_knopf');
+  naechster('T18'); tippePunkt(u, objektMitte(u, h2));
+  naechster('T19'); klicke('puffer_knopf');
+  naechster('T20'); klicke('bauen');
+  naechster('T21'); klicke('laura');
+  naechster('T22');
+  vi.advanceTimersByTime(7_000); s.tick(uhr.t); // Lauras Blase ist vorbei, Simon kommt mit [Weiter] zurück
+  weiterTippen(u);
+  naechster('T23');
+  vi.advanceTimersByTime(7_000);
+  for (let i = 0; i < 2; i++) { uhr.t += 10_000; s.tick(uhr.t); } // Tutorial-Bau 20 s
+  weiterTippen(u);
+  naechster('T24');
+}
