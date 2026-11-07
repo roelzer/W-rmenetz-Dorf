@@ -510,3 +510,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 18:02 | ▶ | kritiker | Bauplanprobe NR20-22 |
 | 2026-11-07 18:02 | ▶ | designer | Neue Spur + Texte bestätigen |
 | 2026-11-07 18:02 | ▶ | fachpruefer | Neue Spur fachlich prüfen |
+| 2026-11-07 18:07 | ■ 🟡 | designer | 🟡 **Gelb:** Drei der vier Punkte bestätige ich. Bei zwei Stellen widerspreche ich dem Architekten (Ring um Haus 1 in T13, Wortlaut T13h). Zwei kleine Textä ([Bericht](docs/pruefberichte/20261107-180723-designer-a5b1f536c43959f3e.md)) |
