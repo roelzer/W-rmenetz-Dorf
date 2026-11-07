@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Spiel } from '../src/core/spiel';
 import { laden, serialisieren } from '../src/core/speichern';
-import { ERSTE_HAEUSER } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_HAUPT } from '../src/core/start';
+import { TUTORIAL_SCHRITTE } from '../src/core/tutorial';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 import {
   ZUG_HAUS1, ZUG_HAUS2, abT14Bauen, abheben, bisT12, bisT13, bisT13h, farbknopf, hausBei, kameraLage, knopfMitId, knopfRechteck,
@@ -331,5 +332,88 @@ describe('NR21 Ablauf: Haus 2 zuerst und eigener Abgang (DESIGN 13.17.8)', () =>
       expect(st(u).anleitungAnsicht()!.fremd).toEqual(FREMD_12);
       expect(kameraLage(u)).toEqual(vorher);
     }, { uhr: () => uhr.t });
+  });
+});
+
+// Sammelliste P5 Punkt 6 (DESIGN 13.17.1 B6, design/tokens.json anleiter_kompakt_zeichen 96): alle Texte von Kapitel 3 außer
+// T12 (ENTSCHEIDUNGEN: T12 läuft auf der normalen Karte) – so, wie die echte Steuerung sie zeigt, mit 20-Zeichen-Namen.
+describe('NR21 Ablauf: Texte von Kapitel 3 höchstens 96 Zeichen', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  // Von Hand eingesetzt: {haupt} 32er, {anschluss} 25er, {anschluss_zahl} 25, Summen wie ERKLAERSATZ
+  const SOLL = {
+    T13: 'Zieh die 32er von der Heizzentrale bis zur Abzweigung. Folge der Spur.',
+    leisteOffen: 'Die Leiste bleibt offen, bis beide Häuser erreicht sind.',
+    zuDuenn: 'Hier fließt Wärme für beide Häuser, die 25er wäre randvoll. Nimm die 32er und zieh drüber.',
+    T13w: ERKLAERSATZ,
+    T13h: 'Jedes Haus bekommt seinen eigenen **Hausanschluss**. Zieh die 25er bis ans erste Haus.',
+    zuFrueh: 'Zieh die Leitung bis an beide Häuser – folge der Spur.',
+    zwischenstand: ZWISCHENSTAND,
+    zuDick: 'Für ein Haus reicht die 25er. Tippe auf 25 und zieh noch mal über dieses Stück.',
+    groesse: 'Ein Stück passt nicht zum Plan. Zieh mit der richtigen Größe noch mal drüber.',
+    eigenerAbgang: SATZ_EIGENER_ABGANG,
+    T14: 'Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.',
+    geld: 'Dann reicht dein Geld nicht mehr für die Stationen. Nimm mit Zurück ein paar Leitungen weg.',
+  };
+  const HILFE = ['Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.', 'Tippe rechts in der Leiste auf 25.',
+    'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.', 'Unten in der Leiste: Abschnitt abschließen.'];
+
+  // Sammelliste P5 Punkte 4 und 5: Auf der kompakten Karte ist die Knopfzeile ausgeblendet (stil.css `#anleiter.kompakt
+  // .anleiter-knopfzeile`), also darf in T13/T13w/T13h kein Text am Knopf-Hinweis hängen; einen Chip hat die Karte nicht.
+  it('test_nr21_kompakte_karte_ohne_knopf_hinweis_und_chip: T13, T13w nach drei Fehlzügen (Hilfe-Satz in der Blase), T13h', async () => {
+    const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      const pruefe = (soll: string, satz: string): void => {
+        st(u).tick(uhr.t);
+        const a = st(u).anleitungAnsicht()!, karte = u.dom.doc.getElementById('anleiter')!;
+        expect([a.schritt, a.kompakt, a.knopf_hinweis, a.text]).toEqual([soll, true, undefined, satz]);
+        expect(karte.classList.contains('kompakt')).toBe(true);
+        expect(karte.querySelector('.anleiter-knopfzeile')!.textContent).toBe('');
+        expect(karte.querySelectorAll('.chip')).toEqual([]);
+      };
+      bisT13(u, spiel, uhr); pruefe('T13', 'Zieh die 32er von der Heizzentrale bis zur Abzweigung. Folge der Spur.');
+      wischeFelder(u, TUTORIAL_HAUPT); st(u).tick(uhr.t);
+      for (let i = 0; i < 3; i++) { wischeFelder(u, [[9, 12]]); st(u).tick(uhr.t); }
+      pruefe('T13w', 'Tippe rechts in der Leiste auf 25.');
+      farbknopf(u, 'd25').click(); pruefe('T13h', 'Jedes Haus bekommt seinen eigenen **Hausanschluss**. Zieh die 25er bis ans erste Haus.');
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr21_kapitel3_texte_hoechstens_96_zeichen: Grundtexte, Zwischenstand, Größen-, Sperr-, Abgang-, Geld- und Hilfe-Sätze', async () => {
+    const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
+    const gesehen: Record<string, string> = {};
+    await echteSteuerung(spiel, (u) => {
+      spiel.stand.spieler = 'Abcdefghijklmnopqrst';
+      spiel.stand.geld_eur = 30_000; // wie (8): kein Geld-Satz, bis er gewollt ist
+      const merke = (name: string): void => { st(u).tick(uhr.t); gesehen[name] = text(u); };
+      const leisteZu = (): void => { u.dom.html.querySelector('.zeichenleiste .schliessen')!.click(); };
+      bisT13(u, spiel, uhr); merke('T13');
+      leisteZu(); merke('leisteOffen');
+      wischeFelder(u, TUTORIAL_HAUPT); st(u).tick(uhr.t);
+      merke('T13w');
+      farbknopf(u, 'd25').click(); merke('T13h');
+      zielEl(u, 'abschliessen')!.click(); merke('zuFrueh');
+      // 25er über die Hauptleitung getippt → zu dünn (zurück nach T13); mit der 32er wieder drüber
+      wischeFelder(u, [[10, 11]]); merke('zuDuenn');
+      expect(schritt(u)).toBe('T13');
+      farbknopf(u, 'd32').click(); wischeFelder(u, [[10, 11]]); st(u).tick(uhr.t);
+      expect(schritt(u)).toBe('T13w');
+      farbknopf(u, 'd25').click(); st(u).tick(uhr.t);
+      // (9|12) als 32er wie (4) → zu dick; der gesperrte Abschluss nennt dann die Größe
+      farbknopf(u, 'd32').click(); wischeFelder(u, [[9, 12]]); merke('zuDick');
+      zielEl(u, 'abschliessen')!.click(); merke('groesse');
+      knopfMitId(u, 'zurueck')!.click(); farbknopf(u, 'd25').click(); st(u).tick(uhr.t);
+      wischeFelder(u, ZUG_HAUS1); merke('zwischenstand');
+      wischeFelder(u, [[12, 12], [12, 13]]); merke('eigenerAbgang');
+      knopfMitId(u, 'zurueck')!.click(); knopfMitId(u, 'zurueck')!.click(); st(u).tick(uhr.t);
+      wischeFelder(u, ZUG_HAUS2); merke('T14');
+      spiel.stand.geld_eur = 0; merke('geld');
+    }, { uhr: () => uhr.t });
+    expect(gesehen).toEqual(SOLL);
+    const kapitel3 = TUTORIAL_SCHRITTE.filter((d) => d.kapitel === 3 && d.id !== 'T12');
+    expect(kapitel3.map((d) => d.id)).toEqual(['T13', 'T13w', 'T13h', 'T14']);
+    expect(kapitel3.map((d) => d.hilfe.replace('{anschluss_zahl}', '25'))).toEqual(HILFE);
+    for (const t of [...Object.values(gesehen), ...HILFE]) expect([t, t.replace(/\*\*/g, '').length <= 96]).toEqual([t, true]);
   });
 });
