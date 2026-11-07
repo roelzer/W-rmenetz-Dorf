@@ -530,3 +530,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:02 | ▶ | entwickler | P0 Vertrag NR20-22 |
 | 2026-11-07 19:02 | ▶ | tester | V0 NR20-22 Testvorbereitung |
 | 2026-11-07 19:04 | ■ 🟢 | architekt | 🟢 **Fassung 2.3 von `docs/bauplaene/NR20-22.md` ist fertig**, alle Änderungen mit **[2.3]** markiert. Wie verlangt habe ich nichts an §5 Vertrag, P0, V0, F ([Bericht](docs/pruefberichte/20261107-190449-architekt-a04c7b06cc930f4a7.md)) |
+| 2026-11-07 19:05 | ▶ | kritiker | Nachprobe M1 Bauplan 2.3 |
