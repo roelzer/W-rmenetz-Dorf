@@ -1,5 +1,6 @@
 import type {
-  Bedienung, Schritt, Tipp, TippMeldung, TutorialAnsicht, TutorialSchrittId, TutorialSperre, TutorialWerte, ZielName,
+  Bedienung, Schritt, Tipp, TippMeldung, TutorialAnsicht, TutorialLeitungsLage, TutorialSchrittId, TutorialSperre, TutorialWerte,
+  ZielName,
 } from './tutorial-vertrag';
 import { ERSTE_HAEUSER } from './start';
 import { KATALOG, istLeitung, type TypId } from './katalog';
@@ -14,6 +15,7 @@ import type { Objekt, Spielstand } from './typen';
 export interface TutorialLage {
   readonly stand: Spielstand; readonly netz: { readonly warm: ReadonlySet<number> }; readonly spielerName: string;
   erreichteHaeuser(): number[]; tutorialWerte(): TutorialWerte; tutorialGeldFehlt_eur(): number;
+  tutorialLeitungen(): TutorialLeitungsLage;
   tutorialKapitelSetzen(kapitel: number): void; tutorialBeenden(): void;
 }
 
@@ -165,10 +167,22 @@ function kurzform(typ: TypId): string {
   return m[1];
 }
 
+type Nr20Felder = Pick<TutorialAnsicht, 'band' | 'naechstes_feld' | 'zielscheibe' | 'finger_weg' | 'fremd' | 'ziel_stecker'
+  | 'ziel_ring' | 'erreicht_ids' | 'farbknopf_ring' | 'zeichenleiste' | 'zeichnen_ruht' | 'kompakt' | 'ruhe'>;
+
+/** NR20/NR21: Ansicht-Felder für Spur, Ziele und Ruhe – leer bzw. aus, bis die Schrittlogik für Kapitel 3 sie füllt.
+ *  Jedes Mal neue Listen, damit kein Aufrufer eine gemeinsame Liste verändert. */
+function nr20Leer(): Nr20Felder {
+  return { band: [], naechstes_feld: null, zielscheibe: null, finger_weg: [], fremd: [], ziel_stecker: [], ziel_ring: null,
+    erreicht_ids: [], farbknopf_ring: null, zeichenleiste: null, zeichnen_ruht: false, kompakt: false, ruhe: false };
+}
+
 function einsetzen(text: string, w: TutorialWerte, name: string, kapitelname = ''): string {
   const werte: Record<string, () => string> = {
-    Name: () => name, Kapitelname: () => kapitelname, leitung: () => kurzform(w.leitung),
-    kessel_kw: () => zahl(w.kessel_kw, 'kW'), kap_kw: () => zahl(w.kap_kw, 'kW'), kwh: () => zahl(w.kwh, 'kWh'),
+    // Übergang bis zur neuen Schrittlogik: alte Texte mit {leitung}/{kap_kw} lesen die veralteten Felder, sonst die Hauptleitung.
+    Name: () => name, Kapitelname: () => kapitelname, leitung: () => kurzform(w.leitung ?? w.haupt),
+    kessel_kw: () => zahl(w.kessel_kw, 'kW'), kap_kw: () => zahl(w.kap_kw ?? (KATALOG[w.haupt].kapazitaet_kw as number), 'kW'),
+    kwh: () => zahl(w.kwh, 'kWh'),
     kw_ohne: () => zahl(w.kw_ohne, 'kW'), kw_puffer: () => zahl(w.kw_puffer, 'kW'),
   };
   return text.replace(/\{(\w+)\}/g, (_, k: string) => {
@@ -373,7 +387,7 @@ export class Tutorial {
       const text = einsetzen(WIEDEREINSTIEG, w, this.lage.spielerName, name) + (name.endsWith('!') ? '' : '.');
       return { ...kopf, art: 'W', text, ...hinweis, wusstest_du: false, ziele: [], finger: 'aus', abdunkeln: 'alles', weiter: 'weiter',
         kamera: 'steht', kamera_ziele: [], kamera_grenze: false, spur: false, erreicht_zeigen: false, objekt_ids,
-        normale_aktion: false, wiedereinstieg: true };
+        normale_aktion: false, wiedereinstieg: true, ...nr20Leer() };
     }
     const wartet = this.wartet();
     const weiter = d.art === 'H' ? null : wartet ? 'wartet' : d.los ? 'los' : 'weiter';
@@ -392,8 +406,8 @@ export class Tutorial {
       ...(d.info_kapsel ? { info_kapsel: einsetzen(INFO_KAPSEL, w, this.lage.spielerName) } : {}),
       ...(d.effekt ? { effekt: d.effekt } : {}),
       ...(d.nach_handlung_schliessen ? { nach_handlung_schliessen: d.nach_handlung_schliessen } : {}),
-      ...(d.id === 'T12' ? { leitung_typ: w.leitung } : {}),
-      objekt_ids, normale_aktion: !!d.normale_aktion, wiedereinstieg: false,
+      ...(d.id === 'T12' ? { leitung_typ: w.leitung ?? w.haupt } : {}),
+      objekt_ids, normale_aktion: !!d.normale_aktion, wiedereinstieg: false, ...nr20Leer(),
     };
   }
 }

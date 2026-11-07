@@ -4,6 +4,7 @@ import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschlu
 import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz';
 import { TUTORIAL_SPUR } from '../core/start';
 import type { Spiel } from '../core/spiel';
+import type { Feld, TutorialBandFeld } from '../core/tutorial-vertrag';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
@@ -41,6 +42,20 @@ export interface Szene {
   tutorial_spur?: ReadonlyArray<readonly [number, number]>;
   /** NR13: erreichte Tutorial-Häuser mit Zeitpunkt, ab dem ihr „Erreicht“-Zeichen federt */
   erreicht?: ReadonlyArray<{ id: number; seit_ms: number }>;
+  /** NR20: Geisterleitung mit Pfeilen (T13/T13w/T13h) */
+  tutorial_band?: ReadonlyArray<TutorialBandFeld>;
+  /** NR20: Feld mit der leuchtenden Raute */
+  naechstes_feld?: Feld;
+  /** NR20: Zielscheibe im Band auf dem Abzweig */
+  zielscheibe?: Feld;
+  /** NR20: Haus-Ids mit Ziel-Stecker und das Haus mit Ring */
+  ziel?: { stecker: number[]; ring: number | null };
+  /** NR20: Ruhe im Bild in Kapitel 3 (kW-Schilder und fremde Blasen aus, leichter Schleier) */
+  ruhe?: boolean;
+  /** NR21: gestreiftes fremdes Stück (eigener Abgang) */
+  tutorial_fremd?: ReadonlyArray<Feld>;
+  /** NR22: überlastete Stücke; `dreiecke` = Feldnummern der Warndreiecke, `geplant` = Ersatz für alle Felder geplant */
+  ueberlast?: ReadonlyArray<{ felder: number[]; dreiecke: number[]; geplant: boolean; seit_ms: number }>;
 }
 
 interface Gras { n: Punkt[]; blume: number; hell: number }

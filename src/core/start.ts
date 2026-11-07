@@ -15,6 +15,18 @@ export const ERSTE_HAEUSER: ReadonlyArray<readonly [number, number]> = [[9, 13],
 /** NR13 (NR18 5.2): Felder der Tutorial-Spur in Zugrichtung – von der Heizzentrale nach Süden an Haus 1 vorbei, dann zu Haus 2. */
 export const TUTORIAL_SPUR: ReadonlyArray<readonly [number, number]> = [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]];
 
+/** NR21 (Bauplan NR20-22 E2): Größe der Tutorial-Hauptleitung. Spielentscheidung mit Reserve fürs Tutorial, keine Fachregel
+ *  (Fachprüfer 2026-11-07). */
+export const TUTORIAL_HAUPTLEITUNG: TypId = 'd32';
+/** NR21 (E1): Hauptleitung von der Heizzentrale bis zum Abzweig, in Zugrichtung. */
+export const TUTORIAL_HAUPT: ReadonlyArray<readonly [number, number]> = [[10, 11], [10, 12]];
+/** NR21 (E1): eigener Hausanschluss für Haus 1 (9|13), vom Abzweig weg. */
+export const TUTORIAL_ANSCHLUSS_1: ReadonlyArray<readonly [number, number]> = [[9, 12]];
+/** NR21 (E1): eigener Hausanschluss für Haus 2 (12|14), vom Abzweig weg. */
+export const TUTORIAL_ANSCHLUSS_2: ReadonlyArray<readonly [number, number]> = [[10, 13], [10, 14], [11, 14]];
+/** NR21 (E1): Abzweig = letztes Feld der Hauptleitung; ab hier hat jedes Haus sein eigenes Stück. */
+export const TUTORIAL_ABZWEIG: readonly [number, number] = [10, 12];
+
 /** AE-NR13-1: Jeder Produktionsweg zu einem neuen Spiel startet hier – das Startdorf plus die Tutorial-Merke, sonst nichts. */
 export function neuesSpielMitTutorial(jetzt_ms: number, ortId?: string): Spielstand {
   return { ...neuerSpielstand(jetzt_ms, ortId), tutorial: { kapitel: 1 } };

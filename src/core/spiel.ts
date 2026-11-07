@@ -7,7 +7,7 @@ import {
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
-import type { Schritt, TutorialWerte } from './tutorial-vertrag';
+import type { Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
 import { ERSTE_HAEUSER } from './start';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
@@ -101,12 +101,19 @@ export class Spiel {
   tutorialWerte(): TutorialWerte {
     const [h1, h2] = this.tutorialHaeuser();
     const kw_puffer = bedarfKw({ ...h1, hauspuffer: true });
-    const leitung = this.passendeLeitung(kw_puffer + bedarfKw({ ...h2, hauspuffer: true }));
+    const kw_summe = kw_puffer + bedarfKw({ ...h2, hauspuffer: true });
+    const leitung = this.passendeLeitung(kw_summe);
     if (!leitung) throw new Error('NR13: keine Leitung freigeschaltet');
+    // haupt/anschluss vorläufig = bisherige Leitung; die Regeln E2 (32er-Vorgabe, Anschluss aus kw_puffer) kommen mit NR21 P1.
     return {
       kessel_kw: this.netz.verfuegbar_kw, kwh: this.jahresverbrauch_kwh(h1), kw_ohne: bedarfKw({ ...h1, hauspuffer: false }), kw_puffer,
-      leitung, kap_kw: KATALOG[leitung].kapazitaet_kw as number,
+      kw_summe, haupt: leitung, anschluss: leitung, leitung, kap_kw: KATALOG[leitung].kapazitaet_kw as number,
     };
+  }
+  /** NR21: Rollenprüfung der Tutorial-Leitungen (E3). Platzhalter aus dem Vertrag; der Aufruf ist ein Programmierfehler,
+   *  bis die Prüfung gebaut ist – lieber laut scheitern als eine erfundene Lage liefern. */
+  tutorialLeitungen(): TutorialLeitungsLage {
+    throw new Error('NR21 P1: tutorialLeitungen noch nicht gebaut');
   }
   /** NR13 (Weg b): Was bis zum Material noch fehlt – eingezeichnete Leitungen plus die Puffer-Stationen der Tutorial-Häuser, die noch
    *  keine haben, zum Preis, den stationKaufen abbucht. 0 ohne Tutorial und außerhalb der Phasen offen/bestellen. */

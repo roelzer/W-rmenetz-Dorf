@@ -24,11 +24,14 @@ export type Tipp =
   | 'leitungskarte'            // Katalogkarte einer Leitung; typ = Leitungstyp
   | 'haus'                     // Haus auf der Karte angetippt; objekt_id = Haus
   | 'weiter'                   // [Weiter] bzw. [Los geht’s] der Anleiter-Karte
-  | 'daneben';                 // Berührung außerhalb des Lochs (für „Hilfe nach drei Fehltipps“)
+  | 'daneben'                  // Berührung außerhalb des Lochs (für „Hilfe nach drei Fehltipps“)
+  | 'farbknopf'                // NR21: Farbknopf der Zeichenleiste; typ = angetippte Leitung
+  | 'abgehoben';               // NR21: letzter Finger hebt im Zeichenmodus ab (auch pointercancel)
 
-/** Kennung eines Tutorial-Schritts (DESIGN 13.5). T13b ist kein eigener Schritt, sondern ein Text von T13. */
+/** Kennung eines Tutorial-Schritts (DESIGN 13.5). T13b ist kein eigener Schritt, sondern ein Text von T13.
+ *  NR21: Reihenfolge T12, T13 (Hauptleitung), T13w (Wechsel der Größe am Abzweig), T13h (Hausanschlüsse), T14. */
 export type TutorialSchrittId =
-  | 'T01' | 'T02' | 'T03' | 'T04' | 'T05' | 'T06' | 'T07' | 'T08' | 'T09' | 'T10' | 'T11' | 'T12' | 'T13'
+  | 'T01' | 'T02' | 'T03' | 'T04' | 'T05' | 'T06' | 'T07' | 'T08' | 'T09' | 'T10' | 'T11' | 'T12' | 'T13' | 'T13w' | 'T13h'
   | 'T14' | 'T15' | 'T16' | 'T17' | 'T18' | 'T19' | 'T20' | 'T21' | 'T22' | 'T23' | 'T24' | 'T25' | 'T26';
 
 /** Stellen, die das Tutorial hervorhebt (Löcher im Abdunkeln); das Fingerziel ist das erste. */
@@ -47,7 +50,44 @@ export type Bedienung = 'zoom' | 'doerfer' | 'auftrag' | 'blatt_schliessen' | 'v
 export interface TippMeldung { art: 'tipp'; tipp: Tipp; objekt_id?: number; typ?: TypId }
 
 /** Zahlen aus dem Spiel, die in den Tutorial-Texten stehen (DESIGN 13.9 „Zahlen aus dem Spiel“). */
-export interface TutorialWerte { kessel_kw: number; kwh: number; kw_ohne: number; kw_puffer: number; leitung: TypId; kap_kw: number }
+export interface TutorialWerte {
+  kessel_kw: number; kwh: number; kw_ohne: number; kw_puffer: number;
+  /** NR21: Puffer-Bedarf Haus 1 + Haus 2 – so viel trägt die Hauptleitung bis zum Abzweig */
+  kw_summe: number;
+  /** NR21: Größe der Hauptleitung (benannte Vorgabe, E2) */
+  haupt: TypId;
+  /** NR21: Größe jedes Hausanschlusses (aus der Spielrechnung, E2) */
+  anschluss: TypId;
+  /** @deprecated NR21 – entfällt im P2-Nachzug; optional, damit neue Tests sie weglassen können */
+  leitung?: TypId;
+  /** @deprecated NR21 – entfällt im P2-Nachzug */
+  kap_kw?: number;
+}
+
+/** NR20/NR21: Feldkoordinate (x, y) auf der Karte. */
+export type Feld = readonly [number, number];
+
+/** NR21 (Bauplan NR20-22 E3): Wie die Leitungen des Spielers zu den Rollen der Tutorial-Spur passen; rechnet der Kern. */
+export interface TutorialLeitungsLage {
+  haupt_ok: boolean; haus1_ok: boolean; haus2_ok: boolean;
+  haupt_zu_duenn: boolean; anschluss_zu_dick: boolean;
+  /** Probe-Netz (gebaut + eingezeichnet) zeigt Reduzierung, Aufteilung oder Engpass */
+  planungsfehler: boolean;
+  /** Felder eines eigenen Abgangs (Hausweg ohne Abzweig) außerhalb der Spur; [] = kein eigener Abgang */
+  fremd: ReadonlyArray<Feld>;
+  /** kleinstes Tutorial-Haus mit eigenem Abgang, sonst null */
+  fremd_haus: 1 | 2 | null;
+  felder: ReadonlyArray<{ x: number; y: number; rolle: 'haupt' | 'anschluss'; typ: TypId; richtig: boolean }>;
+  /** alle 6 Spurfelder in Zugrichtung */
+  spur: ReadonlyArray<{ x: number; y: number; stueck: 'haupt' | 'haus1' | 'haus2'; belegt: TypId | null; richtig: boolean }>;
+}
+
+/** NR20: ein Feld der Geisterleitung (Band) mit Pfeil. */
+export interface TutorialBandFeld {
+  x: number; y: number; typ: TypId; aktiv: boolean; falsch: boolean;
+  /** Feldschritt zum nächsten Feld des Stücks, letztes Feld → Haus ([0,1] = nach Süden); null auf dem Abzweig */
+  pfeil: Feld | null;
+}
 
 /** Sperre einer Bedienung: `kurz` = Knopfzeile 2 (höchstens 18 Zeichen), `satz` = Simon-Satz in der Blase. */
 export interface TutorialSperre { kurz: string; satz: string }
@@ -95,4 +135,30 @@ export interface TutorialAnsicht {
   normale_aktion: boolean;
   /** true = Blase „Weiter geht’s, {Name}! …“ vor dem eigentlichen Schritt */
   wiedereinstieg: boolean;
+  /** NR20: Geisterleitung; [] außerhalb T13/T13w/T13h */
+  band: TutorialBandFeld[];
+  /** NR20: Feld mit der leuchtenden Raute */
+  naechstes_feld: Feld | null;
+  /** NR20: T13, T13w: TUTORIAL_ABZWEIG; T13h nur bei fremd ≠ []; sonst null */
+  zielscheibe: Feld | null;
+  /** NR20: Feldkoordinaten ab naechstes_feld; T13 endet auf der Zielscheibe, T13h auf der Hausmitte; [] = kein Ziehen */
+  finger_weg: ReadonlyArray<readonly [number, number]>;
+  /** NR21: = TutorialLeitungsLage.fremd in T13–T14, sonst [] */
+  fremd: ReadonlyArray<Feld>;
+  /** NR20: Haus-Ids mit Ziel-Stecker */
+  ziel_stecker: number[];
+  /** NR20: Haus-Id mit Ring; in T13/T13w immer null */
+  ziel_ring: number | null;
+  /** NR20: richtig angeschlossene Tutorial-Häuser (haus1_ok/haus2_ok) */
+  erreicht_ids: number[];
+  /** NR21: Farbknopf mit Ring */
+  farbknopf_ring: TypId | null;
+  /** NR21: Leiste muss offen sein; beim Herstellen mit diesem Typ öffnen */
+  zeichenleiste: { typ: TypId } | null;
+  /** NR21: nur T13w */
+  zeichnen_ruht: boolean;
+  /** NR20: kompakte Anleiter-Karte in T13/T13w/T13h */
+  kompakt: boolean;
+  /** NR20: Ruhe im Bild (kW-Schilder und fremde Blasen aus, Schleier) in T12–T14 */
+  ruhe: boolean;
 }
