@@ -264,6 +264,35 @@ describe('NR21 Ablauf: Haus 2 zuerst und eigener Abgang (DESIGN 13.17.8)', () =>
     }, { uhr: () => uhr.t });
   });
 
+  it('test_nr21_spalte_11_nur_11_12_radiert (11): 25er über Spalte 11 zu Haus 2, Spur (10|13)→(10|14) dazu, Radierer nur auf (11|12) → beide Häuser ok, Streifen (11|13) bleibt, kein T14; Radierer auf (11|13) → T14 erst nach dem Abheben; Bau → warm', async () => {
+    const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      // Startgeld laut tests/nr13-kern.test.ts:11; 30.000 € reichen für Planung, beide Puffer-Stationen und alle Felder (Bauplan P5 [2.3])
+      spiel.stand.geld_eur = 30_000;
+      bisT13h(u, spiel, uhr);
+      expect(spiel.tutorialGeldFehlt_eur()).toBe(0);
+      wischeFelder(u, ZUG_HAUS1); st(u).tick(uhr.t);
+      wischeFelder(u, [[11, 12], [11, 13], [11, 14], ERSTE_HAEUSER[1]]); st(u).tick(uhr.t);
+      expect(text(u)).toBe(SATZ_EIGENER_ABGANG);
+      wischeFelder(u, [[10, 13], [10, 14]]); st(u).tick(uhr.t);
+      knopfMitId(u, 'radierer')!.click(); st(u).tick(uhr.t);
+      wischeFelder(u, [[11, 12]]); st(u).tick(uhr.t);
+      const lg = spiel.tutorialLeitungen();
+      expect([lg.haus1_ok, lg.haus2_ok]).toEqual([true, true]);
+      expect(schritt(u)).toBe('T13h');
+      expect(text(u)).toBe(SATZ_EIGENER_ABGANG);
+      expect(st(u).szene().tutorial_fremd).toEqual([[11, 13]]);
+      expect(abschliessenText(u)).toContain(KURZ_WEG);
+      wischeFelder(u, [[11, 13]], false); st(u).tick(uhr.t);
+      expect(st(u).szene().tutorial_fremd ?? [], 'Streifen weg, sobald (11|13) radiert ist').toEqual([]);
+      expect(schritt(u), 'Finger liegt noch: kein Wechsel unter dem Finger').toBe('T13h');
+      abheben(u, [11, 13]); st(u).tick(uhr.t);
+      expect(schritt(u)).toBe('T14');
+      abT14Bauen(u, spiel, uhr);
+      nachDemBau(spiel);
+    }, { uhr: () => uhr.t });
+  });
+
   it('test_nr21_eigener_abgang_neuladen (9): Stand aus (7) speichern und laden → T13h mit Satz, Streifen, Leiste 25 offen; nie T14', async () => {
     const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {

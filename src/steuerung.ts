@@ -462,7 +462,7 @@ export class Steuerung implements Ui {
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
-        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelStart = null; this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
+        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelStart = null; this.anleitung?.zugBeginnt(); this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
       } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; this.drehAktiv = false; }
     });
     l.addEventListener('pointermove', (e) => {
