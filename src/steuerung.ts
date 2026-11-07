@@ -114,6 +114,8 @@ export class Steuerung implements Ui {
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
   private erreichtSeit = new Map<number, number>();
   private szeneTutorial: SzeneTutorial = {};
+  /** 13.17.9 F8: Stand des letzten Bilds ohne Zug (Ansicht und Ring-Knopf) – im Zug bleibt das Bild so, bis der Finger abhebt */
+  private vorZug: { schritt: string; a: TutorialAnsicht; ring_id: string | null } | null = null;
   /** Läuft die Pause nach der letzten Berührung der Karte: Der Vorführ-Finger kommt erst `finger_wieder` danach zurück */
   private fingerPause: number | null = null;
 
@@ -882,11 +884,34 @@ export class Steuerung implements Ui {
   /** Knopf der Zeichenleiste mit Ring: der Farbknopf `farbknopf_ring`; beim fremden Stück (Bauplan NR20-22 P5 [2.1]/[2.3])
    *  [Zurück], wenn es genau das zuletzt gezeichnete Feld wegnähme – ein Feld genügt, damit der eigene Abgang endet –,
    *  sonst der Radierer. Nur die Steuerung kennt [Zurück], darum wird das hier und nicht im Kern entschieden. */
-  private ringKnopf(a: TutorialAnsicht): HTMLElement | null {
+  private ringKnopfId(a: TutorialAnsicht): string | null {
     const letzte = a.fremd.length ? this.spiel.letzteLeitungFeld() : null;
     const zurueck = !!letzte && a.fremd.some(([x, y]) => x === letzte[0] && y === letzte[1]);
-    const id = a.fremd.length ? (zurueck ? 'zurueck' : 'radierer') : a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
+    return a.fremd.length ? (zurueck ? 'zurueck' : 'radierer') : a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
+  }
+  private ringKnopf(id: string | null): HTMLElement | null {
     return id ? this.leiste?.blatt.wurzel.querySelector<HTMLElement>(`[data-id="${id}"]`) ?? null : null;
+  }
+  /**
+   * 13.17.9 F8: Der Zustand „eigener Abgang“ wechselt gemeinsam beim Abheben. Solange ein Zug läuft, bleiben Satz, Ring ums Haus,
+   * Ring in der Leiste, Zielscheibe, Raute und Band wie im letzten Bild ohne Zug (nur im selben Schritt). Neue Streifen kommen
+   * erst beim Abheben; Streifen auf gerade wegradierten Feldern verschwinden sofort – kein Streifen ohne Rohr.
+   */
+  private imZugHalten(a: TutorialAnsicht): { a: TutorialAnsicht; ring_id: string | null } {
+    const schritt = `${a.schritt}|${a.wiedereinstieg}`;
+    if (!(this.modus === 'stempel' && this.zeiger.size > 0)) {
+      const ring_id = this.ringKnopfId(a);
+      this.vorZug = { schritt, a, ring_id };
+      return { a, ring_id };
+    }
+    const v = this.vorZug?.schritt === schritt ? this.vorZug : null;
+    if (!v) return { a: { ...a, fremd: [] }, ring_id: this.ringKnopfId(a) };
+    const feldText = ([x, y]: readonly [number, number]): string => `${x},${y}`, liegt = new Set(a.fremd.map(feldText));
+    return {
+      a: { ...a, text: v.a.text, band: v.a.band, naechstes_feld: v.a.naechstes_feld, zielscheibe: v.a.zielscheibe, ziel_ring: v.a.ziel_ring,
+        fremd: v.a.fremd.filter((f) => liegt.has(feldText(f))) },
+      ring_id: v.ring_id,
+    };
   }
   private static elRechteck(el: HTMLElement): Rechteck { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, b: r.width, h: r.height }; }
   /** Feldmitten-Rahmen um Objekte */
@@ -923,8 +948,8 @@ export class Steuerung implements Ui {
     // damit die Zielscheibe im Band das hellste Ziel ist. Aus der Ansicht abgeleitet, ohne Schrittnamen (Architekturtest U2).
     if (a.ziel_stecker.length && a.zeichenleiste?.typ === this.spiel.tutorialWerte().haupt) sz.stecker_blass = true;
     if (a.ruhe) sz.ruhe = true;
-    // DESIGN 13.17.8: Während eines Zugs blieben sonst Streifen auf halb gezogenen Feldern stehen – sie erscheinen beim Abheben
-    if (a.fremd.length && !(this.modus === 'stempel' && this.zeiger.size > 0)) sz.tutorial_fremd = a.fremd;
+    // Im Zug hat imZugHalten die Streifen schon auf den Stand vor dem Zug begrenzt (DESIGN 13.17.8, 13.17.9 F8)
+    if (a.fremd.length) sz.tutorial_fremd = a.fremd;
     for (const id of [a.objekt_ids.haus1, a.objekt_ids.haus2]) {
       if (!a.erreicht_ids.includes(id)) this.erreichtSeit.delete(id);
       else if (!this.erreichtSeit.has(id)) this.erreichtSeit.set(id, this.uhr());
@@ -936,8 +961,9 @@ export class Steuerung implements Ui {
   /** Ansicht des Tutorials auf Kamera, Abdunkeln, Anleiter-Karte, Kapsel und Sperre übertragen – je Bild geprüft, nur bei
    *  Änderung gesetzt. Die freie Breite wird hier gemessen, also nach der Verarbeitung des Ereignisses. */
   private anleitungAnwenden(): void {
-    const a = this.anleitung?.ansicht(this.uhr()) ?? null;
-    if (!a) return;
+    const roh = this.anleitung?.ansicht(this.uhr()) ?? null;
+    if (!roh) return;
+    const { a, ring_id } = this.imZugHalten(roh);
     if (this.zielHerstellenOffen && !a.wiedereinstieg) { this.zielHerstellenOffen = false; this.zielHerstellen(a); }
     if (!a.wiedereinstieg) this.leisteHerstellen(a);
     const k = this.kamera, frei = this.freieFlaeche(), vorher = this.angewendet;
@@ -970,7 +996,7 @@ export class Steuerung implements Ui {
     schleierSetzen(a.ruhe ? this.schleierGang(a) : null);
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
-    const ringEl = this.ringKnopf(a), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
+    const ringEl = this.ringKnopf(ring_id), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
     // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): Lochrand in der Zeichenleiste, die nur_hud ohnehin nicht abdunkelt
     // 13.17.9 F7: Am Farbknopf liegt der Ring 2 px eng an, damit er die Kennzeile darunter nicht berührt
     const ringLoch = (r: Rechteck): Loch => ({ r, form: 'rund', ...(ringEl?.classList.contains('farbknopf') ? { abstand_px: T.menue.mass_px.spot_abstand_farbknopf } : {}) });

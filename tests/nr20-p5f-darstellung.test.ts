@@ -112,6 +112,15 @@ describe('P5f-2 F5: Startfeld an der Heizzentrale und Raute mit Pfeil', () => {
     expect(rauteFuellung(unten), 'Raute (9|12) vor der Heizzentrale').toBeLessThan(hz2);
   });
 
+  it('Grenze der Nachbarschaft: (10|12) (nur übers Eck) und (14|11) (ein Feld Lücke) bleiben unter der Heizzentrale, (13|11) liegt darüber', () => {
+    // Heizzentrale (11|10), Größe 2: Grundfläche x 11–12, y 10–11
+    const lage = (x: number, y: number): number => {
+      const b = bild(szene({ tutorial_band: [{ x, y, typ: 'd25', aktiv: true, falsch: false, pfeil: null }] }));
+      return Math.sign(b.indexOf(`strokeStyle=${D25}`) - b.indexOf(HZ_WAND));
+    };
+    expect([lage(10, 12), lage(14, 11), lage(13, 11), lage(12, 9)]).toEqual([-1, -1, 1, 1]);
+  });
+
   it('beim Planen (zweiter Leitungs-Durchgang über den Gebäuden) liegen Band und Raute auf (10|11) auch über den Leitungen', () => {
     const mitRohr = [...objekte, neu('d25', 13, 12)];
     const b = bild(szene({ objekte: mitRohr, netz: berechneNetz(mitRohr, [], 1), modus: 'stempel', tutorial_band: T13_BAND, naechstes_feld: [10, 11] }));
