@@ -619,3 +619,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:01 | ■ 🟡 | reviewer | Ampel: GELB – freigegeben mit kleinen Punkten (P5e, Branch nr20-p5e, d66fe46..cc61792)  ([Bericht](docs/pruefberichte/20261107-220125-reviewer-ad3504d867d513005.md)) |
 | 2026-11-07 22:03 | ■ 🔴 | designer | 🟡 Das Tutorial läuft auf beiden Handygrößen von T12 bis T14 durch. Die Umwege „über den Abzweig hinaus“ und „eigener Abgang“ funktionieren auch.  ([Bericht](docs/pruefberichte/20261107-220317-designer-a30d20b8a363625c8.md)) |
 | 2026-11-07 22:05 | ■ 🟢 | designer | 🟢 Fertig. DESIGN.md hat jetzt den neuen Abschnitt 13.17.9 „Feinschliff P5f“ und ist committet als 31daee1 auf `claude/keen-mccarthy-f4p5us`. Nicht gepush ([Bericht](docs/pruefberichte/20261107-220558-designer-a30d20b8a363625c8.md)) |
+| 2026-11-07 22:06 | ▶ | entwickler | P5f-1 Kern: Rest-Stück, Zielscheibe |
+| 2026-11-07 22:06 | ▶ | entwickler | P5f-2 Darstellung+Steuerung |
