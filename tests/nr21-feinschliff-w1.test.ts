@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TypId } from '../src/core/katalog';
 import { Spiel } from '../src/core/spiel';
-import { TUTORIAL_ANSCHLUSS_1, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
+import { TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
 import { Tutorial } from '../src/core/tutorial';
 
 // Review P5f-1 W1, Entscheidung (a) (ENTSCHEIDUNGEN 2026-11-07): Die Rest-Stück-Regel (jedes Leitungsfeld außerhalb von Spur
@@ -19,6 +19,7 @@ const KURZ_WEG = 'Stück muss weg';
 type Strich = readonly [TypId, number, number];
 const HAUPT: Strich[] = TUTORIAL_HAUPT.map(([x, y]) => ['d32', x, y] as const);
 const ANSCHLUSS_1: Strich[] = TUTORIAL_ANSCHLUSS_1.map(([x, y]) => ['d25', x, y] as const);
+const ANSCHLUSS_2: Strich[] = TUTORIAL_ANSCHLUSS_2.map(([x, y]) => ['d25', x, y] as const);
 
 /** Tutorial-Spiel mit offenem Abschnitt (Planung im Tutorial 10 s, tests/nr13-kern.test.ts test_nr13_tutorial_zeiten). */
 function offen(): Spiel {
@@ -80,6 +81,19 @@ describe('Review P5f-1 W1 (a): Rest-Stück-Regel erst ab T13h', () => {
     zeichnen(s, [['d32', 10, 12]]);
     t.handlung();
     expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13w', fremd: [] });
+  });
+
+  it('test_w1_t13_planungsfehler_bleibt: im laufenden Zug in T13 volle Spur + (11|13) → beide Häuser ok mit Aufteilung, gestreift wie vor P5f-1', () => {
+    const { s, t } = inT13();
+    t.zugBeginnt();
+    for (const [typ, x, y] of [...HAUPT, ...ANSCHLUSS_1, ...ANSCHLUSS_2, ['d25', 11, 13] as const]) {
+      expect(s.platzieren(typ, x, y).ok, `${typ} auf (${x}|${y})`).toBe(true);
+      t.schritt({ schritt: 'leitung_gezeichnet' });
+    }
+    const lg = s.tutorialLeitungen();
+    expect([lg.haus1_ok, lg.haus2_ok, lg.planungsfehler, lg.fremd_haus], 'Testaufbau (tests/nr21-kern.test.ts Vierer-Ring)').toEqual([true, true, true, null]);
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13', text: SATZ_EIGENER_ABGANG, fremd: [[11, 13]], finger_weg: [] });
+    expect(t.sperre('abschliessen')?.kurz).toBe(KURZ_WEG);
   });
 
   it('test_w1_t13h_stummel_bleibt_fremd: derselbe Stummel ab T13h → gestreift, Abgang-Satz, „Stück muss weg“', () => {
