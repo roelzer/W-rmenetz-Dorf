@@ -517,3 +517,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 18:12 | ▶ | architekt | Bauplan NR20-22 Fassung 2 |
 | 2026-11-07 18:25 | ■ 🟢 | architekt | 🟢 **Fassung 2 des Bauplans NR20–22 ist fertig. Alle sieben Muss-Befunde des Kritikers und alle Rückfragen von V0 bis P7 sind abgearbeitet.** Die Architekt ([Bericht](docs/pruefberichte/20261107-182521-architekt-ab305ceeba55f0962.md)) |
 | 2026-11-07 18:26 | ▶ | kritiker | Bauplanprobe NR20-22 Fassung 2 |
+| 2026-11-07 18:34 | ■ 🔴 | kritiker | 🔴 Rot: So noch nicht bauen. Ein kleiner Nachtrag (Fassung 2.1) reicht aber.  ([Bericht](docs/pruefberichte/20261107-183411-kritiker-a2c9daac725229814.md)) |
