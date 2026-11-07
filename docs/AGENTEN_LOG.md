@@ -581,3 +581,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:14 | ▶ | entwickler | P2-Nachzug leitung/kap_kw |
 | 2026-11-07 20:14 | ▶ | entwickler | P3 Ziehen ab bestehender Leitung |
 | 2026-11-07 20:16 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT (nur formal).** Die Arbeit ist fertig und committet. Die Test-Schranke meldet aber „NICHT OK“. Das liegt an 79 roten Tests aus der  ([Bericht](docs/pruefberichte/20261107-201620-entwickler-a58ad11270cd69bf0.md)) |
+| 2026-11-07 20:16 | ▶ | reviewer | Nachprüfung P4a |
