@@ -72,3 +72,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P4a-Nachbesserung db8ab43 (Branch worktree-agent-a58ad11270cd69bf0) → Nachprüfung. Laufen: P2-Nachzug, P3.
 - 2026-11-07: P2-Nachzug fertig a0f71fb (Branch nr20-nachzug, unverändert 21 rot) → Review läuft. Danach Tester toEqual (inkl. Kommentar nr13-kern:133), dann P6. Merkposten: veralteter Kommentar „T13b“ tutorial-vertrag.ts:31 → in P5 mitnehmen.
 - 2026-11-07: P4a-Nachprüfung 🟢 → gemergt, nr20-int 1bf6f3a, typecheck grün, 20 rot/1538 grün. Sammelliste P5/P7 +: Test Bandfeld (10|11) ohne festen Vorgänger (szene.ts:429).
+- 2026-11-07: P2-Nachzug 🟢 → gemergt, nr20-int 3ecff9e, typecheck grün. Laufen: Tester K3 toEqual (Branch nr20-k3), P6 NR22-Kern (Branch nr20-p6), P3. Danach P5, P7.
