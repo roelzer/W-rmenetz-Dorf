@@ -34,6 +34,7 @@ Wärmenetze (Nahwärme): Erzeugung, Leitungen, Hausanschlüsse, Verluste, Speich
 Format: `Datum – Entscheidung – Grund`
 - 2026-11-04 – Dev-Team eingerichtet, Besetzung Solo – eigenes Spielprojekt (Simon)
 - 2026-11-04 – Nur Querformat am Handy, Blätter als Seitenfläche rechts, Hochformat zeigt Dreh-Hinweis – Simon: „eigentlich nur quer“
+- 2026-11-07 – Projektleiter entscheidet Gestaltung, Ablauf und Baufreigabe selbst (nach grüner Prüfung); Simon nur bei Fachregeln und „Nur Simon“-Punkten – Simon: „entscheide selber“
 
 ## Projekt-Lektionen
 <!-- Nur was speziell für dieses Projekt gilt. Allgemeines gehört in die Lessons des Dev-Teams. -->
