@@ -12,7 +12,9 @@ export interface Rechteck { x: number; y: number; b: number; h: number }
 /** Loch um ein Ziel: `r` ist das Bildschirm-Rechteck des Ziels selbst; der Abstand des Lochs kommt hier dazu (13.2):
  *  Kartenobjekt = Ellipse um das Rechteck + 12 px, Bedienelement = Rechteck + 8 px mit Radius des Elements + 8. */
 export interface Loch { r: Rechteck; form: 'ellipse' | 'rund'; radius_px?: number }
-export type Finger = { art: 'tippen'; ziel: Rechteck } | { art: 'spur'; punkte: ReadonlyArray<readonly [number, number]> };
+/** `je_feld_ms` (DESIGN 13.17.1 B5, Kapitel 3): Finger zieht vor – drückt auf dem ersten Punkt auf und braucht je Punkt
+ *  diese Zeit; ohne das Feld fährt er die Spur in `spur_finger` ab (K9). */
+export type Finger = { art: 'tippen'; ziel: Rechteck } | { art: 'spur'; punkte: ReadonlyArray<readonly [number, number]>; je_feld_ms?: number };
 
 /** Eingangsdaten der Sperrregel AE-NR13-6 – aus der Tutorial-Ansicht gebaut, nicht aus dem gerade gezeigten Bild.
  *  `loecher` sind die Rechtecke der Ziele (wie `Loch.r`). */
@@ -84,7 +86,9 @@ function fingerStoppen(): void {
 
 /** Bewegung des Fingers über die Web-Animations-Schnittstelle (keine eigene Bildschleife, Architekturregel R1).
  *  Tippen (13.2): nach `verzoegerung` 6 px schräg zum Ziel und zurück in 400 ms, dann 1.200 ms Ruhe.
- *  Spur (K9): gleichmäßig in 2.400 ms über alle Punkte, am Ende ausblenden, 600 ms Pause, von vorn. */
+ *  Spur (K9): gleichmäßig in 2.400 ms über alle Punkte, am Ende ausblenden, 600 ms Pause, von vorn.
+ *  Spur mit `je_feld_ms` (B5): 200 ms auf dem ersten Punkt aufdrücken, dann Punktzahl × `je_feld_ms` nach Weglänge verteilt
+ *  (DESIGN: zwei Felder = 800 ms, vier = 1.600 ms), 200 ms ausblenden, 600 ms Pause, von vorn. */
 function fingerBewegen(el: HTMLElement, f: Finger, verzoegerung: number): void {
   fingerStoppen();
   if (f.art === 'tippen') {
@@ -99,18 +103,31 @@ function fingerBewegen(el: HTMLElement, f: Finger, verzoegerung: number): void {
     ], { duration: zyklus, delay: verzoegerung, iterations: Infinity }));
     return;
   }
-  const p = f.punkte, zyklus = Z.spur_finger + Z.spur_pause;
+  // K9 blendet innerhalb der Pause aus; B5 hebt erst ab (Ausblenden), danach kommen die 600 ms Pause
+  const p = f.punkte, b5 = f.je_feld_ms !== undefined, druck = b5 ? Z.finger_aufdruecken : 0;
+  const zug = f.je_feld_ms === undefined ? Z.spur_finger : p.length * f.je_feld_ms;
+  const zyklus = druck + zug + (b5 ? Z.spot_wechsel : 0) + Z.spur_pause;
   const laengen = p.map((q, i) => (i === 0 ? 0 : Math.hypot(q[0] - p[i - 1][0], q[1] - p[i - 1][1])));
   const gesamt = laengen.reduce((s, l) => s + l, 0);
   let bisher = 0;
   const lage = (q: readonly [number, number]): string => `translate(${px(q[0])}, ${px(q[1])})`;
-  const kf: Keyframe[] = p.map((q, i) => {
+  const kf: Keyframe[] = druck > 0 ? [{ offset: 0, transform: lage(p[0]), opacity: 1 }] : [];
+  kf.push(...p.map((q, i) => {
     bisher += laengen[i];
-    return { offset: gesamt > 0 ? (bisher / gesamt) * (Z.spur_finger / zyklus) : 0, transform: lage(q), opacity: 1 };
-  });
+    return { offset: (druck + (gesamt > 0 ? (bisher / gesamt) * zug : 0)) / zyklus, transform: lage(q), opacity: 1 };
+  }));
   const ende = lage(p[p.length - 1]);
-  kf.push({ offset: (Z.spur_finger + Z.spot_wechsel) / zyklus, transform: ende, opacity: 0 }, { offset: 1, transform: ende, opacity: 0 });
+  kf.push({ offset: (druck + zug + Z.spot_wechsel) / zyklus, transform: ende, opacity: 0 }, { offset: 1, transform: ende, opacity: 0 });
   fingerAnim.push(el.animate(kf, { duration: zyklus, delay: verzoegerung, iterations: Infinity }));
+}
+
+/** Druckpunkt an der Fingerspitze (DESIGN 13.17.1 B5): Kreis `mass_px.druckpunkt` in `farbe.ziel` mit 2 px `kontur`,
+ *  Mitte auf dem Ursprung des Fingers – dort liegt die Spitze. Steht auch bei „Weniger Bewegung“ mit dem Finger. */
+function druckpunkt(): HTMLElement {
+  const d = h('span', { class: 'spot-druckpunkt' }), r = M.druckpunkt / 2;
+  Object.assign(d.style, { position: 'absolute', boxSizing: 'border-box', borderRadius: '50%', width: px(M.druckpunkt), height: px(M.druckpunkt),
+    left: px(-r), top: px(-r), background: 'var(--menue-farbe-ziel)', border: '2px solid var(--menue-farbe-kontur)' });
+  return d;
 }
 
 function fingerSetzen(f: Finger | null, ruhig: boolean): void {
@@ -131,6 +148,7 @@ function fingerSetzen(f: Finger | null, ruhig: boolean): void {
   } else {
     el.style.left = '0px'; el.style.top = '0px';
     el.style.transform = `translate(${px(f.punkte[0][0])}, ${px(f.punkte[0][1])})`;
+    if (f.je_feld_ms !== undefined) el.append(druckpunkt());
   }
   ebene.append(el);
   fingerEl = el;

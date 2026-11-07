@@ -28,7 +28,8 @@ export type Tipp =
   | 'farbknopf'                // NR21: Farbknopf der Zeichenleiste; typ = angetippte Leitung
   | 'abgehoben';               // NR21: letzter Finger hebt im Zeichenmodus ab (auch pointercancel)
 
-/** Kennung eines Tutorial-Schritts (DESIGN 13.5). T13b ist kein eigener Schritt, sondern ein Text von T13.
+/** Kennung eines Tutorial-Schritts (DESIGN 13.5). T13b entfällt (DESIGN 13.17.1): Der Zwischenstand nach dem ersten Haus
+ *  ist kein eigener Schritt, sondern ein Text von T13h.
  *  NR21: Reihenfolge T12, T13 (Hauptleitung), T13w (Wechsel der Größe am Abzweig), T13h (Hausanschlüsse), T14. */
 export type TutorialSchrittId =
   | 'T01' | 'T02' | 'T03' | 'T04' | 'T05' | 'T06' | 'T07' | 'T08' | 'T09' | 'T10' | 'T11' | 'T12' | 'T13' | 'T13w' | 'T13h'

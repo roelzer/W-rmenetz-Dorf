@@ -271,7 +271,8 @@ export class Tutorial {
   private schrittIndex = 0;
   private daneben = 0;
   private sperrGetippt: Bedienung | null = null;
-  /** Bauplan NR20-22 P2: ein Zeichenzug läuft (Schritt leitung_gezeichnet in T13–T13h) bis zum Tipp „abgehoben“ oder Schrittwechsel. */
+  /** Bauplan NR20-22 P2: ein Zug läuft (Finger aufgesetzt oder leitung_gezeichnet in T13–T13h) bis zum Tipp „abgehoben“ oder
+   *  Schrittwechsel. Auch ein Radierzug zählt (ENTSCHEIDUNGEN 2026-11-07): kein Schrittwechsel unter dem Finger. */
   private zugLaeuft = false;
   private intro: boolean;
   private beendet = false;
@@ -389,6 +390,12 @@ export class Tutorial {
     if (this.intro) return;
     if (this.def.t13 && e.schritt === 'leitung_gezeichnet') this.zugLaeuft = true;
     this.nachZustand();
+  }
+
+  /** Die Oberfläche meldet: Finger im Zeichen- oder Radiermodus aufgesetzt. Weiter geht es erst mit dem Tipp „abgehoben“. */
+  zugBeginnt(): void {
+    if (!this.aktiv() || this.intro || !this.def.t13) return;
+    this.zugLaeuft = true;
   }
 
   handlung(): void {

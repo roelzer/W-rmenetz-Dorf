@@ -3,7 +3,6 @@ import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/k
 import { groesse, leitungsNachbarn } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
-import { TUTORIAL_SPUR } from './core/start';
 import { Tutorial } from './core/tutorial';
 import type { Bedienung, TippMeldung, TutorialAnsicht, TutorialSperre, ZielName } from './core/tutorial-vertrag';
 import type { Objekt } from './core/typen';
@@ -19,7 +18,7 @@ import { blattBreite_px, blattOeffnen, blattOffen, type Blatt } from './ui/blatt
 import { eur, h } from './ui/dom';
 import { sprecherAktiv, sprecherZeigen } from './ui/sprecher';
 import { anleiterAusblenden, anleiterKasten, anleiterPlaetze, anleiterPlatz, anleiterPlatzFrei, anleiterRechteck, anleiterZeigen, zielFlaecheNebenKarte } from './ui/anleiter';
-import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
+import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, schleierSetzen, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
@@ -46,6 +45,7 @@ const T13_ZOOM_MIN = 2;
 const BLATT_ZU_NACH_KAUF_MS = 200;
 /** Wie Kamera.groesseSetzen: kürzere Bildkante unter 500 px = Handy */
 const HANDY_KANTE_PX = 500;
+type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
 type Modus = 'normal' | 'platzieren' | 'verschieben' | 'stempel';
 
 /** Verbindet Eingabe, Karte, Oberfläche und Spiel. Enthält keine Spielregeln – die liegen in src/core. */
@@ -97,7 +97,7 @@ export class Steuerung implements Ui {
   /** Läuft in diesem Bild eine Kamerafahrt? Einmal je Bild aus der Bildzeit bestimmt (tick). */
   private fahrtJetzt = false;
   /** Zuletzt angewendete Ansicht: Schritt (mit Wiedereinstieg), freie Breite und Darstellungs-Schlüssel */
-  private angewendet: { schritt: string; frei_b: number; schluessel: string } | null = null;
+  private angewendet: { schritt: string; kamera: string; frei_b: number; schluessel: string } | null = null;
   /** Lage für die Eingabesperre aus der Ansicht (nicht aus dem Bild, AE-NR13-6); Fahrt und Anleiter werden frisch gelesen */
   private sperrLage: SperrLage = { fahrt: false, anleiter: null, abdunkeln: 'alles', art: 'W', loecher: [] };
   private sperreAn = false;
@@ -113,12 +113,16 @@ export class Steuerung implements Ui {
   private freigestelltFuer = '';
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
   private erreichtSeit = new Map<number, number>();
-  private szeneTutorial: Pick<Szene, 'tutorial_spur' | 'erreicht'> = {};
+  private szeneTutorial: SzeneTutorial = {};
+  /** Läuft die Pause nach der letzten Berührung der Karte: Der Vorführ-Finger kommt erst `finger_wieder` danach zurück */
+  private fingerPause: number | null = null;
 
   jetzt_ms(): number { return this.uhr(); }
   /** Läuft gerade eine Geste auf der Karte (Finger oder gedrückte Mitteltaste)? Die Bildschleife reicht es an die Bodenebene weiter. */
   fingerAufKarte(): boolean { return this.zeiger.size > 0 || this.mitteDreh !== null; }
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
+    // Der Schleier (ui/spotlight.ts) hängt sich direkt hinter #karte ein; main.ts setzt die id schon über index.html
+    if (!leinwand.id) leinwand.id = 'karte';
     this.katalogUi = new Katalog(this);
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });
     this.hud = new Hud(() => this.spiel, {
@@ -334,7 +338,7 @@ export class Steuerung implements Ui {
     const umschalter = (k: HTMLButtonElement, an: boolean): HTMLButtonElement => { k.setAttribute('aria-pressed', String(an)); return k; };
     const farben = LEITUNGEN.filter((t) => sp.freigeschaltet(t)).map((t) => {
       const L = KATALOG[t];
-      const k = umschalter(knopf(String(L.durchmesser_mm), () => this.stempeln(t), t === typ ? 'gewaehlt' : '', { id: `farbe-${t}` }), t === typ);
+      const k = umschalter(knopf(String(L.durchmesser_mm), () => { this.stempeln(t); this.tutorialMelden({ art: 'tipp', tipp: 'farbknopf', typ: t }); }, t === typ ? 'gewaehlt' : '', { id: `farbe-${t}` }), t === typ);
       k.classList.add('farbknopf');
       k.setAttribute('aria-label', `${L.name}, bis ${L.kapazitaet_kw} kW`);
       k.style.setProperty('--streifen', L.farbe ?? '');
@@ -460,7 +464,7 @@ export class Steuerung implements Ui {
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
-        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelStart = null; this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
+        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelStart = null; this.anleitung?.zugBeginnt(); this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
       } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; this.drehAktiv = false; }
     });
     l.addEventListener('pointermove', (e) => {
@@ -498,7 +502,12 @@ export class Steuerung implements Ui {
       const war = this.zeiger.delete(e.pointerId);
       if (this.zeiger.size < 2) this.pinch = null;
       if (war && this.zeiger.size === 0 && this.start && !this.zieht) this.tippen(e.clientX, e.clientY);
-      if (this.zeiger.size === 0) { this.start = null; this.startfeldTippen(); }
+      if (this.zeiger.size === 0) {
+        this.start = null; this.startfeldTippen(); this.fingerPauseStarten();
+        // Bauplan NR20-22 P2: Der Schrittwechsel nach einem Zug kommt erst beim Abheben (auch pointercancel)
+        // Die Ereignisse des Zugs gehören vor das Abheben – sonst zählte ein spät gelesenes „gezeichnet“ als neuer Zug
+        if (war && this.modus === 'stempel' && this.anleitung) { this.ereignisse(); this.tutorialMelden({ art: 'tipp', tipp: 'abgehoben' }); }
+      }
     };
     l.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
     l.addEventListener('pointerup', ende);
@@ -544,8 +553,17 @@ export class Steuerung implements Ui {
   private stempelnBei(mx: number, my: number, gesteStart = false): void {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
-    if (x < 0 || y < 0 || x >= N || y >= N) return;
+    if (x < 0 || y < 0 || x >= N || y >= N) {
+      // E4 Regel 2: Verlässt der Finger S über den Kartenrand, ist F „außerhalb“ – S bleibt, auch beim Abheben dort
+      this.stempelStart = null;
+      return;
+    }
     if (this.radieren) { if (this.spiel.geplanteLeitungEntfernen(x, y).ok) this.geaendert(); return; }
+    // T13w (B5): Zeichnen ruht bis zum Farbknopf; je Zug zählt einmal „daneben“ (drei Züge bis zum Hilfe-Satz)
+    if (this.anleitung?.ansicht(this.uhr())?.zeichnen_ruht) {
+      if (gesteStart) { this.tutorialMelden({ art: 'tipp', tipp: 'daneben' }); stupsen(this.ruhig()); }
+      return;
+    }
     if (this.vorsehen) {
       if (this.stempelLetzte) return; // nur beim Antippen umschalten, nicht beim Wischen über weitere Felder
       this.stempelLetzte = [x, y];
@@ -587,8 +605,10 @@ export class Steuerung implements Ui {
   private leitungAuf(x: number, y: number): Objekt | undefined {
     return this.spiel.stand.objekte.find((a) => istLeitung(a.typ) && a.x === x && a.y === y);
   }
-  /** E4 Regel 1: Startfeld liegt im Band der Tutorial-Ansicht als falsch markiert. Erst die Tutorial-Einbindung füllt das. */
-  private startfeldFalsch(_x: number, _y: number): boolean { return false; }
+  /** E4 Regel 1: Startfeld liegt im Band der Tutorial-Ansicht als falsch markiert. */
+  private startfeldFalsch(x: number, y: number): boolean {
+    return !!this.anleitung?.ansicht(this.uhr())?.band.some((f) => f.x === x && f.y === y && f.falsch);
+  }
   /**
    * E4: Soll das Startfeld S überzeichnet werden, nachdem der Finger es Richtung F verlassen hat? Regel 2: F ohne Leitung → nein.
    * Regel 3: Ein Abzweig (≥ 2 Leitungsnachbarn) oder ein Leitungsende an der Heizzentrale wird nicht dünner – sonst kippt
@@ -697,7 +717,7 @@ export class Steuerung implements Ui {
   private anleitungBeenden(): void {
     this.anleitung = null;
     eingabeSperre(null); this.sperreAn = false;
-    spotlightAus(); anleiterAusblenden(); infoKapsel(null, null); ersatzZiel(null);
+    spotlightAus(); anleiterAusblenden(); infoKapsel(null, null); ersatzZiel(null); schleierSetzen(null);
     this.kamera.grenzeSetzen(null);
     this.angewendet = null; this.fokusFuer = null; this.szeneTutorial = {}; this.erreichtSeit.clear();
     meldungenStumm(false);
@@ -760,7 +780,7 @@ export class Steuerung implements Ui {
     const os = a.kamera_ziele.map((z) => this.kartenObjekt(a, z)).filter((o): o is Objekt => o !== null);
     if (!os.length) return;
     const k = this.kamera;
-    if (a.spur) { this.t13Einpassen(os, frei); return; }
+    if (a.kompakt) { this.t13Einpassen(a, os, frei); return; }
     let z: { mitte_x: number; mitte_y: number; zoom: number; ziel_x: number; ziel_y: number };
     if (os.length === 1) {
       const o = os[0], g = groesse(o);
@@ -775,7 +795,7 @@ export class Steuerung implements Ui {
       const von = { x: k.schiebe_x, y: k.schiebe_y, zoom: k.zoom };
       k.zoom = z.zoom;
       k.zentrierenBei(z.mitte_x, z.mitte_y, 1, z.ziel_x, z.ziel_y);
-      const kartenHoehe_px = this.anleiterHoehe();
+      const kartenHoehe_px = this.anleiterHoehe(a);
       const ziele = a.ziele.map((zn) => ({ l: this.zielLoch(a, zn) }));
       const loecher = ziele.flatMap((e) => (e.l ? [lochRand(e.l.loch)] : []));
       if (!anleiterPlatzFrei(frei, loecher, { breite: k.breite, hoehe: k.hoehe }, kartenHoehe_px)) {
@@ -795,9 +815,9 @@ export class Steuerung implements Ui {
    *  die Kamera Spur und Gebäude (Feldmitte ± halbe Feldbreite) mit Rand zwischen Anzeigenreihe und Oberkante der unten
    *  stehenden Karte − 16, links von der Zeichenleiste. Der Umriss wächst linear mit dem Zoom, darum genügt eine Messung bei
    *  Zoom 1. Reicht der Platz auch bei T13_ZOOM_MIN nicht für den vollen Rand, steht der Umriss mittig – der Rand wird kleiner. */
-  private t13Einpassen(os: Objekt[], frei: Rechteck): void {
-    const k = this.kamera, flaeche = this.t13Flaeche(frei);
-    const felder = [...TUTORIAL_SPUR, ...os.map((o) => [o.x + (groesse(o) - 1) / 2, o.y + (groesse(o) - 1) / 2] as const)];
+  private t13Einpassen(a: TutorialAnsicht, os: Objekt[], frei: Rechteck): void {
+    const k = this.kamera, flaeche = this.t13Flaeche(a, frei);
+    const felder = [...a.band.map((f) => [f.x, f.y] as const), ...os.map((o) => [o.x + (groesse(o) - 1) / 2, o.y + (groesse(o) - 1) / 2] as const)];
     k.zoom = 1;
     const pk = felder.map(([x, y]) => k.mitte(x, y)), xs = pk.map((p) => p[0]), ys = pk.map((p) => p[1]);
     const breite1 = Math.max(...xs) - Math.min(...xs) + k.tw, hoehe1 = Math.max(...ys) - Math.min(...ys) + k.tw;
@@ -807,13 +827,17 @@ export class Steuerung implements Ui {
     k.zentrierenBei(fx, fy, 1, flaeche.x + flaeche.b / 2, flaeche.y + flaeche.h / 2);
   }
   /** Freie Fläche in T13: unter der Anzeigenreihe, über der Anleiter-Karte − 16, links von der Zeichenleiste. */
-  private t13Flaeche(frei: Rechteck): Rechteck {
+  private t13Flaeche(a: TutorialAnsicht, frei: Rechteck): Rechteck {
     const M = T.menue.mass_px, oben = T.groesse_px.blatt_oben_quer;
-    const kartenOben = this.kamera.hoehe - M.anleiter_rand - this.anleiterHoehe();
+    const kartenOben = this.kamera.hoehe - M.anleiter_rand - this.anleiterHoehe(a);
     return { x: frei.x, y: oben, b: frei.b, h: kartenOben - M.anleiter_ziel_abstand - oben };
   }
-  /** Höhe der stehenden Karte (aus dem letzten Bild): ändert sie sich mit dem Text, wird der Platz neu gewählt (13.3). */
-  private anleiterHoehe(): number { return Math.max(anleiterRechteck()?.h ?? 0, T.menue.mass_px.anleiter_hoehe); }
+  /** Höhe der stehenden Karte (aus dem letzten Bild): ändert sie sich mit dem Text, wird der Platz neu gewählt (13.3).
+   *  Die kompakte Karte in Kapitel 3 hat eine feste Höhe (ui/anleiter.ts, Klasse `kompakt`). */
+  private anleiterHoehe(a: TutorialAnsicht): number {
+    const M = T.menue.mass_px;
+    return a.kompakt ? M.anleiter_kompakt_hoehe : Math.max(anleiterRechteck()?.h ?? 0, M.anleiter_hoehe);
+  }
   /** Lage, für die höchstens einmal freigestellt wird: Schritt, freie Breite und Kartenhöhe. Ohne diese Sperre riefe sich
    *  das Anwenden bei gekappter Verschiebung (Kamera-Grenze) immer wieder auf und verkleinerte den Zoom jedes Mal weiter. */
   private freistellLage(a: TutorialAnsicht, frei: Rechteck, kartenHoehe_px: number): string {
@@ -839,31 +863,59 @@ export class Steuerung implements Ui {
     k.zentrierenBei(fx, fy, 1, ziel.nach[0], ziel.nach[1]);
     return true;
   }
-  /** Weg des Fingers in T13: die Spur und weiter auf Haus 2. Der letzte Spurschritt geht nur ein Feld zur Seite; nach A47
-   *  knickt die Leitung erst bei 2 Feldern – wer genau nachfährt, legt das letzte Feld erst mit dem Zug auf das Haus. */
-  private fingerSpur(a: TutorialAnsicht): Array<[number, number]> {
-    const h2 = this.spiel.objekt(a.objekt_ids.haus2);
-    if (!h2) throw new Error(`Tutorial: Haus 2 (id ${a.objekt_ids.haus2}) fehlt im Spielstand.`);
-    const g = groesse(h2), ende = [h2.x + (g - 1) / 2, h2.y + (g - 1) / 2] as const;
-    return [...TUTORIAL_SPUR, ende].map(([x, y]) => this.kamera.mitte(x, y));
+  /** Vorführ-Finger (DESIGN 13.17.1): zieht `finger_weg` ab dem nächsten Feld vor; T13w tippt auf den Farbknopf mit Ring.
+   *  Solange die Karte berührt wird und `finger_wieder` danach ruht er, damit er dem eigenen Zug nicht im Weg ist. */
+  private vorfuehrFinger(a: TutorialAnsicht, erstes: Rechteck | null, ring: Rechteck | null, ruht: boolean): Finger | null {
+    if (a.finger === 'tippen') { const ziel = a.zeichnen_ruht ? ring : erstes; return ziel ? { art: 'tippen', ziel } : null; }
+    if (a.finger !== 'spur' || ruht || !a.finger_weg.length) return null;
+    return { art: 'spur', punkte: a.finger_weg.map(([x, y]) => this.kamera.mitte(x, y)), je_feld_ms: T.menue.zeit_ms.finger_je_feld };
   }
+  private fingerPauseStarten(): void {
+    if (this.fingerPause !== null) window.clearTimeout(this.fingerPause);
+    // Das nächste Bild (tick) zeigt den Finger wieder; ohne Tutorial gibt es keinen
+    this.fingerPause = this.anleitung ? window.setTimeout(() => { this.fingerPause = null; }, T.menue.zeit_ms.finger_wieder) : null;
+  }
+  /** Knopf der Zeichenleiste mit Ring: der Farbknopf `farbknopf_ring`; beim fremden Stück (Bauplan NR20-22 P5 [2.1]/[2.3])
+   *  [Zurück], wenn es genau das zuletzt gezeichnete Feld wegnähme – ein Feld genügt, damit der eigene Abgang endet –,
+   *  sonst der Radierer. Nur die Steuerung kennt [Zurück], darum wird das hier und nicht im Kern entschieden. */
+  private ringKnopf(a: TutorialAnsicht): HTMLElement | null {
+    const letzte = a.fremd.length ? this.spiel.letzteLeitungFeld() : null;
+    const zurueck = !!letzte && a.fremd.some(([x, y]) => x === letzte[0] && y === letzte[1]);
+    const id = a.fremd.length ? (zurueck ? 'zurueck' : 'radierer') : a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
+    return id ? this.leiste?.blatt.wurzel.querySelector<HTMLElement>(`[data-id="${id}"]`) ?? null : null;
+  }
+  private static elRechteck(el: HTMLElement): Rechteck { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, b: r.width, h: r.height }; }
   /** Feldmitten-Rahmen um Objekte */
   private rahmen(os: Objekt[]): { x0: number; y0: number; x1: number; y1: number } {
     return { x0: Math.min(...os.map((o) => o.x)), y0: Math.min(...os.map((o) => o.y)), x1: Math.max(...os.map((o) => o.x + groesse(o) - 1)), y1: Math.max(...os.map((o) => o.y + groesse(o) - 1)) };
   }
 
-  /** Spur noch freier Felder und Häkchen über erreichten Tutorial-Häusern (nur T13). */
+  /** Gang im Schleier (DESIGN 13.17.1): jede Raute der Spur × 1,5, Heizzentrale und beide Tutorial-Häuser. Die Raute wird
+   *  als Ellipse durch ihre Ecken ausgespart (Halbachsen 0,75 · Feldbreite bzw. -höhe); `Loch.r` geht in spotlight.ts durch
+   *  √2, darum hier das Rechteck mit Kante 1,5 · Feld / √2. Den Abstand von 12 px gibt spotlight.ts dazu. */
+  private schleierGang(a: TutorialAnsicht): Loch[] {
+    const k = this.kamera, b = (1.5 * k.tw) / Math.SQRT2, hh = (1.5 * k.th) / Math.SQRT2;
+    const rauten = a.band.map(({ x, y }): Loch => { const [cx, cy] = k.mitte(x, y); return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' }; });
+    const objekte = (['heizzentrale', 'haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
+    return [...rauten, ...objekte.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
+  }
+
+  /** Band, Raute, Zielscheibe, Ziel-Stecker/Ring, Ruhe und Häkchen nur aus der Ansicht (Bauplan NR20-22 P5): Die Regeln,
+   *  welches Haus richtig angeschlossen ist, rechnet der Kern. Leere Felder bleiben weg, damit der Szenen-Schlüssel ruht. */
   private tutorialSzeneSetzen(a: TutorialAnsicht): void {
-    const sz: Pick<Szene, 'tutorial_spur' | 'erreicht'> = {};
-    if (a.spur) sz.tutorial_spur = TUTORIAL_SPUR.filter(([x, y]) => !this.spiel.stand.objekte.some((o) => istLeitung(o.typ) && o.x === x && o.y === y));
-    if (a.erreicht_zeigen) {
-      const erreicht = this.spiel.erreichteHaeuser();
-      for (const id of [a.objekt_ids.haus1, a.objekt_ids.haus2]) {
-        if (!erreicht.includes(id)) this.erreichtSeit.delete(id);
-        else if (!this.erreichtSeit.has(id)) this.erreichtSeit.set(id, this.uhr());
-      }
-      sz.erreicht = [...this.erreichtSeit].map(([id, seit_ms]) => ({ id, seit_ms }));
-    } else this.erreichtSeit.clear();
+    const sz: SzeneTutorial = {};
+    if (a.band.length) sz.tutorial_band = a.band;
+    if (a.naechstes_feld) sz.naechstes_feld = a.naechstes_feld;
+    if (a.zielscheibe) sz.zielscheibe = a.zielscheibe;
+    if (a.ziel_stecker.length) sz.ziel = { stecker: a.ziel_stecker, ring: a.ziel_ring };
+    if (a.ruhe) sz.ruhe = true;
+    // DESIGN 13.17.8: Während eines Zugs blieben sonst Streifen auf halb gezogenen Feldern stehen – sie erscheinen beim Abheben
+    if (a.fremd.length && !(this.modus === 'stempel' && this.zeiger.size > 0)) sz.tutorial_fremd = a.fremd;
+    for (const id of [a.objekt_ids.haus1, a.objekt_ids.haus2]) {
+      if (!a.erreicht_ids.includes(id)) this.erreichtSeit.delete(id);
+      else if (!this.erreichtSeit.has(id)) this.erreichtSeit.set(id, this.uhr());
+    }
+    if (this.erreichtSeit.size) sz.erreicht = [...this.erreichtSeit].map(([id, seit_ms]) => ({ id, seit_ms }));
     this.szeneTutorial = sz;
   }
 
@@ -873,30 +925,45 @@ export class Steuerung implements Ui {
     const a = this.anleitung?.ansicht(this.uhr()) ?? null;
     if (!a) return;
     if (this.zielHerstellenOffen && !a.wiedereinstieg) { this.zielHerstellenOffen = false; this.zielHerstellen(a); }
+    if (!a.wiedereinstieg) this.leisteHerstellen(a);
     const k = this.kamera, frei = this.freieFlaeche(), vorher = this.angewendet;
-    const schritt = `${a.schritt}|${a.wiedereinstieg}`, wechsel = vorher?.schritt !== schritt, breiteNeu = !!vorher && vorher.frei_b !== frei.b;
+    const schritt = `${a.schritt}|${a.wiedereinstieg}`, breiteNeu = !!vorher && vorher.frei_b !== frei.b;
+    // Innerhalb T13/T13w/T13h und beim Umweg über T14 springt die Kamera nicht (Bauplan NR20-22 P5 „Kamera ohne Sprung“)
+    // (Ruhe ohne kompakte Karte nach K3 gibt es nur in T14; T12 kommt nie nach K3)
+    const k3 = a.kompakt || (a.ruhe && !!vorher?.kamera.startsWith('K3|'));
+    const kameraLage = `${k3 ? 'K3' : a.schritt}|${a.wiedereinstieg}`;
+    const wechsel = vorher?.kamera !== kameraLage;
     if (!a.kamera_grenze && k.grenze) k.grenzeSetzen(null);
     if ((wechsel || (breiteNeu && a.kamera !== 'frei')) && a.kamera_ziele.length) this.kameraAusrichten(a, frei);
-    if (a.kamera_grenze && (wechsel || breiteNeu)) {
+    if (a.kamera_grenze && (wechsel || breiteNeu || !k.grenze)) {
       // K5: Rahmen und zoom_min einmal beim Eintritt; ändert sich später die freie Breite, wandert nur die Bildmitte mit
       const g = k.grenze, os = a.kamera_ziele.map((z) => this.kartenObjekt(a, z)).filter((o): o is Objekt => o !== null);
       // In T13 steht die Bildmitte der Grenze dort, wohin t13Einpassen die Ziele gesetzt hat – sonst schöbe die Grenze sie zurück
-      const mf = a.spur ? this.t13Flaeche(frei) : frei, mitte_px = [mf.x + mf.b / 2, mf.y + mf.h / 2] as const;
+      const mf = a.kompakt ? this.t13Flaeche(a, frei) : frei, mitte_px = [mf.x + mf.b / 2, mf.y + mf.h / 2] as const;
       if (wechsel || !g) k.grenzeSetzen({ ...this.rahmen(os), mitte_px, zoom_min: k.zoom, zoom_max: ZIEL_ZOOM_MAX });
       else k.grenzeSetzen({ ...g, mitte_px });
     }
-    if (wechsel) this.gescrollt.clear();
+    if (vorher?.schritt !== schritt) {
+      this.gescrollt.clear();
+      // Ein neuer Schritt zeigt seinen Finger sofort; die Pause nach dem Berühren gilt nur innerhalb des Schritts
+      if (this.fingerPause !== null) { window.clearTimeout(this.fingerPause); this.fingerPause = null; }
+    }
     // Zeile 2 von [Abschnitt abschließen] folgt dem Tutorial auch ohne Bedienung: Geld ändert sich ohne Ereignis (Weg b)
     // und schaltet T13 ⇄ T14 – sonst stünde in der Blase „Geld reicht nicht“, am Knopf aber kein Grund
     if (this.leiste && (this.tutorialSperre('abschliessen')?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
     this.tutorialSzeneSetzen(a);
+    // Vor der Schlüsselprüfung: schleierSetzen baut nur bei geändertem Gang neu auf, folgt so aber jeder Kamerabewegung
+    schleierSetzen(a.ruhe ? this.schleierGang(a) : null);
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
-    const loecher = ziele.flatMap((e) => (e.l ? [e.l.loch] : []));
+    const ringEl = this.ringKnopf(a), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
+    // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): Lochrand in der Zeichenleiste, die nur_hud ohnehin nicht abdunkelt
+    const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [{ r: ringR, form: 'rund' as const }] : [])];
     const rest_s = a.warte_bis_ms === undefined ? 0 : Math.ceil((a.warte_bis_ms - this.uhr()) / 1000);
-    const kartenHoehe_px = this.anleiterHoehe();
-    const schluessel = JSON.stringify([a, k.schluessel(), frei.b, loecher, this.fahrtJetzt, rest_s, sprecherAktiv(), kartenHoehe_px]);
-    this.angewendet = { schritt, frei_b: frei.b, schluessel };
+    const kartenHoehe_px = this.anleiterHoehe(a);
+    const fingerRuht = this.zeiger.size > 0 || this.fingerPause !== null;
+    const schluessel = JSON.stringify([a, k.schluessel(), frei.b, loecher, this.fahrtJetzt, rest_s, sprecherAktiv(), kartenHoehe_px, fingerRuht]);
+    this.angewendet = { schritt, kamera: kameraLage, frei_b: frei.b, schluessel };
     if (vorher?.schluessel === schluessel) return;
     const bild = { breite: k.breite, hoehe: k.hoehe };
     const freierPlatz = anleiterPlatzFrei(frei, loecher.map(lochRand), bild, kartenHoehe_px);
@@ -915,8 +982,7 @@ export class Steuerung implements Ui {
       if (r.width > 0 || r.height > 0) zielSichtbarMachen(el, ruhig, () => this.anleitungAnwenden());
     }
     const erstes = ziele[0]?.l?.loch.r ?? null;
-    const finger: Finger | null = a.finger === 'tippen' && erstes ? { art: 'tippen', ziel: erstes }
-      : a.finger === 'spur' ? { art: 'spur', punkte: this.fingerSpur(a) } : null;
+    const finger = this.vorfuehrFinger(a, erstes, ringR, fingerRuht);
     const hud = this.hud.wurzel.getBoundingClientRect();
     // Während der Fahrt zeigt das Bild kein Abdunkeln; die Sperre liest weiter die Ansicht (AE-NR13-6)
     spotlightSetzen({ loecher, abdunkeln: this.fahrtJetzt ? 'nichts' : a.abdunkeln, finger, ruhig, hud: [{ x: hud.left, y: hud.top, b: hud.width, h: hud.height }] });
@@ -931,7 +997,7 @@ export class Steuerung implements Ui {
     ersatzZiel(z0 && istKartenziel(z0) && karte0 && erstes ? { r: erstes, name: KARTEN_VORLESENAME[z0], enter: () => this.kartenzielGetippt(karte0.id) } : null);
     const ersatz = document.querySelector<HTMLElement>('.ersatz-ziel');
     const weiter = document.getElementById('anleiter-weiter');
-    const zielEls = [...(ersatz ? [ersatz] : []), ...ziele.flatMap((e) => (e.l?.el ? [e.l.el] : []))];
+    const zielEls = [...(ersatz ? [ersatz] : []), ...ziele.flatMap((e) => (e.l?.el ? [e.l.el] : [])), ...(a.zeichnen_ruht && ringEl ? [ringEl] : [])];
     this.tabZiele = [...zielEls, ...(weiter ? [weiter] : [])];
     // Fokus einmal je Schritt: Handlungs-Schritt aufs Ziel, sobald es da ist; im Erklär-Schritt setzt ihn anleiterZeigen auf [Weiter]
     if (this.fokusFuer !== schritt) {
@@ -953,6 +1019,13 @@ export class Steuerung implements Ui {
    *  Abdunkeln auch [Bauen], und das Tutorial hinge. Vor dem Messen der freien Fläche, weil das Blatt sie verkleinert. */
   private zielHerstellen(a: TutorialAnsicht): void {
     if (a.ziele.some((z) => BAUMENUE_ZIELE.has(z) && !document.querySelector(`[data-ziel="${z}"]`))) this.katalog('netz');
+  }
+  /** Bauplan NR20-22 P5: Verlangt der Schritt die Zeichenleiste (oder liegt sein Ziel [Abschnitt abschließen] darin) und ist
+   *  sie zu – etwa nach dem Neuladen –, öffnet sie mit der verlangten Größe. Nennt der Schritt keine (T14), immer mit der
+   *  Anschluss-Größe aus `tutorialWerte()` (ENTSCHEIDUNGEN 2026-11-07, Rückfrage c), nicht mit der zuletzt gezogenen. */
+  private leisteHerstellen(a: TutorialAnsicht): void {
+    if (this.leiste || (!a.zeichenleiste && !a.ziele.includes('abschliessen'))) return;
+    this.stempeln(a.zeichenleiste?.typ ?? this.spiel.tutorialWerte().anschluss);
   }
   private hudJetzt(): void { this.hud.aktualisieren(this.auftrag); }
   private hinweiseZeigen(): void { this.ereignisse(); }

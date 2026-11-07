@@ -115,6 +115,16 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     gleichePunkte(punkteNach(h, h.indexOf(`strokeStyle=${D25}`)), [mitte(9.5, 12), mitte(9, 12), mitte(9, 12.5)]);
   });
 
+  // Sammelliste P5 Punkt 10 (Review P4a) und 14: (10|11) hat die Heizzentrale (11|11) als Vorgänger (src/core/tutorial-band.ts);
+  // sein Band kommt von Osten, läuft durch die Feldmitte zur Abzweigung nach Süden und schließt an die Abzweigung an.
+  it('Erstes Bandfeld (10|11) von der Heizzentrale: Eingang im Osten, Weg über die Mitte nach Süden, Ausgang trifft den Eingang der Abzweigung (10|12)', () => {
+    const D32 = '#4caf3e';
+    const b = bild(szene({ tutorial_band: [feld(10, 11, 'd32', [0, 1]), feld(10, 12, 'd32', null)] }));
+    const p = punkteNach(b, b.indexOf(`strokeStyle=${D32}`));
+    expect(p, 'drei Punkte für (10|11), zwei für die Abzweigung').toHaveLength(5);
+    gleichePunkte(p, [mitte(10.5, 11), mitte(10, 11), mitte(10, 11.5), mitte(10, 11.5), mitte(10, 12)]);
+  });
+
   it('Pfeilfarbe: weiß ab Kontrast 3:1, darunter kontur (Grenze von Hand: #949494 ≈ 3,03, #959595 ≈ 2,996, #8a8a8a ≈ 3,45)', () => {
     expect(pfeilFarbe('#949494')).toBe('#ffffff');
     expect(pfeilFarbe('#959595')).toBe(KONTUR);
@@ -322,5 +332,15 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     expect((svg.match(/<circle /g) ?? []).length).toBeGreaterThanOrEqual(3);
     expect(svg).toContain(KONTUR);
     expect(svg).toContain(ZIEL);
+  });
+
+  // Sammelliste P5 Punkt 14 (ENTSCHEIDUNGEN 2026-11-07): Das Band am ersten Feld (10|11) kommt von der Heizzentrale im Osten
+  // (hz bei (11|10), Größe 2, belegt also (11|11) direkt östlich von (10|11)) – Fließrichtung der Wärme, nicht von Norden.
+  it('Erstes Bandfeld (10|11): Eingang von der Heizzentrale im Osten (Kante zu (11|11)), dann über die Mitte nach Süden', async () => {
+    const { bandVorgaenger } = await import('../src/core/tutorial-band');
+    expect(bandVorgaenger(10, 11)).toEqual([11, 11]);
+    const D32 = '#4caf3e';
+    const b = bild(szene({ tutorial_band: [feld(10, 11, 'd32', [0, 1])] }));
+    gleichePunkte(punkteNach(b, b.indexOf(`strokeStyle=${D32}`)), [mitte(10.5, 11), mitte(10, 11), mitte(10, 11.5)]);
   });
 });
