@@ -18,7 +18,7 @@ import { blattBreite_px, blattOeffnen, blattOffen, type Blatt } from './ui/blatt
 import { eur, h } from './ui/dom';
 import { sprecherAktiv, sprecherZeigen } from './ui/sprecher';
 import { anleiterAusblenden, anleiterKasten, anleiterPlaetze, anleiterPlatz, anleiterPlatzFrei, anleiterRechteck, anleiterZeigen, zielFlaecheNebenKarte } from './ui/anleiter';
-import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
+import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, schleierSetzen, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { ortHolen } from './core/orte';
@@ -121,6 +121,8 @@ export class Steuerung implements Ui {
   /** Läuft gerade eine Geste auf der Karte (Finger oder gedrückte Mitteltaste)? Die Bildschleife reicht es an die Bodenebene weiter. */
   fingerAufKarte(): boolean { return this.zeiger.size > 0 || this.mitteDreh !== null; }
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
+    // Der Schleier (ui/spotlight.ts) hängt sich direkt hinter #karte ein; main.ts setzt die id schon über index.html
+    if (!leinwand.id) leinwand.id = 'karte';
     this.katalogUi = new Katalog(this);
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });
     this.hud = new Hud(() => this.spiel, {
@@ -715,7 +717,7 @@ export class Steuerung implements Ui {
   private anleitungBeenden(): void {
     this.anleitung = null;
     eingabeSperre(null); this.sperreAn = false;
-    spotlightAus(); anleiterAusblenden(); infoKapsel(null, null); ersatzZiel(null);
+    spotlightAus(); anleiterAusblenden(); infoKapsel(null, null); ersatzZiel(null); schleierSetzen(null);
     this.kamera.grenzeSetzen(null);
     this.angewendet = null; this.fokusFuer = null; this.szeneTutorial = {}; this.erreichtSeit.clear();
     meldungenStumm(false);
@@ -888,6 +890,16 @@ export class Steuerung implements Ui {
     return { x0: Math.min(...os.map((o) => o.x)), y0: Math.min(...os.map((o) => o.y)), x1: Math.max(...os.map((o) => o.x + groesse(o) - 1)), y1: Math.max(...os.map((o) => o.y + groesse(o) - 1)) };
   }
 
+  /** Gang im Schleier (DESIGN 13.17.1): jede Raute der Spur × 1,5, Heizzentrale und beide Tutorial-Häuser. Die Raute wird
+   *  als Ellipse durch ihre Ecken ausgespart (Halbachsen 0,75 · Feldbreite bzw. -höhe); `Loch.r` geht in spotlight.ts durch
+   *  √2, darum hier das Rechteck mit Kante 1,5 · Feld / √2. Den Abstand von 12 px gibt spotlight.ts dazu. */
+  private schleierGang(a: TutorialAnsicht): Loch[] {
+    const k = this.kamera, b = (1.5 * k.tw) / Math.SQRT2, hh = (1.5 * k.th) / Math.SQRT2;
+    const rauten = a.band.map(({ x, y }): Loch => { const [cx, cy] = k.mitte(x, y); return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' }; });
+    const objekte = (['heizzentrale', 'haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
+    return [...rauten, ...objekte.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
+  }
+
   /** Band, Raute, Zielscheibe, Ziel-Stecker/Ring, Ruhe und Häkchen nur aus der Ansicht (Bauplan NR20-22 P5): Die Regeln,
    *  welches Haus richtig angeschlossen ist, rechnet der Kern. Leere Felder bleiben weg, damit der Szenen-Schlüssel ruht. */
   private tutorialSzeneSetzen(a: TutorialAnsicht): void {
@@ -940,6 +952,8 @@ export class Steuerung implements Ui {
     // und schaltet T13 ⇄ T14 – sonst stünde in der Blase „Geld reicht nicht“, am Knopf aber kein Grund
     if (this.leiste && (this.tutorialSperre('abschliessen')?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
     this.tutorialSzeneSetzen(a);
+    // Vor der Schlüsselprüfung: schleierSetzen baut nur bei geändertem Gang neu auf, folgt so aber jeder Kamerabewegung
+    schleierSetzen(a.ruhe ? this.schleierGang(a) : null);
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
     const ringEl = this.ringKnopf(a), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
