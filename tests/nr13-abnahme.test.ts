@@ -22,8 +22,9 @@ import { echteSteuerung } from './hilfen/echte-steuerung';
 // - Spielwerte: Kessel Stufe 1 60 kW; EFH 15.000 kWh/a, ohne Puffer ÷ 1.500 h = 10 kW, mit Puffer ÷ 2.000 h = 7,5 kW;
 //   zwei Häuser mit Puffer 15 kW → 25er (trägt 15 kW); 25er auf 14 kW gesetzt → 32er (trägt 25 kW).
 // - Puffer-Station für ein EFH: HP 800 (14 kW Netz / 19 kW Spitze, 5.570 €); Wandstation Typ 15 (2.400 €).
-// - Geld: 2.000 € Planung, 25er 400 € je Feld. Mit 16.000 € Start: nach Planung 14.000 €; 8 Felder + 2 × 5.570 = 14.340 € → es
-//   fehlen 340 €; 10 Felder → 1.140 €; 7 Felder → 13.940 € → 0.
+// - Geld (NR20-22 E1, V0 Teil 2c): 2.000 € Planung, 32er 560 €, 25er 400 € je Feld. Mit 16.000 € Start: nach Planung 14.000 €;
+//   Spur E1 2 × 560 + 4 × 400 = 2.720 € + 2 × 5.570 = 13.860 € → 0; mit vier 25er-Stummeln 15.460 € → es fehlen 1.460 €;
+//   Haupt + Anschluss 1 + vier Stummel 14.260 € → 260 €.
 // - Zeiten im Tutorial: Planung 10 s, Bau 20 s (ohne Bauzeit-Faktor), Laura „Lieferzeit: 1 Tag.“; danach normal
 //   30 s × 2,5 = 75 s und 360 s × 2,5 = 900 s, Lieferzeit 900 s ÷ 19,726 s je Spieltag ≈ 46 Tage.
 // - Wiedereinstieg: Tabelle DESIGN 13.7, Kapitelnamen „Die Heizzentrale“, „Planen mit Philipp“, „Leitung ziehen“,
@@ -782,38 +783,42 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
   });
 
   it('test_nr13_a_zu_viel_gezeichnet_geld_sperre_bis_leitungen_weg', async () => {
+    // Geld von Hand (NR20-22 E1, Kopfkommentar): nach der Planung 14.000 €; zwei Puffer-Stationen 2 × 5.570 = 11.140 €;
+    // 32er 560 € je Feld, 25er 400 € je Feld. Spur E1 = 2 × 560 + 4 × 400 = 2.720 € → 13.860 € ≤ 14.000 €, Rest 140 €.
+    // Zu viel gezeichnet: vier 25er-Felder als Stummel an der Heizzentrale nach Norden, (12|9) → (15|9). Probe (V0 Teil 2c,
+    // berechneNetz auf 41b1c4a): kein Haus hängt daran, die Stummel liegen an keinem Spurfeld (kein Ring), keine Reduzierung,
+    // Aufteilung oder Engpass, Haus 1 an (9|12), Haus 2 an (11|14); kein Hausweg läuft über sie (kein eigener Abgang nach E3).
+    expect((KATALOG.d32.kosten_eur as number[])[0], 'Feldpreis 32er (Handwert)').toBe(560);
+    expect((KATALOG.d25.kosten_eur as number[])[0], 'Feldpreis 25er (Handwert)').toBe(400);
+    const STUMMEL: ReadonlyArray<readonly [number, number]> = [[12, 9], [13, 9], [14, 9], [15, 9]];
     const l = await neuesSpiel({ geld_eur: 16_000 });
-    laufen(l, { bis: 'T13' });
+    laufen(l, { bis: 'T13h' }); // Hauptleitung (2 × 32er) liegt
     expect(l.s.stand.geld_eur).toBe(14_000);
-    // OFFEN (V0 Teil 2b): Geldrechnung dieses Tests noch nach der alten durchgehenden 25er-Spur; mit P2 rot, Neuberechnung
-    // nach E1 (2 × 32er + 4 × 25er) steht aus.
-    const SPUR: ReadonlyArray<readonly [number, number]> = [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]];
-    const zeichne = (felder: ReadonlyArray<readonly [number, number]>): void => {
-      for (const [x, y] of felder) { expect(l.s.platzieren(l.leitung, x, y).ok, `(${x}|${y})`).toBe(true); pumpen(l); }
-    };
-    zeichne(SPUR.slice(0, 4));
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(0);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '1.120 + 11.140 ≤ 14.000').toBe(0);
+    zug(l, l.anschluss, ANSCHLUSS_1);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '1.520 + 11.140 ≤ 14.000').toBe(0);
     expect(l.tut.sperre('abschliessen')?.kurz).toBe(`noch 1${NB}Haus fehlt`);
-    zeichne([[9, 12], [8, 12], [7, 12], [9, 11]]); // vier Felder neben der Spur
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '8 Felder + 2 Stationen − 14.000 €').toBe(340);
+    zug(l, l.anschluss, STUMMEL);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '3.120 + 11.140 − 14.000').toBe(260);
     expect(l.tut.sperre('abschliessen'), 'Geld-Sperre vor Häuser-Sperre').toEqual({ kurz: GELD_KURZ, satz: GELD_SATZ });
     l.tut.gesperrtGetippt('abschliessen');
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     l.tut.handlung();
-    zeichne(SPUR.slice(4));
+    zug(l, l.anschluss, ANSCHLUSS_2);
     l.tut.zustandPruefen();
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(1_140);
-    // Weg b (ENTSCHEIDUNGEN 2026-11-06, DESIGN 13.15 K12, Bauplan F3 Punkt 11): beide Häuser erreicht, Geld fehlt → T13 bleibt
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '4.320 + 11.140 − 14.000').toBe(1_460);
+    // Weg b (ENTSCHEIDUNGEN 2026-11-06, DESIGN 13.15 K12): beide Häuser angeschlossen, Geld fehlt → T13h bleibt (NR20-22 P2)
     const a = jetzt(l);
-    expect(a.schritt, 'beide erreicht, Geld fehlt → Schritt bleibt T13 (Weg b)').toBe('T13');
+    expect(a.schritt, 'beide angeschlossen, Geld fehlt → Schritt bleibt T13h (Weg b)').toBe('T13h');
     expect(ohneMarken(a.text), 'Blase zeigt den Geld-Satz (K7)').toBe(GELD_SATZ);
-    expect(a.finger, 'kein Finger auf einem gesperrten Knopf').toBe('aus');
+    expect(a.ziele, 'kein Ziel auf dem gesperrten [Abschnitt abschließen]').toEqual([]);
+    expect(a.finger, 'T13h: Finger wie in der Schritt-Tabelle P2, nie Tippen auf den gesperrten Knopf').toBe('spur');
     expect(l.tut.sperre('abschliessen')).toEqual({ kurz: GELD_KURZ, satz: GELD_SATZ });
     // K12 Muss: alle Häuser-Sätze weichen dem Geld-Satz – Hilfe nach drei Fehltipps, Sperr-Satz bei [X], Sperr-Satz Abschließen
     for (let i = 0; i < 3; i++) tippen(l, 'daneben');
-    expect(jetzt(l).schritt).toBe('T13');
+    expect(jetzt(l).schritt).toBe('T13h');
     expect(ohneMarken(jetzt(l).text), 'Hilfe-Satz nach drei Fehltipps weicht dem Geld-Satz (K12)').toBe(GELD_SATZ);
-    expect(l.tut.sperre('blatt_schliessen'), 'Leiste bleibt in T13 offen').not.toBeNull();
+    expect(l.tut.sperre('blatt_schliessen'), 'Leiste bleibt in T13h offen').not.toBeNull();
     expect(l.tut.sperre('blatt_schliessen')?.satz, 'Sperr-Satz bei [X] sagt nicht „bis beide Häuser erreicht“ (K12)').not.toBe(LEISTE_SATZ);
     l.tut.gesperrtGetippt('blatt_schliessen');
     expect(ohneMarken(jetzt(l).text), 'Sperr-Satz bei [X] weicht dem Geld-Satz (K12)').toBe(GELD_SATZ);
@@ -822,19 +827,19 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
     l.tut.gesperrtGetippt('abschliessen');
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     l.tut.handlung();
-    // Zurück/Radieren: erst zwei Felder (Geld fehlt noch) → weiter T13 mit Geld-Satz
-    for (const [x, y] of [[9, 11], [7, 12]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
+    // Zurück/Radieren vom Stummel-Ende her: erst drei Felder (Geld fehlt noch) → weiter T13h mit Geld-Satz
+    for (const [x, y] of [[15, 9], [14, 9], [13, 9]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
     l.tut.zustandPruefen();
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(340);
-    expect(jetzt(l).schritt, '340 € fehlen noch → T13').toBe('T13');
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '3.120 + 11.140 − 14.000').toBe(260);
+    expect(jetzt(l).schritt, '260 € fehlen noch → T13h').toBe('T13h');
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     expect(l.tut.sperre('abschliessen')?.kurz).toBe(GELD_KURZ);
-    // drittes Feld weg → Geld reicht → T14
-    expect(l.s.geplanteLeitungEntfernen(8, 12).ok).toBe(true); pumpen(l);
+    // viertes Feld weg → genau die Spur E1 → Geld reicht → T14
+    expect(l.s.geplanteLeitungEntfernen(12, 9).ok).toBe(true); pumpen(l);
     l.tut.zustandPruefen();
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '7 Felder: 13.940 € ≤ 14.000 €').toBe(0);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), 'Spur E1: 2.720 + 11.140 = 13.860 € ≤ 14.000 €').toBe(0);
     const b = jetzt(l);
-    expect(b.schritt, 'beide erreicht und Geld reicht → T14').toBe('T14');
+    expect(b.schritt, 'beide angeschlossen und Geld reicht → T14').toBe('T14');
     expect(l.tut.sperre('abschliessen')).toBeNull();
     expect(ohneMarken(b.text)).toBe(TEXTE(NAME).T14);
     expect(b.finger).toBe('tippen');

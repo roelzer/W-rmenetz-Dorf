@@ -9,8 +9,10 @@
 // Ablauf 844×390 (Gerätefaktor 2, Touch an, Querformat), leerer Speicher → Namensfenster → T01. Je Schritt zuerst ein
 // Fehltipp außerhalb von Loch und Anleiter-Karte (T13: auf die Geld-Pille) → Schritt, Blasentext und Kapitel bleiben, die
 // Sperre zählt genau einen Fehltipp. Handlungs-Schritt: Tipp in die Mitte des Lochs (`.spot-ring`). Erklär-Schritt: Tipp ins
-// Loch ändert nichts, dann [Weiter] (in T02 einmal per Tastatur: Enter). T13: Spur bis Haus 1 ziehen → T13b-Text, Zurück →
-// T13-Text, ab dem Leitungsende weiter bis auf Haus 2 → T14. Ende: keine Anleiter-Karte, gespeicherter Stand ohne
+// Loch ändert nichts, dann [Weiter] (in T02 einmal per Tastatur: Enter). Kapitel 3 nach NR20-22 (Bauplan P2, E1, E8):
+// T13 Hauptleitung (10|11)→(10|12) in einem Zug, Abheben → T13w (Erklärsatz); Farbknopf 25 → T13h; Hausanschluss Haus 1
+// (9|12)→Haus → Zwischenstand, Zurück → Grundtext T13h, Haus 1 noch einmal, dann (10|13)→(10|14)→(11|14)→Haus 2 → T14.
+// Ende: keine Anleiter-Karte, gespeicherter Stand ohne
 // `tutorial`, beide ERSTE_HAEUSER warm (im laufenden Spiel und in Node aus dem gespeicherten Stand gerechnet), keine
 // Konsolenfehler. Zusätzlich 667×375 bis T13 (T05: Karte über keinem Lochrand; T13: Karte über keinem Spur-/Gebäudepunkt).
 //
@@ -35,12 +37,21 @@ const TEMPO_SCHLUESSEL = 'waermedorf-tempo-v1';
 const TEMPO_FAKTOR = 10;
 const SPIELERNAME = 'Mila';
 /** Feste Erwartungen von Hand aus src/core/tutorial.ts (TUTORIAL_SCHRITTE) und src/core/start.ts */
-const FOLGE = ['T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16',
+const FOLGE = ['T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T10', 'T11', 'T12', 'T13', 'T13w', 'T13h', 'T14', 'T15', 'T16',
   'T17', 'T18', 'T19', 'T20', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26'];
-const TEXT_T13 = 'Zieh die Leitung mit dem Finger von der Heizzentrale bis an beide Häuser. Folge der gelben Spur.';
-const TEXT_T13B = 'Das erste Haus ist erreicht. Jetzt weiter bis zum zweiten.';
+/** NR20-22 E8 (DESIGN 13.17.2 Fassung 2), Platzhalter von Hand: {haupt} 32er, {anschluss} 25er, {kw_summe} 15 kW,
+ *  {kw_puffer} 7,5 kW (U+00A0 vor der Einheit); Fett-Marken entfernt wie die Anleiter-Karte sie als Text zeigt. */
+const NB = '\u00a0';
+const TEXT_T13 = 'Zieh die 32er von der Heizzentrale bis zur Abzweigung. Folge der Spur.';
+const TEXT_T13W = `Bis hier fließen 15${NB}kW für beide Häuser, ab hier je Haus nur 7,5${NB}kW. Dafür reicht die 25er.`;
+const TEXT_T13H = 'Jedes Haus bekommt seinen eigenen Hausanschluss. Zieh die 25er bis ans erste Haus.';
+const TEXT_ZWISCHENSTAND = 'Das erste Haus hat seinen Hausanschluss. Jetzt zieh die 25er zum zweiten Haus.';
 const TEXT_T14 = 'Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.';
-const TUTORIAL_SPUR = [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]];
+/** NR20-22 E1 (von Hand, Bauplan §3): Hauptleitung bis zum Abzweig, je Haus ein eigener Hausanschluss */
+const HAUPT = [[10, 11], [10, 12]];
+const ANSCHLUSS_1 = [[9, 12]];
+const ANSCHLUSS_2 = [[10, 13], [10, 14], [11, 14]];
+const ANSCHLUSS_TYP = 'd25';
 const ERSTE_HAEUSER = [[9, 13], [12, 14]];
 const WARTEN_MS = 40000;
 
@@ -342,8 +353,15 @@ async function t13KarteFrei(p, ort) {
     const treffer = pkt.filter(([, x, y]) => { const [mx, my] = k.mitte(x, y), px = c.left + mx, py = c.top + my;
       return px - halb < kr.right && kr.left < px + halb && py - halb < kr.bottom && kr.top < py + halb; }).map((e) => e[0]);
     return { treffer, karte: `${Math.round(kr.left)},${Math.round(kr.top)} ${Math.round(kr.width)}x${Math.round(kr.height)}`, zoom: k.zoom };
-  }, { spur: TUTORIAL_SPUR, haeuser: ERSTE_HAEUSER });
+  }, { spur: [...HAUPT, ...ANSCHLUSS_1, ...ANSCHLUSS_2], haeuser: ERSTE_HAEUSER });
   pruefe(ort, 'T13: Anleiter-Karte verdeckt weder Spur noch Heizzentrale noch Haeuser', r.treffer.length === 0, `Karte ${r.karte}, Zoom ${r.zoom.toFixed(2)}${r.treffer.length ? `; verdeckt ${r.treffer.join(' / ')}` : ''}`);
+}
+
+/** Felder (und zum Schluss ein Gebäude) als Bildschirmpunkte für einen Zug */
+async function punkte(p, felder) {
+  const r = [];
+  for (const [x, y] of felder) r.push(await feldPunkt(p, x, y));
+  return r;
 }
 
 async function t13(s, ort) {
@@ -351,31 +369,51 @@ async function t13(s, ort) {
   await t13KarteFrei(p, ort);
   const anfang = await lage(p);
   muss(ort, 'T13: Text vor dem Ziehen', anfang.text === TEXT_T13, `„${anfang.text}“`);
-  // bis Haus 1: die Spur bis (10|13), dem Feld neben Haus 1 (9|13)
-  const bisHaus1 = [];
-  for (const [x, y] of TUTORIAL_SPUR.slice(0, 4)) bisHaus1.push(await feldPunkt(p, x, y));
+  // T13: Hauptleitung (32er, in T12 gewählt) in einem Zug bis zum Abzweig; der Wechsel kommt beim Abheben
   await bildrateStart(p);
-  await ziehen(s, bisHaus1);
+  await ziehen(s, await punkte(p, HAUPT));
   const b1 = await bildrateStopp(p);
-  let l = await bis(p, (x) => x.text === TEXT_T13B, 3000);
-  pruefe(ort, 'T13: nach dem Zug bis Haus 1 → T13b-Text', l.schritt === 'T13' && l.text === TEXT_T13B, `${l.schritt} · „${l.text}“`);
-  // Zurück (in T13 frei) nimmt das letzte Feld weg → Haus 1 getrennt → wieder T13-Text
-  const zurueck = await mitteVon(p, 'button[data-id="zurueck"]');
-  muss(ort, 'T13: Knopf Zurück in der Zeichenleiste', !!zurueck, '');
-  await tippe(p, zurueck);
-  l = await bis(p, (x) => x.text === TEXT_T13, 3000);
-  pruefe(ort, 'T13: Zurück → Text wechselt von T13b zu T13', l.schritt === 'T13' && l.text === TEXT_T13, `${l.schritt} · „${l.text}“`);
-  pruefe(ort, 'T13: Zurück zählt nicht als Fehltipp', l.daneben === anfang.daneben, `${anfang.daneben} → ${l.daneben}`);
-  // ab dem Leitungsende (10|12) weiter die Spur entlang und mit dem Finger bis auf Haus 2 (A47: letztes Feld per Zug aufs Haus)
-  const rest = [];
-  for (const [x, y] of [...TUTORIAL_SPUR.slice(2), ERSTE_HAEUSER[1]]) rest.push(await feldPunkt(p, x, y));
+  let l = await bis(p, (x) => x.schritt === 'T13w', 3000);
+  muss(ort, 'T13: Hauptleitung bis zum Abzweig, Abheben → T13w', l.schritt === 'T13w', `${l.schritt} · „${l.text}“`);
+  await ruhe(p);
+  l = await lage(p);
+  pruefe(ort, 'T13w: Erklärsatz', l.text === TEXT_T13W, `„${l.text}“`);
+  // T13w: Farbknopf der Hausanschluss-Größe in der Zeichenleiste
+  const knopf25 = await mitteVon(p, `button[data-id="farbe-${ANSCHLUSS_TYP}"]`);
+  muss(ort, 'T13w: Farbknopf 25 in der Zeichenleiste', !!knopf25, '');
+  await tippe(p, knopf25);
+  l = await bis(p, (x) => x.schritt === 'T13h', 3000);
+  muss(ort, 'T13w: Farbknopf 25 → T13h', l.schritt === 'T13h', `${l.schritt} · „${l.text}“`);
+  await ruhe(p);
+  const vorHaus1 = await lage(p);
+  pruefe(ort, 'T13h: Grundtext', vorHaus1.text === TEXT_T13H, `„${vorHaus1.text}“`);
+  // Hausanschluss Haus 1: (9|12) und mit dem Finger aufs Haus (A47: letztes Feld per Zug aufs Haus)
   await bildrateStart(p);
-  await ziehen(s, rest);
+  await ziehen(s, await punkte(p, [...ANSCHLUSS_1, ERSTE_HAEUSER[0]]));
   const b2 = await bildrateStopp(p);
-  const dauer_s = b1.dauer_s + b2.dauer_s, bilder = b1.bilder + b2.bilder;
-  bildratePruefen(ort, 'in T13 beim Ziehen der Leitung', { bilder, dauer_s, fps: bilder / dauer_s });
+  l = await bis(p, (x) => x.text === TEXT_ZWISCHENSTAND, 3000);
+  pruefe(ort, 'T13h: nach dem Zug bis Haus 1 → Zwischenstand', l.schritt === 'T13h' && l.text === TEXT_ZWISCHENSTAND, `${l.schritt} · „${l.text}“`);
+  // Zurück (in T13h frei) nimmt (9|12) weg → Haus 1 nicht mehr angeschlossen → wieder Grundtext T13h
+  const zurueck = await mitteVon(p, 'button[data-id="zurueck"]');
+  muss(ort, 'T13h: Knopf Zurück in der Zeichenleiste', !!zurueck, '');
+  await tippe(p, zurueck);
+  l = await bis(p, (x) => x.text === TEXT_T13H, 3000);
+  pruefe(ort, 'T13h: Zurück → Text wechselt vom Zwischenstand zum Grundtext', l.schritt === 'T13h' && l.text === TEXT_T13H, `${l.schritt} · „${l.text}“`);
+  pruefe(ort, 'T13h: Zurück zählt nicht als Fehltipp', l.daneben === vorHaus1.daneben, `${vorHaus1.daneben} → ${l.daneben}`);
+  // Haus 1 noch einmal, dann der Hausanschluss zu Haus 2 bis aufs Haus
+  await bildrateStart(p);
+  await ziehen(s, await punkte(p, [...ANSCHLUSS_1, ERSTE_HAEUSER[0]]));
+  const b3 = await bildrateStopp(p);
+  l = await bis(p, (x) => x.text === TEXT_ZWISCHENSTAND, 3000);
+  muss(ort, 'T13h: Haus 1 wieder angeschlossen → Zwischenstand', l.schritt === 'T13h' && l.text === TEXT_ZWISCHENSTAND, `${l.schritt} · „${l.text}“`);
+  await bildrateStart(p);
+  await ziehen(s, await punkte(p, [...ANSCHLUSS_2, ERSTE_HAEUSER[1]]));
+  const b4 = await bildrateStopp(p);
+  const zuege = [b1, b2, b3, b4];
+  const dauer_s = zuege.reduce((a, b) => a + b.dauer_s, 0), bilder = zuege.reduce((a, b) => a + b.bilder, 0);
+  bildratePruefen(ort, 'in T13/T13h beim Ziehen der Leitung', { bilder, dauer_s, fps: bilder / dauer_s });
   l = await bis(p, (x) => x.schritt === 'T14', 5000);
-  muss(ort, 'T13: Zug bis auf Haus 2 → T14', l.schritt === 'T14', `${l.schritt} · „${l.text}“`);
+  muss(ort, 'T13h: Zug bis auf Haus 2 → T14', l.schritt === 'T14', `${l.schritt} · „${l.text}“`);
   await ruhe(p);
   l = await lage(p);
   pruefe(ort, 'T14-Text', l.text === TEXT_T14, `„${l.text}“`);
@@ -406,7 +444,7 @@ async function durchklick844(browser, url, server) {
     await S('T11', weiterSchritt(s, ort, 'T11'), 'T12');
     await S('T12', lochTipp(s, ort, 'T12'), 'T13');
     await S('T13', () => t13(s, ort), null);
-    gesehen.push('T14');
+    gesehen.push('T13w', 'T13h', 'T14');
     // T14 getrennt: der Schrittwechsel ist schon in t13 geprüft
     await schritt(s, ort, 'T14', lochTipp(s, ort, 'T14'), 'T15');
     await S('T15', lochTipp(s, ort, 'T15'), 'T16');
@@ -423,7 +461,7 @@ async function durchklick844(browser, url, server) {
     await S('T26', weiterSchritt(s, ort, 'T26'), null);
 
     const reihenfolge = gesehen.filter((x, i) => gesehen.indexOf(x) === i);
-    pruefe(ort, 'Schrittfolge T01–T08, T10–T26', JSON.stringify(reihenfolge) === JSON.stringify(FOLGE), reihenfolge.join(' '));
+    pruefe(ort, 'Schrittfolge T01–T08, T10–T13, T13w, T13h, T14–T26', JSON.stringify(reihenfolge) === JSON.stringify(FOLGE), reihenfolge.join(' '));
     const ende = await bis(p, (x) => x.schritt === null && !x.karte, 5000);
     pruefe(ort, 'Ende: kein Tutorial-Schritt, keine #anleiter', ende.schritt === null && !ende.karte, `${ende.schritt} · Karte ${ende.karte}`);
     pruefe(ort, 'Ende: Abdunkeln weg (#spotlight)', !(await p.$('#spotlight')), '');
