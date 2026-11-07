@@ -35,18 +35,36 @@ const koordinaten = (felder: ReadonlyArray<readonly [number, number]> | undefine
 
 /** DESIGN 13.17.8 Punkt 2: Die Streifen blenden 200 ms ein, ab dem ersten Bild, in dem ein Feld neu in `tutorial_fremd` steht. */
 export const FREMD_EINBLENDEN_MS = 200;
-let fremdFelder = new Set<string>();
-let fremdSeit_ms = 0;
 
 /**
- * Anteil des Einblendens 0…1 der Streifen. Merkt sich die zuletzt gesehenen Felder: Kommt ein Feld neu hinzu, beginnt das
- * Einblenden mit diesem Bild. Zeichnen und Takt fragen dieselbe Stelle, damit beide dasselbe Ende sehen.
+ * Einzige Stelle, die sich die Streifen-Einblendung merkt: welche Felder zuletzt gezeichnet wurden und seit wann eingeblendet
+ * wird. Schreiben darf nur das Zeichnen (szene.ts, zeichneTutorialEbene über fremdEinblendungMerken); der Takt liest nur.
+ */
+const fremdStreifen = { felder: new Set<string>(), seit_ms: 0 };
+
+const hatNeue = (felder: ReadonlyArray<readonly [number, number]>): boolean => felder.some(([x, y]) => !fremdStreifen.felder.has(`${x},${y}`));
+const anteil = (seit_ms: number, jetzt_ms: number): number => Math.min(1, Math.max(0, (jetzt_ms - seit_ms) / FREMD_EINBLENDEN_MS));
+
+/**
+ * Reine Abfrage: Anteil 0…1 der Einblendung, den das nächste Bild zeigt. Felder, die noch nie gezeichnet wurden, stehen bei 0 –
+ * ihr Einblenden beginnt erst mit dem Bild, das sie zeichnet.
  */
 export function fremdEinblendung(felder: ReadonlyArray<readonly [number, number]>, jetzt_ms: number): number {
-  const neu = new Set(felder.map(([x, y]) => `${x},${y}`));
-  if ([...neu].some((f) => !fremdFelder.has(f))) fremdSeit_ms = jetzt_ms;
-  fremdFelder = neu;
-  return Math.min(1, Math.max(0, (jetzt_ms - fremdSeit_ms) / FREMD_EINBLENDEN_MS));
+  if (hatNeue(felder)) return 0;
+  return anteil(fremdStreifen.seit_ms, jetzt_ms);
+}
+
+/** Vom Zeichnen je Bild aufgerufen: Kommt ein Feld neu hinzu, beginnt das Einblenden mit diesem Bild. Gibt den Anteil 0…1 zurück. */
+export function fremdEinblendungMerken(felder: ReadonlyArray<readonly [number, number]>, jetzt_ms: number): number {
+  if (hatNeue(felder)) fremdStreifen.seit_ms = jetzt_ms;
+  fremdStreifen.felder = new Set(felder.map(([x, y]) => `${x},${y}`));
+  return anteil(fremdStreifen.seit_ms, jetzt_ms);
+}
+
+/** Vergisst die gemerkten Felder, damit Tests ohne Vorgeschichte beginnen. */
+export function fremdEinblendungZuruecksetzen(): void {
+  fremdStreifen.felder = new Set();
+  fremdStreifen.seit_ms = 0;
 }
 
 /** Ändert sich genau dann, wenn sich etwas Sichtbares an der Szene ändert (Kamera NICHT). */

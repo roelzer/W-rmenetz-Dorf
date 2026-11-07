@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { berechneNetz } from '../src/core/netz';
 import { Spiel } from '../src/core/spiel';
 import { neuerSpielstand } from '../src/core/start';
@@ -6,8 +6,8 @@ import type { TutorialBandFeld } from '../src/core/tutorial-vertrag';
 import { Effekte } from '../src/render/effekte';
 import { Kamera } from '../src/render/kamera';
 import { Maler } from '../src/render/maler';
-import { bodenEbeneEinrichten, zeichneSzene, type Szene } from '../src/render/szene';
-import { animationBedarf, szenenSchluessel } from '../src/render/szene-schluessel';
+import { bodenEbeneEinrichten, pfeilFarbe, zeichneSzene, type Szene } from '../src/render/szene';
+import { animationBedarf, fremdEinblendungZuruecksetzen, szenenSchluessel } from '../src/render/szene-schluessel';
 import { SYMBOLE } from '../src/ui/symbole';
 import { neu } from './hilfen';
 
@@ -74,15 +74,18 @@ const D25 = '#d8392f', D40 = '#6ec6ff', KONTUR = '#3b1d0a', TAFEL = '#fff4df', Z
 const HAKEN_SCHEIBE = 'fillStyle=#d3f0c6';
 
 describe('NR20 P4 Darstellung Kapitel 3', () => {
+  // Die Streifen-Einblendung merkt sich die zuletzt gezeichneten Felder; jeder Test beginnt ohne Vorgeschichte.
+  beforeEach(() => fremdEinblendungZuruecksetzen());
+
   it('Band nur auf den übergebenen Feldern: Füllung in der Zielfarbe von Feldeingang über Mitte zum Ausgang, Doppelrand darunter', () => {
     const leer = bild(szene({}));
     expect(anzahl(leer, `strokeStyle=${D25}`)).toBe(0);
     const b = bild(szene({ tutorial_band: [feld(9, 12, 'd25', [0, 1]), feld(10, 13, 'd25', [0, 1]), feld(10, 14, 'd25', [1, 0])] }));
     const i = b.indexOf(`strokeStyle=${D25}`);
     expect(i, 'Füllung in der Zielfarbe').toBeGreaterThan(-1);
-    // (9|12) allein: von halb (9|11,5) über die Mitte nach (9|12,5); (10|14) übernimmt den Eingang von (10|13) und geht nach Osten
+    // (9|12) kommt vom Abzweig (10|12) im Osten und geht nach Süden; (10|13) kommt vom Abzweig im Norden; (10|14) von (10|13), nach Osten
     gleichePunkte(punkteNach(b, i), [
-      mitte(9, 11.5), mitte(9, 12), mitte(9, 12.5),
+      mitte(9.5, 12), mitte(9, 12), mitte(9, 12.5),
       mitte(10, 12.5), mitte(10, 13), mitte(10, 13.5),
       mitte(10, 13.5), mitte(10, 14), mitte(10.5, 14),
     ]);
@@ -95,6 +98,40 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     expect(innen).toBeGreaterThan(aussen);
     expect(b.slice(aussen, aussen + 4)).toContain(`lineWidth=${bb}`);
     expect(b.slice(innen, innen + 4)).toContain(`lineWidth=${bb - 3}`);
+  });
+
+  it('Band-Eingang aus der festen Feldfolge: (10|14) kommt von (10|13), auch wenn (10|13) schon belegt ist; Abzweig von (10|11)', () => {
+    const b = bild(szene({ tutorial_band: [feld(10, 14, 'd25', [1, 0]), feld(11, 14, 'd25', [1, 0])] }));
+    gleichePunkte(punkteNach(b, b.indexOf(`strokeStyle=${D25}`)), [
+      mitte(10, 13.5), mitte(10, 14), mitte(10.5, 14),
+      mitte(10.5, 14), mitte(11, 14), mitte(11.5, 14),
+    ]);
+    // Abzweig allein (pfeil null): Weg von der Hauptleitung (10|11) her bis in die Mitte
+    const D32 = '#4caf3e';
+    const a = bild(szene({ tutorial_band: [feld(10, 12, 'd32', null)] }));
+    gleichePunkte(punkteNach(a, a.indexOf(`strokeStyle=${D32}`)), [mitte(10, 11.5), mitte(10, 12)]);
+    // (9|12) allein, Abzweig schon gebaut: Eingang trotzdem vom Abzweig im Osten
+    const h = bild(szene({ tutorial_band: [feld(9, 12, 'd25', [0, 1])] }));
+    gleichePunkte(punkteNach(h, h.indexOf(`strokeStyle=${D25}`)), [mitte(9.5, 12), mitte(9, 12), mitte(9, 12.5)]);
+  });
+
+  it('Pfeilfarbe: weiß ab Kontrast 3:1, darunter kontur (Grenze von Hand: #949494 ≈ 3,03, #959595 ≈ 2,996, #8a8a8a ≈ 3,45)', () => {
+    expect(pfeilFarbe('#949494')).toBe('#ffffff');
+    expect(pfeilFarbe('#959595')).toBe(KONTUR);
+    expect(pfeilFarbe('#8a8a8a')).toBe('#ffffff');
+    expect(pfeilFarbe(D25)).toBe('#ffffff');
+    expect(pfeilFarbe(D40)).toBe(KONTUR);
+  });
+
+  it('weißer Pfeil hat einen Rand in kontur (1,5 px), der Pfeil in kontur keinen zweiten', () => {
+    const nachFuellung = (b: string[], farbe: string): string[] => {
+      const i = b.findIndex((x, j) => x === `fillStyle=${farbe}` && b[j + 1] === 'beginPath()' && b[j + 2]?.startsWith('moveTo(') && b.slice(j, j + 8).includes('closePath()'));
+      expect(i, `Pfeil ${farbe}`).toBeGreaterThan(-1);
+      const f = b.indexOf('fill()', i);
+      return b.slice(f + 1, f + 4);
+    };
+    expect(nachFuellung(bild(szene({ tutorial_band: [feld(9, 12, 'd25', [0, 1])] })), '#ffffff')).toEqual([`strokeStyle=${KONTUR}`, 'lineWidth=1.5', 'stroke()']);
+    expect(nachFuellung(bild(szene({ tutorial_band: [feld(9, 12, 'd40', [0, 1])] })), KONTUR)).not.toContain('stroke()');
   });
 
   it('Pfeile: Spitze folgt pfeil ([0,1] unterhalb der Mitte), 25er weiß mit Kontur, 40er in kontur, ruhend und pfeil null ohne Pfeil', () => {
@@ -140,6 +177,9 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     const kreis = b.slice(0, i).reverse().find((x) => x.startsWith('arc('))!;
     const [ax, ay] = kreis.slice(4, -1).split(',').map(Number);
     expect(ax).toBeCloseTo(zx, 6); expect(ay).toBeCloseTo(zy, 6);
+    // Radius = Bandbreite × 0,45, b = max(12, round(Feldbreite × 0,28))
+    const bb = Math.max(12, Math.round(kamera().tw * 0.28));
+    expect(Number(kreis.slice(4, -1).split(',')[2])).toBeCloseTo(bb * 0.45, 6);
     expect(b.slice(i, i + 12)).toContain(`strokeStyle=${KONTUR}`);
   });
 
@@ -196,7 +236,6 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
 
     const fremd: Array<readonly [number, number]> = [[12, 12], [12, 13]];
     const s = (t: number, extra: Partial<Szene> = {}): Szene => szene({ tutorial_fremd: fremd, jetzt_ms: t, ...extra });
-    bild(szene({ tutorial_fremd: [], jetzt_ms: 0 }));
     const b0 = bild(s(50_000));
     expect(b0, 'erstes Bild: Einblenden beginnt bei 0').toContain('globalAlpha=0');
     expect(animationBedarf(s(50_100), false), 'während des Einblendens flüssig').toBe('fluessig');
@@ -218,6 +257,10 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     const boegen = b2.slice(0, iClip).filter((x) => x.startsWith('arc(')).slice(-2).map((x) => x.slice(4, -1).split(',').map(Number));
     const soll = [mitte(12, 12), mitte(12, 13)];
     boegen.forEach(([x, y], i) => { expect(x).toBeCloseTo(soll[i][0], 6); expect(y).toBeCloseTo(soll[i][1], 6); });
+    // Streifen dunkel 4 px + hell 4 px = 8 px quer zur 45°-Linie, waagrecht gemessen 8 / sin 45° = 11,3137 px
+    const anfaenge = b2.slice(iClip, b2.indexOf('stroke()', iClip)).filter((x) => x.startsWith('moveTo(')).map((x) => Number(x.slice(7, -1).split(',')[0]));
+    expect(anfaenge.length).toBeGreaterThan(2);
+    for (let j = 1; j < anfaenge.length; j++) expect(anfaenge[j] - anfaenge[j - 1]).toBeCloseTo(11.3137, 3);
 
     // Auf gestreiften Feldern kein Band und keine Raute
     const ohne = bild(s(50_300, { tutorial_band: [feld(12, 12, 'd25', [0, 1])], naechstes_feld: [12, 12] }));
@@ -228,6 +271,26 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     const red = bild(szene({ tutorial_fremd: [[13, 12]], jetzt_ms: 60_000 }), true);
     expect(red).toContain('globalAlpha=0.85');
     expect(red).not.toContain('globalAlpha=0');
+  });
+
+  it('Takt fragt die Einblendung nur ab: animationBedarf vor dem ersten Bild startet das Einblenden nicht', () => {
+    const s = (t: number): Szene => szene({ tutorial_fremd: [[12, 12]], jetzt_ms: t });
+    expect(animationBedarf(s(70_000), false), 'neue Felder vor dem ersten Bild: flüssig').toBe('fluessig');
+    expect(animationBedarf(s(70_500), false)).toBe('fluessig');
+    expect(bild(s(71_000)), 'das erste Bild beginnt bei 0').toContain('globalAlpha=0');
+    expect(animationBedarf(s(71_100), false)).toBe('fluessig');
+    expect(animationBedarf(s(71_200), false), 'nach 200 ms still').toBe('keine');
+    // Weniger Bewegung: das Bild merkt sich die Felder trotzdem, der Takt wird danach still
+    expect(bild(szene({ tutorial_fremd: [[13, 13]], jetzt_ms: 80_000 }), true)).toContain('globalAlpha=0.85');
+    expect(animationBedarf(szene({ tutorial_fremd: [[13, 13]], jetzt_ms: 80_300 }), false)).toBe('keine');
+  });
+
+  it('ruhe: fremde Blasen wippen nicht, also kein Dauertakt', () => {
+    const spiel = new Spiel(neuerSpielstand(0), () => 0);
+    const mitFremd = [...objekte, neu('efh', 5, 5, { station: 'kompakt' })];
+    const n2 = berechneNetz(mitFremd, [], 1);
+    expect(animationBedarf(szene({ objekte: mitFremd, netz: n2, spiel }), false), 'Vorprobe: fremde Blase wippt').toBe('fluessig');
+    expect(animationBedarf(szene({ objekte: mitFremd, netz: n2, spiel, ruhe: true }), false)).toBe('keine');
   });
 
   it('Schlüssel und Takt: Band, Raute, Zielscheibe, Ziel, Ruhe und Fremd ändern den Schlüssel; die Spur nicht mehr', () => {

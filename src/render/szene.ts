@@ -3,6 +3,7 @@ import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
 import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz';
 import type { Spiel } from '../core/spiel';
+import { bandVorgaenger } from '../core/tutorial-band';
 import type { Feld, TutorialBandFeld } from '../core/tutorial-vertrag';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
@@ -12,7 +13,7 @@ import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt, zielscheibe } from './gebaeude';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
-import { bodenSchluessel, fremdEinblendung } from './szene-schluessel';
+import { bodenSchluessel, fremdEinblendungMerken } from './szene-schluessel';
 
 // Bestehende Aufrufer (Tests) holen `blase` weiter hier.
 export { blase };
@@ -393,13 +394,18 @@ function kontrastZuWeiss(hex: string): number {
 /** Mindestkontrast für Grafik (WCAG 1.4.11), ab dem der Pfeil weiß ist (DESIGN 13.17.1 B2). */
 const PFEIL_WEISS_AB = 3;
 
+const WEISS = '#ffffff';
+/** Farbe der Pfeilspitze auf einer Bandfarbe: weiß ab PFEIL_WEISS_AB, sonst `kontur` (B2). */
+export const pfeilFarbe = (farbe: string): string => (kontrastZuWeiss(farbe) >= PFEIL_WEISS_AB ? WEISS : MF.kontur);
+
 /** Bandbreite b = max(geist_band_min, round(Feldbreite × geist_band_faktor)) (DESIGN 13.17.1 B2). */
 const bandBreite = (tw: number): number => Math.max(MM.geist_band_min, Math.round(tw * MM.geist_band_faktor));
 
 /** NR20/NR21 (DESIGN 13.17.1 B2–B4, 13.17.8): eine Ebene über den eingezeichneten Leitungen. Reihenfolge: Band, Streifen, Zielscheibe, Raute. */
 function zeichneTutorialEbene(m: Maler, k: Kamera, s: Szene): void {
   const fremd = s.tutorial_fremd ?? [];
-  const deckkraft = m.reduziert ? 1 : fremdEinblendung(fremd, s.jetzt_ms);
+  // Auch bei Weniger Bewegung merken, sonst hielte der Takt die Felder für ungezeichnet und bliebe flüssig
+  const eingeblendet = fremdEinblendungMerken(fremd, s.jetzt_ms), deckkraft = m.reduziert ? 1 : eingeblendet;
   const gestreift = new Set(fremd.map(feldText));
   const band = (s.tutorial_band ?? []).filter((f) => !gestreift.has(feldText([f.x, f.y])));
   if (band.length) zeichneBand(m, k, band);
@@ -409,16 +415,18 @@ function zeichneTutorialEbene(m: Maler, k: Kamera, s: Szene): void {
 }
 
 /**
- * Geisterleitung (B2): je Feld ein Weg vom Eingang (halber Schritt zurück) über die Mitte zum Ausgang (halber Schritt in `pfeil`).
- * Der Eingang kommt vom Bandfeld, dessen Pfeil hierher zeigt; sonst gegen den eigenen Pfeil. Ohne Pfeil (Abzweig) endet der Weg in der Mitte.
+ * Geisterleitung (B2): je Feld ein Weg vom Eingang über die Mitte zum Ausgang (halber Schritt in `pfeil`). Der Eingang liegt
+ * auf der Kante zum festen Vorgänger in der Spur (Abzweig für beide Hausanschlüsse), auch wenn dort schon eine Leitung liegt.
+ * Ohne festen Vorgänger (erstes Feld der Hauptleitung) kommt er gegen den eigenen Pfeil. Ohne Pfeil (Abzweig) endet der Weg in der Mitte.
  * Alle Felder gleicher Farbe und gleichen Zustands liegen in einem Pfad, damit sich die Deckkraft an den Stößen nicht verdoppelt.
  */
 function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>): void {
   const { X } = m, b = bandBreite(k.tw), rand_hell = MM.geist_rand_hell, rand_dunkel = MM.geist_rand_dunkel;
   const weg = (f: TutorialBandFeld): Punkt[] => {
-    const von = band.find((q) => q.pfeil && q.x + q.pfeil[0] === f.x && q.y + q.pfeil[1] === f.y)?.pfeil ?? f.pfeil;
+    const vor = bandVorgaenger(f.x, f.y);
     const p: Punkt[] = [];
-    if (von) p.push(k.mitte(f.x - von[0] / 2, f.y - von[1] / 2));
+    if (vor) p.push(k.mitte((f.x + vor[0]) / 2, (f.y + vor[1]) / 2));
+    else if (f.pfeil) p.push(k.mitte(f.x - f.pfeil[0] / 2, f.y - f.pfeil[1] / 2));
     p.push(k.mitte(f.x, f.y));
     if (f.pfeil) p.push(k.mitte(f.x + f.pfeil[0] / 2, f.y + f.pfeil[1] / 2));
     if (p.length === 1) p.push(p[0]); // einzelnes Feld ohne Richtung: runder Punkt
@@ -457,8 +465,8 @@ function pfeilSpitze(m: Maler, k: Kamera, f: TutorialBandFeld, b: number, farbe:
   const l = Math.hypot(bx - ax, by - ay);
   if (l === 0) return;
   const ux = (bx - ax) / l, uy = (by - ay) / l, h = (b * 0.6) / 2;
-  const weiss = kontrastZuWeiss(farbe) >= PFEIL_WEISS_AB;
-  X.fillStyle = weiss ? '#ffffff' : MF.kontur;
+  const fuellung = pfeilFarbe(farbe), weiss = fuellung === WEISS;
+  X.fillStyle = fuellung;
   X.beginPath();
   X.moveTo(ax + ux * h, ay + uy * h);
   X.lineTo(ax - ux * h - uy * h, ay - uy * h + ux * h);
