@@ -570,3 +570,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:57 | ▶ | entwickler | P1 Nachbesserung Review |
 | 2026-11-07 19:58 | ▶ | entwickler | P4a Nachbesserung Review |
 | 2026-11-07 19:58 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Das Paket ist fertig gebaut, getestet und committet. Blockiert ist es nur, weil die Test-Schranke nicht „OK“ meldet. Das liegt a ([Bericht](docs/pruefberichte/20261107-195852-entwickler-aa3e465ae1aca6f77.md)) |
+| 2026-11-07 19:59 | ▶ | reviewer | Review P4b NR20-22 |
