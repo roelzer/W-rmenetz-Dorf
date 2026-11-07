@@ -521,3 +521,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 18:34 | ▶ | designer | Satz eigener Abgang entwerfen |
 | 2026-11-07 18:34 | ▶ | architekt | Bauplan NR20-22 Fassung 2.1 |
 | 2026-11-07 18:38 | ■ 🟢 | designer | 🟢 DESIGN 13.17 ist auf Fassung 2.1 erweitert. Geändert habe ich nur `/home/user/W-rmenetz-Dorf/docs/DESIGN.md`, keinen Code und keine Tokens-Datei. Committe ([Bericht](docs/pruefberichte/20261107-183809-designer-aa68089c1090308cc.md)) |
+| 2026-11-07 18:45 | ■ 🟢 | architekt | 🟢 **Fassung 2.1 von `docs/bauplaene/NR20-22.md` ist fertig.** M1 bis M4, die Kann-Punkte K1–K6 und K8, alle Rückfragen je Paket und die Frage zur T14-Kart ([Bericht](docs/pruefberichte/20261107-184518-architekt-a04c7b06cc930f4a7.md)) |
