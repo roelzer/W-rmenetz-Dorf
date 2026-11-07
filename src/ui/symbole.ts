@@ -26,6 +26,8 @@ export const SYMBOLE = {
   baum: SVG(`<path d="M12 3a6 6 0 0 1 6 6 5 5 0 0 1-2 8.5H8A5 5 0 0 1 6 9a6 6 0 0 1 6-6z" fill="#5fae4a" ${U}/><path d="M12 13v8" stroke="#1a1208" stroke-width="2.4" stroke-linecap="round"/>`),
   frage: SVG(`<circle cx="12" cy="12" r="9.5" fill="#fff6e2" ${U}/><path d="M9.2 9.3a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2.1v.6" fill="none" stroke="#1a1208" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#1a1208"/>`),
   zurueck: SVG(`<path d="M9 5L4 10l5 5" fill="none" stroke="#1a1208" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 10H14a5.5 5.5 0 0 1 0 11h-3" fill="none" stroke="#1a1208" stroke-width="2.4" stroke-linecap="round"/>`),
+  // DESIGN.md 13.17.1 B4: Zielscheibe (Ring + Punkt) in kontur auf der Scheibe #ffe08a (menue.farbe.ziel), 2 px kontur
+  zielscheibe: SVG(`<circle cx="12" cy="12" r="10" fill="#ffe08a" stroke="#3b1d0a" stroke-width="1.6"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#3b1d0a" stroke-width="1.6"/><circle cx="12" cy="12" r="2" fill="#3b1d0a"/>`),
   // DESIGN.md 13.2 Zeigefinger: Fläche tafel, 2 px kontur bei 40 px (= 1,2 im 24er-Raster). Schräg gedreht, damit die
   // Fingerspitze oben links (bei 2|2) sitzt – dort setzt spotlight.ts sie auf die Mitte des Ziels.
   finger: SVG(`<g transform="rotate(-45 12 12)" fill="#fff4df" stroke="#3b1d0a" stroke-width="1.2" stroke-linejoin="round"><rect x="7" y="9" width="11" height="12" rx="3"/><rect x="10" y="-2" width="4" height="13" rx="2"/><path d="M7 13H5.5a1.5 1.5 0 0 0 0 3H7"/></g>`),
