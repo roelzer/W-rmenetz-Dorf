@@ -107,3 +107,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - P5f-3 in nr20-int (d711a3a, 3 rot = P7). Laufen: Review P5f-3 + Designer-Fotocheck 13.17.9 auf nr20-int. Danach P7.
 - Review P5f-3 🟡 freigegeben. Warte auf Designer-Fotocheck, dann P7.
 - Designer-Fotocheck 🟡 (Bericht 20261107-designer-p5f-final.md, DESIGN 13.17.10 G1–G7). Starte parallel: Tester P5g (nr20-p5gt ab d711a3a) und Entwickler P7 (nr20-p7 ab d711a3a). Danach Entwickler P5g auf Tester-Stand.
+- Tester P5g Teil 1 fertig (f351a42); Teil 2 läuft (frischer Tester, Entwurf im Scratchpad). P7-Entwickler läuft.

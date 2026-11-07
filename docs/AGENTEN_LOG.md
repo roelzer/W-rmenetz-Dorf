@@ -655,3 +655,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:42 | ■ 🔴 | designer | **Ampel: 🟡** Alle 11 Punkte aus meinem letzten Fotocheck sind gebaut. Du schreibst von 9 Punkten, der Bericht hatte aber 🔴 1–2 und 🟡 3–11. Simons K ([Bericht](docs/pruefberichte/20261107-234212-designer-aecefd8a1f969244f.md)) |
 | 2026-11-07 23:42 | ▶ | tester | Tester P5g Vorarbeit |
 | 2026-11-07 23:43 | ▶ | entwickler | P7 NR22 Darstellung und Blatt |
+| 2026-11-07 23:52 | ■ 🟡 | tester | 🟡 BLOCKIERT, Grund: Kontext voll. Teil 1 ist fertig und committet. Die neuen G-Tests liegen als Entwurf vor, sind aber noch nicht fertig geprüft. Browser-Sk ([Bericht](docs/pruefberichte/20261107-235239-tester-ac37722f9cbaa8806.md)) |
+| 2026-11-07 23:53 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-07 23:53 | ■ 🔴 | entwickler | 🔴 BLOCKIERT, Grund: Kontext voll. Der Darstellungsteil ist fertig und committet. Das Leitungsblatt und die Steuerung fehlen noch.  ([Bericht](docs/pruefberichte/20261107-235303-entwickler-af0edfeaaf524178e.md)) |
