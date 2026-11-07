@@ -55,3 +55,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: nr20-int = P0+V0(1,2a,2b) bei 41b1c4a, Typprüfung grün (Worktree /home/user/wt-int). Laufen: V0 2c (Tester, wt-v0c), P1 (wt-p1), P2 (wt-p2), P4 (wt-p4). Danach Review je Paket, Merge in nr20-int, dann P2-Nachzug, P3‖P6, P5, P7.
 - 2026-11-07: P4 abgebrochen (Kontext), geteilt in P4a (läuft) und P4b (nach P1/P2).
 - 2026-11-07: V0 komplett (2c b26e414) in nr20-int gemergt.
+- 2026-11-07: P2 Zwischenstand e0dca00 (7 rot), Fortsetzung läuft; Tester korrigiert beide_haeuser in nr20-int.
