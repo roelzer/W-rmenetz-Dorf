@@ -171,6 +171,11 @@ describe('NR21 Ablauf: Klickweg, Neuladen, T14 erst beim Abheben', () => {
           expect(zielEl(u, z, z === 'leitungskarte' ? a.leitung_typ : undefined), `${a.schritt}: Ziel ${z} im Dokument`).not.toBeNull();
         }
         expect(a.zeichenleiste !== null || a.ziele.length > 0, `${a.schritt} hat ein Ziel`).toBe(true);
+        // Sammelliste P5 Punkt 12 (Entscheidung c): T14 nennt keine Größe, die Leiste öffnet mit der Anschluss-Größe 25er
+        if (ziel === 'T14') {
+          expect(zielEl(u, 'zeichenleiste'), 'T14: Zeichenleiste offen').not.toBeNull();
+          expect(farbknopf(u, 'd25').getAttribute('aria-pressed'), 'T14: d25 gewählt').toBe('true');
+        }
       }, { uhr: () => uhr.t });
     });
   }

@@ -1021,7 +1021,8 @@ export class Steuerung implements Ui {
     if (a.ziele.some((z) => BAUMENUE_ZIELE.has(z) && !document.querySelector(`[data-ziel="${z}"]`))) this.katalog('netz');
   }
   /** Bauplan NR20-22 P5: Verlangt der Schritt die Zeichenleiste (oder liegt sein Ziel [Abschnitt abschließen] darin) und ist
-   *  sie zu – etwa nach dem Neuladen –, öffnet sie mit der verlangten Größe; T14 nennt keine, dort die zuletzt gezogene. */
+   *  sie zu – etwa nach dem Neuladen –, öffnet sie mit der verlangten Größe. Nennt der Schritt keine (T14), immer mit der
+   *  Anschluss-Größe aus `tutorialWerte()` (ENTSCHEIDUNGEN 2026-11-07, Rückfrage c), nicht mit der zuletzt gezogenen. */
   private leisteHerstellen(a: TutorialAnsicht): void {
     if (this.leiste || (!a.zeichenleiste && !a.ziele.includes('abschliessen'))) return;
     this.stempeln(a.zeichenleiste?.typ ?? this.spiel.tutorialWerte().anschluss);
