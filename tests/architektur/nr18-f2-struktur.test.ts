@@ -50,10 +50,13 @@ describe('NR18 Fassung 3: Struktur', { timeout: 30000 }, () => {
     expect(kern).toEqual([]);
   });
 
-  it('F2c: Dateien mit „tutorial“ im Namen rechnen keine Spielregel nach (kein Import von netz/engstelle, kein berechneNetz)', () => {
+  it('F2c: Dateien mit „tutorial“ im Namen rechnen keine Spielregel nach (kein Import von netz/engstelle, kein berechneNetz; Ausnahme N4)', () => {
     const verstoesse: string[] = [];
+    // Einzige Ausnahme (NR20-22 §4 N4, AE-NR21-1, Paket P1): tutorial-netz.ts darf genau ./netz importieren
+    // (für leitungsNachbarn). engstelle und berechneNetz/engstellenFinden bleiben auch dort verboten; N4 prüft die Datei eng.
+    const ausnahme = (f: string, i: string): boolean => f === 'src/core/tutorial-netz.ts' && i === './netz';
     for (const f of dateien('src').map(norm).filter((x) => /tutorial/i.test(basename(x)))) {
-      for (const i of importe(f)) if (/(^|\/)(netz|engstelle)$/.test(i)) verstoesse.push(`${f}: importiert ${i}`);
+      for (const i of importe(f)) if (/(^|\/)(netz|engstelle)$/.test(i) && !ausnahme(f, i)) verstoesse.push(`${f}: importiert ${i}`);
       if (/\b(berechneNetz|engstellenFinden)\s*\(/.test(lesen(f))) verstoesse.push(`${f}: rechnet selbst`);
     }
     expect(verstoesse).toEqual([]);
