@@ -99,3 +99,46 @@ describe('Feinschliff Kern (9): Tutorial-Ablauf mit Rest-Stück', () => {
     expect(t.ansicht(T0)?.schritt).toBe('T14');
   });
 });
+
+describe('Feinschliff Kern (6): Zielscheibe bleibt nach dem Wegnehmen, bis das betroffene Haus richtig angeschlossen ist', () => {
+  /** T13h mit Haus 1 richtig und eigenem Abgang (12|12)→(12|13) zu Haus 2; Einstieg aus dem Zustand (fremd → T13h). */
+  function mitEigenemAbgang(): { s: Spiel; t: Tutorial } {
+    const { s } = offen();
+    zeichnen(s, [...HAUPT, ...ANSCHLUSS_1, ['d25', 12, 12], ['d25', 12, 13]]);
+    const t = new Tutorial(s);
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', text: SATZ_EIGENER_ABGANG, zielscheibe: [10, 12] });
+    return { s, t };
+  }
+
+  it('test_nr21_zielscheibe_nach_zurueck: [Zurück] → Rest (12|12) gestreift, Zielscheibe da; Rest weg → Zwischenstand, Zielscheibe bleibt', () => {
+    const { s, t } = mitEigenemAbgang();
+    expect(s.letzteLeitungZurueck().ok).toBe(true); t.handlung();
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', text: SATZ_EIGENER_ABGANG, fremd: [[12, 12]], zielscheibe: [10, 12] });
+    expect(t.sperre('abschliessen')?.kurz).toBe(KURZ_WEG);
+    expect(s.geplanteLeitungEntfernen(12, 12).ok).toBe(true); t.handlung();
+    const h2 = hausBei(s, ERSTE_HAEUSER[1]);
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', text: ZWISCHENSTAND, fremd: [], zielscheibe: [10, 12], ziel_ring: h2.id });
+  });
+
+  it('test_nr21_zielscheibe_weg_wenn_haus2_ok: Spur zu Haus 2 im laufenden Zug → Zielscheibe weg; Haus 2 wieder offen → sie kommt nicht zurück', () => {
+    const { s, t } = mitEigenemAbgang();
+    expect(s.letzteLeitungZurueck().ok).toBe(true); t.handlung();
+    expect(s.geplanteLeitungEntfernen(12, 12).ok).toBe(true); t.handlung();
+    // Zug läuft (kein Abheben): T13h bleibt, Haus 2 ist aber schon richtig angeschlossen
+    t.zugBeginnt();
+    for (const [typ, x, y] of ANSCHLUSS_2) { expect(s.platzieren(typ, x, y).ok).toBe(true); t.schritt({ schritt: 'leitung_gezeichnet' }); }
+    expect(s.tutorialLeitungen().haus2_ok).toBe(true);
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', zielscheibe: null });
+    // letztes Feld wieder weg: Haus 2 offen, das Stück, das weg musste, ist längst weg → normale Führung ohne Zielscheibe
+    expect(s.letzteLeitungZurueck().ok).toBe(true); t.handlung();
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', text: ZWISCHENSTAND, zielscheibe: null });
+  });
+
+  it('test_nr21_zielscheibe_normaler_zwischenstand: ohne vorheriges fremdes Stück keine Zielscheibe in T13h', () => {
+    const { s } = offen();
+    zeichnen(s, [...HAUPT, ...ANSCHLUSS_1]);
+    const t = new Tutorial(s);
+    t.tipp({ art: 'tipp', tipp: 'farbknopf', typ: 'd25' });
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', text: ZWISCHENSTAND, zielscheibe: null });
+  });
+});

@@ -274,12 +274,25 @@ export class Tutorial {
   /** Bauplan NR20-22 P2: ein Zug läuft (Finger aufgesetzt oder leitung_gezeichnet in T13–T13h) bis zum Tipp „abgehoben“ oder
    *  Schrittwechsel. Auch ein Radierzug zählt (ENTSCHEIDUNGEN 2026-11-07): kein Schrittwechsel unter dem Finger. */
   private zugLaeuft = false;
+  /** DESIGN 13.17.9 F8, ENTSCHEIDUNGEN 2026-11-07 (6): Haus, dessen eigener Abgang weggenommen wird bzw. wurde. Solange es nicht
+   *  richtig angeschlossen ist, bleibt die Zielscheibe auf dem Abzweig stehen – auch wenn kein Stück mehr weg muss. Ohne diese
+   *  Erinnerung wäre der Zustand nach dem Wegnehmen nicht vom normalen Zwischenstand zu unterscheiden. */
+  private zielscheibeHaus: 1 | 2 | null = null;
   private intro: boolean;
   private beendet = false;
 
   constructor(private readonly lage: TutorialLage, opt?: { wiedereinstieg?: boolean }) {
     this.intro = !!opt?.wiedereinstieg;
     if (this.aktiv()) this.schrittIndex = index(einstieg(lage));
+    this.zielscheibeMerken();
+  }
+
+  /** Merkt sich das Haus mit eigenem Abgang und vergisst es, sobald es richtig angeschlossen ist oder Kapitel 3 vorbei ist. */
+  private zielscheibeMerken(): void {
+    if (!this.aktiv() || !(this.def.t13 || this.def.id === 'T14')) { this.zielscheibeHaus = null; return; }
+    const lg = this.lage.tutorialLeitungen();
+    if (lg.fremd_haus !== null) this.zielscheibeHaus = lg.fremd_haus;
+    else if (this.zielscheibeHaus !== null && (this.zielscheibeHaus === 1 ? lg.haus1_ok : lg.haus2_ok)) this.zielscheibeHaus = null;
   }
 
   aktiv(): boolean {
@@ -348,6 +361,7 @@ export class Tutorial {
 
   /** Übergänge aus dem Zustand, auch mehrere hintereinander (Eintritt in einen schon erfüllten Handlungs-Schritt). */
   private nachZustand(): void {
+    this.zielscheibeMerken();
     for (let i = 0; i < TUTORIAL_SCHRITTE.length && !this.beendet && !this.intro; i++) {
       if (this.zurueck()) return;
       const d = this.def;
@@ -492,7 +506,7 @@ export class Tutorial {
     const fremd = lg.fremd.length > 0;
     const farbknopf_ring = d.id === 'T13w' ? w.anschluss : lg.haupt_zu_duenn ? w.haupt : lg.anschluss_zu_dick ? w.anschluss : null;
     return {
-      band, naechstes_feld: naechstes, zielscheibe: d.id !== 'T13h' || fremd ? [...TUTORIAL_ABZWEIG] : null,
+      band, naechstes_feld: naechstes, zielscheibe: d.id !== 'T13h' || fremd || this.zielscheibeHaus !== null ? [...TUTORIAL_ABZWEIG] : null,
       finger_weg: fremd || d.id === 'T13w' ? [] : weg, fremd: [...lg.fremd], ziel_stecker: [t.haus1.id, t.haus2.id],
       ziel_ring: ring === 1 ? t.haus1.id : ring === 2 ? t.haus2.id : null,
       erreicht_ids: [...(lg.haus1_ok ? [t.haus1.id] : []), ...(lg.haus2_ok ? [t.haus2.id] : [])],
