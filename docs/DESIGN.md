@@ -1102,7 +1102,7 @@ Anlass: Lastenheft NR20, NR21, NR22 mit Simons Antworten Q20–Q22. Designer, Mo
 **Grundidee:** Der Weg leuchtet, der Rest tritt zurück. Dafür gibt es fünf Bausteine, die alle die Sprache des Tutorials sprechen: *hell-dunkler Doppelrand mit warmem Schein = hier* (13.2 Lochrand).
 
 **B1 – Ruhe im Bild (Muss)**
-- **Leichter Schleier mit Gang:** Über der Karte liegt ein leichter Schleier `rgba(28,14,4,.30)` (neues Token `menue.farbe.schleier_leicht`, halb so stark wie das Abdunkeln). Ausgespart bleibt ein **Gang**: jede Raute der Spur × 1,5, die Heizzentrale und beide Tutorial-Häuser als Ellipse + 12 px. Der Rand ist weich (12 px Verlauf). Der Schleier **sperrt nichts**: Zeichnen bleibt überall erlaubt (13.7 „Leitung neben der Spur“). Er dunkelt nur den Hintergrund ab, damit die 40 anderen Häuser zurücktreten. Gemessen: Wiese mit Schleier zu Wiese ohne Schleier = 1,85:1 – der Gang ist klar zu sehen, die Nachbarschaft bleibt lesbar.
+- **Leichter Schleier mit Gang:** Über der Karte liegt ein leichter Schleier `rgba(28,14,4,.30)` (neues Token `menue.farbe.schleier_leicht`, halb so stark wie das Abdunkeln). Ausgespart bleibt ein **Gang**: jede Raute der Spur × 1,5, die Heizzentrale und beide Tutorial-Häuser als Ellipse + 12 px (*Heizzentrale geändert durch 13.17.9 F5: nur Grundfläche + 12 px*). Der Rand ist weich (12 px Verlauf). Der Schleier **sperrt nichts**: Zeichnen bleibt überall erlaubt (13.7 „Leitung neben der Spur“). Er dunkelt nur den Hintergrund ab, damit die 40 anderen Häuser zurücktreten. Gemessen: Wiese mit Schleier zu Wiese ohne Schleier = 1,85:1 – der Gang ist klar zu sehen, die Nachbarschaft bleibt lesbar.
 - **kW-Schilder aus** in Kapitel 3 (T12 bis T14), egal wie der kW-Schalter steht. Die Einstellung selbst bleibt unverändert, ab T15 gilt sie wieder.
 - **Nur die zwei Tutorial-Häuser haben eine Blase** (den Ziel-Stecker aus B4). Andere Kunden-Blasen ruhen in Kapitel 3.
 - Die Anzeigenreihe bleibt wie heute abgedunkelt (`abdunkeln` .55).
@@ -1123,11 +1123,11 @@ Die Spur zeigt **die Leitung, die hier hingehört, in ihrer echten Farbe** – w
 
 **B4 – Ziel-Häuser (Muss)**
 - **Ziel-Stecker** über beiden Tutorial-Häusern vom Beginn von T13 an: dieselbe Form wie die Kunden-Blase (weiße Scheibe mit Spitze, weicher Schatten, Abschnitt 3). Innen eine Scheibe `#ffe08a` mit 2 px `kontur`, darin eine gezeichnete **Zielscheibe** (Ring + Punkt) in `kontur`, 11,9:1. Neues Symbol `zielscheibe` in `symbole.ts`, Linienstil wie die übrigen, kein Schriftzeichen. Er sitzt auf dem Platz des Erreicht-Zeichens und wird beim Erreichen zum grünen Haken (13.2, Federn 450 ms). Bei „Weniger Bewegung“ wechselt er ohne Federn.
-- **Ring um das aktive Ziel-Haus:** Ellipse um das Haus + 12 px, 3 px `#ffe08a`, 2 px `kontur`, 16 px Schein – genau wie ein Lochrand, nur ohne Abdunkeln. **Fassung 2:** In T13 und T13w hat **kein** Haus den Ring – das Ziel von T13 ist der Abzweig, ein Ring um Haus 1 würde dazu verleiten, die 32er bis ans Haus zu ziehen. In T13h hat ihn zuerst Haus 1, nach dem Zwischenstand Haus 2. Ist ein Haus erreicht, verschwindet sein Ring. (Abweichung vom Bauplan P2 `ziel_ring` „in T13 Haus 1“ → in T13/T13w `null`.)
-- **Zielscheibe im Band (neu, Fassung 2):** Auf dem Abzweig-Feld (10|12) sitzt in der Bandmitte das Symbol `zielscheibe` (Ring + Punkt) in `kontur` auf einer Scheibe `#ffe08a`, Durchmesser `b × 0,9`, ohne Blase. Es zeigt in T13 „bis hierher“. Bleibt sichtbar, wenn das Band auf (10|12) verschwindet (die 32er liegt richtig), und geht erst beim Wechsel nach T13h weg. In T13w liegt die Raute darüber.
+- **Ring um das aktive Ziel-Haus** (*Maß und Ebene geändert durch 13.17.9 F6*)**:** Ellipse um das Haus + 12 px, 3 px `#ffe08a`, 2 px `kontur`, 16 px Schein – genau wie ein Lochrand, nur ohne Abdunkeln. **Fassung 2:** In T13 und T13w hat **kein** Haus den Ring – das Ziel von T13 ist der Abzweig, ein Ring um Haus 1 würde dazu verleiten, die 32er bis ans Haus zu ziehen. In T13h hat ihn zuerst Haus 1, nach dem Zwischenstand Haus 2. Ist ein Haus erreicht, verschwindet sein Ring. (Abweichung vom Bauplan P2 `ziel_ring` „in T13 Haus 1“ → in T13/T13w `null`.)
+- **Zielscheibe im Band (neu, Fassung 2):** Auf dem Abzweig-Feld (10|12) sitzt in der Bandmitte das Symbol `zielscheibe` (Ring + Punkt) in `kontur` auf einer Scheibe `#ffe08a`, Durchmesser `b × 0,9`, ohne Blase (*Größe, Schein und Ebene geändert durch 13.17.9 F1*). Es zeigt in T13 „bis hierher“. Bleibt sichtbar, wenn das Band auf (10|12) verschwindet (die 32er liegt richtig), und geht erst beim Wechsel nach T13h weg. In T13w liegt die Raute darüber.
 
 **B5 – Finger zieht vor (Muss, ersetzt K9 „Finger fährt die Spur ab“)**
-- Der Finger zeigt **Ziehen, nicht Tippen**. An der Fingerspitze liegt ein Druckpunkt (Kreis 10 px `#ffe08a`, 2 px `kontur`). Er drückt auf dem nächsten Feld auf (200 ms) und zieht dann das aktive Stück entlang bis auf das Ziel, 400 ms je Feld (Fassung 2 – T13: (10|11) → (10|12), endet **auf der Zielscheibe**, nicht am Haus = 800 ms; T13h Haus 1: (9|12) und aufs Haus = 800 ms; T13h Haus 2: (10|13), (10|14), (11|14) und aufs Haus = 1.600 ms). Hinter ihm füllt sich das Band in voller Zielfarbe (Deckkraft 1) – so sieht man, was beim Ziehen entsteht. Am Ende hebt er ab, die Füllung blendet in 200 ms aus, 600 ms Pause, dann von vorn.
+- Der Finger zeigt **Ziehen, nicht Tippen**. An der Fingerspitze liegt ein Druckpunkt (Kreis 10 px `#ffe08a`, 2 px `kontur`). Er drückt auf dem nächsten Feld auf (200 ms) und zieht dann das aktive Stück entlang bis auf das Ziel, 400 ms je Feld (Fassung 2 – T13: (10|11) → (10|12), endet **auf der Zielscheibe**, nicht am Haus = 800 ms; T13h Haus 1: (9|12) und aufs Haus = 800 ms; T13h Haus 2: (10|13), (10|14), (11|14) und aufs Haus = 1.600 ms). ~~Hinter ihm füllt sich das Band in voller Zielfarbe (Deckkraft 1).~~ *Entfällt (13.17.9 F4).* Am Ende hebt er ab, 600 ms Pause, dann von vorn.
 - Er verschwindet beim ersten Berühren der Karte. Nach **4 s ohne Berührung** kommt er zurück und startet am **nächsten Feld** (B3), nicht am Anfang. Neues Token `zeit_ms.finger_wieder` 4000.
 - Hand von rechts unten. Steht das Ziel näher als 60 px an der Zeichenleiste, kommt sie von links unten (13.2).
 - **Weniger Bewegung:** Der Finger steht still mit Druckpunkt auf dem nächsten Feld. Kein Ziehen, keine Füllung. Die Richtung zeigen die Pfeile im Band.
@@ -1401,7 +1401,7 @@ Fotos: T12, T13 frisch, T13 halb gezeichnet, T13 mit 25er auf der Hauptleitung (
 
 **2. Markierung des fremden Stücks: Streifen („Absperrband“)**
 - **Welche Felder:** alle Felder des Hauswegs des betroffenen Hauses, die **kein** Spurfeld seines eigenen Hausanschlusses sind. Beispiel: (12\|12) und (12\|13). Der Kern liefert die Liste in der Lage (Vorschlag: `fremd: Feld[]`, leer = kein eigener Abgang). Satz, Streifen und Rückführung lesen dieselbe Liste.
-- **Form:** eine Hülle, die dem Rohr folgt wie das Band, Breite = Rohrbreite + 8 px. Darin 45°-Schrägstreifen, abwechselnd dunkel und hell, je 4 px breit, Deckkraft 0,85. Das Rohr scheint leicht durch. Außen eine Linie von 1,5 px in `kontur`. Keine Raute und kein Dreieck, damit es sich in der Form unterscheidet: Raute = „hier fehlt etwas / anders bauen“, Dreieck = Planungsfehler bzw. Überlast, Band = „hier hin“, **Streifen = „das muss weg“**.
+- **Form** (*Maße und Ebene geändert durch 13.17.9 F3*)**:** eine Hülle, die dem Rohr folgt wie das Band, Breite = Rohrbreite + 8 px. Darin 45°-Schrägstreifen, abwechselnd dunkel und hell, je 4 px breit, Deckkraft 0,85. Das Rohr scheint leicht durch. Außen eine Linie von 1,5 px in `kontur`. Keine Raute und kein Dreieck, damit es sich in der Form unterscheidet: Raute = „hier fehlt etwas / anders bauen“, Dreieck = Planungsfehler bzw. Überlast, Band = „hier hin“, **Streifen = „das muss weg“**.
 - **Farbe:** dunkel `kontur` `#3b1d0a`, hell `tafel` `#fff4df`. Es gibt **keinen neuen Farbton**. Rot (25er, Planungsfehler) und Gelb (Überlast) bleiben frei. Auch `#ffe08a` (Ziel, Raute, Ring = „hier hin“) wird nicht verwendet. Das Muster unterscheidet sich durch den Hell-Dunkel-Wechsel und nicht durch den Farbton, also auch bei Rot-Grün-Schwäche.
 - **Kontrast** (WCAG-Formel, gerechnet mit Python): dunkel/hell untereinander 14,1:1. `kontur` zur Wiese 8,0, zur 25er 3,7, zur 32er 4,7. `tafel` zur Straße 4,6, zur 25er 3,8. Damit erreicht auf jedem Untergrund mindestens eine der beiden Streifenfarben ≥ 3:1 (1.4.11). Noch nicht per Pipette im Foto geprüft.
 - **Tokens:** `karte.fremd.*` (13.17.4). Die Farben sind Verweise auf `menue.farbe.kontur` und `tafel`, keine neuen Werte.
@@ -1443,3 +1443,45 @@ Fotos: T12, T13 frisch, T13 halb gezeichnet, T13 mit 25er auf der Hauptleitung (
 ```
 **667×375:** gleicher Aufbau, Satz in 3 Zeilen. Gestreifte Felder bleiben im Kamera-Rahmen: (12\|12) und (12\|13) liegen innerhalb x 9 … 12, y 10 … 14 (13.17.1 B6). Andere eigene Abgänge können außerhalb liegen. Dann bleibt die Kamera trotzdem stehen (kein Sprung in T13–T14); der Satz und der Ring an [Zurück] tragen allein.
 **Desktop 1280×800:** gleich, Karte kompakt unten links.
+
+#### 13.17.9 Feinschliff P5f (nach Fotocheck 2026-11-07, Entscheidung Projektleiter)
+Anlass: Fotocheck `docs/pruefberichte/20261107-designer-nr20-fotocheck.md`, alle Punkte angenommen (ENTSCHEIDUNGEN 2026-11-07). Geht 13.17.1–13.17.8 bei Widerspruch vor. `tw` = Feldbreite in px (gemessen T13: 70 bei 844, 64 bei 667), `b` = Bandbreite (B2). Tokens: `spot_ring` `#ffe08a`, `spot_schein` `rgba(255,224,138,0.55)`, `kontur` `#3b1d0a`, `tafel` `#fff4df`.
+
+**F1 – Zielscheibe im Band (T13, T13w, eigener Abgang)**
+- Durchmesser `max(18, round(tw × 0,32))` → 22 px (844), 20 px (667). Gelbe Scheibe `spot_ring`, 2 px `kontur`, darin Ring + Punkt in `kontur` (Linie 2 px, Punkt Ø 4 px).
+- Schein: Kreis um die Scheibe, Radius = halber Durchmesser + 10 px, radialer Verlauf von `spot_schein` (innen) nach Deckkraft 0 (außen). Ruhig, kein Pulsieren.
+- Ebene: **über** Gebäuden und Ziel-Steckern (oberste Kartenebene unter dem Finger), damit sie nie verdeckt ist.
+
+**F2 – Ziel-Stecker blass in T13 und T13w**
+- Beide Stecker mit Deckkraft **0,35** (Scheibe, Schatten und Symbol zusammen), Größe unverändert. Ab T13h voll (Deckkraft 1). Haken bleiben immer voll.
+- Gilt auch beim Rücksprung nach T13/T13w (Zurück auf der Hauptleitung).
+
+**F3 – Streifen auf dem fremden Stück**
+- Hülle: Rohrbreite + **12 px** (6 px je Seite), folgt dem Rohr wie das Band. Außenlinie 1,5 px `kontur`.
+- Muster: 45°-Schrägstreifen, **dunkel `kontur` 5 px, hell `tafel` 5 px** (Periode 10 px), Deckkraft 0,85 auf der ganzen Hülle.
+- Ebene: **über dem Rohr** und über dem Band, unter Gebäuden, Blasen und dem gerade gezogenen Strich. Das Rohr scheint nur durch die Deckkraft 0,85 durch.
+- **Rest-Stück (Entscheidung PL):** Gestreift sind alle Leitungsfelder in T13–T14, die weder Spurfeld noch Teil der echten Hauptleitung (E3) sind. Sie bleiben gestreift – auch als Rest nach einem [Zurück] (Beispiel: 25er auf (12\|12)) –, Satz `satz_eigener_abgang` und Knopfzeile „Stück muss weg“ bleiben, bis alle diese Felder weg sind. [Zurück] nimmt weiter genau ein Feld. Ring in der Zeichenleiste nach Bauplan [2.3] K-c. *Hinweis an PL:* Das schränkt 13.7 „Leitung neben der Spur erlaubt“ in Kapitel 3 ein (neben der Spur gezeichnet = gestreift); so gewollt laut Entscheidung.
+
+**F4 – Finger ohne Bandfüllung**
+- „Band füllt sich hinter dem Finger“ entfällt (B5). Der Finger drückt (200 ms), zieht (400 ms je Feld), hebt ab, 600 ms Pause. Ersatz für die Sichtbarkeit ist F5.
+
+**F5 – Startfeld (10\|11) und Schleier an der Heizzentrale**
+- **Zeichenreihenfolge (nur Spurfelder, die an die Heizzentrale grenzen, also (10\|11)):** Boden → eingezeichnete Leitungen → Gebäude (auch Heizzentrale) → **Band dieses Felds → Raute-Füllung → Pfeil → Raute-Rand** → übrige Blasen → Zielscheibe (F1) → Finger. Band und Raute auf (10\|11) liegen also **über** der Heizzentrale. Alle anderen Spurfelder bleiben in der Reihenfolge von B2 (unter Gebäuden). Das Bandstück von der Hauswand in das Feld (Vorgänger Osten, `bandVorgaenger`) gehört zu (10\|11) und liegt mit darüber.
+- **Raute-Füllung:** `#ffe08a` mit Deckkraft **0,35** (statt 0,55, damit das Grün der 32er durchscheint), Raute × 0,92; Rand 3 px `spot_ring`, außen 2 px `kontur` wie B3. Gilt für die Raute auf jedem Feld.
+- **Pfeil auf der 32er:** `kontur` voll deckend mit **1,5 px Rand `tafel`** (statt Rand `kontur`), Breite `b × 0,6`. Weiße Pfeile (25er usw.) unverändert.
+- **Schleier-Aussparung Heizzentrale:** nur die **Grundfläche** (2×2 Felder als Bodenraute) + 12 px, weicher Rand 12 px wie B1. Gebäudehöhe und Dach werden nicht ausgespart (sie liegen unter dem Schleier). Rauten der Spur × 1,5 und die zwei Tutorial-Häuser (Ellipse + 12 px) unverändert.
+
+**F6 – Ring um das Ziel-Haus (T13h, eigener Abgang)**
+- Ellipse um die **Grundfläche** des Hauses (Feldraute) + **8 px** (statt Haus + 12 px). Ring 3 px `spot_ring`, 2 px `kontur`, Schein 16 px unverändert.
+- Ebene: **unter Band und Raute** (nach den eingezeichneten Leitungen, vor dem Band), über dem Boden. Ring und Raute dürfen sich berühren, die Raute liegt oben.
+
+**F7 – Ring um den Farbknopf (T13w, Größen-Sätze)**
+- Abstand Ring–Knopf **2 px** (statt `spot_abstand_knopf` 8 nur für Farbknöpfe), Ring 3 px + Kontur 2 px → Außenkante 7 px unter der Knopfunterkante.
+- Die Zeile „bis … kW · … €/Feld“ hat **immer** (nicht nur bei Ring) mindestens **12 px** Abstand von der Knopfunterkante zur Textoberkante (heute rund 9 px). Der Schein (16 px, durchscheinend) darf über den Text, Ring und Kontur nicht.
+- Finger in T13w: Spitze auf der Knopfmitte, Hand nach rechts oben aus dem Knopf heraus (nicht über die Zeile darunter).
+
+**F8 – Zeitpunkt**
+- Der Zustand „eigener Abgang“ wechselt **gemeinsam beim Abheben** des Fingers: Satz, Ring um das Haus, Ring an [Zurück]/[Radierer], Zielscheibe, Raute, aktives Band und Streifen (200 ms Einblenden, bei „Weniger Bewegung“ sofort). Während des Zugs bleibt das Bild wie vor dem Zug.
+- Nach dem Wegnehmen bleibt die Zielscheibe auf (10\|12), bis das betroffene Haus richtig angeschlossen ist (13.17.8 Tabelle, gebaut fehlte das).
+
+**Prüfung beim nächsten Fotocheck (844 und 667):** T13 ohne Finger: Zielscheibe hellstes Ziel, Stecker blass, Grün auf (10\|11) sichtbar; T13w: „bis 25 kW“ frei; T13h: Ring unter der Raute; eigener Abgang im Zug (unverändert) / nach Abheben (Streifen klar erkennbar bei 667) / nach Zurück (Rest gestreift, Zielscheibe da).
