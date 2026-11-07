@@ -624,3 +624,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:18 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 22:18 | ■ 🟡 | entwickler | **Status: FERTIG_MIT_BEDENKEN 🟡.** Beide Punkte sind gebaut, getestet und committet. Die Schranke meldet NICHT OK, und das war so zu erwarten: 14 bestehende  ([Bericht](docs/pruefberichte/20261107-221812-entwickler-ae42bea0dae407ee8.md)) |
 | 2026-11-07 22:18 | ▶ | tester | Tester: 14 Tests auf neue Regel |
+| 2026-11-07 22:19 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, mit Teilstand.** Gebaut sind F2, F6 und der Schleier-Teil von F5 sowie die drei Punkte aus dem Review P5e. Bei F1, F3 und F5 widerspri ([Bericht](docs/pruefberichte/20261107-221916-entwickler-a88a3ae51e9611bc6.md)) |
