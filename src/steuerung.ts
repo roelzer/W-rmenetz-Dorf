@@ -862,7 +862,7 @@ export class Steuerung implements Ui {
   private vorfuehrFinger(a: TutorialAnsicht, erstes: Rechteck | null, ring: Rechteck | null, ruht: boolean): Finger | null {
     if (a.finger === 'tippen') { const ziel = a.zeichnen_ruht ? ring : erstes; return ziel ? { art: 'tippen', ziel } : null; }
     if (a.finger !== 'spur' || ruht || !a.finger_weg.length) return null;
-    return { art: 'spur', punkte: a.finger_weg.map(([x, y]) => this.kamera.mitte(x, y)) };
+    return { art: 'spur', punkte: a.finger_weg.map(([x, y]) => this.kamera.mitte(x, y)), je_feld_ms: T.menue.zeit_ms.finger_je_feld };
   }
   private fingerPauseStarten(): void {
     if (this.fingerPause !== null) window.clearTimeout(this.fingerPause);
