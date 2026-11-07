@@ -553,3 +553,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:37 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT, Grund: Kontext voll. Es gibt einen Zwischenstand-Commit.  ([Bericht](docs/pruefberichte/20261107-193719-entwickler-a2fca899ffac40164.md)) |
 | 2026-11-07 19:37 | ▶ | entwickler | P2 fortsetzen |
 | 2026-11-07 19:37 | ▶ | tester | Test beide_haeuser angleichen |
+| 2026-11-07 19:38 | ■ 🟢 | tester | 🟢 Test angepasst und committet. Die Datei läuft aber noch rot, weil die Schrittlogik aus P2 noch nicht gebaut ist. Das lag schon vor meiner Änderung so.  ([Bericht](docs/pruefberichte/20261107-193846-tester-a8ca2d3e579f06502.md)) |
