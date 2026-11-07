@@ -38,17 +38,18 @@ const szene = (extra: Partial<Szene>): Szene => ({
   objekte, innen: [], netz, spiel: null, auswahl_id: null, modus: 'normal', geist: null,
   verschiebe_id: null, stempel: null, jetzt_ms: 10_000, strassen: [], fluss: [], kw_anzeigen: false, ...extra,
 });
-function kamera(): Kamera {
+function kamera(zoom?: number): Kamera {
   const k = new Kamera();
   k.groesseSetzen(844, 390, 1);
+  if (zoom !== undefined) k.zoom = zoom;
   k.zentrieren(11, 12, 1);
   return k;
 }
-function bild(s: Szene, reduziert = false): string[] {
+function bild(s: Szene, reduziert = false, zoom?: number): string[] {
   const a = aufnahme(), m = new Maler(a.X);
   m.reduziert = reduziert;
   bodenEbeneEinrichten(null);
-  zeichneSzene(m, kamera(), s, new Effekte(), 0.016);
+  zeichneSzene(m, kamera(zoom), s, new Effekte(), 0.016);
   return a.befehle;
 }
 const mitte = (x: number, y: number): [number, number] => kamera().mitte(x, y);
@@ -178,31 +179,76 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     expect(anzahl(bild(szene({ tutorial_band: [feld(10, 13, 'd25', [0, 1])] })), `strokeStyle=${D25}`) + 1).toBe(anzahl(b, `strokeStyle=${D25}`));
   });
 
-  it('Zielscheibe auch ohne Bandfeld: Scheibe #ffe08a auf der Feldmitte, darin Ring und Punkt in kontur', () => {
+  // DESIGN 13.17.9 F1 (geht B4 vor): Durchmesser max(18, round(tw × 0,32)), 2 px kontur, Ring-Linie 2 px, Punkt Ø 4 px,
+  // Schein als radialer Verlauf mit Radius halber Durchmesser + 10 px.
+  it('Zielscheibe auch ohne Bandfeld: Scheibe #ffe08a auf der Feldmitte, Durchmesser max(18, round(tw × 0,32)), Ring und Punkt in kontur, Schein + 10 px', () => {
     const leer = bild(szene({}));
     const b = bild(szene({ zielscheibe: [10, 12] }));
     expect(anzahl(b, `fillStyle=${ZIEL}`) - anzahl(leer, `fillStyle=${ZIEL}`)).toBe(1);
     const i = b.indexOf(`fillStyle=${ZIEL}`);
     const [zx, zy] = mitte(10, 12);
     const kreis = b.slice(0, i).reverse().find((x) => x.startsWith('arc('))!;
-    const [ax, ay] = kreis.slice(4, -1).split(',').map(Number);
+    const [ax, ay, ar] = kreis.slice(4, -1).split(',').map(Number);
     expect(ax).toBeCloseTo(zx, 6); expect(ay).toBeCloseTo(zy, 6);
-    // Radius = Bandbreite × 0,45, b = max(12, round(Feldbreite × 0,28))
-    const bb = Math.max(12, Math.round(kamera().tw * 0.28));
-    expect(Number(kreis.slice(4, -1).split(',')[2])).toBeCloseTo(bb * 0.45, 6);
-    expect(b.slice(i, i + 12)).toContain(`strokeStyle=${KONTUR}`);
+    const d = Math.max(18, Math.round(kamera().tw * 0.32));
+    expect(ar, 'Radius = halber Durchmesser').toBeCloseTo(d / 2, 6);
+    // Rand der Scheibe und Ring in kontur, beide 2 px; danach Punkt Ø 4 px (Radius 2) in kontur
+    const punkt = b.findIndex((x, j) => j > i && x.startsWith('arc(') && Math.abs(Number(x.slice(4, -1).split(',')[2]) - 2) < 1e-6);
+    expect(punkt, 'Punkt Ø 4 px').toBeGreaterThan(i);
+    const [px, py] = b[punkt].slice(4, -1).split(',').map(Number);
+    expect(px).toBeCloseTo(zx, 6); expect(py).toBeCloseTo(zy, 6);
+    expect(b.slice(punkt, punkt + 4)).toContain(`fillStyle=${KONTUR}`);
+    const zwischen = b.slice(i, punkt);
+    expect(zwischen).toContain(`strokeStyle=${KONTUR}`);
+    expect(anzahl(zwischen, 'stroke()'), 'Scheibenrand und Ring').toBeGreaterThanOrEqual(2);
+    const breiten = zwischen.filter((x) => x.startsWith('lineWidth='));
+    expect(breiten.length).toBeGreaterThan(0);
+    expect(breiten.every((x) => x === 'lineWidth=2'), `Linien 2 px: ${breiten.join(' ')}`).toBe(true);
+    // Schein: radialer Verlauf um die Feldmitte bis halber Durchmesser + 10 px
+    const verlauf = b.filter((x) => x.startsWith('createRadialGradient(')).map((x) => x.slice(21, -1).split(',').map(Number))
+      .filter(([x, y]) => Math.abs(x - zx) < 1e-6 && Math.abs(y - zy) < 1e-6);
+    expect(verlauf.length, 'Schein als radialer Verlauf um die Zielscheibe').toBeGreaterThan(0);
+    expect(verlauf.some((v) => Math.abs(v[5] - (d / 2 + 10)) < 1e-6), 'Schein-Radius halber Durchmesser + 10').toBe(true);
+    // Größerer Zoom, damit nicht nur die Untergrenze 18 greift: tw × 0,32 > 18
+    const k2 = kamera(3), d2 = Math.max(18, Math.round(k2.tw * 0.32));
+    expect(d2, 'Vorprobe: Formel über der Untergrenze').toBeGreaterThan(18);
+    const b2 = bild(szene({ zielscheibe: [10, 12] }), false, 3);
+    const [z2x, z2y] = k2.mitte(10, 12);
+    const k2kreis = b2.slice(0, b2.indexOf(`fillStyle=${ZIEL}`)).reverse().find((x) => x.startsWith('arc('))!;
+    const [bx, by, br] = k2kreis.slice(4, -1).split(',').map(Number);
+    expect(bx).toBeCloseTo(z2x, 6); expect(by).toBeCloseTo(z2y, 6);
+    expect(br, 'Radius bei Zoom 3').toBeCloseTo(d2 / 2, 6);
   });
 
-  it('genau eine leuchtende Raute auf naechstes_feld (über der Zielscheibe), auch bei mehreren Bandfeldern', () => {
-    const raute = (b: string[]): number => b.filter((x, i) => x === 'globalAlpha=0.55' && b[i + 1] === `fillStyle=${ZIEL}`).length;
+  // DESIGN 13.17.9 F5: Raute-Füllung Deckkraft 0,35; F1: Zielscheibe oberste Kartenebene (über Raute, Gebäuden, Ziel-Steckern).
+  it('genau eine leuchtende Raute auf naechstes_feld (Füllung 0,35, unter der Zielscheibe), auch bei mehreren Bandfeldern', () => {
+    const istRaute = (b: string[], i: number): boolean => b[i] === 'globalAlpha=0.35' && b[i + 1] === `fillStyle=${ZIEL}`;
+    const raute = (b: string[]): number => b.filter((_x, i) => istRaute(b, i)).length;
+    const [zx, zy] = mitte(10, 12), r = Math.max(18, Math.round(kamera().tw * 0.32)) / 2;
+    /** Füllung der Zielscheibe: fillStyle ziel direkt nach dem Kreis um (10|12) mit dem Zielscheiben-Radius */
+    const zielscheibeAn = (b: string[]): number => b.findIndex((x, i) => {
+      if (x !== `fillStyle=${ZIEL}`) return false;
+      const k = b.slice(0, i).reverse().find((y) => y.startsWith('arc('));
+      if (!k) return false;
+      const [ax, ay, ar] = k.slice(4, -1).split(',').map(Number);
+      return Math.abs(ax - zx) < 1e-6 && Math.abs(ay - zy) < 1e-6 && Math.abs(ar - r) < 1e-6;
+    });
     const band = [feld(10, 11, 'd32', [0, 1]), feld(10, 12, 'd32', null)];
     expect(raute(bild(szene({ tutorial_band: band })))).toBe(0);
     const b = bild(szene({ tutorial_band: band, naechstes_feld: [10, 12], zielscheibe: [10, 12] }));
     expect(raute(b)).toBe(1);
-    const iRaute = b.findIndex((x, i) => x === 'globalAlpha=0.55' && b[i + 1] === `fillStyle=${ZIEL}`);
-    expect(b.indexOf(`fillStyle=${ZIEL}`), 'Zielscheibe zuerst, Raute darüber').toBeLessThan(iRaute);
+    expect(b.some((x, i) => x === 'globalAlpha=0.55' && b[i + 1] === `fillStyle=${ZIEL}`), 'keine Raute mehr mit 0,55').toBe(false);
+    const iRaute = b.findIndex((_x, i) => istRaute(b, i));
+    const iScheibe = zielscheibeAn(b);
+    expect(iScheibe, 'Zielscheibe gefunden').toBeGreaterThan(-1);
+    expect(iScheibe, 'Raute zuerst, Zielscheibe darüber').toBeGreaterThan(iRaute);
     // Raute × 0,92 um (10|12): erste Ecke wie m.raute
     expect(b.slice(iRaute - 12, iRaute).some((x) => x.startsWith('moveTo('))).toBe(true);
+    // Über Gebäuden und Ziel-Steckern: keine gelbe Füllung (Stecker-Scheibe) nach der Zielscheibe
+    const mitStecker = bild(szene({ tutorial_band: band, naechstes_feld: [10, 12], zielscheibe: [10, 12], ziel: { stecker: [HAUS1, HAUS2], ring: null } }));
+    const jS = zielscheibeAn(mitStecker);
+    expect(jS).toBeGreaterThan(-1);
+    expect(mitStecker.lastIndexOf(`fillStyle=${ZIEL}`), 'Zielscheibe nach den Ziel-Steckern gezeichnet').toBe(jS);
   });
 
   it('Ziel-Stecker → Haken; Ring nur um ziel.ring', () => {
@@ -267,15 +313,17 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     const boegen = b2.slice(0, iClip).filter((x) => x.startsWith('arc(')).slice(-2).map((x) => x.slice(4, -1).split(',').map(Number));
     const soll = [mitte(12, 12), mitte(12, 13)];
     boegen.forEach(([x, y], i) => { expect(x).toBeCloseTo(soll[i][0], 6); expect(y).toBeCloseTo(soll[i][1], 6); });
-    // Streifen dunkel 4 px + hell 4 px = 8 px quer zur 45°-Linie, waagrecht gemessen 8 / sin 45° = 11,3137 px
-    const anfaenge = b2.slice(iClip, b2.indexOf('stroke()', iClip)).filter((x) => x.startsWith('moveTo(')).map((x) => Number(x.slice(7, -1).split(',')[0]));
+    // DESIGN 13.17.9 F3: Streifen dunkel 5 px + hell 5 px = 10 px quer zur 45°-Linie, waagrecht gemessen 10 / sin 45° = 14,1421 px
+    const streifen = b2.slice(iClip, b2.indexOf('stroke()', iClip));
+    expect(streifen, 'dunkler Streifen 5 px breit').toContain('lineWidth=5');
+    const anfaenge = streifen.filter((x) => x.startsWith('moveTo(')).map((x) => Number(x.slice(7, -1).split(',')[0]));
     expect(anfaenge.length).toBeGreaterThan(2);
-    for (let j = 1; j < anfaenge.length; j++) expect(anfaenge[j] - anfaenge[j - 1]).toBeCloseTo(11.3137, 3);
+    for (let j = 1; j < anfaenge.length; j++) expect(anfaenge[j] - anfaenge[j - 1]).toBeCloseTo(14.1421, 3);
 
     // Auf gestreiften Feldern kein Band und keine Raute
     const ohne = bild(s(50_300, { tutorial_band: [feld(12, 12, 'd25', [0, 1])], naechstes_feld: [12, 12] }));
     expect(anzahl(ohne, `strokeStyle=${D25}`)).toBe(0);
-    expect(ohne.filter((x, i) => x === 'globalAlpha=0.55' && ohne[i + 1] === `fillStyle=${ZIEL}`)).toHaveLength(0);
+    expect(ohne.filter((x, i) => (x === 'globalAlpha=0.35' || x === 'globalAlpha=0.55') && ohne[i + 1] === `fillStyle=${ZIEL}`)).toHaveLength(0);
 
     // Weniger Bewegung: neue Felder sofort voll
     const red = bild(szene({ tutorial_fremd: [[13, 12]], jetzt_ms: 60_000 }), true);
