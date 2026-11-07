@@ -270,7 +270,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(jetzt(t)).toBe('T24');
   });
 
-  it('test_nr13_t13_beide_haeuser – T13h: ein Haus → Zwischenstand, getrennt → T13h-Text, beide → T14; zählt die Lage, nicht erreichteHaeuser', () => {
+  it('test_nr13_t13_beide_haeuser – T13h: Haus 1 → Zwischenstand, getrennt → T13h-Text, nur Haus 2 → T13h-Text mit Ring auf Haus 1, beide → T14; zählt die Lage, nicht erreichteHaeuser', () => {
     const l = lageBauen();
     const t = new Tutorial(l);
     bis(t, l, 'T13');
@@ -283,8 +283,10 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.zwischenstand });
     setze(l, { haupt: true }); schritt(t, 'haus_getrennt', h1(l).id);
     expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.T13h });
+    // Nur Haus 2 richtig: Bauplan NR20-22 P2 Textvorrang [2.3] – Zwischenstand nur bei haus1_ok && !haus2_ok,
+    // hier also Grundtext T13h; ziel_ring = erstes nicht-ok Haus (Haus 1), Raute (naechstes_feld) auf dessen Stück (9|12).
     setze(l, { haupt: true, haus2: true }); schritt(t, 'haus_erreicht', h2(l).id);
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.zwischenstand });
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.T13h, ziel_ring: h1(l).id, naechstes_feld: [9, 12] });
     // Beide Häuser über irgendeine Leitung verbunden, aber Haus 1 nicht richtig angeschlossen → kein T14
     l.erreicht = [h1(l).id, h2(l).id]; schritt(t, 'haus_erreicht', h1(l).id);
     expect(jetzt(t)).toBe('T13h');
