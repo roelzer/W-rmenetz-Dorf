@@ -404,7 +404,7 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .knopf.farbknopf .farb-sperre{display:flex;flex-direction:column;align-items:center;gap:1px;font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-farbknopf-sperre);letter-spacing:0;white-space:nowrap}
 .knopf.farbknopf .farb-sperre .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein)}
 /* 4 px unter den Farbknöpfen statt 8 (12.18 Höhenrechnung) – die Kennzeile gehört zur gewählten Leitung */
-.blatt.zeichenleiste .kennzeile{margin:-4px 0 0;line-height:16px;font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blatt.zeichenleiste .kennzeile{margin:4px 0 0;line-height:16px;font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .zeichen-reihe{display:grid;grid-template-columns:1fr 1fr;gap:var(--abstand-px-1)}
 .zeichen-reihe .knopf{min-width:0;padding:0 var(--menue-mass-px-zeichen-knopf-innen-seite)}
 .zeichen-reihe .mit-sym{display:inline-flex;align-items:center;gap:4px}
@@ -431,6 +431,10 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .spot-finger .sym{display:block;width:100%;height:100%}
 .spot-finger.von-links{margin-left:calc(-1 * var(--menue-mass-px-finger))}
 .spot-finger.von-links .sym{transform:scaleX(-1)}
+/* 13.17.9 F7: Hand nach rechts oben (T13w), damit sie die Kennzeile unter dem Farbknopf nicht verdeckt; Spitze bleibt auf dem Ziel */
+.spot-finger.nach-oben{margin-top:calc(-1 * var(--menue-mass-px-finger))}
+.spot-finger.nach-oben .sym{transform:scaleY(-1)}
+.spot-finger.nach-oben.von-links .sym{transform:scale(-1,-1)}
 .ersatz-ziel{position:absolute;z-index:26;pointer-events:none;border-radius:var(--menue-mass-px-spot-abstand-knopf);outline:none}
 .ersatz-ziel:focus-visible{outline:3px solid var(--menue-farbe-fokus-auf-dunkel);outline-offset:2px}
 .info-kapsel{position:absolute;z-index:26;transform:translateX(-50%);white-space:nowrap;pointer-events:none;animation:nr13-ein var(--menue-zeit-ms-spot-wechsel) ease-out}

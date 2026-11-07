@@ -11,10 +11,10 @@ const M = T.menue.mass_px, Z = T.menue.zeit_ms;
 export interface Rechteck { x: number; y: number; b: number; h: number }
 /** Loch um ein Ziel: `r` ist das Bildschirm-Rechteck des Ziels selbst; der Abstand des Lochs kommt hier dazu (13.2):
  *  Kartenobjekt = Ellipse um das Rechteck + 12 px, Bedienelement = Rechteck + 8 px mit Radius des Elements + 8. */
-export interface Loch { r: Rechteck; form: 'ellipse' | 'rund'; radius_px?: number }
+export interface Loch { r: Rechteck; form: 'ellipse' | 'rund'; radius_px?: number; /** Abstand statt `spot_abstand_knopf` (13.17.9 F7 Farbknopf) */ abstand_px?: number }
 /** `je_feld_ms` (DESIGN 13.17.1 B5, Kapitel 3): Finger zieht vor – drückt auf dem ersten Punkt auf und braucht je Punkt
  *  diese Zeit; ohne das Feld fährt er die Spur in `spur_finger` ab (K9). */
-export type Finger = { art: 'tippen'; ziel: Rechteck } | { art: 'spur'; punkte: ReadonlyArray<readonly [number, number]>; je_feld_ms?: number };
+export type Finger = { art: 'tippen'; ziel: Rechteck; /** Hand nach rechts oben aus dem Ziel (13.17.9 F7), sonst rechts unten */ nach_oben?: boolean } | { art: 'spur'; punkte: ReadonlyArray<readonly [number, number]>; je_feld_ms?: number };
 
 /** Eingangsdaten der Sperrregel AE-NR13-6 – aus der Tutorial-Ansicht gebaut, nicht aus dem gerade gezeigten Bild.
  *  `loecher` sind die Rechtecke der Ziele (wie `Loch.r`). */
@@ -39,7 +39,7 @@ function umriss(l: Loch): { x: number; y: number; b: number; h: number; radius: 
     const rx = l.r.b / Math.SQRT2 + M.spot_abstand_karte, ry = l.r.h / Math.SQRT2 + M.spot_abstand_karte;
     return { x: l.r.x + l.r.b / 2 - rx, y: l.r.y + l.r.h / 2 - ry, b: 2 * rx, h: 2 * ry, radius: null };
   }
-  const d = M.spot_abstand_knopf, b = l.r.b + 2 * d, hh = l.r.h + 2 * d;
+  const d = l.abstand_px ?? M.spot_abstand_knopf, b = l.r.b + 2 * d, hh = l.r.h + 2 * d;
   return { x: l.r.x - d, y: l.r.y - d, b, h: hh, radius: Math.min((l.radius_px ?? 0) + d, b / 2, hh / 2) };
 }
 
@@ -93,11 +93,11 @@ function fingerBewegen(el: HTMLElement, f: Finger, verzoegerung: number): void {
   fingerStoppen();
   if (f.art === 'tippen') {
     const zyklus = Z.finger_tipp + Z.finger_ruhe, weg = M.finger_weg / Math.SQRT2;
-    const dx = el.classList.contains('von-links') ? weg : -weg, aus = 'translate(0px, 0px)';
+    const dx = el.classList.contains('von-links') ? weg : -weg, dy = el.classList.contains('nach-oben') ? weg : -weg, aus = 'translate(0px, 0px)';
     fingerAnim.push(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: Z.spot_wechsel, delay: verzoegerung, fill: 'both' }));
     fingerAnim.push(el.animate([
       { offset: 0, transform: aus },
-      { offset: Z.finger_tipp / 2 / zyklus, transform: `translate(${px(dx)}, ${px(-weg)})` },
+      { offset: Z.finger_tipp / 2 / zyklus, transform: `translate(${px(dx)}, ${px(dy)})` },
       { offset: Z.finger_tipp / zyklus, transform: aus },
       { offset: 1, transform: aus },
     ], { duration: zyklus, delay: verzoegerung, iterations: Infinity }));
@@ -145,6 +145,7 @@ function fingerSetzen(f: Finger | null, ruhig: boolean): void {
     el.style.left = px(mx); el.style.top = px(my);
     // Am rechten Rand ist rechts unten kein Platz für die Hand – dann kommt sie von links unten (13.2).
     if (mx + M.finger + M.anleiter_rand > window.innerWidth) el.classList.add('von-links');
+    if (f.nach_oben) el.classList.add('nach-oben');
   } else {
     el.style.left = '0px'; el.style.top = '0px';
     el.style.transform = `translate(${px(f.punkte[0][0])}, ${px(f.punkte[0][1])})`;

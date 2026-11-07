@@ -866,7 +866,11 @@ export class Steuerung implements Ui {
   /** Vorführ-Finger (DESIGN 13.17.1): zieht `finger_weg` ab dem nächsten Feld vor; T13w tippt auf den Farbknopf mit Ring.
    *  Solange die Karte berührt wird und `finger_wieder` danach ruht er, damit er dem eigenen Zug nicht im Weg ist. */
   private vorfuehrFinger(a: TutorialAnsicht, erstes: Rechteck | null, ring: Rechteck | null, ruht: boolean): Finger | null {
-    if (a.finger === 'tippen') { const ziel = a.zeichnen_ruht ? ring : erstes; return ziel ? { art: 'tippen', ziel } : null; }
+    if (a.finger === 'tippen') {
+      // 13.17.9 F7: Am Farbknopf zeigt die Hand nach rechts oben, die Kennzeile darunter bleibt frei
+      if (a.zeichnen_ruht) return ring ? { art: 'tippen', ziel: ring, nach_oben: true } : null;
+      return erstes ? { art: 'tippen', ziel: erstes } : null;
+    }
     if (a.finger !== 'spur' || ruht || !a.finger_weg.length) return null;
     return { art: 'spur', punkte: a.finger_weg.map(([x, y]) => this.kamera.mitte(x, y)), je_feld_ms: T.menue.zeit_ms.finger_je_feld };
   }
@@ -968,7 +972,9 @@ export class Steuerung implements Ui {
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
     const ringEl = this.ringKnopf(a), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
     // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): Lochrand in der Zeichenleiste, die nur_hud ohnehin nicht abdunkelt
-    const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [{ r: ringR, form: 'rund' as const }] : [])];
+    // 13.17.9 F7: Am Farbknopf liegt der Ring 2 px eng an, damit er die Kennzeile darunter nicht berührt
+    const ringLoch = (r: Rechteck): Loch => ({ r, form: 'rund', ...(ringEl?.classList.contains('farbknopf') ? { abstand_px: T.menue.mass_px.spot_abstand_farbknopf } : {}) });
+    const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [ringLoch(ringR)] : [])];
     const rest_s = a.warte_bis_ms === undefined ? 0 : Math.ceil((a.warte_bis_ms - this.uhr()) / 1000);
     const kartenHoehe_px = this.anleiterHoehe(a);
     const fingerRuht = this.zeiger.size > 0 || this.fingerPause !== null;
