@@ -5,6 +5,7 @@
 // Aufruf:  NODE_PATH=/opt/node22/lib/node_modules node tests/browser/nr20-tutorial.browser.cjs   (startet selbst einen Vite-Dev-Server)
 //          … --ordner <pfad>   Zielordner der Fotos (Standard: docs/pruefberichte/ im Projekt)
 //          … --datum <JJJJMMTT> Datum im Dateinamen (Standard: heute)
+//          … --paket <kennung> Paketkennung im Dateinamen, z. B. p5f (Standard: p5e)
 // Ausgabe: je Prüfpunkt „OK“ oder „FEHLT“, je Foto der Pfad. Exit 0 nur, wenn alles OK ist; 1 bei FEHLT; 2 bei Aufbaufehlern.
 // Nicht Teil von `npm test` (braucht Playwright und einen Dev-Server).
 //
@@ -40,12 +41,13 @@ const GROESSEN = [{ b: 844, h: 390 }, { b: 667, h: 375 }];
 
 function argumenteLesen(argv) {
   const heute = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const a = { ordner: path.join(WURZEL, 'docs', 'pruefberichte'), datum: heute };
+  const a = { ordner: path.join(WURZEL, 'docs', 'pruefberichte'), datum: heute, paket: 'p5e' };
   for (let i = 0; i < argv.length; i++) {
     const x = argv[i];
     if (x === '--ordner' && argv[i + 1]) a.ordner = path.resolve(argv[++i]);
     else if (x === '--datum' && argv[i + 1] && /^\d{8}$/.test(argv[i + 1])) a.datum = argv[++i];
-    else throw new Error(`Unbekanntes oder unvollständiges Argument „${x}“. Erlaubt: --ordner <pfad>, --datum <JJJJMMTT>`);
+    else if (x === '--paket' && argv[i + 1] && /^[a-z0-9]+$/.test(argv[i + 1])) a.paket = argv[++i];
+    else throw new Error(`Unbekanntes oder unvollständiges Argument „${x}“. Erlaubt: --ordner <pfad>, --datum <JJJJMMTT>, --paket <kennung>`);
   }
   return a;
 }
@@ -195,7 +197,7 @@ async function bisSchritt(s, ort, ziel) {
 
 async function foto(s, a, g, szene, ruhig = true) {
   if (ruhig) { await ruhe(s.p); await warten(s.p, 400); }
-  const datei = path.join(a.ordner, `${a.datum}-p5e-${szene}-${g.b}x${g.h}.png`);
+  const datei = path.join(a.ordner, `${a.datum}-${a.paket}-${szene}-${g.b}x${g.h}.png`);
   await s.p.screenshot({ path: datei });
   const l = await lage(s.p);
   console.log(`FOTO   ${datei}  (${l.schritt}, Schleier ${l.schleier ? 'an' : 'aus'}, „${l.text}“)`);

@@ -83,7 +83,7 @@ describe('NR21 Vertrag (P0)', () => {
       wiederholen_felder: 8, abstand_ende_min: 4, geplant_deckkraft: 0.5,
     });
     expect(tokens.karte.fremd).toEqual({
-      dunkel: '#3b1d0a', hell: '#fff4df', streifen_px: 4, winkel_grad: 45, huelle_zusatz_px: 8, rand_px: 1.5, deckkraft: 0.85,
+      dunkel: '#3b1d0a', hell: '#fff4df', streifen_px: 5, winkel_grad: 45, huelle_zusatz_px: 12, rand_px: 1.5, deckkraft: 0.85,
     });
     expect(tokens.karte.fremd.dunkel).toBe(m.farbe.kontur);
     expect(tokens.karte.fremd.hell).toBe(m.farbe.tafel);

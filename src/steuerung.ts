@@ -45,7 +45,7 @@ const T13_ZOOM_MIN = 2;
 const BLATT_ZU_NACH_KAUF_MS = 200;
 /** Wie Kamera.groesseSetzen: kürzere Bildkante unter 500 px = Handy */
 const HANDY_KANTE_PX = 500;
-type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
+type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'stecker_blass' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
 type Modus = 'normal' | 'platzieren' | 'verschieben' | 'stempel';
 
 /** Verbindet Eingabe, Karte, Oberfläche und Spiel. Enthält keine Spielregeln – die liegen in src/core. */
@@ -114,6 +114,8 @@ export class Steuerung implements Ui {
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
   private erreichtSeit = new Map<number, number>();
   private szeneTutorial: SzeneTutorial = {};
+  /** 13.17.9 F8: Stand des letzten Bilds ohne Zug (Ansicht und Ring-Knopf) – im Zug bleibt das Bild so, bis der Finger abhebt */
+  private vorZug: { schritt: string; a: TutorialAnsicht; ring_id: string | null } | null = null;
   /** Läuft die Pause nach der letzten Berührung der Karte: Der Vorführ-Finger kommt erst `finger_wieder` danach zurück */
   private fingerPause: number | null = null;
 
@@ -866,7 +868,11 @@ export class Steuerung implements Ui {
   /** Vorführ-Finger (DESIGN 13.17.1): zieht `finger_weg` ab dem nächsten Feld vor; T13w tippt auf den Farbknopf mit Ring.
    *  Solange die Karte berührt wird und `finger_wieder` danach ruht er, damit er dem eigenen Zug nicht im Weg ist. */
   private vorfuehrFinger(a: TutorialAnsicht, erstes: Rechteck | null, ring: Rechteck | null, ruht: boolean): Finger | null {
-    if (a.finger === 'tippen') { const ziel = a.zeichnen_ruht ? ring : erstes; return ziel ? { art: 'tippen', ziel } : null; }
+    if (a.finger === 'tippen') {
+      // 13.17.9 F7: Am Farbknopf zeigt die Hand nach rechts oben, die Kennzeile darunter bleibt frei
+      if (a.zeichnen_ruht) return ring ? { art: 'tippen', ziel: ring, nach_oben: true } : null;
+      return erstes ? { art: 'tippen', ziel: erstes } : null;
+    }
     if (a.finger !== 'spur' || ruht || !a.finger_weg.length) return null;
     return { art: 'spur', punkte: a.finger_weg.map(([x, y]) => this.kamera.mitte(x, y)), je_feld_ms: T.menue.zeit_ms.finger_je_feld };
   }
@@ -878,11 +884,34 @@ export class Steuerung implements Ui {
   /** Knopf der Zeichenleiste mit Ring: der Farbknopf `farbknopf_ring`; beim fremden Stück (Bauplan NR20-22 P5 [2.1]/[2.3])
    *  [Zurück], wenn es genau das zuletzt gezeichnete Feld wegnähme – ein Feld genügt, damit der eigene Abgang endet –,
    *  sonst der Radierer. Nur die Steuerung kennt [Zurück], darum wird das hier und nicht im Kern entschieden. */
-  private ringKnopf(a: TutorialAnsicht): HTMLElement | null {
+  private ringKnopfId(a: TutorialAnsicht): string | null {
     const letzte = a.fremd.length ? this.spiel.letzteLeitungFeld() : null;
     const zurueck = !!letzte && a.fremd.some(([x, y]) => x === letzte[0] && y === letzte[1]);
-    const id = a.fremd.length ? (zurueck ? 'zurueck' : 'radierer') : a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
+    return a.fremd.length ? (zurueck ? 'zurueck' : 'radierer') : a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
+  }
+  private ringKnopf(id: string | null): HTMLElement | null {
     return id ? this.leiste?.blatt.wurzel.querySelector<HTMLElement>(`[data-id="${id}"]`) ?? null : null;
+  }
+  /**
+   * 13.17.9 F8: Der Zustand „eigener Abgang“ wechselt gemeinsam beim Abheben. Solange ein Zug läuft, bleiben Satz, Ring ums Haus,
+   * Ring in der Leiste, Zielscheibe, Raute und Band wie im letzten Bild ohne Zug (nur im selben Schritt). Neue Streifen kommen
+   * erst beim Abheben; Streifen auf gerade wegradierten Feldern verschwinden sofort – kein Streifen ohne Rohr.
+   */
+  private imZugHalten(a: TutorialAnsicht): { a: TutorialAnsicht; ring_id: string | null } {
+    const schritt = `${a.schritt}|${a.wiedereinstieg}`;
+    if (!(this.modus === 'stempel' && this.zeiger.size > 0)) {
+      const ring_id = this.ringKnopfId(a);
+      this.vorZug = { schritt, a, ring_id };
+      return { a, ring_id };
+    }
+    const v = this.vorZug?.schritt === schritt ? this.vorZug : null;
+    if (!v) return { a: { ...a, fremd: [] }, ring_id: this.ringKnopfId(a) };
+    const feldText = ([x, y]: readonly [number, number]): string => `${x},${y}`, liegt = new Set(a.fremd.map(feldText));
+    return {
+      a: { ...a, text: v.a.text, band: v.a.band, naechstes_feld: v.a.naechstes_feld, zielscheibe: v.a.zielscheibe, ziel_ring: v.a.ziel_ring,
+        fremd: v.a.fremd.filter((f) => liegt.has(feldText(f))) },
+      ring_id: v.ring_id,
+    };
   }
   private static elRechteck(el: HTMLElement): Rechteck { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, b: r.width, h: r.height }; }
   /** Feldmitten-Rahmen um Objekte */
@@ -890,14 +919,21 @@ export class Steuerung implements Ui {
     return { x0: Math.min(...os.map((o) => o.x)), y0: Math.min(...os.map((o) => o.y)), x1: Math.max(...os.map((o) => o.x + groesse(o) - 1)), y1: Math.max(...os.map((o) => o.y + groesse(o) - 1)) };
   }
 
-  /** Gang im Schleier (DESIGN 13.17.1): jede Raute der Spur × 1,5, Heizzentrale und beide Tutorial-Häuser. Die Raute wird
-   *  als Ellipse durch ihre Ecken ausgespart (Halbachsen 0,75 · Feldbreite bzw. -höhe); `Loch.r` geht in spotlight.ts durch
-   *  √2, darum hier das Rechteck mit Kante 1,5 · Feld / √2. Den Abstand von 12 px gibt spotlight.ts dazu. */
+  /** Ellipse durch die Ecken einer Bodenraute mit Kante `kante` Felder um (x|y): Halbachsen kante/2 · Feldbreite bzw. -höhe.
+   *  `Loch.r` geht in spotlight.ts durch √2, darum hier das Rechteck mit Kante · Feld / √2. Den Abstand von 12 px gibt
+   *  spotlight.ts dazu. */
+  private rautenLoch(x: number, y: number, kante: number): Loch {
+    const k = this.kamera, [cx, cy] = k.mitte(x, y), b = (kante * k.tw) / Math.SQRT2, hh = (kante * k.th) / Math.SQRT2;
+    return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' };
+  }
+  /** Gang im Schleier (DESIGN 13.17.1, 13.17.9 F5): jede Raute der Spur × 1,5, die Heizzentrale nur mit ihrer Grundfläche
+   *  (Gebäudehöhe und Dach bleiben unter dem Schleier, sonst stünden fremde Häuser im Gang) und beide Tutorial-Häuser. */
   private schleierGang(a: TutorialAnsicht): Loch[] {
-    const k = this.kamera, b = (1.5 * k.tw) / Math.SQRT2, hh = (1.5 * k.th) / Math.SQRT2;
-    const rauten = a.band.map(({ x, y }): Loch => { const [cx, cy] = k.mitte(x, y); return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' }; });
-    const objekte = (['heizzentrale', 'haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
-    return [...rauten, ...objekte.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
+    const rauten = a.band.map(({ x, y }) => this.rautenLoch(x, y, 1.5));
+    const hz = this.kartenObjekt(a, 'heizzentrale')!, g = groesse(hz);
+    const haeuser = (['haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
+    return [...rauten, this.rautenLoch(hz.x + (g - 1) / 2, hz.y + (g - 1) / 2, g),
+      ...haeuser.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
   }
 
   /** Band, Raute, Zielscheibe, Ziel-Stecker/Ring, Ruhe und Häkchen nur aus der Ansicht (Bauplan NR20-22 P5): Die Regeln,
@@ -908,9 +944,12 @@ export class Steuerung implements Ui {
     if (a.naechstes_feld) sz.naechstes_feld = a.naechstes_feld;
     if (a.zielscheibe) sz.zielscheibe = a.zielscheibe;
     if (a.ziel_stecker.length) sz.ziel = { stecker: a.ziel_stecker, ring: a.ziel_ring };
+    // F2: Solange die Leiste die Hauptleitung verlangt (T13, T13w), sind die Häuser noch nicht das Ziel – ihre Stecker ruhen,
+    // damit die Zielscheibe im Band das hellste Ziel ist. Aus der Ansicht abgeleitet, ohne Schrittnamen (Architekturtest U2).
+    if (a.ziel_stecker.length && a.zeichenleiste?.typ === this.spiel.tutorialWerte().haupt) sz.stecker_blass = true;
     if (a.ruhe) sz.ruhe = true;
-    // DESIGN 13.17.8: Während eines Zugs blieben sonst Streifen auf halb gezogenen Feldern stehen – sie erscheinen beim Abheben
-    if (a.fremd.length && !(this.modus === 'stempel' && this.zeiger.size > 0)) sz.tutorial_fremd = a.fremd;
+    // Im Zug hat imZugHalten die Streifen schon auf den Stand vor dem Zug begrenzt (DESIGN 13.17.8, 13.17.9 F8)
+    if (a.fremd.length) sz.tutorial_fremd = a.fremd;
     for (const id of [a.objekt_ids.haus1, a.objekt_ids.haus2]) {
       if (!a.erreicht_ids.includes(id)) this.erreichtSeit.delete(id);
       else if (!this.erreichtSeit.has(id)) this.erreichtSeit.set(id, this.uhr());
@@ -922,8 +961,9 @@ export class Steuerung implements Ui {
   /** Ansicht des Tutorials auf Kamera, Abdunkeln, Anleiter-Karte, Kapsel und Sperre übertragen – je Bild geprüft, nur bei
    *  Änderung gesetzt. Die freie Breite wird hier gemessen, also nach der Verarbeitung des Ereignisses. */
   private anleitungAnwenden(): void {
-    const a = this.anleitung?.ansicht(this.uhr()) ?? null;
-    if (!a) return;
+    const roh = this.anleitung?.ansicht(this.uhr()) ?? null;
+    if (!roh) return;
+    const { a, ring_id } = this.imZugHalten(roh);
     if (this.zielHerstellenOffen && !a.wiedereinstieg) { this.zielHerstellenOffen = false; this.zielHerstellen(a); }
     if (!a.wiedereinstieg) this.leisteHerstellen(a);
     const k = this.kamera, frei = this.freieFlaeche(), vorher = this.angewendet;
@@ -956,9 +996,11 @@ export class Steuerung implements Ui {
     schleierSetzen(a.ruhe ? this.schleierGang(a) : null);
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
-    const ringEl = this.ringKnopf(a), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
+    const ringEl = this.ringKnopf(ring_id), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
     // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): Lochrand in der Zeichenleiste, die nur_hud ohnehin nicht abdunkelt
-    const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [{ r: ringR, form: 'rund' as const }] : [])];
+    // 13.17.9 F7: Am Farbknopf liegt der Ring 2 px eng an, damit er die Kennzeile darunter nicht berührt
+    const ringLoch = (r: Rechteck): Loch => ({ r, form: 'rund', ...(ringEl?.classList.contains('farbknopf') ? { abstand_px: T.menue.mass_px.spot_abstand_farbknopf } : {}) });
+    const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [ringLoch(ringR)] : [])];
     const rest_s = a.warte_bis_ms === undefined ? 0 : Math.ceil((a.warte_bis_ms - this.uhr()) / 1000);
     const kartenHoehe_px = this.anleiterHoehe(a);
     const fingerRuht = this.zeiger.size > 0 || this.fingerPause !== null;
