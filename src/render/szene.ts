@@ -50,6 +50,8 @@ export interface Szene {
   zielscheibe?: Feld;
   /** NR20: Haus-Ids mit Ziel-Stecker und das Haus mit Ring */
   ziel?: { stecker: number[]; ring: number | null };
+  /** DESIGN 13.17.9 F2: Ziel-Stecker blass wie ruhende Bandstücke (`faktor.geist_ruhend`), solange die Häuser noch nicht das Ziel sind */
+  stecker_blass?: boolean;
   /** NR20: Ruhe im Bild in Kapitel 3 (kW-Schilder und fremde Blasen aus, leichter Schleier) */
   ruhe?: boolean;
   /** NR21: gestreiftes fremdes Stück (eigener Abgang) */
@@ -311,7 +313,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       m.raute(cx, cy, kante + 0.5 + puls * 0.15); X.fillStyle = `rgba(255,214,64,${0.28 + puls * 0.22})`; X.fill();
       X.strokeStyle = 'rgba(255,196,0,.85)'; X.lineWidth = Math.max(1.5, tw * 0.03); X.stroke();
     }
-    if (s.ziel?.ring === o.id) zielRing(m, cx, cy, kante);
     if (durch) X.globalAlpha = 0.5;
     zeichneObjekt(m, o, cx, cy, st, s.jetzt_ms);
     if (durch) X.globalAlpha = 1;
@@ -326,8 +327,13 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       const federn = m.reduziert ? 0 : Math.max(0, 1 - (s.jetzt_ms - seit_ms) / FEDERN_MS);
       oben.push(() => zeichneBlase(m, cx, topY, 'erreicht', federn));
     } else if (s.ziel?.stecker.includes(o.id)) {
-      // NR20 B4: Ziel-Stecker auf dem Platz des „Erreicht“-Zeichens
-      oben.push(() => zeichneBlase(m, cx, topY, 'ziel'));
+      // NR20 B4: Ziel-Stecker auf dem Platz des „Erreicht“-Zeichens; F2: blass, damit die Zielscheibe im Band das hellste Ziel ist
+      const blass = !!s.stecker_blass;
+      oben.push(() => {
+        if (blass) X.globalAlpha = FAKTOR.geist_ruhend;
+        zeichneBlase(m, cx, topY, 'ziel');
+        if (blass) X.globalAlpha = 1;
+      });
     } else if (s.spiel && !s.ruhe) {
       // NR20 B1: In Kapitel 3 ruhen die übrigen Kunden-Blasen
       const b = blase(s.spiel, s.netz, o, st.warm, angeschlossen);
@@ -408,6 +414,9 @@ function zeichneTutorialEbene(m: Maler, k: Kamera, s: Szene): void {
   const eingeblendet = fremdEinblendungMerken(fremd, s.jetzt_ms), deckkraft = m.reduziert ? 1 : eingeblendet;
   const gestreift = new Set(fremd.map(feldText));
   const band = (s.tutorial_band ?? []).filter((f) => !gestreift.has(feldText([f.x, f.y])));
+  // F6: Ring unter Band und Raute – die Raute liegt oben, wo sich beide berühren
+  const ringHaus = s.ziel?.ring != null ? s.objekte.find((o) => o.id === s.ziel!.ring) : undefined;
+  if (ringHaus) { const g = groesse(ringHaus), [cx, cy] = k.mitte(ringHaus.x + (g - 1) / 2, ringHaus.y + (g - 1) / 2); zielRing(m, cx, cy, g); }
   if (band.length) zeichneBand(m, k, band);
   if (fremd.length) zeichneFremd(m, k, s, fremd, deckkraft);
   if (s.zielscheibe) { const [x, y] = k.mitte(s.zielscheibe[0], s.zielscheibe[1]); zielscheibe(m, x, y, bandBreite(k.tw) * 0.45); }
@@ -484,9 +493,10 @@ function leuchtendeRaute(m: Maler, k: Kamera, f: Feld): void {
   X.strokeStyle = MF.ziel; X.lineWidth = MM.spot_ring; X.stroke();
 }
 
-/** Ring um das aktive Ziel-Haus (B4): Ellipse um die Grundfläche + 12 px, 16 px Schein, 2 px `kontur`, 3 px `ziel` – wie der Lochrand. */
+/** Ring um das aktive Ziel-Haus (B4, 13.17.9 F6): Ellipse durch die Ecken der Grundfläche + `ziel_ring_abstand`, 16 px Schein,
+ *  2 px `kontur`, 3 px `ziel` – eng am Haus, damit er die Raute daneben nicht überdeckt. */
 function zielRing(m: Maler, cx: number, cy: number, kante: number): void {
-  const { X } = m, rx = m.tw * kante / 2 + MM.spot_abstand_karte, ry = m.th * kante / 2 + MM.spot_abstand_karte;
+  const { X } = m, rx = m.tw * kante / 2 + MM.ziel_ring_abstand, ry = m.th * kante / 2 + MM.ziel_ring_abstand;
   for (const [farbe, breite] of [
     [MF.spot_schein, MM.spot_schein], [MF.kontur, MM.spot_ring + 2 * MM.spot_ring_kontur], [MF.ziel, MM.spot_ring],
   ] as const) {

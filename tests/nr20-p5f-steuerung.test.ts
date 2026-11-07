@@ -1,10 +1,10 @@
 // Paket P5f-2 (DESIGN 13.17.9 „Feinschliff P5f“) und Nachträge aus dem Review P5e: Schleier, Stecker, Ringe, Finger und der
 // Zeitpunkt des Wechsels in der echten Steuerung (DOM-Nachbildung wie tests/nr20-p5e-schleier.test.ts).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ERSTE_HAEUSER } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_HAUPT } from '../src/core/start';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 import type { El } from './hilfen/dom-attrappe';
-import { T0, bisT13, hausBei, neuesSpiel, st, type U } from './hilfen/tutorial-zug';
+import { T0, bisT13, farbknopf, hausBei, neuesSpiel, st, wischeFelder, type U } from './hilfen/tutorial-zug';
 
 const schleierSvg = (u: U): El => (u.dom.doc.getElementById('schleier') as El).querySelector('svg') as El;
 const maske = (u: U): string => /<mask[^>]*>(.*)<\/mask>/.exec(schleierSvg(u).attrs.quelle)![1];
@@ -58,5 +58,27 @@ describe('P5f-2 Schleier (DESIGN 13.17.9 F5, Review P5e)', () => {
       expect(l.rx).toBeCloseTo(k.tw + 12, 1);
       expect(l.ry).toBeCloseTo(k.th + 12, 1);
     }, { uhr: () => uhr.t });
+  });
+});
+
+describe('P5f-2 Ziel-Stecker blass (DESIGN 13.17.9 F2)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('T13 und T13w: Stecker blass; T13h: voll', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      bisT13(u, spiel, uhr);
+      const blass = (): boolean => !!(st(u).szene() as { stecker_blass?: boolean }).stecker_blass;
+      expect(blass(), 'T13').toBe(true);
+      bisT13hAb13(u);
+      expect(blass(), 'T13h').toBe(false);
+    }, { uhr: () => uhr.t });
+    function bisT13hAb13(u: U): void {
+      wischeFelder(u, TUTORIAL_HAUPT); st(u).tick(uhr.t);
+      expect(st(u).anleitungAnsicht()!.zeichnen_ruht, 'T13w').toBe(true);
+      expect(!!(st(u).szene() as { stecker_blass?: boolean }).stecker_blass, 'T13w').toBe(true);
+      farbknopf(u, spiel.tutorialWerte().anschluss).click(); st(u).tick(uhr.t);
+    }
   });
 });

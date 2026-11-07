@@ -45,7 +45,7 @@ const T13_ZOOM_MIN = 2;
 const BLATT_ZU_NACH_KAUF_MS = 200;
 /** Wie Kamera.groesseSetzen: kürzere Bildkante unter 500 px = Handy */
 const HANDY_KANTE_PX = 500;
-type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
+type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'stecker_blass' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
 type Modus = 'normal' | 'platzieren' | 'verschieben' | 'stempel';
 
 /** Verbindet Eingabe, Karte, Oberfläche und Spiel. Enthält keine Spielregeln – die liegen in src/core. */
@@ -915,6 +915,9 @@ export class Steuerung implements Ui {
     if (a.naechstes_feld) sz.naechstes_feld = a.naechstes_feld;
     if (a.zielscheibe) sz.zielscheibe = a.zielscheibe;
     if (a.ziel_stecker.length) sz.ziel = { stecker: a.ziel_stecker, ring: a.ziel_ring };
+    // F2: Solange die Leiste die Hauptleitung verlangt (T13, T13w), sind die Häuser noch nicht das Ziel – ihre Stecker ruhen,
+    // damit die Zielscheibe im Band das hellste Ziel ist. Aus der Ansicht abgeleitet, ohne Schrittnamen (Architekturtest U2).
+    if (a.ziel_stecker.length && a.zeichenleiste?.typ === this.spiel.tutorialWerte().haupt) sz.stecker_blass = true;
     if (a.ruhe) sz.ruhe = true;
     // DESIGN 13.17.8: Während eines Zugs blieben sonst Streifen auf halb gezogenen Feldern stehen – sie erscheinen beim Abheben
     if (a.fremd.length && !(this.modus === 'stempel' && this.zeiger.size > 0)) sz.tutorial_fremd = a.fremd;
