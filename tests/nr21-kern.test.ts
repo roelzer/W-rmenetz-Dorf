@@ -334,6 +334,43 @@ describe('NR21 P1 Kern: Randfälle', () => {
     expect(lage.fremd_haus).toBe(1);
   });
 
+  it('test_nr21_fremd_vorrang_vor_rolle: E1 + (11|13),(12|13) → fremd ohne Rolle, Hausbewertung unverändert', () => {
+    // Haus 2 hängt jetzt an (12|13) (Leitungsende); sein gezählter Hausweg (12|13),(11|13),(10|13),Abzweig gäbe (11|13) und
+    // (12|13) die Rolle Anschluss. Beide Felder sind aber Planungsfehler abseits der Spur → fremd hat Vorrang (Entscheidung PL).
+    const { s, h2, lage } = lageMit([...E1, ['d25', 11, 13], ['d25', 12, 13]]);
+    expect(anschlussFeld(s, h2)).toEqual([12, 13]);
+    expect(kurz(lage)).toEqual({ ...ALLES_OK, planungsfehler: true, fremd: [[11, 13], [12, 13]] });
+    expect(lage.felder).toEqual([
+      { x: 10, y: 11, rolle: 'haupt', typ: 'd32', richtig: true },
+      { x: 9, y: 12, rolle: 'anschluss', typ: 'd25', richtig: true },
+      { x: 10, y: 12, rolle: 'haupt', typ: 'd32', richtig: true },
+      { x: 10, y: 13, rolle: 'anschluss', typ: 'd25', richtig: true },
+    ]);
+  });
+
+  it('test_nr21_gemeinsamer_hausweg_haupt: (10|13),(10|14) auf beiden gezählten Hauswegen → Rolle haupt, als 25er zu dünn', () => {
+    // Haus 1 an (9|14), Haus 2 an (11|14), beide Leitungsenden; beide Hauswege laufen über (10|14),(10|13) zum Abzweig.
+    const { s, h1, h2, lage } = lageMit([...HAUPT, ['d25', 10, 13], ['d25', 10, 14], ['d25', 11, 14], ['d25', 9, 14]]);
+    expect([anschlussFeld(s, h1), anschlussFeld(s, h2)]).toEqual([[9, 14], [11, 14]]);
+    expect(kurz(lage)).toEqual({ ...ALLES_OK, haupt_ok: false, haus1_ok: false, haus2_ok: false, haupt_zu_duenn: true, planungsfehler: true });
+    expect(lage.felder.find((f) => f.x === 10 && f.y === 13)).toEqual({ x: 10, y: 13, rolle: 'haupt', typ: 'd25', richtig: false });
+    expect(lage.felder.find((f) => f.x === 10 && f.y === 14)).toEqual({ x: 10, y: 14, rolle: 'haupt', typ: 'd25', richtig: false });
+    // Spur prüft nach der Rolle, nicht nach dem Spurstück: (10|13),(10|14) sind Stück haus2, aber hier Hauptleitung.
+    expect(spurFeld(lage, 10, 13)).toEqual({ x: 10, y: 13, stueck: 'haus2', belegt: 'd25', richtig: false });
+    expect(spurFeld(lage, 10, 14)).toEqual({ x: 10, y: 14, stueck: 'haus2', belegt: 'd25', richtig: false });
+    expect(spurFeld(lage, 11, 14)).toEqual({ x: 11, y: 14, stueck: 'haus2', belegt: 'd25', richtig: true });
+  });
+
+  it('test_nr21_fremd_fehler_auf_hauptweg: Planungsfehler auf dem echten Hauptweg abseits der Spur → nicht fremd (K-a)', () => {
+    // K-a-Netz: Hauptleitung über (11|12); dazu künstlich ein Engpass auf (11|12). Beide Häuser bleiben ok.
+    const { s, h1, h2 } = lageMit([['d32', 11, 12], ['d32', 10, 12], ...ANSCHLUSS_1, ...ANSCHLUSS_2]);
+    const netz = netzVon(s);
+    expect(netz.eltern.get(nr(10, 12))).toBe(nr(11, 12));
+    const mitEngpass = { ...netz, engpass: new Set([nr(11, 12)]) };
+    const rein = tutorialLeitungsLage(mitEngpass, s.stand.objekte, h1.id, h2.id, 'd32', 'd25');
+    expect(kurz(rein)).toEqual({ ...ALLES_OK, planungsfehler: true });
+  });
+
   it('test_nr21_haus_fehlt: fehlt ein Tutorial-Haus, wirft die Prüfung (wie heute)', () => {
     const { s, h2 } = tutorialOffen();
     const netz = netzVon(s);
@@ -372,5 +409,16 @@ describe('NR21 P1 Kern: letzteLeitungFeld', () => {
     expect(alt.letzteLeitungZurueck().ok).toBe(true);
     expect(gebaut.ersatz).toBeUndefined();
     expect(alt.letzteLeitungFeld()).toEqual([15, 11]);
+  });
+
+  it('test_nr21_letzte_leitung_feld_nach_abschliessen: Phase bestellen → null, Zurück nimmt nichts', () => {
+    const { s } = lageMit(E1);
+    expect(s.letzteLeitungFeld()).toEqual([11, 14]);
+    expect(s.abschnittAbschliessen().ok).toBe(true);
+    expect(s.stand.abschnitt?.phase).toBe('bestellen');
+    const vorher = s.stand.objekte.length;
+    expect(s.letzteLeitungFeld()).toBeNull();
+    expect(s.letzteLeitungZurueck().ok).toBe(false);
+    expect(s.stand.objekte.length).toBe(vorher);
   });
 });

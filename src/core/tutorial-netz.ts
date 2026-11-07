@@ -58,8 +58,9 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
   const fremd_haus = haeuser[0].eigenerAbgang ? 1 : haeuser[1].eigenerAbgang ? 2 : null;
 
   const gezaehlt = haeuser.map((h) => new Set(h.gezaehlt ? h.hausweg : []));
-  // Felder aus fremd haben nie eine Rolle, ohne eigene Prüfung: Sie liegen auf keinem gezählten Hausweg (der läuft über den
-  // Abzweig und dann den Hauptweg) und nach K-a nie auf dem Hauptweg.
+  // Felder aus dem ersten Teil von fremd liegen auf keinem gezählten Hausweg (ein eigener Abgang läuft nicht über den Abzweig)
+  // und nach K-a nie auf dem Hauptweg, haben also keine Rolle. Felder aus dem zweiten Teil können auf einem gezählten Hausweg
+  // liegen (Haus am Ende eines Rings); dort hat fremd Vorrang, sie werden unten aus `felder` genommen.
   const rolleVon = (k: number): 'haupt' | 'anschluss' | null => {
     if (aufHauptweg.has(k) || (gezaehlt[0].has(k) && gezaehlt[1].has(k))) return 'haupt';
     return gezaehlt[0].has(k) || gezaehlt[1].has(k) ? 'anschluss' : null;
@@ -68,15 +69,15 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
     rolle === 'haupt' ? LEITUNGSRANG[typ] >= LEITUNGSRANG[haupt] : typ === anschluss;
 
   const rollenFelder = new Set([...hauptweg, ...gezaehlt[0], ...gezaehlt[1]]);
-  const felder = [...rollenFelder].sort((p, q) => p - q).flatMap((k) => {
+  const alleFelder = [...rollenFelder].sort((p, q) => p - q).flatMap((k) => {
     const rolle = rolleVon(k), typ = typAn(k);
     if (!rolle || !typ) return [];
     const [x, y] = koordinate(k);
     return [{ x, y, rolle, typ, richtig: passt(rolle, typ) }];
   });
-  const richtig = new Map(felder.map((f) => [nummer([f.x, f.y]), f.richtig]));
-  const haupt_zu_duenn = felder.some((f) => f.rolle === 'haupt' && !f.richtig);
-  const anschluss_zu_dick = felder.some((f) => f.rolle === 'anschluss' && LEITUNGSRANG[f.typ] > LEITUNGSRANG[anschluss]);
+  const richtig = new Map(alleFelder.map((f) => [nummer([f.x, f.y]), f.richtig]));
+  const haupt_zu_duenn = alleFelder.some((f) => f.rolle === 'haupt' && !f.richtig);
+  const anschluss_zu_dick = alleFelder.some((f) => f.rolle === 'anschluss' && LEITUNGSRANG[f.typ] > LEITUNGSRANG[anschluss]);
   const haupt_ok = hauptweg.length > 0 && !haupt_zu_duenn;
   // Haus ok (E3 Punkte 1–3): gezählter Hausweg, jedes Feld mit Rolle richtig. Punkt 3 (Hausweg enthält den Abzweig) steckt in
   // „gezählt“, denn ein Hausweg ohne Abzweig ist ein eigener Abgang.
@@ -89,6 +90,11 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
   if (haus1_ok && haus2_ok && planungsfehler) {
     fremd.push(...[...fehlerFelder].filter((k) => !SPUR_FELDER.has(k) && !aufHauptweg.has(k)).sort((p, q) => p - q));
   }
+
+  // Entscheidung PL: fremd hat Vorrang vor der Rolle. Die Bewertung oben bleibt, wie sie ist – der zweite Teil von fremd entsteht
+  // ohnehin erst, wenn beide Häuser ok sind, also jedes Feld mit Rolle richtig ist.
+  const fremdFelder = new Set(fremd);
+  const felder = alleFelder.filter((f) => !fremdFelder.has(nummer([f.x, f.y])));
 
   const spur = SPUR.map(({ feld, stueck }) => {
     const k = nummer(feld), belegt = typAn(k), rolle = rolleVon(k);
