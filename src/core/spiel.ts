@@ -7,8 +7,9 @@ import {
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
-import type { Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
-import { ERSTE_HAEUSER } from './start';
+import type { Feld, Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
+import { ERSTE_HAEUSER, TUTORIAL_HAUPTLEITUNG } from './start';
+import { tutorialLeitungsLage } from './tutorial-netz';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
@@ -97,23 +98,35 @@ export class Spiel {
   /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind
    *  (mit oder ohne Station), aufsteigend. Dieselbe Probe-Rechnung wie die Warnprüfung (AE-NR18-3). */
   erreichteHaeuser(): number[] { return this.erreichteIn(this.probeNetz()); }
-  /** NR13: Zahlen für die Tutorial-Texte, aus denselben Rechnungen wie das Spiel (AE-NR18-3: keine zweite Netzrechnung). */
+  /** NR13/NR21: Zahlen für die Tutorial-Texte, aus denselben Rechnungen wie das Spiel (AE-NR18-3: keine zweite Netzrechnung).
+   *  E2: `haupt` ist die feste Vorgabe TUTORIAL_HAUPTLEITUNG, `anschluss` die kleinste Leitung für ein Haus mit Puffer. Passt der
+   *  Katalog nicht zu dieser Spur, wirft sie: Das Tutorial hätte dann keinen richtigen Satz (W1, W2). */
   tutorialWerte(): TutorialWerte {
     const [h1, h2] = this.tutorialHaeuser();
     const kw_puffer = bedarfKw({ ...h1, hauspuffer: true });
     const kw_summe = kw_puffer + bedarfKw({ ...h2, hauspuffer: true });
-    const leitung = this.passendeLeitung(kw_summe);
-    if (!leitung) throw new Error('NR13: keine Leitung freigeschaltet');
-    // haupt/anschluss vorläufig = bisherige Leitung; die Regeln E2 (32er-Vorgabe, Anschluss aus kw_puffer) kommen mit NR21 P1.
+    const haupt = TUTORIAL_HAUPTLEITUNG;
+    const anschluss = this.passendeLeitung(kw_puffer);
+    if (!anschluss) throw new Error('NR21: keine Leitung freigeschaltet');
+    const kap = (t: TypId): number => KATALOG[t].kapazitaet_kw as number;
+    if (!freigeschaltet(this.stand, haupt)) throw new Error(`NR21 W1: Die Hauptleitung (${KATALOG[haupt].name}) ist nicht freigeschaltet`);
+    if (kap(haupt) < kw_summe) throw new Error(`NR21 W1: Die Hauptleitung (${KATALOG[haupt].name}) trägt ${kap(haupt)} kW, gebraucht werden ${kw_summe} kW`);
+    if (kap(anschluss) >= kap(haupt)) throw new Error(`NR21 W1: Der Hausanschluss (${KATALOG[anschluss].name}) ist nicht dünner als die Hauptleitung`);
+    const duenner = LEITUNGEN.find((l) => freigeschaltet(this.stand, l) && kap(l) < kap(anschluss));
+    if (duenner) throw new Error(`NR21 W2: ${KATALOG[duenner].name} ist dünner als der Hausanschluss (${KATALOG[anschluss].name})`);
     return {
       kessel_kw: this.netz.verfuegbar_kw, kwh: this.jahresverbrauch_kwh(h1), kw_ohne: bedarfKw({ ...h1, hauspuffer: false }), kw_puffer,
-      kw_summe, haupt: leitung, anschluss: leitung, leitung, kap_kw: KATALOG[leitung].kapazitaet_kw as number,
+      kw_summe, haupt, anschluss,
+      // Veraltet (Bauplan NR20-22 §5): bleiben befüllt, bis der P2-Nachzug sie aus Vertrag und Schrittlogik nimmt. Die
+      // Schrittlogik wählt in T12 noch nach `leitung` – das ist ab NR21 die Hauptleitung (E8: T12 nennt {haupt}).
+      leitung: haupt, kap_kw: kap(haupt),
     };
   }
-  /** NR21: Rollenprüfung der Tutorial-Leitungen (E3). Platzhalter aus dem Vertrag; der Aufruf ist ein Programmierfehler,
-   *  bis die Prüfung gebaut ist – lieber laut scheitern als eine erfundene Lage liefern. */
+  /** NR21 (E3): Rollenprüfung der Tutorial-Leitungen im Probe-Netz (gebaut + eingezeichnet). */
   tutorialLeitungen(): TutorialLeitungsLage {
-    throw new Error('NR21 P1: tutorialLeitungen noch nicht gebaut');
+    const [h1, h2] = this.tutorialHaeuser();
+    const w = this.tutorialWerte();
+    return tutorialLeitungsLage(this.probeNetz(), this.stand.objekte, h1.id, h2.id, w.haupt, w.anschluss);
   }
   /** NR13 (Weg b): Was bis zum Material noch fehlt – eingezeichnete Leitungen plus die Puffer-Stationen der Tutorial-Häuser, die noch
    *  keine haben, zum Preis, den stationKaufen abbucht. 0 ohne Tutorial und außerhalb der Phasen offen/bestellen. */
@@ -620,15 +633,25 @@ export class Spiel {
     delete gebaut.ersatz;
     return ok();
   }
-  /** A47: Zuletzt eingezeichnete Leitung des offenen Bauabschnitts zurücknehmen. */
-  letzteLeitungZurueck(): Ergebnis {
-    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false };
-    // Leitungs-Ids und Ersatz-Nummern kommen beide aus naechste_id: die größere Zahl ist das zuletzt Gezeichnete.
+  /** A47: Was Zurück als Nächstes nimmt: Leitungs-Ids und Ersatz-Nummern kommen beide aus naechste_id, die größere Zahl ist das
+   *  zuletzt Gezeichnete. Nur im offenen Bauabschnitt, sonst undefined. */
+  private zuletztGezeichnet(): Objekt | undefined {
+    if (this.stand.abschnitt?.phase !== 'offen') return undefined;
     let letzte: Objekt | undefined, nr = -Infinity;
     for (const a of this.stand.objekte) {
       const n = a.geplant ? a.id : a.ersatz ? a.ersatz.nr : -Infinity;
       if (n > nr) { nr = n; letzte = a; }
     }
+    return letzte;
+  }
+  /** NR21: Feld des Objekts, das letzteLeitungZurueck() als Nächstes entfernen würde; null außerhalb von offen oder ohne Leitung. */
+  letzteLeitungFeld(): Feld | null {
+    const o = this.zuletztGezeichnet();
+    return o ? [o.x, o.y] : null;
+  }
+  /** A47: Zuletzt eingezeichnete Leitung des offenen Bauabschnitts zurücknehmen. */
+  letzteLeitungZurueck(): Ergebnis {
+    const letzte = this.zuletztGezeichnet();
     if (!letzte) return { ok: false };
     if (letzte.geplant) {
       const weg = letzte;
