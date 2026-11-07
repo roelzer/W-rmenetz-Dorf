@@ -636,3 +636,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:43 | ▶ | entwickler | P5f-2c Tokens, Hülle, Fotos |
 | 2026-11-07 22:43 | ▶ | tester | Tester nr21-vertrag Streifen 5/12 |
 | 2026-11-07 22:44 | ■ 🟢 | tester | 🟢 Vorarbeit erledigt. Wie geplant ist jetzt genau ein Test rot.  ([Bericht](docs/pruefberichte/20261107-224403-tester-a69de1a5b8b6a68b2.md)) |
+| 2026-11-07 22:50 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-07 22:50 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Meine Aufgabe ist erledigt. Die Prüfung nach dem Commit meldet erwartungsgemäß NICHT OK, weil die 3 Tests für P7 noch rot sind. Au ([Bericht](docs/pruefberichte/20261107-225002-entwickler-a0310ccb990289332.md)) |
