@@ -600,3 +600,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:46 | ▶ | reviewer | Review P6 NR22 Kern |
 | 2026-11-07 20:54 | ■ 🟢 | reviewer | 🟢 **Ampel: GRÜN, freigegeben.** Kein Befund ist so ernst, dass er den Merge aufhält. Es gibt zwei kleine Hinweise, beide schon über Entscheidungen des Pro ([Bericht](docs/pruefberichte/20261107-205446-reviewer-a75e75a54bc4b2e7d.md)) |
 | 2026-11-07 20:55 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT. Der Kontext ist fast voll (Kontext-Wächter).** Zwei Zwischenstände sind committet, der Arbeitsordner ist sauber. Ein Nachfolger kann ([Bericht](docs/pruefberichte/20261107-205503-entwickler-ae7bb693c4acf7bb0.md)) |
+| 2026-11-07 20:55 | ▶ | entwickler | P5c eigener Abgang + Ablauf |
+| 2026-11-07 20:56 | ▶ | tester | Tester: Grenzfall + tutorial_spur |
