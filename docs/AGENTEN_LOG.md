@@ -617,3 +617,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 21:52 | ▶ | reviewer | Review P5e |
 | 2026-11-07 21:52 | ▶ | designer | Fotocheck Tutorial Kapitel 3 |
 | 2026-11-07 22:01 | ■ 🟡 | reviewer | Ampel: GELB – freigegeben mit kleinen Punkten (P5e, Branch nr20-p5e, d66fe46..cc61792)  ([Bericht](docs/pruefberichte/20261107-220125-reviewer-ad3504d867d513005.md)) |
+| 2026-11-07 22:03 | ■ 🔴 | designer | 🟡 Das Tutorial läuft auf beiden Handygrößen von T12 bis T14 durch. Die Umwege „über den Abzweig hinaus“ und „eigener Abgang“ funktionieren auch.  ([Bericht](docs/pruefberichte/20261107-220317-designer-a30d20b8a363625c8.md)) |

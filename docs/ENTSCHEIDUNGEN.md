@@ -278,3 +278,14 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
 - 2026-11-07 – P5d: Schranken-Meldung „bestehende Testdatei geändert“ (nr20-darstellung, nr20-v1-zug) angenommen – nur angehängte Tests, beauftragt; Reviewer prüft, dass kein bestehender Test geändert wurde
 - 2026-11-07 – Band am ersten Feld (10|11) kommt von der Heizzentrale (Osten), nicht von Norden – Fließrichtung der Wärme; P5e passt `bandVorgaenger` in core/tutorial-band.ts an. „Band füllt sich hinter dem Finger“ (DESIGN B5) ist nicht im Bauplan: Designer bewertet beim Fotocheck, ggf. Nachtrag mit P7 (szene.ts)
 - 2026-11-07 – P5e mit 🟡 gemergt (nr20-int 8ec71f9, nur noch 3 rot: 2× E7 + N2, alle P7). Schranken-Meldung zu geänderten Testdateien angenommen (nur strenger: nr20-darstellung 5 Punkte, nr21-ablauf T14-Prüfungen, nr20-einbindung Import). Raute im Schleier als Ellipse +12 px angenommen vorbehaltlich Designer-Fotocheck – Review P5e, keine Sperrwirkung
+- 2026-11-07 – Designer-Fotocheck NR20 (docs/pruefberichte/20261107-designer-nr20-fotocheck.md): alle Vorschläge angenommen, umgesetzt als Paket **P5f „Tutorial-Feinschliff“** vor P7:
+  (1) T13/T13w: Haus-Stecker blass (Deckkraft 0,35), Zielscheibe im Band größer und mit Schein – das richtige Ziel muss das auffälligste sein;
+  (2) Streifen am eigenen Abgang über das Rohr legen, Hülle und Streifen breiter;
+  (3) Satz, Ringe, Zielscheibe, Raute und Streifen wechseln gemeinsam erst beim Abheben (kein „hier hin“-Ring mitten im falschen Zug);
+  (4) Schleier: Heizzentrale nur mit Grundfläche + 12 px aussparen;
+  (5) Startfeld (10|11) sichtbar: Band und Raute über/neben der Heizzentrale erkennbar, Raute gelb gefüllt, Pfeil dunkel; „Band füllt sich hinter dem Finger“ entfällt;
+  (6) Zielscheibe bleibt nach [Zurück], bis Haus 2 richtig angeschlossen ist (DESIGN);
+  (7) T13h: Ring um Haus 1 unter der Raute zeichnen, enger fassen;
+  (8) T13w: Ring um Knopf 25 darf den Text nicht verdecken;
+  (9) Rest-Stück nach [Zurück] (z. B. 25er auf (12|12) neben der Heizzentrale): bleibt gestreift, Abschließen bleibt „Stück muss weg“, bis alles außerhalb von Spur und echter Hauptleitung weg ist – [Zurück] behält seine Einzelschritt-Bedeutung, kein stilles Mitbauen falscher Stücke
+  – Simons Klage „man sieht nicht, wo man hin soll“; Projektleiter entscheidet Gestaltung selbst
