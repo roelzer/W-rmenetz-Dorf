@@ -585,3 +585,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:21 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 20:21 | ■ 🟡 | entwickler | 🟡 **Status: Aufgabe erledigt. Formal BLOCKIERT, weil die Test-Schranke rot ist.** Rot ist sie nur wegen der 21 Tests, die schon auf 41d8025 rot waren. Durch  ([Bericht](docs/pruefberichte/20261107-202156-entwickler-a7f100bcd8842b965.md)) |
 | 2026-11-07 20:23 | ▶ | reviewer | Review P2-Nachzug |
+| 2026-11-07 20:25 | ■ 🟢 | reviewer | 🟢 **Nachprüfung P4a (Kartendarstellung), Diff e88504b..db8ab43: freigegeben.** Alle vier Befunde sind behoben. Die Nachbesserung hat nichts Neues kaputtgema ([Bericht](docs/pruefberichte/20261107-202549-reviewer-a9982bbf52a8f5e17.md)) |
