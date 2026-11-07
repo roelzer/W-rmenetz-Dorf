@@ -551,3 +551,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:30 | ▶ | entwickler | P4a Kartendarstellung |
 | 2026-11-07 19:35 | ■ 🟡 | tester | 🟡 **V0 Teil 2c ist erledigt.** Alle vier Punkte sind umgesetzt. Ich habe nur Testdateien geändert, die Typprüfung ist grün. Gelb ist es nur, weil die geä ([Bericht](docs/pruefberichte/20261107-193559-tester-a4be2a3fabdb9fb8c.md)) |
 | 2026-11-07 19:37 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT, Grund: Kontext voll. Es gibt einen Zwischenstand-Commit.  ([Bericht](docs/pruefberichte/20261107-193719-entwickler-a2fca899ffac40164.md)) |
+| 2026-11-07 19:37 | ▶ | entwickler | P2 fortsetzen |
+| 2026-11-07 19:37 | ▶ | tester | Test beide_haeuser angleichen |
