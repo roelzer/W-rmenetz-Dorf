@@ -612,3 +612,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 21:32 | ■ 🟡 | entwickler | ## 🟡 Status: FERTIG_MIT_BEDENKEN  ([Bericht](docs/pruefberichte/20261107-213252-entwickler-a04812e2a4b33746b.md)) |
 | 2026-11-07 21:33 | ▶ | entwickler | P5e Schleier, Spur, Fotos |
 | 2026-11-07 21:33 | ▶ | reviewer | Review P5d |
+| 2026-11-07 21:41 | ■ 🟡 | reviewer | ## Ampel: 🟡 freigegeben mit kleinen Punkten (P5d, Stand d66fe46)  ([Bericht](docs/pruefberichte/20261107-214136-reviewer-a78577f72022e29a8.md)) |

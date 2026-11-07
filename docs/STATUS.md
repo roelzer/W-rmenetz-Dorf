@@ -85,3 +85,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: Zwischen-Review P5 Teil 1+c 🟡 (K1 → Sammelliste 12, Designer-Frage Ring-Zeitpunkt → 13). Merge gegen nr20-int konfliktfrei, dort 3 rot (alle P7). Läuft: P5d.
 - 2026-11-07: P5d fertig d66fe46 (Branch nr20-p5d): Test (11) + zugBeginnt, Finger 400 ms, Sammelliste 1,4,5,6,8,9,10; 3 rot unverändert. Start P5e (ab d66fe46): Schleier, SPUR löschen, Browser-Fotos, Sammelliste 12–14.
 - 2026-11-07: Laufen: P5e (Entwickler) ‖ Review P5d.
+- 2026-11-07: Review P5d 🟡 (Tests pointercancel/Wiedereinstieg fehlen → an P5e nachgereicht). Merge nr20-int+P5d konfliktfrei, dort 3 rot (alle P7). Läuft: P5e.

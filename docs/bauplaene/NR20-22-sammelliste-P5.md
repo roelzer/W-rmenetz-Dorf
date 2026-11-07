@@ -21,3 +21,7 @@ Entschieden vom Projektleiter aus den Reviews von P1, P2, P3 und P4 (2026-11-07)
 12. K1: Kommentar steuerung.ts ~1006 berichtigen (T14 öffnet immer `tutorialWerte().anschluss`, Entscheidung c). In Ablauftest (5) für T14 zusätzlich prüfen: Farbknopf `d25` hat `aria-pressed=true`.
 13. Foto „eigener Abgang“ während des Zugs mit aufnehmen (Ring und Satz wechseln schon unter dem Finger, Streifen erst beim Abheben) – der Designer entscheidet beim Fotocheck, ob der Ring bis zum Abheben warten soll.
 14. Band am Feld (10|11) kommt von der Heizzentrale (Osten): `bandVorgaenger` in src/core/tutorial-band.ts anpassen, Test in nr20-darstellung (Eingang von Osten).
+15.–18. Aus Review P5d an P5e nachgereicht: Test pointercancel/Radierer-Tipp ohne Hängen; Test Wiedereinstieg setzt keinen Zug; (10|11)-Test mit Eingang von Osten; doppelter Import.
+
+## Für P7 (Nachtrag)
+- Chip-Regel im Code: anleiter.ts ~144 `!a.kompakt && a.wusstest_du` (heute nur über Daten gesichert).
