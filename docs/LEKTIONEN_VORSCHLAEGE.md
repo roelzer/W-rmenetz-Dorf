@@ -18,3 +18,5 @@
 - [Tests] Nach Massen-Ersetzungen in Testdateien prüfen, ob geschützte Leerzeichen (U+00A0) erhalten bleiben (grep -c $'\xc2\xa0' vorher/nachher). (NR20 V0 fb4b901, 2026-11-07)
 
 - [Bauplan] Architekturregeln, die erst beim Anlegen einer Datei greifen („greift ab Datei X“), gegen alle Pakete prüfen: Darf das Paket, das X anlegt, die verbotene Stelle nicht entfernen, wird ein Test zwischen den Paketen rot. (NR22, N2 gegen szene.ts, 2026-11-07)
+
+- [Prozess] Ändert ein Tester einen Zahlenwert nach neuem Design, alle Tests mitprüfen, die dasselbe Token festschreiben (z. B. Vertragstests der Tokens) – sonst Widerspruch zwischen zwei Tests. (P5f-2 Streifen 4→5, 2026-11-07)
