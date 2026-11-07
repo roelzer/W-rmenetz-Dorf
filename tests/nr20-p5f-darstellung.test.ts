@@ -6,6 +6,7 @@ import { Effekte } from '../src/render/effekte';
 import { Kamera } from '../src/render/kamera';
 import { Maler } from '../src/render/maler';
 import { bodenEbeneEinrichten, zeichneSzene, type Szene } from '../src/render/szene';
+import { fremdEinblendungZuruecksetzen } from '../src/render/szene-schluessel';
 import { neu } from './hilfen';
 
 function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {
@@ -152,5 +153,19 @@ describe('P5f-2 F5: Startfeld an der Heizzentrale und Raute mit Pfeil', () => {
     expect(vor).toContain(`strokeStyle=${TAFEL}`);
     expect(vor).toContain('lineWidth=3');
     expect(vor.at(-1)).toBe('stroke()');
+  });
+});
+
+// P5f-2 (Fortsetzung): F3 Streifen – Ebene über dem zweiten Leitungs-Durchgang beim Planen.
+describe('P5f-2 F3: Ebene der Streifen', () => {
+  const HZ_WAND = 'fillStyle=#86412e';
+  const mitRohr = [...objekte, neu('d25', 12, 12)];
+  const n = berechneNetz(mitRohr, [], 1);
+  it('Ebene: ohne Planen unter den Gebäuden; beim Planen nach dem zweiten Leitungs-Durchgang', () => {
+    fremdEinblendungZuruecksetzen();
+    const ruhig = bild(szene({ objekte: mitRohr, netz: n, tutorial_fremd: [[12, 12]] }));
+    expect(ruhig.indexOf('clip()')).toBeLessThan(ruhig.indexOf(HZ_WAND));
+    const plan = bild(szene({ objekte: mitRohr, netz: n, modus: 'stempel', tutorial_fremd: [[12, 12]] }));
+    expect(plan.indexOf('clip()')).toBeGreaterThan(plan.lastIndexOf('strokeStyle=rgba(40,34,26,.4)'));
   });
 });
