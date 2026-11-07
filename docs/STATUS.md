@@ -52,3 +52,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P0 🟢 (78ee473). Warte auf V0 2a/2b, dann nr20-int = P0+V0, dann P1‖P2‖P4.
 - 2026-11-07: V0 2a fertig (3e79784), Nachbesserung 'abgehoben' läuft; V0 2b läuft.
 - 2026-11-07: V0 2a komplett (5612a1e). Warte auf V0 2b.
+- 2026-11-07: nr20-int = P0+V0(1,2a,2b) bei 41b1c4a, Typprüfung grün (Worktree /home/user/wt-int). Laufen: V0 2c (Tester, wt-v0c), P1 (wt-p1), P2 (wt-p2), P4 (wt-p4). Danach Review je Paket, Merge in nr20-int, dann P2-Nachzug, P3‖P6, P5, P7.

@@ -542,3 +542,8 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:16 | ■ 🟢 | reviewer | 🟢 **Paket P0 freigegeben (mit einem Hinweis an dich zum Plan und einem kleinen Kann-Punkt)**  ([Bericht](docs/pruefberichte/20261107-191643-reviewer-aed140e7ff7105572.md)) |
 | 2026-11-07 19:18 | ■ 🟡 | tester | 🟡 **V0 Teil 2a ist erledigt.** Die Typprüfung zusammen mit P0 ist grün. Ich melde aber zwei Stellen in derselben Datei, die nicht zu meinem Auftrag gehört ([Bericht](docs/pruefberichte/20261107-191834-tester-ac2743f28bfa27d80.md)) |
 | 2026-11-07 19:19 | ■ 🟢 | tester | 🟢 **Nachbesserung ist eingebaut, die Typprüfung mit P0 bleibt grün.**  ([Bericht](docs/pruefberichte/20261107-191912-tester-ac2743f28bfa27d80.md)) |
+| 2026-11-07 19:22 | ■ 🟡 | tester | 🟡 V0 Teil 2b ist nur zum Teil fertig. Der Kontext ging zur Neige, darum habe ich einen sauberen Zwischenstand committet. Mehrere Zeilen der V0-Tabelle sind n ([Bericht](docs/pruefberichte/20261107-192259-tester-aa1d27f7310e9eb33.md)) |
+| 2026-11-07 19:23 | ▶ | tester | V0 Teil 2c Rest |
+| 2026-11-07 19:23 | ▶ | entwickler | P1 Kern NR20-22 |
+| 2026-11-07 19:23 | ▶ | entwickler | P2 Schrittlogik NR20-22 |
+| 2026-11-07 19:23 | ▶ | entwickler | P4 Darstellung Kap. 3 |
