@@ -507,3 +507,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 17:49 | ▶ | fachpruefer | Texte NR21/NR22 fachlich prüfen |
 | 2026-11-07 17:52 | ■ 🟡 | fachpruefer | 🟡 **Ampel: Gelb.** Fachlich falsch ist keiner der Texte. Aber ein Platzhalter ist im Entwurf so beschrieben, dass das Spiel heute die falsche Leitung einsetz ([Bericht](docs/pruefberichte/20261107-175200-fachpruefer-aef3a512f3d2c07ad.md)) |
 | 2026-11-07 18:01 | ■ 🟡 | architekt | 🟡 **Gelb.** Der Bauplan steht und die Architekturtests laufen. Drei Dinge stehen aber noch aus: (1) Die neue Spurführung für B1 habe ich nur aus dem Code a ([Bericht](docs/pruefberichte/20261107-180133-architekt-a40838cece575a243.md)) |
+| 2026-11-07 18:02 | ▶ | kritiker | Bauplanprobe NR20-22 |
+| 2026-11-07 18:02 | ▶ | designer | Neue Spur + Texte bestätigen |
+| 2026-11-07 18:02 | ▶ | fachpruefer | Neue Spur fachlich prüfen |
