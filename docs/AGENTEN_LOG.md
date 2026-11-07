@@ -512,3 +512,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 18:02 | ▶ | fachpruefer | Neue Spur fachlich prüfen |
 | 2026-11-07 18:07 | ■ 🟡 | designer | 🟡 **Gelb:** Drei der vier Punkte bestätige ich. Bei zwei Stellen widerspreche ich dem Architekten (Ring um Haus 1 in T13, Wortlaut T13h). Zwei kleine Textä ([Bericht](docs/pruefberichte/20261107-180723-designer-a5b1f536c43959f3e.md)) |
 | 2026-11-07 18:07 | ■ 🟢 | fachpruefer | 🟢 **Fachprüfung (Ergebnis) der neuen Tutorial-Spur NR20–22 mit den Texten T13, T13h und „Zwischenstand“**  ([Bericht](docs/pruefberichte/20261107-180750-fachpruefer-ad7b1c4a902a56e83.md)) |
+| 2026-11-07 18:08 | ■ 🟢 | fachpruefer | 🟢 **Nachtrag: Die Texte aus DESIGN 13.17 Fassung 2 sind fachlich richtig**  ([Bericht](docs/pruefberichte/20261107-180813-fachpruefer-ad7b1c4a902a56e83.md)) |
