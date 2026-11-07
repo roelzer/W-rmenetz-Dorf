@@ -561,3 +561,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:46 | ▶ | reviewer | Review P1 NR20-22 |
 | 2026-11-07 19:47 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Am Programmcode ist nichts mehr zu tun. Die 6 roten Fälle, die ich ansehen sollte, liegen alle an Fehlern in den Tests, nicht in `t ([Bericht](docs/pruefberichte/20261107-194719-entwickler-ad859f109bd6d2630.md)) |
 | 2026-11-07 19:47 | ▶ | tester | Testkorrekturen P2 |
+| 2026-11-07 19:48 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, aber nur wegen der Test-Schranke.** P4a ist fertig gebaut und committet. Die Schranke kann für diesen Stand nicht „OK“ melden. De ([Bericht](docs/pruefberichte/20261107-194824-entwickler-aa0cbaef1dc9cbb8c.md)) |

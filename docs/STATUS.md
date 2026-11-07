@@ -59,3 +59,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P1 gebaut (d257e03), Stopp wegen F2c (tutorial-netz.ts darf netz nicht importieren) → Architekt passt an + klärt N1-umgehängt. P4b gestartet. Laufen: P2-Fortsetzung, P4a, P4b, Architekt.
 - 2026-11-07: Bauplan 2.4 (N1-umgehängt bestätigt, anschluss nach Haus 1). P1 + F2c-Ausnahme (03ee0bd) → Review läuft.
 - 2026-11-07: P2 fertig (1211c4b, Branch worktree-agent-ad859f109bd6d2630), 3 Testkorrekturen durch Tester, dann Review.
+- 2026-11-07: P4a fertig (e88504b, Branch nr20-p4a) → Review.
