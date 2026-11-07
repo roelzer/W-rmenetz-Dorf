@@ -307,6 +307,11 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(jetzt(t)).toBe('T13h');
     setze(l, { haupt: true, haus1: true, haus2: true });
     for (let i = 0; i < 10; i++) schritt(t, 'leitung_gezeichnet', 700 + i);
+    // Bauplan NR20-22 P2 [2.3]: T13h → T14 erst nach dem Abheben, mitten im Zug bleibt T13h (auch beim Prüfen).
+    expect(jetzt(t)).toBe('T13h');
+    t.zustandPruefen();
+    expect(jetzt(t)).toBe('T13h');
+    tipp(t, 'abgehoben');
     expect(jetzt(t)).toBe('T14');
     expect(l.kapitelGesetzt).toEqual([2, 3]);
   });
@@ -869,6 +874,9 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.geld });
     expect(t.sperre('abschliessen')!.kurz).toBe('Geld reicht nicht');
     l.geldFehlt = 0; t.zustandPruefen();
+    // Der Zug von Z. „leitung_gezeichnet“ läuft noch: kein T14 vor dem Abheben (Bauplan NR20-22 P2 [2.3]).
+    expect(jetzt(t)).toBe('T13h');
+    tipp(t, 'abgehoben');
     expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T14', text: TEXT.T14, finger: 'tippen' });
     l.geldFehlt = 1; t.zustandPruefen();
     expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.geld, finger: 'spur' });
