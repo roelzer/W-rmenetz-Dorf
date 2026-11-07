@@ -72,3 +72,8 @@ Q2: 10 m · Q3: 40 °C Mindest-Rücklauf (A73) · Q4: passt · Q5: ja, weiter so
 - [beantwortet 06.11.: alles ja, Foto kommt] 2026-11-06 – Tutorial NR13 (Designer, DESIGN.md 13.14), an Simon: T-F1 Startdorf ganz ohne Leitung (auch ohne bisherige 40er)? Empf. ja. T-F2 Wandstation im Tutorial sperren, frei ab drittem Haus? Empf. ja. T-F3 „Ohne Tutorial starten“ nur mit Vorführ-Tempo (Tester)? Empf. ja. T-F4 = Q11 „Abgleich“ nicht ins erste Tutorial, später beim Rücklauf-Helfer? Empf. ja. T-F5 Foto von Simon für die Figur.
 - [beantwortet 06.11.: alles ja, Foto kommt] 2026-11-06 – NR18 an Simon (gesammelt mit T-F1–T-F5): E1 50 % Rückkauf beim Ersetzen? E2 alte Leitung liefert bis Bauende? E3 = T-F1 Start ohne jede Leitung? E4 Startgeld 30.000 € bleibt? E5 Puffer muss auch Hausspitze schaffen? E6 Wandstation-Preise bleiben? Alle Empf. ja. Vorläufig entschieden: neues Spiel mit vorgewähltem Hackschnitzelkessel.
 - 2026-11-06 – Zur Bestätigung (Fachprüfer NR19): Soll als Fachregel gelten „Anschlussleistung = Jahreswärmeverbrauch ÷ Vollbenutzungsstunden; ohne Puffer 1.500 h (Fraunhofer UMSICHT), mit dezentralem Puffer 2.000 h (nur Herstellerquelle, Spielwert Simon 06.11.)“? Ohne Antwort bleibt es Spielwert. → Simon 2026-11-06: keine Fachregel, bleibt Spielwert.
+
+## 2026-11-07 – Simon-Rückmeldung Tutorial/Leitungen (NR20–NR22)
+- Q20 (NR20): Was stört an der Ansicht beim Leitungsziehen im Tutorial genau?
+- Q21 (NR21): Wie soll der Spieler im Tutorial die Leitungsgrößen kennenlernen?
+- Q22 (NR22): Wie soll Überlast angezeigt werden, damit die Größe erkennbar bleibt?
