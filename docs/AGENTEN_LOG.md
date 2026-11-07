@@ -653,3 +653,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:16 | ▶ | designer | Fotocheck P5f (13.17.9) |
 | 2026-11-07 23:22 | ■ 🟡 | reviewer | **Ampel: 🟡 freigegeben mit einem kleinen Punkt.** Der Branch kann in nr20-int bleiben.  ([Bericht](docs/pruefberichte/20261107-232248-reviewer-ad50f161c0b907315.md)) |
 | 2026-11-07 23:42 | ■ 🔴 | designer | **Ampel: 🟡** Alle 11 Punkte aus meinem letzten Fotocheck sind gebaut. Du schreibst von 9 Punkten, der Bericht hatte aber 🔴 1–2 und 🟡 3–11. Simons K ([Bericht](docs/pruefberichte/20261107-234212-designer-aecefd8a1f969244f.md)) |
+| 2026-11-07 23:42 | ▶ | tester | Tester P5g Vorarbeit |
+| 2026-11-07 23:43 | ▶ | entwickler | P7 NR22 Darstellung und Blatt |
