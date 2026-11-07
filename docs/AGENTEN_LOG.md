@@ -525,3 +525,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 18:45 | ▶ | kritiker | Bauplanprobe NR20-22 F2.1 |
 | 2026-11-07 18:52 | ■ 🔴 | kritiker | 🔴 **Rot: So noch nicht bauen. Ein kleiner Nachtrag (Fassung 2.2) reicht.**  ([Bericht](docs/pruefberichte/20261107-185237-kritiker-aeaf2739488c45e2c.md)) |
 | 2026-11-07 18:55 | ■ 🟢 | architekt | 🟢 **Fassung 2.2 von `docs/bauplaene/NR20-22.md` ist fertig.** N1–N4 und K1–K4 sind direkt an den betroffenen Stellen eingebaut und mit **[2.2]** markiert ([Bericht](docs/pruefberichte/20261107-185553-architekt-a04c7b06cc930f4a7.md)) |
+| 2026-11-07 18:56 | ▶ | kritiker | Bauplanprobe NR20-22 F2.2 |
