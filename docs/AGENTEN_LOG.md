@@ -658,3 +658,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:52 | ■ 🟡 | tester | 🟡 BLOCKIERT, Grund: Kontext voll. Teil 1 ist fertig und committet. Die neuen G-Tests liegen als Entwurf vor, sind aber noch nicht fertig geprüft. Browser-Sk ([Bericht](docs/pruefberichte/20261107-235239-tester-ac37722f9cbaa8806.md)) |
 | 2026-11-07 23:53 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 23:53 | ■ 🔴 | entwickler | 🔴 BLOCKIERT, Grund: Kontext voll. Der Darstellungsteil ist fertig und committet. Das Leitungsblatt und die Steuerung fehlen noch.  ([Bericht](docs/pruefberichte/20261107-235303-entwickler-af0edfeaaf524178e.md)) |
+| 2026-11-07 23:53 | ▶ | tester | Tester P5g Teil 2 |
