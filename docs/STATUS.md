@@ -60,3 +60,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: Bauplan 2.4 (N1-umgehängt bestätigt, anschluss nach Haus 1). P1 + F2c-Ausnahme (03ee0bd) → Review läuft.
 - 2026-11-07: P2 fertig (1211c4b, Branch worktree-agent-ad859f109bd6d2630), 3 Testkorrekturen durch Tester, dann Review.
 - 2026-11-07: P4a fertig (e88504b, Branch nr20-p4a) → Review.
+- 2026-11-07: P2-Testkorrekturen (122bcd0), Logik 48/48 grün → Review P2 läuft. Reviews P1, P4a laufen; P4b in Bau.

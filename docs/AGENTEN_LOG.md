@@ -563,3 +563,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:47 | ▶ | tester | Testkorrekturen P2 |
 | 2026-11-07 19:48 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, aber nur wegen der Test-Schranke.** P4a ist fertig gebaut und committet. Die Schranke kann für diesen Stand nicht „OK“ melden. De ([Bericht](docs/pruefberichte/20261107-194824-entwickler-aa0cbaef1dc9cbb8c.md)) |
 | 2026-11-07 19:48 | ▶ | reviewer | Review P4a NR20-22 |
+| 2026-11-07 19:53 | ■ 🟢 | tester | 🟢 Alle drei Testkorrekturen sind fertig. Commit **122bcd09921ae7f2522d80b6ea923278338213fd** im Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-ad ([Bericht](docs/pruefberichte/20261107-195355-tester-af8aa1c41ee909398.md)) |
+| 2026-11-07 19:54 | ▶ | reviewer | Review P2 NR20-22 |
