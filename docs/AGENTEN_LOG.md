@@ -627,3 +627,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:19 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, mit Teilstand.** Gebaut sind F2, F6 und der Schleier-Teil von F5 sowie die drei Punkte aus dem Review P5e. Bei F1, F3 und F5 widerspri ([Bericht](docs/pruefberichte/20261107-221916-entwickler-a88a3ae51e9611bc6.md)) |
 | 2026-11-07 22:19 | ▶ | tester | Tester: Darstellungstests an 13.17.9 |
 | 2026-11-07 22:20 | ▶ | entwickler | P5f-2b Rest Feinschliff |
+| 2026-11-07 22:23 | ■ 🟢 | tester | 🟢 Vorarbeit erledigt. Wie verlangt scheitern genau drei Tests, und zwar an den neuen Design-Werten. Die anderen 14 Tests der Datei sind grün.  ([Bericht](docs/pruefberichte/20261107-222317-tester-afff44666dbfe7983.md)) |
