@@ -520,3 +520,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 18:34 | ■ 🔴 | kritiker | 🔴 Rot: So noch nicht bauen. Ein kleiner Nachtrag (Fassung 2.1) reicht aber.  ([Bericht](docs/pruefberichte/20261107-183411-kritiker-a2c9daac725229814.md)) |
 | 2026-11-07 18:34 | ▶ | designer | Satz eigener Abgang entwerfen |
 | 2026-11-07 18:34 | ▶ | architekt | Bauplan NR20-22 Fassung 2.1 |
+| 2026-11-07 18:38 | ■ 🟢 | designer | 🟢 DESIGN 13.17 ist auf Fassung 2.1 erweitert. Geändert habe ich nur `/home/user/W-rmenetz-Dorf/docs/DESIGN.md`, keinen Code und keine Tokens-Datei. Committe ([Bericht](docs/pruefberichte/20261107-183809-designer-aa68089c1090308cc.md)) |

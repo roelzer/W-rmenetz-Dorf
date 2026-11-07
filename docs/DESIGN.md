@@ -1086,7 +1086,8 @@ Zeichen sind mit einem Zählskript nachgezählt (sichtbarer Text ohne `**`, Name
 
 **Nicht geprüft (mit Grund):** Wartezustand T11/T23 mit Restzeit in der Blase (bei Tempo ×10 schon fertig, bevor das Foto kommt – das Planungs-„noch 3 s“ im Kasten ist in `*_T10_philipp_spricht.png` zu sehen); „Weniger Bewegung“, Desktop 1280×800 und Hochformat (nicht beauftragt); Fokusring je Schritt außer Wiedereinstieg; Kamerafahrt-Blende.
 
-### 13.17 NR20–NR22: Spur, zwei Leitungsgrößen im Tutorial, Überlast-Zeichen (Entwurf 2026-11-07, Fassung 2)
+### 13.17 NR20–NR22: Spur, zwei Leitungsgrößen im Tutorial, Überlast-Zeichen (Entwurf 2026-11-07, Fassung 2.1)
+**Fassung 2.1 (2026-11-07, nach Kritiker M1 / Entscheidung Projektleiter):** Neu ist nur 13.17.8 „Eigener Abgang“: Satz `satz_eigener_abgang`, Streifen-Markierung auf dem fremden Stück, Rückführung zum Abzweig. Dazu angepasst: Vorrang der Sätze (13.17.2), Zustands-Tabelle (13.17.1), Tokens (13.17.4), Prüfkriterien (13.17.6). Alles andere gilt unverändert wie Fassung 2.
 **Fassung 2 (2026-11-07, nach Bauplan `docs/bauplaene/NR20-22.md`):** Spur nach Befund B1 neu (Abzweig (10\|12), jedes Haus ein eigenes 25er-Stück, (10\|10) entfällt), Texte T13/T13w/T13h/Zwischenstand, Fachprüfer-Sätze „randvoll“ und „passt nicht zum Plan“ übernommen, „Vergrößern“ ohne eigene Geld-Sperre. Neu gegenüber dem Bauplan: Zielscheibe im Band statt Ring um Haus 1 in T13, Zug-Ende am Abzweig (13.17.2 „Zug über den Abzweig hinaus“). Geändert sind nur die markierten Stellen; 13.17.0 bleibt der Messbefund mit der alten Spur.
 Anlass: Lastenheft NR20, NR21, NR22 mit Simons Antworten Q20–Q22. Designer, Modus `entwurf`. Grundlage: eigener Messlauf (Vite-Dev-Server, Chromium per Playwright, Gerätefaktor 2, Touch, Vorführ-Tempo ×10) bis T13 in 844×390 und 667×375, dazu ein Zug mit zwei Größen (32er bis zum ersten Haus, dann 25er). Fotos nur im Arbeitsordner (`scratchpad/t13-844.png`, `t13-667.png`, `t13-844-haupt32.png`, `t13-844-zwei.png`), nicht im Projekt. **13.17 geht bei Widerspruch den Stellen 13.2 (Leitungs-Spur), 13.3 (Karte in T13), 13.5 (T12–T14), 13.15 K9/K10 und Abschnitt 3/9 (Überlast rot) vor.**
 
@@ -1179,6 +1180,7 @@ Haus 1 hängt am Leitungsende (9|12), nicht an der vorbeilaufenden (10|13) (A57,
 | falsche Größe gewählt, noch nicht gezeichnet | Ring ohne Finger um den Farbknopf des aktiven Stücks; die Blase bleibt, wie sie ist |
 | Zurück/Radierer nimmt ein Feld der Hauptleitung weg | Band kommt dort zurück, Schritt springt auf T13 zurück (auch aus T13w/T13h), Ring an keinem Haus |
 | Zurück/Radierer nimmt einen Hausanschluss weg (T13h/T14) | Haken → Stecker, Band zurück, Ring auf dieses Haus, Schritt T13h (bei Haus 1 ohne Zwischenstand) |
+| Eigener Abgang von der Heizzentrale zu einem Tutorial-Haus (Fassung 2.1) | fremdes Stück gestreift, Satz `satz_eigener_abgang`, Zielscheibe auf (10\|12) wieder da, Band und Raute des betroffenen Hauses ab dem Abzweig, Ring um das Haus, Ring ohne Finger um [Zurück] bzw. [Radierer] (13.17.8) |
 | Geld fehlt (K7/K12) | Geld-Satz hat Vorrang vor allem anderen, sonst unverändert |
 | Wiedereinstieg T12/T13 | Band nur für offene Felder, Schritt aus dem Zustand (Tabelle 13.17.2) |
 | Weniger Bewegung | Finger steht auf der Raute, kein Federn am Stecker, Pfeile zeigen die Richtung |
@@ -1208,7 +1210,7 @@ Haus 1 hängt am Leitungsende (9|12), nicht an der vorbeilaufenden (10|13) (A57,
 - ~~Dieselbe Regel wie das Leitungsblatt nutzen~~ – Fassung 2: Der Architekt nimmt eine engere eigene Regel im Kern (Bauplan E3), weil die Blatt-Regel eine schräg neben Haus 1 endende Hauptleitung als Hausanschluss zählt. Einverstanden; Hauptsache, Satz, Band und Raute lesen dieselbe Regel.
 - **Zug über den Abzweig hinaus (neu, Fassung 2, Muss):** Das Ende der Hauptleitung liegt mitten auf der Straße; wer im Schwung weiterzieht, malt die 32er auf (10\|13) oder (9\|12). Regel: Der Schritt wechselt erst beim **Abheben** des Fingers nach T13w. Felder, die derselbe Zug nach dem Abzweig noch belegt, gelten als „Hausanschluss zu dick“ (Satz unten, gestrichelte Raute) – keine stillen Sonderregeln, kein Fehltipp-Zählen. Der Zug selbst wird nicht abgebrochen. Zielscheibe, die farbig wechselnden Bänder (grün → rot) und der Finger, der auf der Zielscheibe abhebt, sollen das Überziehen selten machen. *Nicht geprüft*, wie oft es vorkommt – der Produktprüfer schaut darauf.
 
-**Größen-Sätze** (Vorrang nach K4: Geld-Satz > Sperr-Satz > Größen-Satz > Hilfe-Satz > Zwischenstand > Grundtext)
+**Größen-Sätze** (Vorrang nach K4, Fassung 2.1: Geld-Satz > Sperr-Satz > **Eigener-Abgang-Satz (13.17.8)** > Größen-Satz > Hilfe-Satz > Zwischenstand > Grundtext)
 | Fall | Satz | Zeichen |
 |---|---|---|
 | Hauptleitung zu dünn (z. B. 25er vor dem Abzweig) | „Hier fließt Wärme für beide Häuser, die {anschluss} wäre randvoll. Nimm die {haupt} und zieh drüber.“ (Fachprüfer, gesetzt) | 90 |
@@ -1351,6 +1353,9 @@ Das Dreieck steht am Pfosten über der Leitung und hat deshalb meist Wiese oder 
 | `karte.ueberlast.saum_px` | 2 | gelber Saum je Seite |
 | `karte.ueberlast.wiederholen_felder` / `abstand_ende_min` | 8 / 4 | Wiederholung auf langen Stücken |
 | `karte.ueberlast.geplant_deckkraft` | 0.5 | Dreieck bei geplantem Ersatz |
+| `karte.fremd.dunkel` / `karte.fremd.hell` (Fassung 2.1) | Verweis auf `menue.farbe.kontur` `#3b1d0a` / `menue.farbe.tafel` `#fff4df` | Streifen auf dem fremden Stück (13.17.8) |
+| `karte.fremd.streifen_px` / `winkel_grad` | 4 / 45 | Streifenbreite, Schräge |
+| `karte.fremd.huelle_zusatz_px` / `rand_px` / `deckkraft` | 8 / 1.5 / 0.85 | Hülle = Rohrbreite + 8, Außenlinie, Deckkraft der Streifen |
 Wegfallen: `leitung.ueberlast_a/b`, `zeit_ms.ueberlast_blinken_zyklus`, `bewegung_reduziert.ueberlast_blinken`, `menue.farbe.spur` (die Spur hat jetzt die Leitungsfarbe). Die Farben `#ff4a3a`/`#b8221a` stehen heute fest im Code (`szene.ts`) und nicht aus den Tokens – sie fallen mit NR22 weg.
 
 #### 13.17.5 Barrierefreiheit
@@ -1371,7 +1376,70 @@ Fotos: T12, T13 frisch, T13 halb gezeichnet, T13 mit 25er auf der Hauptleitung (
 6. Eine überlastete Leitung zeigt ihre Durchmesserfarbe (Pipette in der Rohrmitte = `leitung.dNN`), dazu Dreieck und Saum. Im Bild ist kein Wechsel zwischen zwei Rots zu sehen (zwei Fotos im Abstand von 250 ms gleich).
 7. Je Stück höchstens ⌈n / 8⌉ Dreiecke, das erste auf dem Feld an der Heizzentrale.
 8. Die Blatt-Aktion nennt dieselbe Größe wie die Warnliste für dasselbe Stück.
+9. (Fassung 2.1) Mit eigenem Abgang (12\|12)→(12\|13) zu Haus 2 nach richtigem Haus 1: Blase zeigt `satz_eigener_abgang` (3 Zeilen bei 667), genau (12\|12) und (12\|13) sind gestreift, Zielscheibe auf (10\|12), Raute auf (10\|13), Ring um Haus 2, Ring um [Zurück]; kein Größen-Satz, keine gestrichelte Raute auf den gestreiften Feldern; kein Wechsel nach T14. Nach Zurück: Streifen und Satz weg, Zwischenstand-Satz, Finger zieht ab (10\|13). Zusätzliche Fotos: dieser Zustand vor und nach Zurück, bei 844 und 667.
 
 #### 13.17.7 Offene Fragen an Simon (mit Empfehlung)
 - **F-NR22-1 Blinken:** Du hast gesagt „bei Weniger Bewegung blinkt nichts“. **Empfehlung:** Es blinkt gar nicht mehr dauerhaft, auch nicht bei normaler Bewegung. Das Dreieck federt einmal, wenn die Überlast entsteht. Dauerblinken ist im übrigen Spiel tabu, und es kostet am Handy Rechenzeit (NR12). Wenn du doch Blinken willst: nur das Dreieck, 1-mal pro Sekunde, nie das Rohr.
 - **F-NR22-2 Ganzes Stück vergrößern:** **Empfehlung:** Der Knopf „Auf 32er vergrößern“ tauscht das ganze überlastete Stück auf einmal (z. B. 6 Felder, Preis steht auf dem Knopf). Feld für Feld wäre mühsam, und ein halb vergrößertes Stück wäre wieder ein Planungsfehler.
+
+#### 13.17.8 Eigener Abgang – zurück zum Abzweig (neu, Fassung 2.1)
+**Anlass:** Kritiker M1, Entscheidung Projektleiter 2026-11-07. Zieht der Spieler einen Hausanschluss direkt von der Heizzentrale statt vom Abzweig (10\|12), zum Beispiel (12\|12)→(12\|13) zu Haus 2, versorgt die 32er bis (10\|12) nur noch Haus 1. Dann wird die Leitung mitten auf der Strecke dünner (Reduzierung (10\|12)→(9\|12), A67; Probe im Bauplan Abschnitt 2, gelesen). Das Tutorial nimmt das nicht an. Es zeigt das fremde Stück und führt zurück zum Abzweig. Kein Hängen, kein gebauter Planungsfehler.
+
+**Wann gilt der Zustand?** In T13, T13w, T13h und T14: Es gibt ein Tutorial-Haus, dessen Hausweg (E3) **nicht** über `TUTORIAL_ABZWEIG` läuft und mit der Heizzentrale verbunden ist. Auslöser ist der eigene Abgang selbst, nicht erst der Planungsfehler. Grund: Wird Haus 2 zuerst so angeschlossen, entsteht die Reduzierung erst mit Haus 1. Der Satz käme dann zu spät, mitten in einem richtigen Zug. Laut Entscheidung löst hier jeder eigene Abgang eine Reduzierung aus, also ist die Regel gleichwertig. Das betroffene Haus gilt als **nicht** angeschlossen: sein Haken wird zum Stecker, ohne Federn (wie Bauplan Abschnitt 7 „Zustand vor Verlauf“).
+*Nicht abgedeckt (wie Bauplan Abschnitt 11 „zurückgestellt“):* ein Abzweig an einer anderen Stelle der Hauptleitung, etwa ab (10\|11). Der teilt Felder mit dem Hauptweg und ist kein eigener Abgang.
+
+**1. Satz `satz_eigener_abgang`** (kompakte Karte, Rang direkt nach dem Sperr-Satz, vor dem Größen-Satz)
+| Schlüssel | Satz | Zeichen |
+|---|---|---|
+| `satz_eigener_abgang` | „Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die {anschluss} von der Abzweigung.“ **[F]** | **89** mit „25er“ (gezählt mit Python, inkl. Leerzeichen und Satzzeichen); 90 bei einer dreistelligen Größe |
+- Zwei Sätze, zwei Handgriffe: erst wegnehmen, dann neu ziehen. „Zurück“ und „Radierer“ sind die Aufschriften der Knöpfe in der Zeichenleiste. „Abzweigung“ ist das Wort aus T13. „gestreift“ beschreibt, was man sieht – ohne Vorwissen über Planungsfehler.
+- Das *Warum* trägt das Bild: Die Zielscheibe auf dem Abzweig kommt zurück, Band und Pfeile laufen von dort zum Haus. Ein Grund-Satz („Häuser hängen an der Abzweigung …“) passt nicht mehr unter 96 Zeichen (gezählt: 97–103).
+- 667: rund 38 Zeichen je Zeile, also 3 Zeilen („Nimm das gestreifte Stück mit Zurück / oder Radierer weg. Zieh die 25er von / der Abzweigung.“). *Gerechnet, nicht gemessen.*
+- **[F]** Fachprüfer: Der Satz behauptet nichts Fachliches. Er prüft nur, ob „von der Abzweigung“ zum Erklärsatz T13w passt.
+- **Abschließen gesperrt** (Entscheidung „Sperre Planungsfehler erst nach Häuser fehlen“): Liegt ein eigener Abgang vor und tippt der Spieler auf [Abschnitt abschließen], zeigt die Blase ebenfalls `satz_eigener_abgang`. Zeile 2 am Knopf: **„Stück muss weg“** (14 Zeichen, nach 12.19/12.20) statt „Größe passt nicht“, denn die Größe stimmt ja. Vorschlag an den Architekten. Bleibt es bei „Größe passt nicht“, ist das kein Blocker.
+- **Kein Größen-Satz** für Felder des fremden Stücks. Sonst würde „Hausanschluss zu dick … zieh noch mal drüber“ bei einem 32er-Abgang dazu verleiten, den falschen Weg in 25er nachzumalen.
+
+**2. Markierung des fremden Stücks: Streifen („Absperrband“)**
+- **Welche Felder:** alle Felder des Hauswegs des betroffenen Hauses, die **kein** Spurfeld seines eigenen Hausanschlusses sind. Beispiel: (12\|12) und (12\|13). Der Kern liefert die Liste in der Lage (Vorschlag: `fremd: Feld[]`, leer = kein eigener Abgang). Satz, Streifen und Rückführung lesen dieselbe Liste.
+- **Form:** eine Hülle, die dem Rohr folgt wie das Band, Breite = Rohrbreite + 8 px. Darin 45°-Schrägstreifen, abwechselnd dunkel und hell, je 4 px breit, Deckkraft 0,85. Das Rohr scheint leicht durch. Außen eine Linie von 1,5 px in `kontur`. Keine Raute und kein Dreieck, damit es sich in der Form unterscheidet: Raute = „hier fehlt etwas / anders bauen“, Dreieck = Planungsfehler bzw. Überlast, Band = „hier hin“, **Streifen = „das muss weg“**.
+- **Farbe:** dunkel `kontur` `#3b1d0a`, hell `tafel` `#fff4df`. Es gibt **keinen neuen Farbton**. Rot (25er, Planungsfehler) und Gelb (Überlast) bleiben frei. Auch `#ffe08a` (Ziel, Raute, Ring = „hier hin“) wird nicht verwendet. Das Muster unterscheidet sich durch den Hell-Dunkel-Wechsel und nicht durch den Farbton, also auch bei Rot-Grün-Schwäche.
+- **Kontrast** (WCAG-Formel, gerechnet mit Python): dunkel/hell untereinander 14,1:1. `kontur` zur Wiese 8,0, zur 25er 3,7, zur 32er 4,7. `tafel` zur Straße 4,6, zur 25er 3,8. Damit erreicht auf jedem Untergrund mindestens eine der beiden Streifenfarben ≥ 3:1 (1.4.11). Noch nicht per Pipette im Foto geprüft.
+- **Tokens:** `karte.fremd.*` (13.17.4). Die Farben sind Verweise auf `menue.farbe.kontur` und `tafel`, keine neuen Werte.
+- **Ebene:** über den eingezeichneten Leitungen, auf der Höhe des Bands (auf diesen Feldern liegt kein Band). Unter dem Strich, der gerade gezogen wird, unter Gebäuden und Blasen.
+- **Bewegung:** Die Streifen erscheinen beim Abheben des Fingers mit 200 ms Einblenden und stehen dann still. Kein Wandern der Streifen, kein Blinken (12.9, NR12). Bei „Weniger Bewegung“ erscheinen sie sofort.
+- **Auf den gestreiften Feldern** gibt es kein Band und keine gestrichelte Raute.
+
+**3. Rückführung: Ring, Band, Raute (und Zielscheibe, Finger)**
+| Zeichen | solange das fremde Stück liegt | nach dem Wegnehmen |
+|---|---|---|
+| Zielscheibe | kommt auf (10\|12) zurück (auch in T13h, wo sie sonst fehlt) – „hier geht es ab“ | bleibt, bis das betroffene Haus richtig angeschlossen ist; dann weg wie in T13h |
+| Band | Hausanschluss-Stück des **betroffenen** Hauses ist aktiv (voll, mit Pfeilen ab dem Abzweig), das andere nach der normalen Regel; Hauptleitung nur, wo sie offen ist | unverändert |
+| Raute (nächstes Feld) | erstes offenes Spurfeld des betroffenen Hauses ab dem Abzweig: (10\|13) bei Haus 2, (9\|12) bei Haus 1. Bei offener Hauptleitung gilt die normale Regel (Hauptleitung zuerst) | unverändert |
+| Ring um Haus | um das betroffene Haus (Haken → Stecker, ohne Federn) | unverändert, bis es richtig angeschlossen ist |
+| Ring ohne Finger in der Zeichenleiste | um **[↶ Zurück]**, wenn der letzte Zug alle gestreiften Felder enthält (ein Tipp nimmt das Stück ganz weg); sonst um **[Radierer]** | weg |
+| Finger (B5) | **aus** – er würde Ziehen zeigen, gerade muss aber erst etwas weg | kommt nach 4 s wieder und zieht ab der Raute bis aufs Haus |
+| Satz | `satz_eigener_abgang` | Grundtext bzw. Zwischenstand-Satz des Schritts (Haus 1 richtig → „Das erste Haus hat seinen Hausanschluss …“) |
+- **Teilweise weggenommen:** Ist der Hausweg unterbrochen, gibt es keinen eigenen Abgang mehr. Satz und Streifen verschwinden. Reste ohne Verbindung zur Heizzentrale bekommen keine eigene Markierung. *Nicht geprüft*, ob solche Reste den späteren Zug vom Abzweig stören (sie liegen im Beispiel nicht neben der Spur) – der Produktprüfer schaut darauf.
+- **Zeichnen bleibt frei**, solange das fremde Stück liegt (keine Sperre, 13.7). Zieht der Spieler zusätzlich die richtige Leitung vom Abzweig, bleiben Streifen und Satz, bis das fremde Stück weg ist.
+- **Wiedereinstieg:** Mit eigenem Abgang geht es nie nach T14 (Entscheidung). Nach dem Neuladen gilt T13h (bzw. T13/T13w, wenn die Hauptleitung offen ist), und der Zustand stellt Streifen, Satz und Rückführung selbst her.
+- **T14:** Entsteht der eigene Abgang erst in T14 (dort ist Zeichnen frei), fällt das Tutorial nach T13h zurück, wie beim Wegnehmen eines Hausanschlusses (Zustands-Tabelle 13.17.1).
+
+**Skizze 844×390 – T13h, Haus 1 richtig, Haus 2 mit eigenem Abgang**
+```
+┌──────────────────────────────────────────────────────────────┬─────────────────────────┐
+│(Dorfschild)(€ …)  abgedunkelt .55                            │ Zeichnen     [?] [ X ]  │
+│░░░ Schleier .30 ░░░░░░░░░░░░ ╭──────────────╮ ░░░░░░░░░░░░░░│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│
+│░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │ HEIZZENTRALE │ ░░░░░░░░░░░░░░│ [(25)][32][40][St.2]    │
+│░░░░░░░░░░░░░░░░░░░░░░░░ ══ ╰──────┬───────╯ ░░░░░░░░░░░░░░│ bis 15 kW · 400 €/Feld  │
+│░░░░░░░░░░░░░░ (9|12) ── ⊙ (10|12)   ▨ (12|12) gestreift    │ [Radierer] (↶ Zurück)   │ ( ) = Ring ohne Finger
+│░░░ ✓ ( Haus 1 )         ◆◆ (10|13) ▨ (12|13) gestreift      │ [T-Stück · ab Stufe 4]  │
+│░░░░░░░░░░░░░░░░░░░░░░░░ ▶▶ (10|14) ▶ (11|14) ◎ ( Haus 2 )○ │                         │ ○ = Ring um Haus 2
+│┌────┐┌───────────────────────────────────────────────┐░░░░░░├─────────────────────────┤
+││Fig.││ Nimm das gestreifte Stück mit Zurück oder     │░░░░░░│ [Abschnitt abschließen] │
+││72  ││ Radierer weg. Zieh die 25er von der Abzweigung│░░░░░░│  Stück muss weg         │
+│└────┘└───────────────────────────────────────────────┘░░░░░░│                         │
+└──────────────────────────────────────────────────────────────┴─────────────────────────┘
+ ▨ = Streifen (kontur/tafel 45°) · ⊙ = Zielscheibe wieder da · ◆◆ = Raute · ▶ = Band Haus 2 aktiv · kein Finger
+```
+**667×375:** gleicher Aufbau, Satz in 3 Zeilen. Gestreifte Felder bleiben im Kamera-Rahmen: (12\|12) und (12\|13) liegen innerhalb x 9 … 12, y 10 … 14 (13.17.1 B6). Andere eigene Abgänge können außerhalb liegen. Dann bleibt die Kamera trotzdem stehen (kein Sprung in T13–T14); der Satz und der Ring an [Zurück] tragen allein.
+**Desktop 1280×800:** gleich, Karte kompakt unten links.
