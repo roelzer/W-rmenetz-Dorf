@@ -90,6 +90,12 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
   if (haus1_ok && haus2_ok && planungsfehler) {
     fremd.push(...[...fehlerFelder].filter((k) => !SPUR_FELDER.has(k) && !aufHauptweg.has(k)).sort((p, q) => p - q));
   }
+  // fremd, dritter Teil (Entscheidung PL 2026-11-07, DESIGN 13.17.9 F3 „Rest-Stück“): Im geführten Kapitel 3 muss jede Leitung
+  // außerhalb von Spur und echtem Hauptweg weg – auch ein Rest nach [Zurück] oder ein unverbundenes Stück. Sonst würde ein
+  // falsches Stück still mitgebaut. Aufsteigend nach Feldnummer, jedes Feld nur einmal.
+  for (let k = 0; k < netz.belegung.length; k++) {
+    if (typAn(k) !== null && !SPUR_FELDER.has(k) && !aufHauptweg.has(k) && !fremd.includes(k)) fremd.push(k);
+  }
 
   // Entscheidung PL: fremd hat Vorrang vor der Rolle. Die Bewertung oben bleibt, wie sie ist – der zweite Teil von fremd entsteht
   // ohnehin erst, wenn beide Häuser ok sind, also jedes Feld mit Rolle richtig ist.

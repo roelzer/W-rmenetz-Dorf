@@ -295,9 +295,10 @@ export class Tutorial {
   }
 
   /** Weg b (ENTSCHEIDUNGEN 2026-11-06) und Bauplan NR20-22 P2: T14 nur mit richtiger Hauptleitung, beiden Häusern, ohne
-   *  Planungsfehler und mit genug Geld. */
+   *  Planungsfehler, ohne Stück, das weg muss (Rest-Stück, DESIGN 13.17.9 F3: auch bei beiden Häusern ok), und mit genug Geld. */
   private abschliessenBereit(lg: TutorialLeitungsLage): boolean {
-    return lg.haupt_ok && this.erreichtZahl(lg) === 2 && !lg.planungsfehler && this.lage.tutorialGeldFehlt_eur() === 0;
+    return lg.haupt_ok && this.erreichtZahl(lg) === 2 && !lg.planungsfehler && lg.fremd.length === 0
+      && this.lage.tutorialGeldFehlt_eur() === 0;
   }
 
   /** Zustand des Handlungs-Schritts erfüllt (Bauplan P1 „Weiterschalten“); undefined = Schritt hat keinen Zustand. */
