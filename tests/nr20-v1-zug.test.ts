@@ -3,6 +3,7 @@ import { Spiel } from '../src/core/spiel';
 import { istLeitung, type TypId } from '../src/core/katalog';
 import { neuerSpielstand } from '../src/core/start';
 import type { Objekt } from '../src/core/typen';
+import { T } from '../src/ui/tokens';
 import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
 
 // NR20 V1 (Bauplan NR20-22 Fassung 2.4, E4 Regeln 2+3, Paket P3): Ein Zug, der auf einer vorhandenen Leitung beginnt, baut
@@ -71,6 +72,35 @@ describe('NR20 V1 – Zug ab einer vorhandenen Leitung (E4)', () => {
       zeichne(u, 'd25', [[9, 12]]);
       zeichne(u, 'd25', [[10, 12], [10, 13], [10, 14]]);
       expect([typBei(s, 10, 12), typBei(s, 10, 13), typBei(s, 10, 14)]).toEqual(['d32', 'd25', 'd25']);
+    });
+  });
+
+  it('Grenzfall Regel 3: genau zwei Leitungsnachbarn (Mitte einer geraden 32er) → Startfeld bleibt beim 25er-Zug d32', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      zeichne(u, 'd32', [[10, 11], [10, 12], [10, 13]]);
+      zeichne(u, 'd25', [[10, 12], [10, 13]]);
+      expect([typBei(s, 10, 11), typBei(s, 10, 12), typBei(s, 10, 13)]).toEqual(['d32', 'd32', 'd25']);
+    });
+  });
+
+  it('Randfall: Zittern im Startfeld (Bewegung über der Ziehschwelle, Finger bleibt auf S) entscheidet noch nichts', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      zeichne(u, 'd32', [[10, 11], [10, 12]]);
+      u.st.stempeln('d25');
+      const k = u.st.kamera as unknown as { feld(a: number, b: number): [number, number] };
+      const canvas = u.dom.app.querySelector('canvas')!;
+      const [mx, my] = punkt(u, 10, 12), versatz = T.karte.ziehen_schwelle_px + 1;
+      expect(k.feld(mx, my + versatz), 'Testaufbau: Zittern bleibt im Startfeld').toEqual([10, 12]);
+      const [nx, ny] = punkt(u, 9, 12);
+      const ev = (x: number, y: number) => ({ pointerId: 7, clientX: x, clientY: y, pointerType: 'touch', button: 0 });
+      canvas.ausloesen('pointerdown', ev(mx, my));
+      canvas.ausloesen('pointermove', ev(mx, my + versatz));
+      canvas.ausloesen('pointermove', ev(nx, ny));
+      canvas.ausloesen('pointerup', ev(nx, ny));
+      expect(typBei(s, 10, 12)).toBe('d32');
+      expect(typBei(s, 9, 12)).toBe('d25');
     });
   });
 
