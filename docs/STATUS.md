@@ -89,3 +89,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P5e fertig cc61792 (Branch nr20-p5e): Schleier, SPUR weg (N1 grün), Band von Osten, Browser 42 OK, 18 Fotos, Zusatztests; 3 rot unverändert. tutorial_spur-Feld → P7. Start: Review P5e ‖ Designer-Fotocheck.
 - 2026-11-07: P5 komplett 🟡 gemergt → nr20-int 8ec71f9: 1643 grün, 3 rot (E7×2, N2 → P7). Warte auf Designer-Fotocheck, dann P7 mit Sammelliste-Nachträgen.
 - 2026-11-07: Designer-Fotocheck 🟡 mit 2× 🔴 (drei gleiche Ziele in T13; Streifen kaum sichtbar). Entscheidung: P5f Feinschliff (9 Punkte, ENTSCHEIDUNGEN) vor P7. Designer zieht DESIGN B4/B5/13.17.8 nach.
+- 2026-11-07: DESIGN 13.17.9 (F1–F8) vom Designer, Rest-Stück-Regel bestätigt. Start P5f (ab nr20-int 8ec71f9).

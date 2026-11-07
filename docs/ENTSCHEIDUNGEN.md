@@ -289,3 +289,4 @@ Format: `- Datum | was entschieden | warum | was es kostet, wenn es falsch ist`
   (8) T13w: Ring um Knopf 25 darf den Text nicht verdecken;
   (9) Rest-Stück nach [Zurück] (z. B. 25er auf (12|12) neben der Heizzentrale): bleibt gestreift, Abschließen bleibt „Stück muss weg“, bis alles außerhalb von Spur und echter Hauptleitung weg ist – [Zurück] behält seine Einzelschritt-Bedeutung, kein stilles Mitbauen falscher Stücke
   – Simons Klage „man sieht nicht, wo man hin soll“; Projektleiter entscheidet Gestaltung selbst
+- 2026-11-07 – Bestätigt (Rückfrage Designer zu 13.17.9 F3): In Kapitel 3 (T13–T14) wird jede Leitung außerhalb von Spur und echter Hauptleitung gestreift und muss weg; die Regel 13.7 „Leitung neben der Spur ist erlaubt“ gilt im geführten Tutorial-Abschnitt nicht mehr – eindeutiges Ziel, nichts Falsches wird still mitgebaut. Bestehende Tests, die 13.7 in Kapitel 3 festschreiben, passt nur ein Tester an (Entwickler meldet die Liste)
