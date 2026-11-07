@@ -114,8 +114,8 @@ export class Steuerung implements Ui {
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
   private erreichtSeit = new Map<number, number>();
   private szeneTutorial: SzeneTutorial = {};
-  /** Bildzeit der letzten Berührung der Karte: Der Vorführ-Finger ruht beim Berühren und kommt `finger_wieder` danach zurück */
-  private beruehrtBis_ms = -Infinity;
+  /** Läuft die Pause nach der letzten Berührung der Karte: Der Vorführ-Finger kommt erst `finger_wieder` danach zurück */
+  private fingerPause: number | null = null;
 
   jetzt_ms(): number { return this.uhr(); }
   /** Läuft gerade eine Geste auf der Karte (Finger oder gedrückte Mitteltaste)? Die Bildschleife reicht es an die Bodenebene weiter. */
@@ -501,9 +501,10 @@ export class Steuerung implements Ui {
       if (this.zeiger.size < 2) this.pinch = null;
       if (war && this.zeiger.size === 0 && this.start && !this.zieht) this.tippen(e.clientX, e.clientY);
       if (this.zeiger.size === 0) {
-        this.start = null; this.startfeldTippen(); this.beruehrtBis_ms = this.bildzeit() + T.menue.zeit_ms.finger_wieder;
+        this.start = null; this.startfeldTippen(); this.fingerPauseStarten();
         // Bauplan NR20-22 P2: Der Schrittwechsel nach einem Zug kommt erst beim Abheben (auch pointercancel)
-        if (war && this.modus === 'stempel') this.tutorialMelden({ art: 'tipp', tipp: 'abgehoben' });
+        // Die Ereignisse des Zugs gehören vor das Abheben – sonst zählte ein spät gelesenes „gezeichnet“ als neuer Zug
+        if (war && this.modus === 'stempel' && this.anleitung) { this.ereignisse(); this.tutorialMelden({ art: 'tipp', tipp: 'abgehoben' }); }
       }
     };
     l.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
@@ -863,6 +864,11 @@ export class Steuerung implements Ui {
     if (a.finger !== 'spur' || ruht || !a.finger_weg.length) return null;
     return { art: 'spur', punkte: a.finger_weg.map(([x, y]) => this.kamera.mitte(x, y)) };
   }
+  private fingerPauseStarten(): void {
+    if (this.fingerPause !== null) window.clearTimeout(this.fingerPause);
+    // Das nächste Bild (tick) zeigt den Finger wieder; ohne Tutorial gibt es keinen
+    this.fingerPause = this.anleitung ? window.setTimeout(() => { this.fingerPause = null; }, T.menue.zeit_ms.finger_wieder) : null;
+  }
   /** Knopf der Zeichenleiste mit Ring: der Farbknopf `farbknopf_ring`. */
   private ringKnopf(a: TutorialAnsicht): HTMLElement | null {
     const id = a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
@@ -897,6 +903,7 @@ export class Steuerung implements Ui {
     const a = this.anleitung?.ansicht(this.uhr()) ?? null;
     if (!a) return;
     if (this.zielHerstellenOffen && !a.wiedereinstieg) { this.zielHerstellenOffen = false; this.zielHerstellen(a); }
+    if (!a.wiedereinstieg) this.leisteHerstellen(a);
     const k = this.kamera, frei = this.freieFlaeche(), vorher = this.angewendet;
     const schritt = `${a.schritt}|${a.wiedereinstieg}`, breiteNeu = !!vorher && vorher.frei_b !== frei.b;
     // Innerhalb T13/T13w/T13h und beim Umweg über T14 springt die Kamera nicht (Bauplan NR20-22 P5 „Kamera ohne Sprung“)
@@ -914,7 +921,11 @@ export class Steuerung implements Ui {
       if (wechsel || !g) k.grenzeSetzen({ ...this.rahmen(os), mitte_px, zoom_min: k.zoom, zoom_max: ZIEL_ZOOM_MAX });
       else k.grenzeSetzen({ ...g, mitte_px });
     }
-    if (vorher?.schritt !== schritt) this.gescrollt.clear();
+    if (vorher?.schritt !== schritt) {
+      this.gescrollt.clear();
+      // Ein neuer Schritt zeigt seinen Finger sofort; die Pause nach dem Berühren gilt nur innerhalb des Schritts
+      if (this.fingerPause !== null) { window.clearTimeout(this.fingerPause); this.fingerPause = null; }
+    }
     // Zeile 2 von [Abschnitt abschließen] folgt dem Tutorial auch ohne Bedienung: Geld ändert sich ohne Ereignis (Weg b)
     // und schaltet T13 ⇄ T14 – sonst stünde in der Blase „Geld reicht nicht“, am Knopf aber kein Grund
     if (this.leiste && (this.tutorialSperre('abschliessen')?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
@@ -926,7 +937,7 @@ export class Steuerung implements Ui {
     const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [{ r: ringR, form: 'rund' as const }] : [])];
     const rest_s = a.warte_bis_ms === undefined ? 0 : Math.ceil((a.warte_bis_ms - this.uhr()) / 1000);
     const kartenHoehe_px = this.anleiterHoehe(a);
-    const fingerRuht = this.zeiger.size > 0 || this.bildzeit() < this.beruehrtBis_ms;
+    const fingerRuht = this.zeiger.size > 0 || this.fingerPause !== null;
     const schluessel = JSON.stringify([a, k.schluessel(), frei.b, loecher, this.fahrtJetzt, rest_s, sprecherAktiv(), kartenHoehe_px, fingerRuht]);
     this.angewendet = { schritt, kamera: kameraLage, frei_b: frei.b, schluessel };
     if (vorher?.schluessel === schluessel) return;
@@ -984,6 +995,12 @@ export class Steuerung implements Ui {
    *  Abdunkeln auch [Bauen], und das Tutorial hinge. Vor dem Messen der freien Fläche, weil das Blatt sie verkleinert. */
   private zielHerstellen(a: TutorialAnsicht): void {
     if (a.ziele.some((z) => BAUMENUE_ZIELE.has(z) && !document.querySelector(`[data-ziel="${z}"]`))) this.katalog('netz');
+  }
+  /** Bauplan NR20-22 P5: Verlangt der Schritt die Zeichenleiste (oder liegt sein Ziel [Abschnitt abschließen] darin) und ist
+   *  sie zu – etwa nach dem Neuladen –, öffnet sie mit der verlangten Größe; T14 nennt keine, dort die zuletzt gezogene. */
+  private leisteHerstellen(a: TutorialAnsicht): void {
+    if (this.leiste || (!a.zeichenleiste && !a.ziele.includes('abschliessen'))) return;
+    this.stempeln(a.zeichenleiste?.typ ?? this.spiel.tutorialWerte().anschluss);
   }
   private hudJetzt(): void { this.hud.aktualisieren(this.auftrag); }
   private hinweiseZeigen(): void { this.ereignisse(); }

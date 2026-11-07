@@ -126,12 +126,8 @@ describe('NR20-22 P5 Einbindung: Szene, Finger, Kamera', () => {
 
   it('test_nr20_finger_aus_finger_weg: T13 → Finger startet auf (10|11); beim Berühren weg, 4 s nach dem Abheben zurück; T13w → Finger tippt auf den Farbknopf', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
-    let bild = 50_000;
-    vi.spyOn(performance, 'now').mockImplementation(() => bild);
     await echteSteuerung(spiel, (u) => {
       bisT13(u, spiel, uhr);
-      // Der Tipp auf die Heizzentrale in T01 war eine Berührung der Karte: 4 s später steht der Finger
-      bild += 4_000; st(u).tick(uhr.t);
       const [x0, y0] = st(u).kamera.mitte(10, 11);
       const runde = (n: number): number => Math.round(n * 100) / 100;
       expect(fingerEl(u)!.style.transform).toBe(`translate(${runde(x0)}px, ${runde(y0)}px)`);
@@ -141,14 +137,14 @@ describe('NR20-22 P5 Einbindung: Szene, Finger, Kamera', () => {
       st(u).tick(uhr.t);
       expect(fingerEl(u)).toBeNull();
       leinwand(u).ausloesen('pointerup', zeiger(7, mx, my));
-      bild += 3_999; st(u).tick(uhr.t);
+      vi.advanceTimersByTime(3_999); st(u).tick(uhr.t);
       expect(fingerEl(u), '4 s (design/tokens.json finger_wieder) noch nicht um').toBeNull();
-      bild += 1; st(u).tick(uhr.t);
+      vi.advanceTimersByTime(1); st(u).tick(uhr.t);
       expect(fingerEl(u)).not.toBeNull();
       // Probe-Leitung auf (14|8) wieder weg, dann die Hauptleitung
       knopfMitId(u, 'zurueck')!.click();
       wischeFelder(u, TUTORIAL_HAUPT);
-      bild += 4_000; st(u).tick(uhr.t);
+      vi.advanceTimersByTime(4_000); st(u).tick(uhr.t);
       expect(schritt(u)).toBe('T13w');
       const k = farbknopf(u, spiel.tutorialWerte().anschluss);
       k.rechteck = { left: 760, top: 120, right: 804, bottom: 164, width: 44, height: 44, x: 760, y: 120 };
