@@ -630,3 +630,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:23 | ■ 🟢 | tester | 🟢 Vorarbeit erledigt. Wie verlangt scheitern genau drei Tests, und zwar an den neuen Design-Werten. Die anderen 14 Tests der Datei sind grün.  ([Bericht](docs/pruefberichte/20261107-222317-tester-afff44666dbfe7983.md)) |
 | 2026-11-07 22:25 | ■ 🟡 | tester | 🟡 Alle 14 Tests passen jetzt zur neuen Regel. Gelb nur deshalb, weil die Test-Schranke wegen der 3 erwarteten roten P7-Tests „NICHT OK“ meldet.  ([Bericht](docs/pruefberichte/20261107-222525-tester-ade86c72573864901.md)) |
 | 2026-11-07 22:25 | ▶ | reviewer | Review P5f-1 + Testanpassung |
+| 2026-11-07 22:38 | ■ 🔴 | reviewer | 🔴 **Ampel: Rot, Nachbesserung nötig.** Es gibt einen wichtigen Befund. Der Fix ist klein, braucht aber erst eine Entscheidung des Projektleiters.  ([Bericht](docs/pruefberichte/20261107-223854-reviewer-ac35602d6bfa63cc2.md)) |
