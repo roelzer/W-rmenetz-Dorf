@@ -93,3 +93,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P5f läuft geteilt: P5f-1 Kern (Rest-Stück fremd, Zielscheibe bleibt; Branch nr20-p5f1) ‖ P5f-2 Darstellung/Steuerung (F1–F8, Schleier-Tests; Branch nr20-p5f2), beide ab 8ec71f9. Danach Reviews, neuer Designer-Fotocheck, dann P7.
 - 2026-11-07: P5f-1 fertig 69f6547 (Rest-Stück fremd, T14 erst bei fremd leer, Zielscheibe bleibt bis Haus ok; Merker nicht gespeichert). 14 alte Tests rot (alte Regel 13.7) → Tester passt an (Branch nr20-p5f1t). P5f-2 läuft.
 - 2026-11-07: P5f-2 Teil 1 BLOCKIERT (Kontext) bei d820bf3: F2, F6, F5-Schleier, Review-P5e-Tests; Widersprüche entschieden. Nächst: Tester nr20-darstellung (F1/F3-Werte) → P5f-2b (F1, F3, F5-Rest, F7, F8, Fotos).
+- 2026-11-07: Laufen: Tester nr20-p5f1t (14 Tests), Tester nr20-p5f2t (3 Darstellungstests), P5f-2b (Rest F1/F3/F5/F7/F8 + Fotos).
