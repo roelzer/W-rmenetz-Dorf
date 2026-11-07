@@ -613,3 +613,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 21:33 | ▶ | entwickler | P5e Schleier, Spur, Fotos |
 | 2026-11-07 21:33 | ▶ | reviewer | Review P5d |
 | 2026-11-07 21:41 | ■ 🟡 | reviewer | ## Ampel: 🟡 freigegeben mit kleinen Punkten (P5d, Stand d66fe46)  ([Bericht](docs/pruefberichte/20261107-214136-reviewer-a78577f72022e29a8.md)) |
+| 2026-11-07 21:52 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, nur an der Test-Schranke.** Alle Punkte sind gebaut, getestet und committet. Offen bleibt nur ein Teil von Punkt 2 (das Feld `tutorial ([Bericht](docs/pruefberichte/20261107-215202-entwickler-a9e837b27178c3883.md)) |
