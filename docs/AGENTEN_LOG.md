@@ -557,3 +557,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:44 | ■ 🔴 | entwickler | 🔴 **BLOCKIERT.** P1 ist gebaut und committet. Ein älterer Architekturtest ist dadurch neu rot geworden, und der widerspricht dem Bauplan. Den Test darf ich  ([Bericht](docs/pruefberichte/20261107-194410-entwickler-ac82a7868dcb61639.md)) |
 | 2026-11-07 19:44 | ▶ | architekt | F2c-Ausnahme und N1-Bestätigung |
 | 2026-11-07 19:44 | ▶ | entwickler | P4b Anleiter kompakt + Schleier |
+| 2026-11-07 19:46 | ■ 🟢 | architekt | 🟢 Beide Aufträge sind erledigt. Die Architekturtests sind grün. Das Verhalten im umgehängten Fall stimmt, ich habe es bestätigt. Kein Produktivcode geän ([Bericht](docs/pruefberichte/20261107-194643-architekt-a2280f9ac1ebb1e56.md)) |

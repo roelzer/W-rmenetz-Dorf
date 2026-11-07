@@ -57,3 +57,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: V0 komplett (2c b26e414) in nr20-int gemergt.
 - 2026-11-07: P2 Zwischenstand e0dca00 (7 rot), Fortsetzung läuft; Tester korrigiert beide_haeuser in nr20-int.
 - 2026-11-07: P1 gebaut (d257e03), Stopp wegen F2c (tutorial-netz.ts darf netz nicht importieren) → Architekt passt an + klärt N1-umgehängt. P4b gestartet. Laufen: P2-Fortsetzung, P4a, P4b, Architekt.
+- 2026-11-07: Bauplan 2.4 (N1-umgehängt bestätigt, anschluss nach Haus 1). P1 + F2c-Ausnahme (03ee0bd) → Review läuft.
