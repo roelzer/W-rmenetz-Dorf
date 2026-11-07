@@ -130,8 +130,9 @@ describe('NR13 P2 Kern-Anbindung', () => {
   it('test_nr13_werte: Startdorf 60 kW, 15.000 kWh, 10 / 7,5 kW, Summe 15 kW, Hauptleitung 32er, Hausanschluss 25er; Katalogwerte ändern die Werte', () => {
     const { s, h1 } = tutorialSpiel();
     // NR21 (Bauplan NR20-22 P1 test_nr21_werte, Fachprüfer 2026-11-07): kw_summe = 2 × 7,5 kW; haupt = feste Vorgabe 32er (E2);
-    // anschluss = dünnste Leitung, die 7,5 kW trägt (25er, 15 kW). toMatchObject, solange leitung/kap_kw noch im Vertrag stehen.
-    expect(s.tutorialWerte()).toMatchObject({ kessel_kw: 60, kwh: 15_000, kw_ohne: 10, kw_puffer: 7.5, kw_summe: 15, haupt: 'd32', anschluss: 'd25' });
+    // anschluss = dünnste Leitung, die 7,5 kW trägt (25er, 15 kW). toEqual: leitung/kap_kw sind aus dem Vertrag entfernt (P2-Nachzug),
+    // ein überzähliges Feld macht den Test rot.
+    expect(s.tutorialWerte()).toEqual({ kessel_kw: 60, kwh: 15_000, kw_ohne: 10, kw_puffer: 7.5, kw_summe: 15, haupt: 'd32', anschluss: 'd25' });
     expect(s.tutorialWerte().kw_puffer).toBe(bedarfKw({ ...h1, hauspuffer: true }));
     // 25er trägt nur 7 kW < 7,5 kW → anschluss wäre die 32er = haupt → W1 wirft
     mitKatalog('d25', 'kapazitaet_kw', 7, () => { expect(() => s.tutorialWerte()).toThrow(Error); });

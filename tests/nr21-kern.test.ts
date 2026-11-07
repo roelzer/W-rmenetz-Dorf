@@ -71,7 +71,8 @@ const ALLES_OK = { haupt_ok: true, haus1_ok: true, haus2_ok: true, haupt_zu_duen
 describe('NR21 P1 Kern: Werte (E2)', () => {
   it('test_nr21_werte: Startdorf-Werte, zwei verschiedene Häuser, W1 wirft', () => {
     const { s, h1, h2 } = tutorialSpiel();
-    expect(s.tutorialWerte()).toMatchObject({ kessel_kw: 60, kwh: 15_000, kw_ohne: 10, kw_puffer: 7.5, kw_summe: 15, haupt: 'd32', anschluss: 'd25' });
+    // toEqual: genau diese sieben Felder, kein überzähliges (leitung/kap_kw sind entfernt)
+    expect(s.tutorialWerte()).toEqual({ kessel_kw: 60, kwh: 15_000, kw_ohne: 10, kw_puffer: 7.5, kw_summe: 15, haupt: 'd32', anschluss: 'd25' });
     // Zwei verschiedene Häuser: Haus 2 aufgestockt → 7,5 × 1,4 = 10,5 kW; Summe 7,5 + 10,5 = 18 kW; kw_puffer bleibt Haus 1.
     h2.aufgestockt = true;
     const w2 = s.tutorialWerte();
