@@ -1,8 +1,8 @@
 import type {
-  Bedienung, Schritt, Tipp, TippMeldung, TutorialAnsicht, TutorialLeitungsLage, TutorialSchrittId, TutorialSperre, TutorialWerte,
-  ZielName,
+  Bedienung, Feld, Schritt, Tipp, TippMeldung, TutorialAnsicht, TutorialBandFeld, TutorialLeitungsLage, TutorialSchrittId, TutorialSperre,
+  TutorialWerte, ZielName,
 } from './tutorial-vertrag';
-import { ERSTE_HAEUSER } from './start';
+import { ERSTE_HAEUSER, TUTORIAL_ABZWEIG, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT } from './start';
 import { KATALOG, istLeitung, type TypId } from './katalog';
 import type { Objekt, Spielstand } from './typen';
 
@@ -43,6 +43,8 @@ const HILFE_HAUS = 'Tippe auf das leuchtende Haus.';
 const HILFE_PUFFER = 'Tippe auf Puffer-Übergabestation.';
 const HZ: ZielName[] = ['heizzentrale'];
 const HZ_HAEUSER: ZielName[] = ['heizzentrale', 'haus1', 'haus2'];
+// Bauplan NR20-22 E8 (= DESIGN 13.17.2): Hilfe in T13 und T13h
+const HILFE_SPUR = 'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.';
 
 export const TUTORIAL_SCHRITTE: ReadonlyArray<TutorialSchrittDef> = [
   { id: 'T01', kapitel: 1, art: 'H', tipp: 'heizzentrale', ziele: HZ, finger: 'tippen', kamera_ziele: HZ,
@@ -70,10 +72,14 @@ export const TUTORIAL_SCHRITTE: ReadonlyArray<TutorialSchrittDef> = [
     text: 'Je mehr Häuser an einer Leitung hängen, desto mehr kW muss sie tragen – und desto dicker muss sie sein.' },
   { id: 'T12', kapitel: 3, art: 'H', tipp: 'leitungskarte', ziele: ['leitungskarte'], finger: 'tippen', kamera_ziele: HZ_HAEUSER,
     hilfe: 'Tippe auf die leuchtende Leitungs-Karte.',
-    text: 'Fertig geplant! Nimm die {leitung} – sie trägt im Spiel bis {kap_kw}, genug für beide Häuser.' },
+    text: 'Fertig geplant! Zuerst die **Hauptleitung**: Nimm die dicke {haupt}, sie trägt die Wärme für beide Häuser.' },
   { id: 'T13', kapitel: 3, art: 'H', ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ_HAEUSER, t13: true,
-    hilfe: 'Leg den Finger auf die Heizzentrale und zieh ihn die gelbe Spur entlang.',
-    text: 'Zieh die Leitung mit dem Finger von der Heizzentrale bis an beide Häuser. Folge der gelben Spur.' },
+    hilfe: HILFE_SPUR, text: 'Zieh die {haupt} von der Heizzentrale bis zur Abzweigung. Folge der Spur.' },
+  { id: 'T13w', kapitel: 3, art: 'H', tipp: 'farbknopf', ziele: [], finger: 'tippen', abdunkeln: 'nur_hud', kamera: 'frei',
+    kamera_ziele: HZ_HAEUSER, t13: true, hilfe: 'Tippe rechts in der Leiste auf {anschluss_zahl}.',
+    text: 'Bis hier fließen {kw_summe} für beide Häuser, ab hier **je Haus nur** {kw_puffer}. Dafür reicht die {anschluss}.' },
+  { id: 'T13h', kapitel: 3, art: 'H', ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ_HAEUSER, t13: true,
+    hilfe: HILFE_SPUR, text: 'Jedes Haus bekommt seinen eigenen **Hausanschluss**. Zieh die {anschluss} bis ans erste Haus.' },
   { id: 'T14', kapitel: 3, art: 'H', ziele: ['abschliessen'], finger: 'tippen', hilfe: 'Unten in der Leiste: Abschnitt abschließen.',
     text: 'Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.' },
   { id: 'T15', kapitel: 4, art: 'H', tipp: 'haus', ziele: ['haus1'], finger: 'tippen', kamera_ziele: ['haus1'], normale_aktion: true,
@@ -104,14 +110,21 @@ export const TUTORIAL_SCHRITTE: ReadonlyArray<TutorialSchrittDef> = [
 ];
 
 const KAPITEL_NAMEN = ['', 'Die Heizzentrale', 'Planen mit Philipp', 'Leitung ziehen', 'Übergabestationen', 'Bauen', 'Warm!'];
-const T13B = 'Das erste Haus ist erreicht. Jetzt weiter bis zum zweiten.';
+// Bauplan NR20-22 E8 (= DESIGN 13.17.2 Fassung 2 und 13.17.8): Sätze in Kapitel 3, Platzhalter setzt `einsetzen` ein.
+const ZWISCHENSTAND = 'Das erste Haus hat seinen Hausanschluss. Jetzt zieh die {anschluss} zum zweiten Haus.';
+const SATZ_ZU_DUENN = 'Hier fließt Wärme für beide Häuser, die {anschluss} wäre randvoll. Nimm die {haupt} und zieh drüber.';
+const SATZ_ZU_DICK = 'Für ein Haus reicht die {anschluss}. Tippe auf {anschluss_zahl} und zieh noch mal über dieses Stück.';
+const SATZ_GROESSE = 'Ein Stück passt nicht zum Plan. Zieh mit der richtigen Größe noch mal drüber.';
+const SATZ_EIGENER_ABGANG = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die {anschluss} von der Abzweigung.';
+const KURZ_GROESSE = 'Größe passt nicht';
+const KURZ_WEG = 'Stück muss weg';
 const INFO_KAPSEL = '{kwh} im Jahr · bis {kw_ohne}';
 const WIEDEREINSTIEG = 'Weiter geht’s, {Name}! Wir waren gerade bei: {Kapitelname}';
 const WARTE_PLANUNG = 'Philipp plant noch … {Restzeit}';
 const WARTE_BAU = 'Gebaut wird … noch {Restzeit}';
 // DESIGN 13.7 / 13.15 K7, K11: Sperren der Zeichenleiste in T13. Zeile 2 höchstens 18 Zeichen, geschütztes Leerzeichen.
 const SATZ_LEISTE_OFFEN = 'Die Leiste bleibt offen, bis beide Häuser erreicht sind.';
-const SATZ_ZU_FRUEH = 'Zieh die Leitung bis an beide Häuser – folge der gelben Spur.';
+const SATZ_ZU_FRUEH = 'Zieh die Leitung bis an beide Häuser – folge der Spur.';
 const SATZ_GELD = 'Dann reicht dein Geld nicht mehr für die Stationen. Nimm mit Zurück ein paar Leitungen weg.';
 const KURZ_GELD = 'Geld reicht nicht';
 const KURZ_EIN_HAUS = 'noch 1 Haus fehlt';
@@ -144,8 +157,14 @@ export function einstieg(lage: TutorialLage): TutorialSchrittId {
   }
   switch (a.phase) {
     case 'planung': return 'T11';
-    // „offen, beide verbunden“ beginnt auch bei T12: der Tipp auf die Karte öffnet die Leiste, T13 schaltet dann sofort weiter.
-    case 'offen': return 'T12';
+    case 'offen': {
+      // Bauplan NR20-22 P2 „Wiedereinstieg“, in dieser Reihenfolge; mit eigenem Abgang oder Planungsfehler nie T14.
+      const lg = lage.tutorialLeitungen();
+      if (!lg.haupt_ok) return 'T12';
+      if (lg.fremd.length > 0) return 'T13h';
+      if (!lg.haus1_ok || !lg.haus2_ok) return 'T13w';
+      return lg.planungsfehler ? 'T13h' : 'T14';
+    }
     case 'bestellen': return !t.haus1.station ? 'T15' : !t.haus2.station ? 'T18' : 'T20';
     case 'bau': return 'T22';
   }
@@ -160,12 +179,15 @@ function zahl(wert: number, einheit: string): string {
   return `${wert < 0 && zehntel > 0 ? '-' : ''}${ganz}${rest ? `,${rest}` : ''} ${einheit}`;
 }
 
-/** `{leitung}` = Kurzform des Katalognamens („25er-Leitung“ → „25er“). */
-function kurzform(typ: TypId): string {
-  const m = /^(\d+er)-Leitung$/.exec(KATALOG[typ].name);
+/** `{anschluss_zahl}` = Aufschrift des Farbknopfs aus dem Katalognamen („25er-Leitung“ → „25“). */
+function leitungsZahl(typ: TypId): string {
+  const m = /^(\d+)er-Leitung$/.exec(KATALOG[typ].name);
   if (!m) throw new Error(`Tutorial-Text: ${typ} ist keine Leitung mit Kurzform („${KATALOG[typ].name}“).`);
   return m[1];
 }
+
+/** `{haupt}`/`{anschluss}` = Kurzform des Katalognamens („25er-Leitung“ → „25er“). */
+const kurzform = (typ: TypId): string => `${leitungsZahl(typ)}er`;
 
 type Nr20Felder = Pick<TutorialAnsicht, 'band' | 'naechstes_feld' | 'zielscheibe' | 'finger_weg' | 'fremd' | 'ziel_stecker'
   | 'ziel_ring' | 'erreicht_ids' | 'farbknopf_ring' | 'zeichenleiste' | 'zeichnen_ruht' | 'kompakt' | 'ruhe'>;
@@ -179,10 +201,9 @@ function nr20Leer(): Nr20Felder {
 
 function einsetzen(text: string, w: TutorialWerte, name: string, kapitelname = ''): string {
   const werte: Record<string, () => string> = {
-    // Übergang bis zur neuen Schrittlogik: alte Texte mit {leitung}/{kap_kw} lesen die veralteten Felder, sonst die Hauptleitung.
-    Name: () => name, Kapitelname: () => kapitelname, leitung: () => kurzform(w.leitung ?? w.haupt),
-    kessel_kw: () => zahl(w.kessel_kw, 'kW'), kap_kw: () => zahl(w.kap_kw ?? (KATALOG[w.haupt].kapazitaet_kw as number), 'kW'),
-    kwh: () => zahl(w.kwh, 'kWh'),
+    Name: () => name, Kapitelname: () => kapitelname,
+    haupt: () => kurzform(w.haupt), anschluss: () => kurzform(w.anschluss), anschluss_zahl: () => leitungsZahl(w.anschluss),
+    kessel_kw: () => zahl(w.kessel_kw, 'kW'), kwh: () => zahl(w.kwh, 'kWh'), kw_summe: () => zahl(w.kw_summe, 'kW'),
     kw_ohne: () => zahl(w.kw_ohne, 'kW'), kw_puffer: () => zahl(w.kw_puffer, 'kW'),
   };
   return text.replace(/\{(\w+)\}/g, (_, k: string) => {
@@ -216,11 +237,42 @@ function leitungsstueck(stand: Spielstand, t: TutorialObjekte): number[] {
   return [b.id, ...nachbarn.map((o) => o.id)];
 }
 
+type Stueck = 'haupt' | 'haus1' | 'haus2';
+
+/** Spurstücke in Zugrichtung (Bauplan NR20-22 E1, Konstanten aus start.ts). */
+const STUECKE: Record<Stueck, ReadonlyArray<Feld>> = { haupt: TUTORIAL_HAUPT, haus1: TUTORIAL_ANSCHLUSS_1, haus2: TUTORIAL_ANSCHLUSS_2 };
+const STUECK_HAUS: Record<1 | 2, Stueck> = { 1: 'haus1', 2: 'haus2' };
+
+/** Bauplan NR20-22 P2 „Band“: Feldschritt zum nächsten Feld des Stücks, letztes Feld eines Hausanschlusses → sein Haus
+ *  (ERSTE_HAEUSER), Abzweig → null. Die Konstanten liegen fest; passt ein Schritt nicht, ist die Spur kaputt – das soll laut auffallen. */
+function pfeil(stueck: Stueck, x: number, y: number): Feld | null {
+  const felder = STUECKE[stueck];
+  const i = felder.findIndex(([fx, fy]) => fx === x && fy === y);
+  if (i < 0) throw new Error(`Tutorial-Spur: Feld (${x}|${y}) gehört nicht zum Stück ${stueck}.`);
+  if (stueck === 'haupt' && i === felder.length - 1) return null;
+  const [zx, zy] = i < felder.length - 1 ? felder[i + 1] : ERSTE_HAEUSER[stueck === 'haus1' ? 0 : 1];
+  const dx = zx - x, dy = zy - y;
+  if (Math.abs(dx) + Math.abs(dy) !== 1) throw new Error(`Tutorial-Spur: (${x}|${y}) → (${zx}|${zy}) ist kein Feldschritt.`);
+  return [dx, dy];
+}
+
+/** Bauplan NR20-22 P2 K2: Hausmitte in Feldkoordinaten (die Steuerung rechnet sie mit kamera.mitte um) – nicht `mitte()`. */
+function hausmitte(o: Objekt): Feld {
+  const g = KATALOG[o.typ].groesse ?? 1;
+  return [o.x + (g - 1) / 2, o.y + (g - 1) / 2];
+}
+
+/** Bauplan NR20-22 P2 `ziel_ring`: das Haus mit eigenem Abgang, sonst das erste nicht richtig angeschlossene (K2, ohne Verlauf). */
+function zielHaus(lg: TutorialLeitungsLage): 1 | 2 | null {
+  return lg.fremd_haus ?? (!lg.haus1_ok ? 1 : !lg.haus2_ok ? 2 : null);
+}
+
 export class Tutorial {
   private schrittIndex = 0;
   private daneben = 0;
   private sperrGetippt: Bedienung | null = null;
-  private ersterStrich = false;
+  /** Bauplan NR20-22 P2: ein Zeichenzug läuft (Schritt leitung_gezeichnet in T13–T13h) bis zum Tipp „abgehoben“ oder Schrittwechsel. */
+  private zugLaeuft = false;
   private intro: boolean;
   private beendet = false;
 
@@ -236,14 +288,15 @@ export class Tutorial {
   private get def(): TutorialSchrittDef { return TUTORIAL_SCHRITTE[this.schrittIndex]; }
   private objekte(): TutorialObjekte { return tutorialObjekte(this.lage.stand) as TutorialObjekte; }
 
-  private erreichtZahl(): number {
-    const t = this.objekte(), e = this.lage.erreichteHaeuser();
-    return (e.includes(t.haus1.id) ? 1 : 0) + (e.includes(t.haus2.id) ? 1 : 0);
+  /** Bauplan NR20-22 P2: richtig angeschlossene Tutorial-Häuser laut Leitungslage, nicht „irgendwie verbunden“. */
+  private erreichtZahl(lg: TutorialLeitungsLage): number {
+    return (lg.haus1_ok ? 1 : 0) + (lg.haus2_ok ? 1 : 0);
   }
 
-  /** Weg b (ENTSCHEIDUNGEN 2026-11-06): T14 nur, wenn beide Häuser erreicht sind und das Geld reicht. */
-  private abschliessenBereit(): boolean {
-    return this.erreichtZahl() === 2 && this.lage.tutorialGeldFehlt_eur() === 0;
+  /** Weg b (ENTSCHEIDUNGEN 2026-11-06) und Bauplan NR20-22 P2: T14 nur mit richtiger Hauptleitung, beiden Häusern, ohne
+   *  Planungsfehler und mit genug Geld. */
+  private abschliessenBereit(lg: TutorialLeitungsLage): boolean {
+    return lg.haupt_ok && this.erreichtZahl(lg) === 2 && !lg.planungsfehler && this.lage.tutorialGeldFehlt_eur() === 0;
   }
 
   /** Zustand des Handlungs-Schritts erfüllt (Bauplan P1 „Weiterschalten“); undefined = Schritt hat keinen Zustand. */
@@ -251,7 +304,9 @@ export class Tutorial {
     const a = this.lage.stand.abschnitt, t = this.objekte();
     switch (id) {
       case 'T10': return !!a;
-      case 'T13': return this.abschliessenBereit();
+      case 'T13': return this.lage.tutorialLeitungen().haupt_ok && !this.zugLaeuft;
+      case 'T13w': { const lg = this.lage.tutorialLeitungen(); return lg.haus1_ok && lg.haus2_ok; }
+      case 'T13h': return this.abschliessenBereit(this.lage.tutorialLeitungen()) && !this.zugLaeuft;
       case 'T14': return a?.phase === 'bestellen';
       case 'T17': return !!t.haus1.station;
       case 'T19': return !!t.haus2.station;
@@ -265,7 +320,7 @@ export class Tutorial {
     this.schrittIndex = nach;
     this.daneben = 0;
     this.sperrGetippt = null;
-    if (this.def.t13 && vorher.id !== 'T14') this.ersterStrich = false;
+    this.zugLaeuft = false;
     if (this.def.kapitel !== vorher.kapitel) this.lage.tutorialKapitelSetzen(this.def.kapitel);
   }
 
@@ -278,11 +333,22 @@ export class Tutorial {
     this.wechseln(this.schrittIndex + 1);
   }
 
+  /** Bauplan NR20-22 P2 „Rückwärts“: T13w/T13h/T14 → T13 ohne richtige Hauptleitung; T14 → T13h, wenn nicht abschließbar.
+   *  true = zurückgesprungen. */
+  private zurueck(): boolean {
+    const id = this.def.id;
+    if (id !== 'T13w' && id !== 'T13h' && (id !== 'T14' || this.zustandErfuellt('T14'))) return false;
+    const lg = this.lage.tutorialLeitungen();
+    if (!lg.haupt_ok) { this.wechseln(index('T13')); return true; }
+    if (id === 'T14' && !this.abschliessenBereit(lg)) { this.wechseln(index('T13h')); return true; }
+    return false;
+  }
+
   /** Übergänge aus dem Zustand, auch mehrere hintereinander (Eintritt in einen schon erfüllten Handlungs-Schritt). */
   private nachZustand(): void {
     for (let i = 0; i < TUTORIAL_SCHRITTE.length && !this.beendet && !this.intro; i++) {
+      if (this.zurueck()) return;
       const d = this.def;
-      if (d.id === 'T14' && !this.zustandErfuellt('T14') && !this.abschliessenBereit()) { this.wechseln(index('T13')); return; }
       if (d.art !== 'H' || this.zustandErfuellt(d.id) !== true) return;
       this.vor();
     }
@@ -298,7 +364,8 @@ export class Tutorial {
   private tippPasst(m: TippMeldung): boolean {
     const d = this.def;
     if (m.tipp !== d.tipp) return false;
-    if (d.id === 'T12') return m.typ === this.lage.tutorialWerte().leitung;
+    if (d.id === 'T12') return m.typ === this.lage.tutorialWerte().haupt;
+    if (d.id === 'T13w') return m.typ === this.lage.tutorialWerte().anschluss;
     if (d.id === 'T15') return m.objekt_id === this.objekte().haus1.id;
     if (d.id === 'T18') return m.objekt_id === this.objekte().haus2.id;
     return true;
@@ -306,6 +373,7 @@ export class Tutorial {
 
   tipp(m: TippMeldung): void {
     if (!this.aktiv()) return;
+    if (m.tipp === 'abgehoben') this.zugLaeuft = false;
     if (m.tipp === 'daneben') this.daneben++;
     else if (this.intro) {
       if (m.tipp === 'weiter') { this.intro = false; this.daneben = 0; this.sperrGetippt = null; }
@@ -319,7 +387,7 @@ export class Tutorial {
     if (!this.aktiv()) return;
     this.sperrGetippt = null;
     if (this.intro) return;
-    if (this.def.t13 && e.schritt === 'leitung_gezeichnet') this.ersterStrich = true;
+    if (this.def.t13 && e.schritt === 'leitung_gezeichnet') this.zugLaeuft = true;
     this.nachZustand();
   }
 
@@ -330,7 +398,7 @@ export class Tutorial {
   }
 
   zustandPruefen(): void {
-    if (!this.aktiv() || this.intro || (this.def.id !== 'T13' && this.def.id !== 'T14')) return;
+    if (!this.aktiv() || this.intro || !(this.def.t13 || this.def.id === 'T14')) return;
     this.nachZustand();
   }
 
@@ -339,16 +407,11 @@ export class Tutorial {
     const t13 = !!this.def.t13;
     switch (b) {
       case 'karte_gesten': return t13 ? null : GRUNDSPERRE;
-      case 'abschliessen': {
-        if (!t13) return null;
-        if (this.lage.tutorialGeldFehlt_eur() > 0) return { kurz: KURZ_GELD, satz: SATZ_GELD };
-        const fehlen = 2 - this.erreichtZahl();
-        return fehlen === 0 ? null : { kurz: fehlen === 1 ? KURZ_EIN_HAUS : KURZ_ZWEI_HAEUSER, satz: SATZ_ZU_FRUEH };
-      }
+      case 'abschliessen': return t13 ? this.abschliessenSperre(this.lage.tutorialLeitungen()) : null;
       case 'blatt_schliessen': {
         if (!t13) return GRUNDSPERRE;
         // K12: Sind beide Häuser erreicht und fehlt Geld, weicht auch dieser Häuser-Satz dem Geld-Satz.
-        const geld = this.erreichtZahl() === 2 && this.lage.tutorialGeldFehlt_eur() > 0;
+        const geld = this.erreichtZahl(this.lage.tutorialLeitungen()) === 2 && this.lage.tutorialGeldFehlt_eur() > 0;
         return { kurz: GRUNDSPERRE.kurz, satz: geld ? SATZ_GELD : SATZ_LEISTE_OFFEN };
       }
       case 'verwerfen': case 'sofort': case 'express': case 'weiter_einzeichnen': return AKTIONSSPERRE;
@@ -356,22 +419,78 @@ export class Tutorial {
     }
   }
 
+  /** Bauplan NR20-22 P2 Schritt-Tabelle: Geld > Stück muss weg > Größe passt nicht (Rolle falsch) > Häuser fehlen >
+   *  Größe passt nicht (Planungsfehler, Simon Weg b). */
+  private abschliessenSperre(lg: TutorialLeitungsLage): TutorialSperre | null {
+    if (this.lage.tutorialGeldFehlt_eur() > 0) return { kurz: KURZ_GELD, satz: SATZ_GELD };
+    if (lg.fremd.length > 0) return { kurz: KURZ_WEG, satz: einsetzen(SATZ_EIGENER_ABGANG, this.lage.tutorialWerte(), this.lage.spielerName) };
+    if (lg.felder.some((f) => !f.richtig)) return { kurz: KURZ_GROESSE, satz: SATZ_GROESSE };
+    const fehlen = 2 - this.erreichtZahl(lg);
+    if (fehlen > 0) return { kurz: fehlen === 1 ? KURZ_EIN_HAUS : KURZ_ZWEI_HAEUSER, satz: SATZ_ZU_FRUEH };
+    return lg.planungsfehler ? { kurz: KURZ_GROESSE, satz: SATZ_GROESSE } : null;
+  }
+
   gesperrtGetippt(b: Bedienung): void {
     if (!this.aktiv()) return;
     if (this.sperre(b)?.satz) this.sperrGetippt = b;
   }
 
-  /** Blasentext nach Vorrang K4/K7/K12: Sperr-Satz > (T13) Geld-Satz > T13b > Hilfe (nur H) > Grundtext. */
+  /** Blasentext nach Vorrang (Bauplan NR20-22 P2 „Textvorrang“, DESIGN 13.17.2 Fassung 2.1):
+   *  T13/T13h: Geld-Satz > Sperr-Satz > eigener Abgang > Größen-Satz > Hilfe > Zwischenstand (T13h) > Grundtext;
+   *  T13w (B5): Sperr-Satz > Hilfe > Erklärsatz; sonst Sperr-Satz > Hilfe (nur H) > Grundtext. */
   private blasentext(w: TutorialWerte): string {
+    const d = this.def, name = this.lage.spielerName;
+    const hilfe = d.art === 'H' && this.daneben >= 3;
     const sperrSatz = this.sperrGetippt ? this.sperre(this.sperrGetippt)?.satz : '';
-    if (sperrSatz) return sperrSatz;
-    const d = this.def;
-    if (d.t13) {
+    if (d.t13 && d.id !== 'T13w') {
+      const lg = this.lage.tutorialLeitungen();
       if (this.lage.tutorialGeldFehlt_eur() > 0) return SATZ_GELD;
-      if (this.erreichtZahl() === 1) return T13B;
+      if (sperrSatz) return sperrSatz;
+      if (lg.fremd.length > 0) return einsetzen(SATZ_EIGENER_ABGANG, w, name);
+      if (lg.haupt_zu_duenn) return einsetzen(SATZ_ZU_DUENN, w, name);
+      if (lg.anschluss_zu_dick) return einsetzen(SATZ_ZU_DICK, w, name);
+      if (!hilfe && d.id === 'T13h' && lg.haus1_ok && !lg.haus2_ok) return einsetzen(ZWISCHENSTAND, w, name);
+    } else if (sperrSatz) return sperrSatz;
+    return einsetzen(hilfe ? d.hilfe : d.text, w, name);
+  }
+
+  /** NR20/NR21 (Bauplan NR20-22 P2): Spur, Ziele und Ruhe in Kapitel 3; die Leitungslage wird nur in T13–T14 gelesen. */
+  private kapitel3(d: TutorialSchrittDef, t: TutorialObjekte, w: TutorialWerte): Nr20Felder {
+    const leer = nr20Leer();
+    if (d.id === 'T12') return { ...leer, ruhe: true };
+    if (d.id === 'T14') return { ...leer, ruhe: true, fremd: [...this.lage.tutorialLeitungen().fremd] };
+    if (!d.t13) return leer;
+    const lg = this.lage.tutorialLeitungen();
+    const fertig: Record<Stueck, boolean> = { haupt: lg.haupt_ok, haus1: lg.haus1_ok, haus2: lg.haus2_ok };
+    const ring = d.id === 'T13h' ? zielHaus(lg) : null;
+    const ringStueck = ring ? STUECK_HAUS[ring] : null;
+    const aktiv = (s: Stueck): boolean => (d.id === 'T13' ? s === 'haupt' : d.id === 'T13w' ? s !== 'haupt' : s === ringStueck);
+    const offen = lg.spur.filter((f) => !f.richtig && !fertig[f.stueck]);
+    const band: TutorialBandFeld[] = offen.map((f) => ({ x: f.x, y: f.y, typ: f.stueck === 'haupt' ? w.haupt : w.anschluss,
+      aktiv: aktiv(f.stueck), falsch: f.belegt !== null, pfeil: pfeil(f.stueck, f.x, f.y) }));
+    // Raute und Finger nur auf dem führenden Stück, ab seinem ersten offenen Bandfeld in Zugrichtung.
+    const fuehrt: Stueck | null = d.id === 'T13' ? 'haupt' : ringStueck;
+    let naechstes: Feld | null = d.id === 'T13w' ? [...TUTORIAL_ABZWEIG] : null;
+    let weg: Feld[] = [];
+    if (fuehrt) {
+      const felder = STUECKE[fuehrt];
+      const i = felder.findIndex(([x, y]) => offen.some((f) => f.x === x && f.y === y));
+      if (i >= 0) {
+        naechstes = [...felder[i]];
+        weg = felder.slice(i).map(([x, y]) => [x, y] as const);
+        if (ring) weg.push(hausmitte(ring === 1 ? t.haus1 : t.haus2));
+      }
     }
-    const satz = d.art === 'H' && this.daneben >= 3 ? d.hilfe : d.text;
-    return einsetzen(satz, w, this.lage.spielerName);
+    const fremd = lg.fremd.length > 0;
+    const farbknopf_ring = d.id === 'T13w' ? w.anschluss : lg.haupt_zu_duenn ? w.haupt : lg.anschluss_zu_dick ? w.anschluss : null;
+    return {
+      band, naechstes_feld: naechstes, zielscheibe: d.id !== 'T13h' || fremd ? [...TUTORIAL_ABZWEIG] : null,
+      finger_weg: fremd || d.id === 'T13w' ? [] : weg, fremd: [...lg.fremd], ziel_stecker: [t.haus1.id, t.haus2.id],
+      ziel_ring: ring === 1 ? t.haus1.id : ring === 2 ? t.haus2.id : null,
+      erreicht_ids: [...(lg.haus1_ok ? [t.haus1.id] : []), ...(lg.haus2_ok ? [t.haus2.id] : [])],
+      farbknopf_ring, zeichenleiste: { typ: d.id === 'T13h' ? w.anschluss : w.haupt }, zeichnen_ruht: d.id === 'T13w',
+      kompakt: true, ruhe: true,
+    };
   }
 
   /** Die Restzeit rechnet die Oberfläche aus `warte_bis_ms`; ob gewartet wird, entscheidet die Phase im Spielstand, nicht die Uhr. */
@@ -398,16 +517,15 @@ export class Tutorial {
     return {
       ...kopf, art: d.art, text: this.blasentext(w),
       ...(d.art === 'W' && !wartet ? hinweis : {}),
-      wusstest_du: !!d.wusstest_du, ziele: [...d.ziele],
-      finger: d.t13 && this.ersterStrich ? 'aus' : d.finger,
+      wusstest_du: !!d.wusstest_du, ziele: [...d.ziele], finger: d.finger,
       abdunkeln: d.abdunkeln ?? 'alles', weiter, ...warte,
       kamera: d.kamera ?? 'steht', kamera_ziele: [...(d.kamera_ziele ?? [])],
       kamera_grenze: !!d.t13, spur: !!d.t13, erreicht_zeigen: !!d.t13,
       ...(d.info_kapsel ? { info_kapsel: einsetzen(INFO_KAPSEL, w, this.lage.spielerName) } : {}),
       ...(d.effekt ? { effekt: d.effekt } : {}),
       ...(d.nach_handlung_schliessen ? { nach_handlung_schliessen: d.nach_handlung_schliessen } : {}),
-      ...(d.id === 'T12' ? { leitung_typ: w.leitung ?? w.haupt } : {}),
-      objekt_ids, normale_aktion: !!d.normale_aktion, wiedereinstieg: false, ...nr20Leer(),
+      ...(d.id === 'T12' ? { leitung_typ: w.haupt } : {}),
+      objekt_ids, normale_aktion: !!d.normale_aktion, wiedereinstieg: false, ...this.kapitel3(d, t, w),
     };
   }
 }
