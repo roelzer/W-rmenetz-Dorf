@@ -62,3 +62,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P4a fertig (e88504b, Branch nr20-p4a) → Review.
 - 2026-11-07: P2-Testkorrekturen (122bcd0), Logik 48/48 grün → Review P2 läuft. Reviews P1, P4a laufen; P4b in Bau.
 - 2026-11-07: P1 Review 🔴 (Muss 1 Rollen-Überschneidung, Muss 2 Phasentest) → Nachbesserung läuft.
+- 2026-11-07: P4a Review 🔴 (W1 Band-Eingang am Stückanfang) → Nachbesserung läuft (inkl. K1–K3). Designer: DESIGN 13.17.1 B2 Kontrastliste (32er kontur statt weiß) berichtigen – später mit Fotoprüfung.

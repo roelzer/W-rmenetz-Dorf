@@ -567,3 +567,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:54 | ▶ | reviewer | Review P2 NR20-22 |
 | 2026-11-07 19:57 | ■ 🔴 | reviewer | 🔴 **Paket P1 (Kern), Diff 41b1c4a..03ee0bd: Nachbesserung nötig.** Es gibt zwei kleine, schnell behebbare Muss-Punkte. Der übrige Kern hält sich an den Pl ([Bericht](docs/pruefberichte/20261107-195720-reviewer-af31a16da90033be8.md)) |
 | 2026-11-07 19:57 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Eine Sache muss behoben werden: Das Band zeichnet an Anfangsfeldern einen Stummel in die falsche Richtung. Der Rest ist ordentlic ([Bericht](docs/pruefberichte/20261107-195727-reviewer-abb7a47677ca9cd8d.md)) |
+| 2026-11-07 19:57 | ▶ | entwickler | P1 Nachbesserung Review |
+| 2026-11-07 19:58 | ▶ | entwickler | P4a Nachbesserung Review |
