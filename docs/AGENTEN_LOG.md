@@ -651,3 +651,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:14 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Aufgaben 1, 3, 4 und 5 sind fertig, getestet und committet. **Aufgabe 2 (Satz in T13h) habe ich nicht gebaut.** Sie brauch ([Bericht](docs/pruefberichte/20261107-231452-entwickler-a63e54eb76c8e14bb.md)) |
 | 2026-11-07 23:16 | ▶ | reviewer | Review P5f-3 |
 | 2026-11-07 23:16 | ▶ | designer | Fotocheck P5f (13.17.9) |
+| 2026-11-07 23:22 | ■ 🟡 | reviewer | **Ampel: 🟡 freigegeben mit einem kleinen Punkt.** Der Branch kann in nr20-int bleiben.  ([Bericht](docs/pruefberichte/20261107-232248-reviewer-ad50f161c0b907315.md)) |
