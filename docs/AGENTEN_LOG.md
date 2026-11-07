@@ -594,3 +594,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:30 | ▶ | reviewer | Review P3 V1 Zug |
 | 2026-11-07 20:31 | ■ 🟢 | tester | 🟢 K3 ist erledigt. Beide Werte-Tests merken jetzt, wenn ein überzähliges Feld dazukommt.  ([Bericht](docs/pruefberichte/20261107-203134-tester-aec58820d08586a42.md)) |
 | 2026-11-07 20:37 | ■ 🟡 | reviewer | 🟡 Paket P3 (V1 Zug) ist freigegeben, mit kleinen Punkten.  ([Bericht](docs/pruefberichte/20261107-203732-reviewer-a204592564fc53b83.md)) |
+| 2026-11-07 20:38 | ▶ | entwickler | P5 Einbindung Tutorial |
