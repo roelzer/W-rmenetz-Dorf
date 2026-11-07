@@ -56,7 +56,7 @@ const bisT12 = (s: Spiel, f: ReturnType<typeof fahrer>): void => {
 };
 const striche = (s: Spiel, f: ReturnType<typeof fahrer>, anzahl: number): void => {
   bisT12(s, f);
-  const typ = s.tutorialWerte().leitung;
+  const typ = s.tutorialWerte().haupt;
   f.tippe({ tipp: 'leitungskarte', typ });
   expect(f.jetzt()).toBe('T13');
   for (const [x, y] of TUTORIAL_SPUR.slice(0, anzahl)) { expect(s.platzieren(typ, x, y).ok).toBe(true); f.melden(); }

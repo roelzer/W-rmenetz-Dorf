@@ -55,7 +55,7 @@ function bisT13(u: U, spiel: Spiel, uhr: { t: number }): void {
   vi.advanceTimersByTime(7_000);
   uhr.t += 10_000; s.tick(uhr.t); weiterTippen(u);
   s.tick(uhr.t); expect(schrittJetzt(u)).toBe('T12');
-  zielEl(u, 'leitungskarte', spiel.tutorialWerte().leitung)!.click();
+  zielEl(u, 'leitungskarte', spiel.tutorialWerte().haupt)!.click();
   s.tick(uhr.t); expect(schrittJetzt(u)).toBe('T13');
 }
 

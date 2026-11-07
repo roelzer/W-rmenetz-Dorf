@@ -53,7 +53,7 @@ const bisT11 = (s: Spiel, f: Fahrer): void => {
 const t11BisT15 = (s: Spiel, f: Fahrer): void => {
   f.warte(10_000); // Tutorial-Planung 10 s (tests/nr13-kern.test.ts, test_nr13_tutorial_zeiten)
   f.tippe({ tipp: 'weiter' });
-  const typ = s.tutorialWerte().leitung;
+  const typ = s.tutorialWerte().haupt;
   f.tippe({ tipp: 'leitungskarte', typ });
   expect(f.jetzt()).toBe('T13');
   for (const [x, y] of TUTORIAL_SPUR) { expect(s.platzieren(typ, x, y).ok).toBe(true); f.melden(); }
