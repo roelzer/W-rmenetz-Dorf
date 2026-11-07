@@ -505,3 +505,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 17:48 | ■ 🟢 | designer | 🟢 Der Entwurf ist fertig. Er steht als neuer Abschnitt **13.17** in `/home/user/W-rmenetz-Dorf/docs/DESIGN.md` (Zeile 1088 ff.). Code habe ich nicht angefass ([Bericht](docs/pruefberichte/20261107-174847-designer-a3ac548acfa2f2687.md)) |
 | 2026-11-07 17:49 | ▶ | architekt | Bauplan NR20–NR22 |
 | 2026-11-07 17:49 | ▶ | fachpruefer | Texte NR21/NR22 fachlich prüfen |
+| 2026-11-07 17:52 | ■ 🟡 | fachpruefer | 🟡 **Ampel: Gelb.** Fachlich falsch ist keiner der Texte. Aber ein Platzhalter ist im Entwurf so beschrieben, dass das Spiel heute die falsche Leitung einsetz ([Bericht](docs/pruefberichte/20261107-175200-fachpruefer-aef3a512f3d2c07ad.md)) |
