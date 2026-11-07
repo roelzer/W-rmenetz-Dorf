@@ -26,3 +26,4 @@ Entschieden vom Projektleiter aus den Reviews von P1, P2, P3 und P4 (2026-11-07)
 ## Für P7 (Nachtrag)
 - Chip-Regel im Code: anleiter.ts ~144 `!a.kompakt && a.wusstest_du` (heute nur über Daten gesichert).
 - P7 übernimmt aus P5e: `Szene.tutorial_spur?` in src/render/szene.ts ~41–42 löschen (nach Merge mit b879a41 hat es keinen Nutzer mehr); überholten Kommentar in zeichneBand („ohne festen Vorgänger … gegen den eigenen Pfeil“) berichtigen.
+- P7 übernimmt aus Review P5e: Test „Schleier wird ohne Änderung nicht neu gebaut“ (SVG-Element bleibt dasselbe, Fehlerprobe spotlight.ts:223); Test Lochmitten Heizzentrale/Haus 2 (Fehlerprobe steuerung.ts:899 haus2→haus1); verwaister Kommentar tutorial-band.ts:4–7 (Datei nur Kommentar); Leistung Schleier bei Kamerafahrt beachten (ggf. verschieben statt neu bauen, Messung mit ?messen=1).
