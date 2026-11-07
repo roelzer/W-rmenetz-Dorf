@@ -554,3 +554,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:37 | ▶ | entwickler | P2 fortsetzen |
 | 2026-11-07 19:37 | ▶ | tester | Test beide_haeuser angleichen |
 | 2026-11-07 19:38 | ■ 🟢 | tester | 🟢 Test angepasst und committet. Die Datei läuft aber noch rot, weil die Schrittlogik aus P2 noch nicht gebaut ist. Das lag schon vor meiner Änderung so.  ([Bericht](docs/pruefberichte/20261107-193846-tester-a8ca2d3e579f06502.md)) |
+| 2026-11-07 19:44 | ■ 🔴 | entwickler | 🔴 **BLOCKIERT.** P1 ist gebaut und committet. Ein älterer Architekturtest ist dadurch neu rot geworden, und der widerspricht dem Bauplan. Den Test darf ich  ([Bericht](docs/pruefberichte/20261107-194410-entwickler-ac82a7868dcb61639.md)) |
+| 2026-11-07 19:44 | ▶ | architekt | F2c-Ausnahme und N1-Bestätigung |
+| 2026-11-07 19:44 | ▶ | entwickler | P4b Anleiter kompakt + Schleier |
