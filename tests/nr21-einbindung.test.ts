@@ -98,3 +98,24 @@ describe('NR21 Einbindung: eigener Abgang in der Steuerung', () => {
     }, { uhr: () => uhr.t });
   });
 });
+
+describe('NR21 Einbindung: T12 wählt haupt', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('test_nr21_t12_waehlt_haupt: in T12 liegt der Lochrand um die Leitungskarte der Hauptleitung (d32), nicht um die des Anschlusses (d25)', async () => {
+    const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      bisT12(u, spiel, uhr);
+      const w = spiel.tutorialWerte();
+      expect([w.haupt, w.anschluss]).toEqual(['d32', 'd25']);
+      knopfRechteck(zielEl(u, 'leitungskarte', 'd32')!, 100, 200, 120, 80);
+      knopfRechteck(zielEl(u, 'leitungskarte', 'd25')!, 300, 200, 120, 80);
+      st(u).tick(uhr.t);
+      const ringe = ringMitten(u);
+      expect(ringe).toContainEqual([160, 240]);
+      expect(ringe).not.toContainEqual([360, 240]);
+      expect(schritt(u)).toBe('T12');
+    }, { uhr: () => uhr.t });
+  });
+});
