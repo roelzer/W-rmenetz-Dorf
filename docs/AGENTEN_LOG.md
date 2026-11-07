@@ -638,3 +638,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:44 | ■ 🟢 | tester | 🟢 Vorarbeit erledigt. Wie geplant ist jetzt genau ein Test rot.  ([Bericht](docs/pruefberichte/20261107-224403-tester-a69de1a5b8b6a68b2.md)) |
 | 2026-11-07 22:50 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 22:50 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Meine Aufgabe ist erledigt. Die Prüfung nach dem Commit meldet erwartungsgemäß NICHT OK, weil die 3 Tests für P7 noch rot sind. Au ([Bericht](docs/pruefberichte/20261107-225002-entwickler-a0310ccb990289332.md)) |
+| 2026-11-07 22:50 | ▶ | reviewer | Review P5f-2 gesamt |
+| 2026-11-07 22:51 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-07 22:51 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle vier Befunde sind behoben. Typprüfung und Build sind grün. Die Test-Schranke meldet aber NICHT OK, und zwar nur aus ([Bericht](docs/pruefberichte/20261107-225104-entwickler-a15ef9dc9a00520a7.md)) |
