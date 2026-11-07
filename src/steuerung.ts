@@ -1,6 +1,6 @@
 import { pruefeAuftraege, type Auftrag } from './core/auftraege';
 import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/katalog';
-import { groesse } from './core/netz';
+import { groesse, leitungsNachbarn } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
 import { TUTORIAL_SPUR } from './core/start';
@@ -60,6 +60,8 @@ export class Steuerung implements Ui {
   private stempelTyp: TypId | null = null;
   private stempelLetzte: [number, number] | null = null;
   private stempelAchse: 'h' | 'v' | null = null;
+  /** NR20 V1 (E4): Feld S, auf dem ein Zug auf einer vorhandenen Leitung begann; entschieden wird erst, wenn der Finger S verlässt. */
+  private stempelStart: [number, number] | null = null;
   private radieren = false;
   /** A69: Werkzeug „T-Stück mit Vorsehung“: Tippen auf eine geplante Leitung setzt/entfernt die Vorsehung */
   private vorsehen = false;
@@ -458,7 +460,7 @@ export class Steuerung implements Ui {
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
-        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
+        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelStart = null; this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
       } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; this.drehAktiv = false; }
     });
     l.addEventListener('pointermove', (e) => {
@@ -496,7 +498,7 @@ export class Steuerung implements Ui {
       const war = this.zeiger.delete(e.pointerId);
       if (this.zeiger.size < 2) this.pinch = null;
       if (war && this.zeiger.size === 0 && this.start && !this.zieht) this.tippen(e.clientX, e.clientY);
-      if (this.zeiger.size === 0) this.start = null;
+      if (this.zeiger.size === 0) { this.start = null; this.startfeldTippen(); }
     };
     l.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); });
     l.addEventListener('pointerup', ende);
@@ -551,6 +553,12 @@ export class Steuerung implements Ui {
       if (o && this.spiel.vorsehungUmschalten(o.id).ok) this.geaendert(); else this.hinweiseZeigen();
       return;
     }
+    if (gesteStart && this.leitungAuf(x, y)) { this.stempelStart = [x, y]; this.stempelLetzte = [x, y]; return; }
+    const s = this.stempelStart;
+    if (s) {
+      if (x === s[0] && y === s[1]) return;
+      this.stempelStart = null;
+    }
     // A47: Die Leitung läuft gerade durch. Ein Knick entsteht nur, wenn der Finger deutlich (2 Felder) zur Seite zieht.
     const l = this.stempelLetzte;
     let felder: Array<[number, number]> = [[x, y]];
@@ -565,6 +573,7 @@ export class Steuerung implements Ui {
       for (let i = 1; i <= Math.abs(laenge); i++) felder.push(horizontal ? [l[0] + i * schritt, l[1]] : [l[0], l[1] + i * schritt]);
     }
     let geaendert = false;
+    if (s && this.startfeldUeberzeichnen(s, felder[0]) && this.ueberzeichnen(this.stempelTyp, s[0], s[1], true)) geaendert = true;
     for (const [fx, fy] of felder) {
       if (!this.spiel.kannPlatzieren(this.stempelTyp, fx, fy)) {
         const r = this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1);
@@ -574,6 +583,33 @@ export class Steuerung implements Ui {
       if (this.spiel.platzieren(this.stempelTyp, fx, fy).ok) { geaendert = true; this.stempelLetzte = [fx, fy]; } else { this.hinweiseZeigen(); break; }
     }
     if (geaendert) this.geaendert();
+  }
+  private leitungAuf(x: number, y: number): Objekt | undefined {
+    return this.spiel.stand.objekte.find((a) => istLeitung(a.typ) && a.x === x && a.y === y);
+  }
+  /** E4 Regel 1: Startfeld liegt im Band der Tutorial-Ansicht als falsch markiert. Erst die Tutorial-Einbindung füllt das. */
+  private startfeldFalsch(_x: number, _y: number): boolean { return false; }
+  /**
+   * E4: Soll das Startfeld S überzeichnet werden, nachdem der Finger es Richtung F verlassen hat? Regel 2: F ohne Leitung → nein.
+   * Regel 3: Ein Abzweig (≥ 2 Leitungsnachbarn) oder ein Leitungsende an der Heizzentrale wird nicht dünner – sonst kippt
+   * „Hauptleitung zu dünn“ beim Weiterzeichnen ab dem Abzweig. Dicker machen bleibt erlaubt.
+   */
+  private startfeldUeberzeichnen(s: [number, number], f: [number, number]): boolean {
+    const [sx, sy] = s, o = this.leitungAuf(sx, sy);
+    if (!o || !this.stempelTyp) return false;
+    if (this.startfeldFalsch(sx, sy)) return true;
+    if (!this.leitungAuf(f[0], f[1])) return false;
+    if (LEITUNGEN.indexOf(this.stempelTyp) >= LEITUNGEN.indexOf(o.typ)) return true;
+    const leitungsfelder = new Set(this.spiel.stand.objekte.filter((a) => istLeitung(a.typ)).map((a) => a.y * N + a.x));
+    const hz = this.spiel.hz, k = groesse(hz);
+    const anHz = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => sx + dx >= hz.x && sx + dx < hz.x + k && sy + dy >= hz.y && sy + dy < hz.y + k);
+    return leitungsNachbarn(sx, sy, (n) => leitungsfelder.has(n)) < 2 && !anHz;
+  }
+  /** E4 Tippen: Hebt der Finger ab, ohne S verlassen zu haben, wird S wie bisher überzeichnet. */
+  private startfeldTippen(): void {
+    const s = this.stempelStart;
+    this.stempelStart = null;
+    if (s && this.stempelTyp && this.ueberzeichnen(this.stempelTyp, s[0], s[1], true)) this.geaendert();
   }
   /** NR18: Zeichnen über eine vorhandene Leitung. Gebaut und der Stempel dicker als sie (bzw. ihr geplanter Ersatz) → Ersatz
    *  planen; eingezeichnet mit anderem Typ → Typ neu; sonst still weiter, damit Wischen über eine dicke Hauptleitung nichts
