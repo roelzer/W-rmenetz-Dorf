@@ -559,3 +559,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:44 | ▶ | entwickler | P4b Anleiter kompakt + Schleier |
 | 2026-11-07 19:46 | ■ 🟢 | architekt | 🟢 Beide Aufträge sind erledigt. Die Architekturtests sind grün. Das Verhalten im umgehängten Fall stimmt, ich habe es bestätigt. Kein Produktivcode geän ([Bericht](docs/pruefberichte/20261107-194643-architekt-a2280f9ac1ebb1e56.md)) |
 | 2026-11-07 19:46 | ▶ | reviewer | Review P1 NR20-22 |
+| 2026-11-07 19:47 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Am Programmcode ist nichts mehr zu tun. Die 6 roten Fälle, die ich ansehen sollte, liegen alle an Fehlern in den Tests, nicht in `t ([Bericht](docs/pruefberichte/20261107-194719-entwickler-ad859f109bd6d2630.md)) |
