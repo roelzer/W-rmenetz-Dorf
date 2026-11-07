@@ -69,7 +69,7 @@ describe('NR13 P4 Klickweg', () => {
       expect(doc.getElementById('anleiter-weiter'), 'T11: erst nach der Planung').toBeNull();
       vi.advanceTimersByTime(7_000); // Philipps Blase (höchstens 3.800 + 2.500 + 350 ms, src/ui/sprecher.ts)
       uhr.t += 10_000; st.tick(uhr.t); weiter();
-      schritt('T12'); klicke('leitungskarte', spiel.tutorialWerte().leitung);
+      schritt('T12'); klicke('leitungskarte', spiel.tutorialWerte().haupt);
       schritt('T13');
       // Spur wischen und weiter auf Haus 2 (A47: das letzte Feld legt erst der Zug auf das Haus)
       const weg = [...TUTORIAL_SPUR, ERSTE_HAEUSER[1]].map(([x, y]) => st.kamera.mitte(x, y));

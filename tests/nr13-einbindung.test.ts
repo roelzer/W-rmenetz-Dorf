@@ -171,7 +171,7 @@ function vonT01BisT13(u: U, spiel: Spiel, uhr: { t: number }): void {
   vi.advanceTimersByTime(7_000);
   uhr.t += 10_000; s.tick(uhr.t); weiterTippen(u);
   s.tick(uhr.t); expect(schrittJetzt(u)).toBe('T12');
-  zielEl(u, 'leitungskarte', spiel.tutorialWerte().leitung)!.click();
+  zielEl(u, 'leitungskarte', spiel.tutorialWerte().haupt)!.click();
   s.tick(uhr.t); expect(schrittJetzt(u)).toBe('T13');
 }
 /** Wiedereinstiegs-Blase wegtippen, dann T01 */
@@ -438,7 +438,7 @@ describe('NR13 P4 Einbindung – Ablauf Geldmangel', () => {
     const jetzt = (): string | undefined => t.ansicht(uhr.t)?.schritt;
     const tippe = (m: Omit<TippMeldung, 'art'>): void => { t.tipp({ art: 'tipp', ...m } as TippMeldung); melden(); };
     const [h1, h2] = ERSTE_HAEUSER.map((k) => hausBei(s, k));
-    const typ = s.tutorialWerte().leitung;
+    const typ = s.tutorialWerte().haupt;
 
     tippe({ tipp: 'heizzentrale' });
     for (let i = 0; i < 6; i++) tippe({ tipp: 'weiter' });

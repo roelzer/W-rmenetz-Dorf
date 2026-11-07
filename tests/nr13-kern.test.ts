@@ -1,14 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { KATALOG, KONSTANTEN, passendeStation } from '../src/core/katalog';
+import { KATALOG, KONSTANTEN, passendeStation, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { Spiel, WANDSTATION_TUTORIAL, type Ereignis } from '../src/core/spiel';
-import { ERSTE_HAEUSER, TUTORIAL_SPUR, neuesSpielMitTutorial, neuerSpielstand } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial, neuerSpielstand } from '../src/core/start';
 import type { Objekt, Spielstand } from '../src/core/typen';
 import { vorstellen, type Uhr } from './hilfen/nr18';
 
 // Bauplan docs/bauplaene/NR13-tutorial.md, Fassung 3.1, „Bauplan P2 – Kern-Anbindung“.
-// Werte von Hand aus dem Katalog: Startgeld 30.000 €, Planung 2.000 €, 25er-Leitung 400 € je Feld (6 Felder = 2.400 €),
+// Werte von Hand aus dem Katalog: Startgeld 30.000 €, Planung 2.000 €, 25er-Leitung 400 € je Feld, 32er-Leitung 560 € je Feld;
+// NR21 E1 (Bauplan NR20-22 §3): Hauptleitung 2 Felder 32er + Hausanschlüsse 4 Felder 25er = 2 × 560 + 4 × 400 = 2.720 €,
 // Puffer-Station HP 800 für ein EFH 5.570 € (NR19-Abnahme), EFH 15.000 kWh/a → 10 kW ohne Puffer (1.500 h), 7,5 kW mit (2.000 h),
 // 25er trägt 15 kW, 32er 25 kW, Hackschnitzelkessel Stufe 1 = 60 kW.
 const T0 = 1_000_000;
@@ -37,8 +38,10 @@ function tutorialOffen(): ReturnType<typeof tutorialSpiel> {
   expect(t.s.stand.abschnitt?.phase).toBe('offen');
   return t;
 }
-function spurZeichnen(s: Spiel, typ = s.tutorialWerte().leitung): void {
-  for (const [x, y] of TUTORIAL_SPUR) expect(s.platzieren(typ, x, y).ok).toBe(true);
+/** NR21 E1: Hauptleitung (10|11),(10|12) als `haupt`, Hausanschlüsse (9|12) und (10|13),(10|14),(11|14) als `anschluss`. */
+function spurZeichnen(s: Spiel, haupt: TypId = 'd32', anschluss: TypId = 'd25'): void {
+  for (const [x, y] of TUTORIAL_HAUPT) expect(s.platzieren(haupt, x, y).ok, `${haupt} auf (${x}|${y})`).toBe(true);
+  for (const [x, y] of [...TUTORIAL_ANSCHLUSS_1, ...TUTORIAL_ANSCHLUSS_2]) expect(s.platzieren(anschluss, x, y).ok, `${anschluss} auf (${x}|${y})`).toBe(true);
 }
 /** Mit gesetztem Katalogwert ausführen und ihn danach sicher zurücksetzen. */
 function mitKatalog<T>(typ: 'd25' | 'efh', feld: 'kapazitaet_kw' | 'verbrauch_kwh_a', wert: number, f: () => T): T {
@@ -57,7 +60,7 @@ describe('NR13 P2 Kern-Anbindung', () => {
     s.bis(T0 + 10_000);
     expect(s.stand.abschnitt?.phase).toBe('offen');
     z.t = T0 + 10_000;
-    spurZeichnen(s, 'd25');
+    spurZeichnen(s);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     s.ereignisse.length = 0;
     expect(s.materialBestellen().ok).toBe(true);
@@ -124,37 +127,52 @@ describe('NR13 P2 Kern-Anbindung', () => {
     expect(s.startTippFaellig()).toBe(true);
   });
 
-  it('test_nr13_werte: Startdorf 60 kW, 15.000 kWh, 10 / 7,5 kW, 25er; Katalogwerte ändern die Werte', () => {
+  it('test_nr13_werte: Startdorf 60 kW, 15.000 kWh, 10 / 7,5 kW, Summe 15 kW, Hauptleitung 32er, Hausanschluss 25er; Katalogwerte ändern die Werte', () => {
     const { s, h1 } = tutorialSpiel();
-    expect(s.tutorialWerte()).toEqual({ kessel_kw: 60, kwh: 15_000, kw_ohne: 10, kw_puffer: 7.5, leitung: 'd25', kap_kw: 15 });
+    // NR21 (Bauplan NR20-22 P1 test_nr21_werte, Fachprüfer 2026-11-07): kw_summe = 2 × 7,5 kW; haupt = feste Vorgabe 32er (E2);
+    // anschluss = dünnste Leitung, die 7,5 kW trägt (25er, 15 kW). toMatchObject, solange leitung/kap_kw noch im Vertrag stehen.
+    expect(s.tutorialWerte()).toMatchObject({ kessel_kw: 60, kwh: 15_000, kw_ohne: 10, kw_puffer: 7.5, kw_summe: 15, haupt: 'd32', anschluss: 'd25' });
     expect(s.tutorialWerte().kw_puffer).toBe(bedarfKw({ ...h1, hauspuffer: true }));
+    // 25er trägt nur 7 kW < 7,5 kW → anschluss wäre die 32er = haupt → W1 wirft
+    mitKatalog('d25', 'kapazitaet_kw', 7, () => { expect(() => s.tutorialWerte()).toThrow(Error); });
+    // 25er trägt 12 kW ≥ 7,5 kW → anschluss bleibt die 25er, haupt bleibt die feste 32er
     mitKatalog('d25', 'kapazitaet_kw', 12, () => {
-      const w = s.tutorialWerte();
-      expect(w.leitung).toBe('d32');
-      expect(w.kap_kw).toBe(KATALOG.d32.kapazitaet_kw);
-      expect(w.kap_kw).toBe(25);
+      expect(s.tutorialWerte()).toMatchObject({ haupt: 'd32', anschluss: 'd25' });
     });
     mitKatalog('efh', 'verbrauch_kwh_a', 15_000 * 1.2, () => {
       const w = s.tutorialWerte();
       expect(w.kwh).toBeCloseTo(18_000, 2);
       expect(w.kw_ohne).toBeCloseTo(12, 2);
       expect(w.kw_puffer).toBeCloseTo(9, 2);
-      expect(w.leitung).toBe('d32'); // 2 × 9 kW = 18 kW > 15 kW
+      expect(w.kw_summe).toBeCloseTo(18, 2); // 2 × 9 kW ≤ 25 kW der 32er
+      expect(w.haupt).toBe('d32');
+      expect(w.anschluss).toBe('d25'); // 9 kW ≤ 15 kW
     });
-    expect(s.tutorialWerte().leitung).toBe('d25');
+    expect(s.tutorialWerte()).toMatchObject({ kw_summe: 15, haupt: 'd32', anschluss: 'd25' });
     // Kessel Stufe 2 = 90 kW (Katalog): die Zahl im Text folgt dem Netz, nicht einer festen 60
     s.stand.innen[0].stufe = 2;
     s.aenderung();
     expect(s.tutorialWerte().kessel_kw).toBe(90);
   });
 
-  it('test_nr13_leitung_traegt_ohne_warnung: Spur mit berechneter Leitung, keine Warnung, beide Häuser warm (auch mit 32er)', () => {
+  it('test_nr13_feldpreise: 32er 560 € je Feld, 25er 400 € – Grundlage der festen Tutorial-Kosten 2.720 € (Bauplan NR20-22 §8)', () => {
+    // Ändert sich der Katalog, wird dieser Test rot, statt dass die Kostentests still mitrechnen.
+    expect((KATALOG.d32.kosten_eur as number[])[0]).toBe(560);
+    expect((KATALOG.d25.kosten_eur as number[])[0]).toBe(400);
+    const { s } = tutorialOffen();
+    spurZeichnen(s);
+    expect(s.abschnittKosten_eur()).toBe(2_720);
+  });
+
+  it('test_nr13_leitung_traegt_ohne_warnung: E1 mit berechneter Haupt- und Anschlussleitung, keine Warnung, beide warm, kein Planungsfehler', () => {
+    // DESIGN 13.17.2 „Werte-Hinweise“: {haupt} trägt 2 × Bedarf mit Puffer, {anschluss} 1 × Bedarf mit Puffer, beide ohne
+    // NR18-Warnung, nach dem Bau weder Überlast noch Planungsfehler. Auch mit einer 25er, die nur 12 kW trägt (≥ 7,5 kW).
     for (const kap of [15, 12]) {
       mitKatalog('d25', 'kapazitaet_kw', kap, () => {
         const { s, z, h1, h2 } = tutorialOffen();
-        const typ = s.tutorialWerte().leitung;
-        expect(typ).toBe(kap === 15 ? 'd25' : 'd32');
-        spurZeichnen(s, typ);
+        const w = s.tutorialWerte();
+        expect([w.haupt, w.anschluss]).toEqual(['d32', 'd25']);
+        spurZeichnen(s, w.haupt, w.anschluss);
         expect(s.abschnittAbschliessen()).toEqual({ ok: true });
         expect(s.abschnittWarnungen()).toEqual([]);
         expect(s.stationKaufen(h1.id, 'hp_800').ok).toBe(true);
@@ -164,31 +182,33 @@ describe('NR13 P2 Kern-Anbindung', () => {
         expect(s.stand.abschnitt).toBeUndefined();
         expect(s.netz.warm.has(h1.id) && s.netz.warm.has(h2.id)).toBe(true);
         expect(s.ereignisse.filter((e) => e.art === 'engstelle')).toEqual([]);
+        expect([...s.netz.kapazitaet_ok.values()].every(Boolean)).toBe(true);
+        expect([s.netz.engpass.size, s.netz.reduzierung.size, s.netz.aufteilung.size]).toEqual([0, 0, 0]);
       });
     }
   });
 
-  it('test_nr13_geld_reicht: Ablauf kostet 15.540 €, Rest 14.460 €; Fehlbetrag 0, bei 1.000 € von Hand gerechnet', () => {
+  it('test_nr13_geld_reicht: Ablauf kostet 15.860 €, Rest 14.140 €; Fehlbetrag 0, bei 1.000 € von Hand gerechnet', () => {
     const { s, h1, h2 } = tutorialOffen();
     expect(s.tutorialGeldFehlt_eur()).toBe(0);
-    spurZeichnen(s, 'd25');
+    spurZeichnen(s);
     expect(s.tutorialGeldFehlt_eur()).toBe(0);
     const geld = s.stand.geld_eur;
     expect(geld).toBe(28_000);
     s.stand.geld_eur = 1_000;
-    expect(s.tutorialGeldFehlt_eur()).toBe(2_400 + 2 * 5_570 - 1_000);
+    expect(s.tutorialGeldFehlt_eur()).toBe(2_720 + 2 * 5_570 - 1_000);
     s.stand.geld_eur = geld;
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.tutorialGeldFehlt_eur()).toBe(0);
     expect(s.stationKaufen(h1.id, 'hp_800').ok).toBe(true);
     expect(s.stand.geld_eur).toBe(28_000 - 5_570);
     s.stand.geld_eur = 1_000;
-    expect(s.tutorialGeldFehlt_eur()).toBe(2_400 + 5_570 - 1_000);
+    expect(s.tutorialGeldFehlt_eur()).toBe(2_720 + 5_570 - 1_000);
     s.stand.geld_eur = 28_000 - 5_570;
     expect(s.stationKaufen(h2.id, 'hp_800').ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
     expect(s.tutorialGeldFehlt_eur()).toBe(0); // Phase bau
-    expect(s.stand.geld_eur).toBe(14_460);
+    expect(s.stand.geld_eur).toBe(14_140); // 30.000 − 2.000 − 2.720 − 2 × 5.570
     expect(30_000 - s.stand.geld_eur).toBeLessThanOrEqual(30_000 - 5_000);
   });
 
@@ -210,13 +230,13 @@ describe('NR13 P2 Kern-Anbindung', () => {
 
   it('test_nr13_geld_fehlt_mit_nachlass: Interessent zahlt den ermäßigten Stationspreis – genau den, den stationKaufen abbucht', () => {
     const { s, h1, h2 } = tutorialOffen();
-    spurZeichnen(s, 'd25');
+    spurZeichnen(s);
     h1.interessent = true;
     const preis1 = s.stationspreis_eur(h1, { kosten_eur: 5_570 });
     expect(preis1).toBe(Math.round(5_570 * (1 - KONSTANTEN.interessent_nachlass)));
     expect(preis1).toBeLessThan(5_570);
     s.stand.geld_eur = 0;
-    expect(s.tutorialGeldFehlt_eur()).toBe(2_400 + preis1 + 5_570);
+    expect(s.tutorialGeldFehlt_eur()).toBe(2_720 + preis1 + 5_570);
     s.stand.geld_eur = 28_000;
     expect(s.stationKaufen(h1.id, 'hp_800').ok).toBe(true);
     expect(s.stand.geld_eur).toBe(28_000 - preis1);
@@ -225,7 +245,7 @@ describe('NR13 P2 Kern-Anbindung', () => {
 
   it('test_nr13_geld_bleibt_bis_material: zwischen Abschließen und Material bucht nichts ab, auch über den Monatswechsel', () => {
     const { s, z, h1, h2 } = tutorialOffen();
-    spurZeichnen(s, 'd25');
+    spurZeichnen(s);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.stand.abschnitt?.phase).toBe('bestellen');
     const geld = s.stand.geld_eur;
@@ -236,7 +256,7 @@ describe('NR13 P2 Kern-Anbindung', () => {
     expect(s.stationKaufen(h1.id, 'hp_800').ok).toBe(true);
     expect(s.stationKaufen(h2.id, 'hp_800').ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
-    expect(s.stand.geld_eur).toBe(30_000 - 2_000 - 2_400 - 2 * 5_570);
+    expect(s.stand.geld_eur).toBe(30_000 - 2_000 - 2_720 - 2 * 5_570);
   });
 
   it('test_nr13_kapitel_setzen: nur im Tutorial und nur ganze Zahlen 1–6', () => {
@@ -258,7 +278,7 @@ describe('NR13 P2 Kern-Anbindung', () => {
 
   it('test_nr13_ueberspringen_mitten_im_bau: laufender Abschnitt behält seine kurze Restzeit', () => {
     const { s, z } = tutorialOffen();
-    spurZeichnen(s, 'd25');
+    spurZeichnen(s);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     for (const h of ERSTE_HAEUSER) expect(s.stationKaufen(hausBei(s.stand, h).id, 'hp_800').ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
