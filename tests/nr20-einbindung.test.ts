@@ -5,8 +5,7 @@ import { Spiel } from '../src/core/spiel';
 import { ERSTE_HAEUSER, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
 import type { Feld, TutorialAnsicht, TutorialBandFeld } from '../src/core/tutorial-vertrag';
 import { echteSteuerung } from './hilfen/echte-steuerung';
-import type { El } from './hilfen/dom-attrappe';
-import { El as DomEl } from './hilfen/dom-attrappe';
+import { El as DomEl, type El } from './hilfen/dom-attrappe';
 import { bisT13h as bisT13hZug, ZUG_HAUS1 as ZUG_HAUS1_ZUG, wischeFelder as wischeZug } from './hilfen/tutorial-zug';
 
 // Bauplan NR20-22 P5 (Einbindung Tutorial): die echte Steuerung überträgt die Tutorial-Ansicht auf Szene, Finger, Kamera,
@@ -293,5 +292,92 @@ describe('NR20-22 P5 Einbindung: Finger zieht vor (B5)', () => {
       expect(animiert.filter((x) => x.el === f && x.kf.some((k) => 'transform' in k))).toEqual([]);
       expect(f.querySelector('.spot-druckpunkt')).not.toBeNull();
     }, { uhr: () => uhr.t, bewegung: 'einstellung' });
+  });
+});
+
+// Review P5d (Zusatzpunkte 15 und 16): Ein Zug endet auch mit pointercancel (Bauplan P2 „auch pointercancel“), ein Radierer-
+// Tipp ohne Wirkung und ein Aufsetzen im Wiedereinstieg lassen keinen laufenden Zug zurück – sonst hinge das Tutorial,
+// weil T13 → T13w und T13h → T14 erst nach dem Abheben kommen.
+type MitAnleitung = { anleitung: { zugLaeuft: boolean } | null; stempeln(t: string): void };
+const zugLaeuft = (u: U): boolean => (u.st as unknown as MitAnleitung).anleitung!.zugLaeuft;
+/** Zug über Feldmitten, der mit pointercancel statt pointerup endet (z. B. das System übernimmt die Geste). */
+function wischeMitAbbruch(u: U, felder: ReadonlyArray<readonly [number, number]>): void {
+  wischeFelder(u, felder, false);
+  const [x, y] = felder[felder.length - 1], [mx, my] = st(u).kamera.mitte(x, y);
+  leinwand(u).ausloesen('pointercancel', zeiger(7, mx, my));
+}
+
+describe('NR20-22 P5 Einbindung: Zugende ohne pointerup, Radierer, Wiedereinstieg', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('test_nr20_pointercancel_t13: Hauptleitung mit pointercancel beendet → T13w', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      bisT13(u, spiel, uhr);
+      wischeFelder(u, TUTORIAL_HAUPT, false);
+      st(u).tick(uhr.t);
+      expect(schritt(u), 'Finger liegt noch').toBe('T13');
+      const [x, y] = TUTORIAL_HAUPT[TUTORIAL_HAUPT.length - 1], [mx, my] = st(u).kamera.mitte(x, y);
+      leinwand(u).ausloesen('pointercancel', zeiger(7, mx, my));
+      st(u).tick(uhr.t);
+      expect(schritt(u)).toBe('T13w');
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr20_pointercancel_t13h: Zug zu Haus 2 mit pointercancel beendet → T14', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      bisT13h(u, spiel, uhr);
+      wischeMitAbbruch(u, ZUG_HAUS1); st(u).tick(uhr.t);
+      expect(schritt(u)).toBe('T13h');
+      wischeMitAbbruch(u, ZUG_HAUS2); st(u).tick(uhr.t);
+      expect(schritt(u)).toBe('T14');
+    }, { uhr: () => uhr.t });
+  });
+
+  it('test_nr20_radierer_ohne_wirkung_haengt_nicht: Radierer-Tipp auf ein freies Feld → nach dem Abheben kein laufender Zug, danach weiter bis T14', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      bisT13h(u, spiel, uhr);
+      wischeFelder(u, ZUG_HAUS1); st(u).tick(uhr.t);
+      const radierer = knopfMitId(u, 'radierer');
+      expect(radierer).not.toBeNull();
+      radierer!.click(); st(u).tick(uhr.t);
+      const objekte = spiel.stand.objekte.length;
+      // (14|8) liegt weit neben der Spur und trägt keine Leitung
+      const [mx, my] = st(u).kamera.mitte(14, 8);
+      leinwand(u).ausloesen('pointerdown', zeiger(7, mx, my));
+      expect(zugLaeuft(u), 'Radierzug zählt als laufender Zug').toBe(true);
+      leinwand(u).ausloesen('pointerup', zeiger(7, mx, my));
+      st(u).tick(uhr.t);
+      expect(spiel.stand.objekte.length, 'Radierer ohne Wirkung').toBe(objekte);
+      expect(zugLaeuft(u)).toBe(false);
+      expect(schritt(u)).toBe('T13h');
+      knopfMitId(u, 'radierer')!.click(); st(u).tick(uhr.t);
+      wischeFelder(u, ZUG_HAUS2); st(u).tick(uhr.t);
+      expect(schritt(u)).toBe('T14');
+    }, { uhr: () => uhr.t });
+  });
+
+  // Gespeichert in T13h: Während der Wiedereinstiegs-Blase steht der Kern dort schon auf einem Schritt mit t13 (bei einem
+  // Stand aus T13 noch auf T12), nur so greift die Bedingung „intro“ in zugBeginnt überhaupt.
+  it('test_nr20_wiedereinstieg_t13_aufsetzen_kein_zug: im Wiedereinstieg in Kapitel 3 (T13h) setzt Aufsetzen im Zeichenmodus keinen laufenden Zug', async () => {
+    const { laden, serialisieren } = await import('../src/core/speichern');
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => { bisT13h(u, spiel, uhr); }, { uhr: () => uhr.t });
+    uhr.t += 1_000;
+    const neu = new Spiel(laden(serialisieren(spiel.stand), uhr.t), () => uhr.t);
+    neu.bis(uhr.t);
+    vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); // die erste Steuerung hat die globalen Attrappen abgeräumt
+    await echteSteuerung(neu, (u) => {
+      st(u).tick(uhr.t);
+      expect(st(u).anleitungAnsicht()!.wiedereinstieg).toBe(true);
+      (u.st as unknown as MitAnleitung).stempeln(neu.tutorialWerte().haupt);
+      const [mx, my] = st(u).kamera.mitte(10, 11);
+      leinwand(u).ausloesen('pointerdown', zeiger(7, mx, my));
+      expect(zugLaeuft(u)).toBe(false);
+      leinwand(u).ausloesen('pointerup', zeiger(7, mx, my));
+    }, { uhr: () => uhr.t });
   });
 });

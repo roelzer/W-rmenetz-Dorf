@@ -115,14 +115,14 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     gleichePunkte(punkteNach(h, h.indexOf(`strokeStyle=${D25}`)), [mitte(9.5, 12), mitte(9, 12), mitte(9, 12.5)]);
   });
 
-  // Sammelliste P5 Punkt 10 (Review P4a): (10|11) hat keinen festen Vorgänger (src/core/tutorial-band.ts); sein Band muss
-  // trotzdem durch die Feldmitte zur Abzweigung nach Süden laufen und an die Abzweigung anschließen.
-  it('Erstes Bandfeld (10|11) ohne festen Vorgänger: Weg über die Mitte nach Süden, Ausgang trifft den Eingang der Abzweigung (10|12)', () => {
+  // Sammelliste P5 Punkt 10 (Review P4a) und 14: (10|11) hat die Heizzentrale (11|11) als Vorgänger (src/core/tutorial-band.ts);
+  // sein Band kommt von Osten, läuft durch die Feldmitte zur Abzweigung nach Süden und schließt an die Abzweigung an.
+  it('Erstes Bandfeld (10|11) von der Heizzentrale: Eingang im Osten, Weg über die Mitte nach Süden, Ausgang trifft den Eingang der Abzweigung (10|12)', () => {
     const D32 = '#4caf3e';
     const b = bild(szene({ tutorial_band: [feld(10, 11, 'd32', [0, 1]), feld(10, 12, 'd32', null)] }));
     const p = punkteNach(b, b.indexOf(`strokeStyle=${D32}`));
     expect(p, 'drei Punkte für (10|11), zwei für die Abzweigung').toHaveLength(5);
-    gleichePunkte(p.slice(1), [mitte(10, 11), mitte(10, 11.5), mitte(10, 11.5), mitte(10, 12)]);
+    gleichePunkte(p, [mitte(10.5, 11), mitte(10, 11), mitte(10, 11.5), mitte(10, 11.5), mitte(10, 12)]);
   });
 
   it('Pfeilfarbe: weiß ab Kontrast 3:1, darunter kontur (Grenze von Hand: #949494 ≈ 3,03, #959595 ≈ 2,996, #8a8a8a ≈ 3,45)', () => {
