@@ -47,3 +47,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: Bau gestartet: V0 (Tester) ‖ P0 (Entwickler); parallel Bauplan 2.3 (M1). Nachprobe M1 vor P1.
 - 2026-11-07: Bauplan 2.3 (M1) fertig; kurze Kritiker-Nachprobe zu M1 läuft. V0 ‖ P0 laufen.
 - 2026-11-07: Bauplan 2.3 🟢. Warte auf V0/P0, dann P1‖P2‖P4.
+- 2026-11-07: P0 gebaut (8f681d0), Stopp wegen Architekturtest F2d (7 Tipp-Arten) → Architekt passt an. V0 läuft.
