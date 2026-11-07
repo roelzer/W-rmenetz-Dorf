@@ -501,3 +501,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 16:52 | ■ 🟢 | reviewer | ## Ergebnis: 🟢 freigegeben (mit drei kleinen Kann-Punkten)  ([Bericht](docs/pruefberichte/20261106-165256-reviewer-a686dae9bce670f4e.md)) |
 | 2026-11-07 17:33 | ▶ | designer | Entwurf NR20 Spur + NR22 Überlast |
 | 2026-11-07 17:34 | ▶ | fachpruefer | Hauptleitungsgröße Tutorial NR21 |
+| 2026-11-07 17:36 | ■ 🟡 | fachpruefer | 🟡 Gelb: Die Sache geht fachlich in Ordnung, und ich habe keinen Verstoß gegen eine bestätigte Regel gefunden. Die Hauptleitung sollte eine 32er werden. Zwe ([Bericht](docs/pruefberichte/20261107-173644-fachpruefer-a1ad83433596698a1.md)) |
