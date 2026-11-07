@@ -265,8 +265,13 @@ async function laufC(s, a, g, ort) {
   const zurueck = await mitteVon(p, 'button[data-id="zurueck"]');
   muss(ort, 'Knopf [Zurück] sichtbar', !!zurueck, '');
   await tippe(p, zurueck);
-  l = await bis(p, (x) => x.fremd === 0, 3000);
-  pruefe(ort, 'Nach [Zurück]: keine gestreiften Felder mehr', l.fremd === 0, `fremd ${l.fremd}`);
+  // DESIGN 13.17.9 F3 (ENTSCHEIDUNGEN 2026-11-07, Punkt (9)): [Zurück] nimmt nur den letzten Schritt (12|13) weg; das Rest-Stück
+  // (12|12) neben der Heizzentrale liegt abseits von Spur und Hauptleitung und bleibt gestreift, bis es auch weg ist.
+  l = await bis(p, (x) => x.fremd === 1, 3000);
+  const rest = await p.evaluate(() => window.__st.anleitungAnsicht().fremd.map(([x, y]) => `${x}|${y}`));
+  pruefe(ort, 'Nach [Zurück]: Rest-Stück (12|12) bleibt gestreift (F3)', l.fremd === 1 && rest.length === 1 && rest[0] === '12|12',
+    `fremd ${JSON.stringify(rest)}, Schritt ${l.schritt}`);
+  pruefe(ort, 'Nach [Zurück]: noch T13h, kein T14', l.schritt === 'T13h', String(l.schritt));
   await foto(s, a, g, 'abgang-nach-zurueck');
 }
 
