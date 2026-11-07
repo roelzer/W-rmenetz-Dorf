@@ -269,12 +269,19 @@ describe('NR12 P0 animationBedarf (A90)', () => {
     expect(animationBedarf(s, false)).toBe('langsam');
   });
 
-  it("NR12 P0: Überlast (kapazitaet_ok false) → 'langsam', alle Leitungen ok → 'keine'", () => {
+  it("NR12 P0 / NR22 E7: Überlast blinkt nicht mehr → ruhend 'keine'; nur während des Federns (450 ms ab seit_ms) 'fluessig'", () => {
+    // Bauplan NR20-22 E7 und P7 (szene-schluessel: Überlast nicht mehr „langsam“, „flüssig“ nur während des Federns)
     const s = leer();
     s.netz.kapazitaet_ok.set(5 * 20 + 5, true);
     expect(animationBedarf(s, false)).toBe('keine');
     s.netz.kapazitaet_ok.set(5 * 20 + 6, false);
-    expect(animationBedarf(s, false)).toBe('langsam');
+    expect(animationBedarf(s, false), 'Überlast allein hält die Karte nicht im Takt').toBe('keine');
+    const stueck = (seit_ms: number) => [{ felder: [5 * 20 + 6, 5 * 20 + 7], dreiecke: [5 * 20 + 6], geplant: false, seit_ms }];
+    expect(animationBedarf(leer({ ueberlast: stueck(JETZT - 100), netz: s.netz }), false), 'Dreieck federt (100 ms)').toBe('fluessig');
+    expect(animationBedarf(leer({ ueberlast: stueck(JETZT - 449), netz: s.netz }), false), 'Dreieck federt noch (449 ms)').toBe('fluessig');
+    expect(animationBedarf(leer({ ueberlast: stueck(JETZT - 450), netz: s.netz }), false), 'Federn vorbei (450 ms)').toBe('keine');
+    expect(animationBedarf(leer({ ueberlast: stueck(JETZT - 60_000), netz: s.netz }), false), 'lange danach ruhend').toBe('keine');
+    expect(animationBedarf(leer({ ueberlast: [{ ...stueck(JETZT - 60_000)[0], geplant: true }], netz: s.netz }), false), 'geplant ruht ebenso').toBe('keine');
   });
 
   it("NR12 P0: Bau läuft (Gerüst) → 'fluessig'", () => {

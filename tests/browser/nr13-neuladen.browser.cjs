@@ -1,6 +1,8 @@
 // Browser-Prüfung Neuladen im Tutorial (Produktprüfer NR13, Muss M1; ENTSCHEIDUNGEN 2026-11-06): Neuladen in T12 und in T13
-// mit Strichen (Wiedereinstieg → T12). Nach der Blase „Weiter geht’s …“ muss das Baumenü auf „Leitungen“ offen sein, die
-// Leitungskarte im Loch liegen und ein Tipp daneben als Fehltipp zählen; danach weiter bis T14. Eigene Datei neben
+// mit halber Hauptleitung (Wiedereinstieg → T12). Nach der Blase „Weiter geht’s …“ muss das Baumenü auf „Leitungen“ offen
+// sein, die Leitungskarte im Loch liegen und ein Tipp daneben als Fehltipp zählen. NR20-22 (Bauplan P2 Wiedereinstieg,
+// §10 Punkt 2): Neuladen mitten im Hausanschluss (Hauptleitung liegt, nur Haus 1 angeschlossen) → T13w mit Erklärsatz und
+// offener Zeichenleiste; Farbknopf 25 → T13h gleich mit dem Zwischenstand; Hausanschluss Haus 2 → T14. Eigene Datei neben
 // tests/browser/nr13-tutorial.browser.cjs, weil bestehende Prüfdateien unverändert bleiben (Test-Schranke).
 //
 // Aufruf:  NODE_PATH=/opt/node22/lib/node_modules node tests/browser/nr13-neuladen.browser.cjs   (startet selbst einen Vite-Dev-Server)
@@ -9,7 +11,8 @@
 //
 // Ablauf 844×390 (Gerätefaktor 2, Touch, Querformat), leerer Speicher, Vorführ-Tempo ×10 → Namensfenster → T01 … T11 über
 // Lochmitte bzw. [Weiter] → T12 → Seite neu laden → Wiedereinstieg → [Weiter] → T12 prüfen, Fehltipp, Tipp aufs Loch → T13 →
-// Spur bis Haus 1 → neu laden → T12 prüfen → T13 (T13b-Text) → Rest der Spur bis auf Haus 2 → T14.
+// nur (10|11) → neu laden → T12 prüfen → T13 → Hauptleitung bis (10|12) → T13w → Farbknopf 25 → T13h → (9|12)→Haus 1
+// (Zwischenstand) → neu laden → T13w → Farbknopf 25 → T13h mit Zwischenstand → (10|13)→(10|14)→(11|14)→Haus 2 → T14.
 // Messhilfen wie im Durchklick: Die Seite lädt '/src/render/kamera.ts' und '/src/steuerung.ts' (dieselben Modul-Instanzen wie
 // das Spiel) und merkt sich Kamera und Steuerung. main.ts speichert beim pagehide, darum übersteht der Stand das Neuladen.
 'use strict';
@@ -23,10 +26,18 @@ const WURZEL = path.resolve(__dirname, '..', '..');
 const TEMPO_SCHLUESSEL = 'waermedorf-tempo-v1'; // Speicher-Schlüssel von src/tempo.ts
 const TEMPO_FAKTOR = 10;
 const SPIELERNAME = 'Mila';
-const TEXT_T13B = 'Das erste Haus ist erreicht. Jetzt weiter bis zum zweiten.';
+/** NR20-22 E8 (DESIGN 13.17.2 Fassung 2), Platzhalter von Hand: {haupt} 32er, {anschluss} 25er, {kw_summe} 15 kW,
+ *  {kw_puffer} 7,5 kW (U+00A0 vor der Einheit); Fett-Marken entfernt wie die Anleiter-Karte sie als Text zeigt. */
+const NB = '\u00a0';
+const TEXT_T13 = 'Zieh die 32er von der Heizzentrale bis zur Abzweigung. Folge der Spur.';
+const TEXT_T13W = `Bis hier fließen 15${NB}kW für beide Häuser, ab hier je Haus nur 7,5${NB}kW. Dafür reicht die 25er.`;
+const TEXT_ZWISCHENSTAND = 'Das erste Haus hat seinen Hausanschluss. Jetzt zieh die 25er zum zweiten Haus.';
 const TEXT_T14 = 'Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.';
-// src/core/start.ts (TUTORIAL_SPUR, ERSTE_HAEUSER) – hier fest, weil der Lauf in Node ohne TypeScript startet
-const TUTORIAL_SPUR = [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]];
+// NR20-22 E1 (von Hand, Bauplan §3) und ERSTE_HAEUSER aus src/core/start.ts – hier fest, weil der Lauf in Node ohne TypeScript startet
+const HAUPT = [[10, 11], [10, 12]];
+const ANSCHLUSS_1 = [[9, 12]];
+const ANSCHLUSS_2 = [[10, 13], [10, 14], [11, 14]];
+const ANSCHLUSS_TYP = 'd25';
 const ERSTE_HAEUSER = [[9, 13], [12, 14]];
 const WARTEN_MS = 40000;
 
@@ -77,6 +88,8 @@ const lage = (p) => p.evaluate(() => {
     text: el ? el.textContent.replace(/\s+/g, ' ').trim() : null,
     daneben: st.anleitung ? st.anleitung.daneben : null, fahrt: st.fahrtJetzt,
     weiter: !!w && w.getClientRects().length > 0, karte: !!document.getElementById('anleiter'),
+    // Leitung (Typ d25, d32 …) auf (10|11), dem ersten Feld der Hauptleitung
+    leitung_11: st.spiel.stand.objekte.some((o) => o.x === 10 && o.y === 11 && /^d\d+$/.test(o.typ)),
   };
 });
 const feldPunkt = (p, x, y) => p.evaluate(({ x, y }) => {
@@ -181,6 +194,19 @@ async function neuLadenInT12(s, ort, wo) {
   await weiterBis(s, ort, 'T12', 'T13');
 }
 
+/** Felder (und zum Schluss ein Gebäude) als Bildschirmpunkte für einen Zug */
+async function punkte(p, felder) {
+  const r = [];
+  for (const [x, y] of felder) r.push(await feldPunkt(p, x, y));
+  return r;
+}
+/** Farbknopf der Hausanschluss-Größe in der offenen Zeichenleiste antippen (Zeichenleiste muss offen sein) */
+async function farbknopf25(s, ort, wo) {
+  const k = await mitteVon(s.p, `button[data-id="farbe-${ANSCHLUSS_TYP}"]`);
+  muss(ort, `${wo}: Zeichenleiste offen, Farbknopf 25 sichtbar`, !!k, '');
+  await tippe(s.p, k);
+}
+
 async function lauf(browser, url) {
   const ort = '844×390 Neuladen';
   const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
@@ -201,21 +227,45 @@ async function lauf(browser, url) {
     await ruhe(p);
     // 1) Neuladen in T12
     await neuLadenInT12(s, ort, 'in T12');
-    // 2) in T13 die Spur bis Haus 1 ziehen (Striche im Netz), dann neu laden → Wiedereinstieg T12
+    // 2) in T13 nur das erste Feld der Hauptleitung (Strich im Netz, Hauptleitung nicht fertig), dann neu laden → T12
     await ruhe(p);
-    const bisHaus1 = [];
-    for (const [x, y] of TUTORIAL_SPUR.slice(0, 4)) bisHaus1.push(await feldPunkt(p, x, y));
-    await ziehen(s, bisHaus1);
-    let l = await bis(p, (x) => x.text === TEXT_T13B, 3000);
-    muss(ort, 'T13: Striche bis Haus 1 → T13b-Text', l.schritt === 'T13' && l.text === TEXT_T13B, `${l.schritt} · „${l.text}“`);
-    await neuLadenInT12(s, ort, 'in T13 mit Strichen');
+    let l = await lage(p);
+    muss(ort, 'T13: Text vor dem Ziehen', l.schritt === 'T13' && l.text === TEXT_T13, `${l.schritt} · „${l.text}“`);
+    await ziehen(s, await punkte(p, HAUPT.slice(0, 1)));
+    l = await bis(p, (x) => x.leitung_11, 3000);
+    muss(ort, 'T13: ein Feld (10|11) gezeichnet, Schritt bleibt T13', l.leitung_11 && l.schritt === 'T13', `${l.schritt} · Leitung auf (10|11) ${l.leitung_11}`);
+    await neuLadenInT12(s, ort, 'in T13 mit halber Hauptleitung');
+    // 3) Hauptleitung fertig → T13w → Farbknopf 25 → T13h → Hausanschluss Haus 1 → Zwischenstand
+    await ruhe(p);
+    await ziehen(s, await punkte(p, HAUPT));
+    l = await bis(p, (x) => x.schritt === 'T13w', 3000);
+    muss(ort, 'T13: Hauptleitung bis zum Abzweig, Abheben → T13w', l.schritt === 'T13w', `${l.schritt} · „${l.text}“`);
+    await farbknopf25(s, ort, 'T13w');
+    l = await bis(p, (x) => x.schritt === 'T13h', 3000);
+    muss(ort, 'T13w: Farbknopf 25 → T13h', l.schritt === 'T13h', `${l.schritt} · „${l.text}“`);
+    await ruhe(p);
+    await ziehen(s, await punkte(p, [...ANSCHLUSS_1, ERSTE_HAEUSER[0]]));
+    l = await bis(p, (x) => x.text === TEXT_ZWISCHENSTAND, 3000);
+    muss(ort, 'T13h: Hausanschluss Haus 1 → Zwischenstand', l.schritt === 'T13h' && l.text === TEXT_ZWISCHENSTAND, `${l.schritt} · „${l.text}“`);
+    // 4) Neuladen mitten im Hausanschluss → Wiedereinstieg T13w (Bauplan P2: nicht beide Häuser ok), Zeichenleiste offen
+    await p.reload({ waitUntil: 'load' });
+    await messhilfen(p);
+    l = await bis(p, (x) => x.intro && x.karte && x.weiter, WARTEN_MS);
+    muss(ort, 'Neuladen im Hausanschluss: Wiedereinstiegs-Blase mit [Weiter]', l.intro && l.weiter, `${l.schritt} · „${l.text}“`);
+    await tippe(p, await mitteVon(p, '#anleiter-weiter'));
+    l = await bis(p, (x) => x.schritt === 'T13w' && !x.intro, 5000);
+    muss(ort, 'Neuladen im Hausanschluss: nach [Weiter] → T13w', l.schritt === 'T13w' && !l.intro, String(l.schritt));
     await ruhe(p);
     l = await lage(p);
-    pruefe(ort, 'nach Neuladen in T13: T13b-Text (Haus 1 bleibt erreicht)', l.schritt === 'T13' && l.text === TEXT_T13B, `${l.schritt} · „${l.text}“`);
-    // vom Leitungsende (10|13) weiter die Spur entlang und mit dem Finger bis auf Haus 2 (A47: letztes Feld per Zug aufs Haus)
-    const rest = [];
-    for (const [x, y] of [...TUTORIAL_SPUR.slice(3), ERSTE_HAEUSER[1]]) rest.push(await feldPunkt(p, x, y));
-    await ziehen(s, rest);
+    pruefe(ort, 'Neuladen im Hausanschluss: T13w zeigt den Erklärsatz', l.text === TEXT_T13W, `„${l.text}“`);
+    await farbknopf25(s, ort, 'T13w nach Neuladen');
+    l = await bis(p, (x) => x.schritt === 'T13h', 3000);
+    muss(ort, 'nach Neuladen: Farbknopf 25 → T13h', l.schritt === 'T13h', `${l.schritt} · „${l.text}“`);
+    await ruhe(p);
+    l = await lage(p);
+    pruefe(ort, 'nach Neuladen: T13h gleich mit dem Zwischenstand (Haus 1 bleibt angeschlossen)', l.text === TEXT_ZWISCHENSTAND, `„${l.text}“`);
+    // 5) Hausanschluss Haus 2 bis aufs Haus (A47: letztes Feld per Zug aufs Haus) → T14
+    await ziehen(s, await punkte(p, [...ANSCHLUSS_2, ERSTE_HAEUSER[1]]));
     l = await bis(p, (x) => x.schritt === 'T14', 5000);
     muss(ort, 'nach Neuladen: Zug bis auf Haus 2 → T14', l.schritt === 'T14', `${l.schritt} · „${l.text}“`);
     await ruhe(p);

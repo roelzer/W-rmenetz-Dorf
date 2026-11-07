@@ -3,7 +3,7 @@ import { istLeitung, KATALOG, type TypId } from '../src/core/katalog';
 import { berechneNetz } from '../src/core/netz';
 import { Spiel, WANDSTATION_TUTORIAL } from '../src/core/spiel';
 import { ERSTE_HAEUSER, neuerSpielstand, neuesSpielMitTutorial } from '../src/core/start';
-import type { Bedienung, TippMeldung } from '../src/core/tutorial-vertrag';
+import type { Bedienung, TippMeldung, TutorialBandFeld } from '../src/core/tutorial-vertrag';
 import type { Objekt } from '../src/core/typen';
 import { Effekte } from '../src/render/effekte';
 import { Kamera } from '../src/render/kamera';
@@ -467,34 +467,57 @@ describe('NR13 P3 Szene: Spur und „Erreicht“-Zeichen', () => {
   const SPUR_FARBE = 'strokeStyle=#ff8a1f';
   const HAKEN_SCHEIBE = 'fillStyle=#d3f0c6';
 
-  it('test_nr13_spur_und_haken_nur_mit_feldern: Spur nur mit tutorial_spur, Haken-Blase nur mit erreicht; Schlüssel und Takt folgen', () => {
-    const leer = bild(szene({}));
-    expect(leer.filter((b) => b === SPUR_FARBE)).toHaveLength(0);
-    expect(leer.filter((b) => b === HAKEN_SCHEIBE)).toHaveLength(0);
+  it('test_nr13_spur_und_haken_nur_mit_feldern: Band nur mit tutorial_band, Haken-Blase nur mit erreicht; Schlüssel und Takt folgen', () => {
+    // NR20-22 P4 / DESIGN 13.17.1 B2 (V0 Teil 2c): Die Spur ist ein Band in der echten Leitungsfarbe (32er #4caf3e, 25er #d8392f,
+    // katalog.ts), kein orange gestrichelter Strich mehr. Einzelheiten (Doppelrand, Pfeile, Raute) prüft tests/nr20-darstellung.
+    const BAND_E1: TutorialBandFeld[] = [
+      { x: 10, y: 11, typ: 'd32', aktiv: true, falsch: false, pfeil: [0, 1] },
+      { x: 10, y: 12, typ: 'd32', aktiv: true, falsch: false, pfeil: null },
+      { x: 9, y: 12, typ: 'd25', aktiv: false, falsch: false, pfeil: [0, 1] },
+      { x: 10, y: 13, typ: 'd25', aktiv: false, falsch: false, pfeil: [0, 1] },
+      { x: 10, y: 14, typ: 'd25', aktiv: false, falsch: false, pfeil: [1, 0] },
+      { x: 11, y: 14, typ: 'd25', aktiv: false, falsch: false, pfeil: [1, 0] },
+    ];
+    const NUR_HAUS2 = BAND_E1.slice(3).map((f) => ({ ...f, aktiv: true }));
+    // Farbe als #rrggbb oder rgb(a)(r,g,b…) – beides ist erlaubt, die Deckkraft darf im rgba-Wert oder in globalAlpha stehen
+    const farbe = (hex: string, rgb: string) => (b: string[]): number => b.filter((x) => /^(fill|stroke)Style=/.test(x) && (x.toLowerCase().includes(hex) || new RegExp(`\\(\\s*${rgb.replace(/,/g, '\\s*,\\s*')}\\s*[,)]`).test(x))).length;
+    const gruen32 = farbe('#4caf3e', '76,175,62'), rot25 = farbe('#d8392f', '216,57,47');
 
-    const mitSpur = bild(szene({ tutorial_spur: [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]] }));
-    expect(mitSpur.filter((b) => b === SPUR_FARBE).length).toBeGreaterThan(0);
-    expect(mitSpur, 'gestrichelt 10/8').toContain('setLineDash([10,8])');
-    expect(mitSpur.filter((b) => b === HAKEN_SCHEIBE)).toHaveLength(0);
-    // Pfeilspitzen alle drei Felder, gezählt ab dem Abgang der vollen Spur: (10|10) und (10|13); übrige Felder behalten sie (K10)
-    const spitzen = (b: string[]): number => b.filter((x) => x === 'fillStyle=#ff8a1f').length;
-    expect(spitzen(mitSpur)).toBe(2);
-    expect(spitzen(bild(szene({ tutorial_spur: [[10, 13], [10, 14], [11, 14]] })))).toBe(1);
-    expect(spitzen(bild(szene({ tutorial_spur: [[10, 14], [11, 14]] })))).toBe(0);
+    const leer = bild(szene({}));
+    expect(gruen32(leer), 'ohne Band keine 32er-Farbe im Bild').toBe(0);
+    expect(rot25(leer), 'ohne Band keine 25er-Farbe im Bild').toBe(0);
+    expect(leer.filter((b) => b === HAKEN_SCHEIBE)).toHaveLength(0);
+    expect(bild(szene({ tutorial_band: [] })), 'leeres Band zeichnet nichts').toEqual(leer);
+
+    const mitBand = bild(szene({ tutorial_band: BAND_E1 }));
+    expect(gruen32(mitBand), 'Hauptleitung im Band in 32er-Farbe').toBeGreaterThan(0);
+    expect(rot25(mitBand), 'Hausanschlüsse im Band in 25er-Farbe').toBeGreaterThan(0);
+    expect(mitBand.filter((b) => b === SPUR_FARBE), 'keine orange Spur mehr (Token menue.farbe.spur entfällt)').toHaveLength(0);
+    expect(mitBand, 'kein gestrichelter Spur-Strich 10/8').not.toContain('setLineDash([10,8])');
+    expect(mitBand.filter((b) => b === HAKEN_SCHEIBE)).toHaveLength(0);
+    const nurHaus2 = bild(szene({ tutorial_band: NUR_HAUS2 }));
+    expect(gruen32(nurHaus2), 'nur übergebene Felder: ohne Hauptleitung-Felder keine 32er-Farbe').toBe(0);
+    expect(rot25(nurHaus2)).toBeGreaterThan(0);
 
     const haus1 = objekte[1].id;
     const mitHaken = bild(szene({ erreicht: [{ id: haus1, seit_ms: 0 }] }));
     expect(mitHaken.filter((b) => b === HAKEN_SCHEIBE)).toHaveLength(1);
     expect(mitHaken).toContain('strokeStyle=#1f5e1a');
-    expect(mitHaken.filter((b) => b === SPUR_FARBE)).toHaveLength(0);
+    expect(gruen32(mitHaken) + rot25(mitHaken), 'Haken ohne Band').toBe(0);
 
-    // Schlüssel: Spurfelder und erreichte Häuser lösen ein neues Bild aus
+    // Schlüssel: Bandfelder, nächstes Feld, Zielscheibe und erreichte Häuser lösen ein neues Bild aus (P4: neue Felder im Schlüssel)
     const s0 = szenenSchluessel(szene({}));
     expect(szenenSchluessel(szene({})), 'gleiches Bild, gleicher Schlüssel').toBe(s0);
-    expect(szenenSchluessel(szene({ tutorial_spur: [[10, 10]] }))).not.toBe(s0);
-    expect(szenenSchluessel(szene({ tutorial_spur: [[10, 10]] }))).not.toBe(szenenSchluessel(szene({ tutorial_spur: [[10, 10], [10, 11]] })));
+    expect(szenenSchluessel(szene({ tutorial_band: BAND_E1.slice(0, 1) }))).not.toBe(s0);
+    expect(szenenSchluessel(szene({ tutorial_band: BAND_E1.slice(0, 1) }))).not.toBe(szenenSchluessel(szene({ tutorial_band: BAND_E1.slice(0, 2) })));
+    expect(szenenSchluessel(szene({ tutorial_band: BAND_E1 })), 'Feld wird falsch (gestrichelte Raute)')
+      .not.toBe(szenenSchluessel(szene({ tutorial_band: BAND_E1.map((f, i) => (i === 0 ? { ...f, falsch: true } : f)) })));
+    expect(szenenSchluessel(szene({ naechstes_feld: [10, 11] }))).not.toBe(s0);
+    expect(szenenSchluessel(szene({ naechstes_feld: [10, 11] }))).not.toBe(szenenSchluessel(szene({ naechstes_feld: [9, 12] })));
+    expect(szenenSchluessel(szene({ zielscheibe: [10, 12] }))).not.toBe(s0);
     expect(szenenSchluessel(szene({ erreicht: [{ id: haus1, seit_ms: 0 }] }))).not.toBe(s0);
     expect(animationBedarf(szene({}), false)).toBe('keine');
+    expect(animationBedarf(szene({ tutorial_band: BAND_E1, naechstes_feld: [10, 11] }), false), 'Band und Raute ruhen (DESIGN 13.17.1 B3)').toBe('keine');
     expect(animationBedarf(szene({ erreicht: [{ id: haus1, seit_ms: 0 }] }), false), 'Haken-Blase wippt').toBe('fluessig');
   });
 
