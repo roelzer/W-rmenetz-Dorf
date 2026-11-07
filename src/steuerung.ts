@@ -869,9 +869,13 @@ export class Steuerung implements Ui {
     // Das nächste Bild (tick) zeigt den Finger wieder; ohne Tutorial gibt es keinen
     this.fingerPause = this.anleitung ? window.setTimeout(() => { this.fingerPause = null; }, T.menue.zeit_ms.finger_wieder) : null;
   }
-  /** Knopf der Zeichenleiste mit Ring: der Farbknopf `farbknopf_ring`. */
+  /** Knopf der Zeichenleiste mit Ring: der Farbknopf `farbknopf_ring`; beim fremden Stück (Bauplan NR20-22 P5 [2.1]/[2.3])
+   *  [Zurück], wenn es genau das zuletzt gezeichnete Feld wegnähme – ein Feld genügt, damit der eigene Abgang endet –,
+   *  sonst der Radierer. Nur die Steuerung kennt [Zurück], darum wird das hier und nicht im Kern entschieden. */
   private ringKnopf(a: TutorialAnsicht): HTMLElement | null {
-    const id = a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
+    const letzte = a.fremd.length ? this.spiel.letzteLeitungFeld() : null;
+    const zurueck = !!letzte && a.fremd.some(([x, y]) => x === letzte[0] && y === letzte[1]);
+    const id = a.fremd.length ? (zurueck ? 'zurueck' : 'radierer') : a.farbknopf_ring ? `farbe-${a.farbknopf_ring}` : null;
     return id ? this.leiste?.blatt.wurzel.querySelector<HTMLElement>(`[data-id="${id}"]`) ?? null : null;
   }
   private static elRechteck(el: HTMLElement): Rechteck { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, b: r.width, h: r.height }; }
