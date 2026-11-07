@@ -573,3 +573,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:59 | ▶ | reviewer | Review P4b NR20-22 |
 | 2026-11-07 20:02 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** Es gibt nichts, was den Merge blockiert. Ein paar Regeln aus dem Bauplan sind aber noch durch keinen Test abgesichert. ([Bericht](docs/pruefberichte/20261107-200203-reviewer-a0765f86995ae98fb.md)) |
 | 2026-11-07 20:02 | ▶ | tester | Testlücken P2 schließen |
+| 2026-11-07 20:04 | ■ 🟡 | reviewer | 🟢 **Freigegeben mit kleinen Punkten (eigentlich 🟡).** P4b – kompakte Anleiterkarte und Schleier  ([Bericht](docs/pruefberichte/20261107-200455-reviewer-afdaf12c0ac48ec29.md)) |
