@@ -101,3 +101,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: Tester nr20-p5f2t2 081eb7b fertig (Vertrag 5/12). Laufen: P5f-2c (Tokens, Hülle, Fotos), P5f-1-Nachbesserung.
 - 2026-11-07: P5f-2c fertig d7ea70e (Branch nr20-p5f2c): Streifen 5/12, Hüllentest, 18 Fotos p5f, 3 rot (P7). Offen nach Zusammenführung mit P5f-1n: Browser-Skript :269 auf F3, Knopfzeile im Zug halten. Dann Review P5f-2 gesamt + Designer-Fotocheck.
 - P5f-1n fertig af087c3 (W1 ab T13h, K1–K3), 3 rot (P7). Nachprüfung läuft; Review P5f-2 gesamt läuft parallel.
+- Nachprüfung P5f-1 🟡 → nr20-p5f1n in nr20-int gemergt (af087c3). Warte auf Review P5f-2 gesamt, dann Zusammenführung p5f2c + Nachträge (Skript :269, Knopfzeile, Test T13h→T14, Satz T13h).
