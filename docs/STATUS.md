@@ -44,3 +44,4 @@ Jetzt: Weiter in neuer Sitzung (Kontext voll). A88 P2 Zwischenstand als Patch in
 Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpoltstein, keine Ortswahl), kleinere Anzeigen oben, Leitungskarte nennt Hausanschluss- bzw. Hauptleitung. 173 Tests grün.
 - 2026-11-07: Bauplan NR20-22 F2.1 committet; Kritiker-Nachprobe läuft. Bei 🟢 Bau starten (V0+P0 → P1‖P2‖P4 → P2-Nachzug → P3‖P6 → P5 → P7).
 - 2026-11-07: Bauplan F2.2 fertig, Kritiker-Probe 3 läuft.
+- 2026-11-07: Bau gestartet: V0 (Tester) ‖ P0 (Entwickler); parallel Bauplan 2.3 (M1). Nachprobe M1 vor P1.
