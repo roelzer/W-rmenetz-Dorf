@@ -169,3 +169,19 @@ describe('P5f-2 F3: Ebene der Streifen', () => {
     expect(plan.indexOf('clip()')).toBeGreaterThan(plan.lastIndexOf('strokeStyle=rgba(40,34,26,.4)'));
   });
 });
+
+// P5f-2c: F3 Maße der Hülle – Rohrbreite + 12 px (6 px je Seite), außen 1,5 px Rand je Seite → Außenkante Rohrbreite + 15 px.
+describe('P5f-2c F3: Breite der Hülle', () => {
+  const mitRohr = [...objekte, neu('d25', 12, 12)];
+  const n = berechneNetz(mitRohr, [], 1);
+  it('Hülle um ein 25er-Feld: innerer Bogen Ø = Rohrbreite + 12, äußerer Bogen Ø = Rohrbreite + 15', () => {
+    fremdEinblendungZuruecksetzen();
+    const b = bild(szene({ objekte: mitRohr, netz: n, tutorial_fremd: [[12, 12]], jetzt_ms: 90_000 }));
+    // Rohrbreite der 25er: Feldbreite × 0,06 (Katalog d25 `breite`)
+    const rohr = kamera().tw * 0.06;
+    const iClip = b.indexOf('clip()');
+    const radien = b.slice(0, iClip).filter((x) => x.startsWith('arc(')).slice(-2).map((x) => Number(x.slice(4, -1).split(',')[2]));
+    expect(radien[1] * 2 - rohr, 'innere Hülle').toBeCloseTo(12, 6);
+    expect(radien[0] * 2 - rohr, 'äußere Kante mit Rand').toBeCloseTo(15, 6);
+  });
+});
