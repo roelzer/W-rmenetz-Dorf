@@ -595,3 +595,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:31 | ■ 🟢 | tester | 🟢 K3 ist erledigt. Beide Werte-Tests merken jetzt, wenn ein überzähliges Feld dazukommt.  ([Bericht](docs/pruefberichte/20261107-203134-tester-aec58820d08586a42.md)) |
 | 2026-11-07 20:37 | ■ 🟡 | reviewer | 🟡 Paket P3 (V1 Zug) ist freigegeben, mit kleinen Punkten.  ([Bericht](docs/pruefberichte/20261107-203732-reviewer-a204592564fc53b83.md)) |
 | 2026-11-07 20:38 | ▶ | entwickler | P5 Einbindung Tutorial |
+| 2026-11-07 20:46 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-07 20:46 | ■ 🟡 | entwickler | ## 🟡 FERTIG_MIT_BEDENKEN – P6 „NR22 Kern und Regel“  ([Bericht](docs/pruefberichte/20261107-204620-entwickler-ac097c919c45c4fe0.md)) |

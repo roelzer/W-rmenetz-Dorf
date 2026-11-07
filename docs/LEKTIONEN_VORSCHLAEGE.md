@@ -16,3 +16,5 @@
 - [Leistung] Bei Bildraten aus Chromium ohne Grafikkarte zuerst im Trace das Malen (LayerTreeHost::DoUpdateLayers) gegen die JS-Zeit stellen, bevor JS optimiert wird. (NR13-fps, 2026-11-06)
 - [Prozess] Pakete mit vielen Zeichendateien bekommen nur einen knappen Auszug aus Bauplan und DESIGN (Abschnitt + Zeilen), nicht die ganzen Dokumente – sonst ist der Kontext vor dem ersten Test voll. (NR20 P4, 2026-11-07)
 - [Tests] Nach Massen-Ersetzungen in Testdateien prüfen, ob geschützte Leerzeichen (U+00A0) erhalten bleiben (grep -c $'\xc2\xa0' vorher/nachher). (NR20 V0 fb4b901, 2026-11-07)
+
+- [Bauplan] Architekturregeln, die erst beim Anlegen einer Datei greifen („greift ab Datei X“), gegen alle Pakete prüfen: Darf das Paket, das X anlegt, die verbotene Stelle nicht entfernen, wird ein Test zwischen den Paketen rot. (NR22, N2 gegen szene.ts, 2026-11-07)
