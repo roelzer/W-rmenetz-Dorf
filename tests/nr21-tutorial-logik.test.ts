@@ -22,6 +22,8 @@ const TEXT = {
   zuDick: 'Für ein Haus reicht die 25er. Tippe auf 25 und zieh noch mal über dieses Stück.',
   groesse: 'Ein Stück passt nicht zum Plan. Zieh mit der richtigen Größe noch mal drüber.',
   eigenerAbgang: 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.',
+  // DESIGN 13.17.10 G3: beide Häuser richtig + gestreifter Rest → nur der erste Satz
+  eigenerAbgangRest: 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.',
   hilfeSpur: 'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.',
   hilfeT13w: 'Tippe rechts in der Leiste auf 25.',
   zuFrueh: 'Zieh die Leitung bis an beide Häuser – folge der Spur.',
@@ -30,6 +32,7 @@ const TEXT = {
 };
 const GELD = { kurz: 'Geld reicht nicht', satz: TEXT.geld };
 const WEG = { kurz: 'Stück muss weg', satz: TEXT.eigenerAbgang };
+const WEG_REST = { kurz: 'Stück muss weg', satz: TEXT.eigenerAbgangRest };
 const GROESSE = { kurz: 'Größe passt nicht', satz: TEXT.groesse };
 const EINS = { kurz: `noch 1${NB}Haus fehlt`, satz: TEXT.zuFrueh };
 const ZWEI = { kurz: `2${NB}Häuser fehlen`, satz: TEXT.zuFrueh };
@@ -275,22 +278,23 @@ describe('NR21 Tutorial-Schrittlogik (Bauplan NR20-22 P2)', () => {
     expect(jetzt(u)).toBe('T14');
   });
 
-  it('test_nr21_vierer_ring_ohne_haus – Streifen da, aber kein Haus als Verursacher (Zusatz PL K-d)', () => {
+  // DESIGN 13.17.10 G3 (geht K-d vor): beide Häuser richtig + Rest → nur der erste Satz, keine Zielscheibe, keine Raute, kein Band
+  it('test_nr21_vierer_ring_ohne_haus – Streifen da, aber kein Haus als Verursacher (Zusatz PL K-d, G3)', () => {
     const [t, l] = inT13h();
     setze(l, t, lage(ALLE, RING));
     const a = an(t);
     expect(a).toMatchObject({
-      schritt: 'T13h', text: TEXT.eigenerAbgang, fremd: [[11, 13]], ziel_ring: null, band: [], naechstes_feld: null,
-      zielscheibe: [10, 12], finger_weg: [], erreicht_ids: [h1(l), h2(l)],
+      schritt: 'T13h', text: TEXT.eigenerAbgangRest, fremd: [[11, 13]], ziel_ring: null, band: [], naechstes_feld: null,
+      zielscheibe: null, finger_weg: [], erreicht_ids: [h1(l), h2(l)],
     });
-    expect(t.sperre('abschliessen')).toEqual(WEG);
+    expect(t.sperre('abschliessen')).toEqual(WEG_REST);
     abheben(t);
     expect(jetzt(t)).toBe('T13h');
     // Wiedereinstieg mit derselben Lage: T13h, nie T14
     const n = lageBauen();
     n.leitungen = lage(ALLE, RING);
     expect(einstieg(n)).toBe('T13h');
-    expect(an(new Tutorial(n))).toMatchObject({ schritt: 'T13h', text: TEXT.eigenerAbgang, zielscheibe: [10, 12] });
+    expect(an(new Tutorial(n))).toMatchObject({ schritt: 'T13h', text: TEXT.eigenerAbgangRest, zielscheibe: null });
     // Stummel weg → T14
     setze(l, t, lage(ALLE));
     expect(jetzt(t)).toBe('T14');
@@ -327,7 +331,7 @@ describe('NR21 Tutorial-Schrittlogik (Bauplan NR20-22 P2)', () => {
     expect(an(u)).toMatchObject({ schritt: 'T13h', text: TEXT.T13h });
     const [v, n] = inT14();
     setze(n, v, lage(ALLE, RING));
-    expect(an(v)).toMatchObject({ schritt: 'T13h', text: TEXT.eigenerAbgang });
+    expect(an(v)).toMatchObject({ schritt: 'T13h', text: TEXT.eigenerAbgangRest, zielscheibe: null });
   });
 
   it('test_nr21_wiedereinstieg_fremd – Neuladen mit eigenem Abgang bzw. Planungsfehler → T13h, nie T14', () => {

@@ -36,6 +36,8 @@ const TEXT = {
   zuDick: 'Für ein Haus reicht die 25er. Tippe auf 25 und zieh noch mal über dieses Stück.',
   groesse: 'Ein Stück passt nicht zum Plan. Zieh mit der richtigen Größe noch mal drüber.',
   eigenerAbgang: 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.',
+  // DESIGN 13.17.10 G3: beide Häuser richtig, nur noch ein gestreifter Rest → nur der erste Satz (55 Zeichen)
+  eigenerAbgangRest: 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.',
   hilfeT01: 'Tippe auf das große Gebäude, das gelb leuchtet.',
   hilfeT13: 'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.',
   hilfeT13w: 'Tippe rechts in der Leiste auf 25.',
@@ -800,9 +802,11 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     reihe('T13h');
     // Nur in T13h erreichbar: beide Häuser richtig. Planungsfehler sperrt mit dem Fachprüfer-Satz und hält T13h fest;
     // ein Abseits-Stück (Vierer-Ring, fremd_haus null) sperrt mit „Stück muss weg“; Geld geht weiter vor.
+    // DESIGN 13.17.10 G3: Sind beide Häuser richtig, nennt der Satz nur noch das Wegnehmen (erster Satz).
     const ALLE_OK: Ziel = { haupt: true, haus1: true, haus2: true };
+    const WEG_REST = { kurz: 'Stück muss weg', satz: TEXT.eigenerAbgangRest };
     pruefe('T13h', leitungsLage(ALLE_OK, { planungsfehler: true }), 0, GROESSE);
-    pruefe('T13h', leitungsLage(ALLE_OK, { planungsfehler: true, fremd: [[11, 13]], fremd_haus: null }), 0, WEG);
+    pruefe('T13h', leitungsLage(ALLE_OK, { planungsfehler: true, fremd: [[11, 13]], fremd_haus: null }), 0, WEG_REST);
     pruefe('T13h', leitungsLage(ALLE_OK, { planungsfehler: true }), 1, GELD);
     l.leitungen = leitungsLage(ALLE_OK); l.geldFehlt = 0; t.zustandPruefen();
     expect(jetzt(t)).toBe('T14');

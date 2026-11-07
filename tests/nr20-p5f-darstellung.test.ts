@@ -92,8 +92,17 @@ describe('P5f-2 F5: Startfeld an der Heizzentrale und Raute mit Pfeil', () => {
   const D32 = '#4caf3e', D25 = '#d8392f', TAFEL = '#fff4df', KONTUR = '#3b1d0a';
   /** Seitenwand der Heizzentrale (src/render/gebaeude.ts heizzentrale): Marke „Heizzentrale ist gezeichnet“ */
   const HZ_WAND = 'fillStyle=#86412e';
-  /** Füllung der leuchtenden Raute: Deckkraft (0,55 bzw. nach F5 0,35) direkt vor fillStyle ziel */
-  const rauteFuellung = (b: string[]): number => b.findIndex((x, i) => /^globalAlpha=0\.(55|35)$/.test(x) && b[i + 1] === `fillStyle=${ZIEL}`);
+  /** DESIGN 13.17.10 G4: Die Raute hat keine Füllung mehr; erkannt wird sie an ihrem Rand: 3 px `ziel` auf dem schon gelegten
+   *  Rautenpfad (stroke ohne neues beginPath – der Ring ums Haus beginnt dagegen mit beginPath + ellipse). */
+  const rauteFuellung = (b: string[]): number => b.findIndex((x, i) => x === `strokeStyle=${ZIEL}` && b.slice(i + 1, i + 3).includes('lineWidth=3')
+    && b.slice(i + 1, i + 4).includes('stroke()') && !b.slice(i + 1, i + 4).includes('beginPath()'));
+  /** fill() mit fillStyle ziel und Deckkraft > 0 (letzter gesetzter Zustand davor) – eine sichtbare gelbe Füllung */
+  const gelbeFuellungen = (b: string[]): number => b.filter((x, i) => {
+    if (x !== 'fill()') return false;
+    const vor = b.slice(0, i).reverse();
+    const f = vor.find((y) => y.startsWith('fillStyle=')), a = vor.find((y) => y.startsWith('globalAlpha='));
+    return f === `fillStyle=${ZIEL}` && (a === undefined || Number(a.slice(12)) > 0);
+  }).length;
   const pfeil = (b: string[], farbe: string): number => b.findIndex((x, i) => x === `fillStyle=${farbe}` && b[i + 1] === 'beginPath()' && b[i + 2]?.startsWith('moveTo(') && b.slice(i, i + 8).includes('closePath()'));
   const T13_BAND = [
     { x: 10, y: 11, typ: 'd32' as const, aktiv: true, falsch: false, pfeil: [0, 1] as [number, number] },
@@ -132,16 +141,17 @@ describe('P5f-2 F5: Startfeld an der Heizzentrale und Raute mit Pfeil', () => {
     expect(rauteFuellung(b)).toBeGreaterThan(rohr);
   });
 
-  it('Raute in der Reihenfolge Füllung → Pfeil → Rand, auf (10|11) und auf jedem anderen Feld', () => {
+  // DESIGN 13.17.10 G4 (ersetzt die Füllung aus F5): Raute ohne Füllung, Pfeil unter dem Rand, auf (10|11) und jedem anderen Feld
+  it('Raute ohne Füllung (G4): Pfeil → Rand, keine sichtbare gelbe Fläche, auf (10|11) und auf jedem anderen Feld', () => {
     for (const [s, farbe] of [
       [szene({ tutorial_band: T13_BAND, naechstes_feld: [10, 11] }), KONTUR],
       [szene({ tutorial_band: FELD_9_12, naechstes_feld: [9, 12] }), '#ffffff'],
     ] as const) {
-      const b = bild(s), f = rauteFuellung(b), p = pfeil(b, farbe);
-      expect(f).toBeGreaterThan(-1);
-      expect(p, 'Pfeil nach der Füllung').toBeGreaterThan(f);
-      const rand = b.findIndex((x, i) => i > f && x === `strokeStyle=${ZIEL}`);
+      const b = bild(s), rand = rauteFuellung(b), p = pfeil(b, farbe);
+      expect(rand, 'Rand der Raute').toBeGreaterThan(-1);
+      expect(p, 'Pfeil gezeichnet').toBeGreaterThan(-1);
       expect(rand, 'Rand nach dem Pfeil').toBeGreaterThan(p);
+      expect(gelbeFuellungen(b), 'keine gelbe Füllung (Deckkraft 0)').toBe(0);
     }
   });
 
