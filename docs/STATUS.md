@@ -64,3 +64,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P1 Review 🔴 (Muss 1 Rollen-Überschneidung, Muss 2 Phasentest) → Nachbesserung läuft.
 - 2026-11-07: P4a Review 🔴 (W1 Band-Eingang am Stückanfang) → Nachbesserung läuft (inkl. K1–K3). Designer: DESIGN 13.17.1 B2 Kontrastliste (32er kontur statt weiß) berichtigen – später mit Fotoprüfung.
 - 2026-11-07: P4b fertig (a1f69db, nr20-p4b) → Review.
+- 2026-11-07: P2 Review 🟡 → in nr20-int gemergt (122bcd0). Tester schließt P2-Testlücken K1–K5. Für P5 sammeln: Kommentare tutorial-vertrag.ts:99/108 (T13b, erster Strich) veraltet.
