@@ -889,6 +889,8 @@ export class Steuerung implements Ui {
     if (a.zielscheibe) sz.zielscheibe = a.zielscheibe;
     if (a.ziel_stecker.length) sz.ziel = { stecker: a.ziel_stecker, ring: a.ziel_ring };
     if (a.ruhe) sz.ruhe = true;
+    // DESIGN 13.17.8: Während eines Zugs blieben sonst Streifen auf halb gezogenen Feldern stehen – sie erscheinen beim Abheben
+    if (a.fremd.length && !(this.modus === 'stempel' && this.zeiger.size > 0)) sz.tutorial_fremd = a.fremd;
     for (const id of [a.objekt_ids.haus1, a.objekt_ids.haus2]) {
       if (!a.erreicht_ids.includes(id)) this.erreichtSeit.delete(id);
       else if (!this.erreichtSeit.has(id)) this.erreichtSeit.set(id, this.uhr());
