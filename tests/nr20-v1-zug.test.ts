@@ -151,4 +151,62 @@ describe('NR20 V1 – Zug ab einer vorhandenen Leitung (E4)', () => {
       expect([11, 12, 13].map((y) => leitungBei(s, 10, y)?.ersatz?.typ)).toEqual(['d32', 'd32', 'd32']);
     });
   });
+
+  // Sammelliste P5 Punkt 9 (Review P3, K1–K3)
+  it('K1: Zug beginnt auf einer Leitung am Kartenrand (10|0) und geht über den Rand hinaus → Startfeld bleibt d32 (E4 Regel 2 „außerhalb“)', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      const k = u.st.kamera as unknown as { mitte(x: number, y: number): [number, number]; feld(a: number, b: number): [number, number]; zentrieren(x: number, y: number, kante: number): void };
+      k.zentrieren(10, 0, 1);
+      zeichne(u, 'd32', [[10, 1], [10, 0]]);
+      expect([typBei(s, 10, 0), typBei(s, 10, 1)], 'Testaufbau').toEqual(['d32', 'd32']);
+      u.st.stempeln('d25'); hilfeZu(u);
+      const canvas = u.dom.app.querySelector('canvas')!;
+      const [sx, sy] = punkt(u, 10, 0), [ax, ay] = k.mitte(10, -1);
+      expect(k.feld(ax, ay), 'Testaufbau: Punkt liegt außerhalb der Karte').toEqual([10, -1]);
+      const ev = (x: number, y: number) => ({ pointerId: 7, clientX: x, clientY: y, pointerType: 'touch', button: 0 });
+      canvas.ausloesen('pointerdown', ev(sx, sy));
+      canvas.ausloesen('pointermove', ev(ax, ay));
+      canvas.ausloesen('pointerup', ev(ax, ay));
+      expect([typBei(s, 10, 0), typBei(s, 10, 1)]).toEqual(['d32', 'd32']);
+    });
+  });
+
+  it('K2: schnelles Wischen vom Leitungsende (10|13) über das freie (10|14) auf eine Leitung (10|15) → Startfeld bleibt d32 (F = erstes Feld neben S)', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      zeichne(u, 'd32', [[10, 11], [10, 12], [10, 13]]);
+      zeichne(u, 'd32', [[10, 15]]);
+      expect([typBei(s, 10, 13), typBei(s, 10, 14), typBei(s, 10, 15)], 'Testaufbau').toEqual(['d32', null, 'd32']);
+      zeichne(u, 'd25', [[10, 13], [10, 15]]);
+      expect([typBei(s, 10, 13), typBei(s, 10, 14)]).toEqual(['d32', 'd25']);
+    });
+  });
+
+  it('K3: Leitungsende über der Heizzentrale (11|9) bleibt beim 25er-Zug d32', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      zeichne(u, 'd32', [[11, 9], [11, 8]]);
+      zeichne(u, 'd25', [[11, 9], [11, 8]]);
+      expect([typBei(s, 11, 9), typBei(s, 11, 8)]).toEqual(['d32', 'd25']);
+    });
+  });
+
+  it('K3: Leitungsende unter der Heizzentrale (12|12) bleibt beim 25er-Zug d32', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      zeichne(u, 'd32', [[12, 12], [12, 13]]);
+      zeichne(u, 'd25', [[12, 12], [12, 13]]);
+      expect([typBei(s, 12, 12), typBei(s, 12, 13)]).toEqual(['d32', 'd25']);
+    });
+  });
+
+  it('K3: Leitungsende diagonal an der Ecke der Heizzentrale (10|9) wird beim 25er-Zug überzeichnet', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      zeichne(u, 'd32', [[10, 9], [10, 8]]);
+      zeichne(u, 'd25', [[10, 9], [10, 8]]);
+      expect([typBei(s, 10, 9), typBei(s, 10, 8)]).toEqual(['d25', 'd25']);
+    });
+  });
 });

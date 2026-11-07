@@ -551,7 +551,11 @@ export class Steuerung implements Ui {
   private stempelnBei(mx: number, my: number, gesteStart = false): void {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
-    if (x < 0 || y < 0 || x >= N || y >= N) return;
+    if (x < 0 || y < 0 || x >= N || y >= N) {
+      // E4 Regel 2: Verlässt der Finger S über den Kartenrand, ist F „außerhalb“ – S bleibt, auch beim Abheben dort
+      this.stempelStart = null;
+      return;
+    }
     if (this.radieren) { if (this.spiel.geplanteLeitungEntfernen(x, y).ok) this.geaendert(); return; }
     // T13w (B5): Zeichnen ruht bis zum Farbknopf; je Zug zählt einmal „daneben“ (drei Züge bis zum Hilfe-Satz)
     if (this.anleitung?.ansicht(this.uhr())?.zeichnen_ruht) {
