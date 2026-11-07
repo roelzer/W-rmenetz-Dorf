@@ -117,9 +117,6 @@ export class Spiel {
     return {
       kessel_kw: this.netz.verfuegbar_kw, kwh: this.jahresverbrauch_kwh(h1), kw_ohne: bedarfKw({ ...h1, hauspuffer: false }), kw_puffer,
       kw_summe, haupt, anschluss,
-      // Veraltet (Bauplan NR20-22 §5): bleiben befüllt, bis der P2-Nachzug sie aus Vertrag und Schrittlogik nimmt. Die
-      // Schrittlogik wählt in T12 noch nach `leitung` – das ist ab NR21 die Hauptleitung (E8: T12 nennt {haupt}).
-      leitung: haupt, kap_kw: kap(haupt),
     };
   }
   /** NR21 (E3): Rollenprüfung der Tutorial-Leitungen im Probe-Netz (gebaut + eingezeichnet). */

@@ -58,10 +58,6 @@ export interface TutorialWerte {
   haupt: TypId;
   /** NR21: Größe jedes Hausanschlusses (aus der Spielrechnung, E2) */
   anschluss: TypId;
-  /** @deprecated NR21 – entfällt im P2-Nachzug; optional, damit neue Tests sie weglassen können */
-  leitung?: TypId;
-  /** @deprecated NR21 – entfällt im P2-Nachzug */
-  kap_kw?: number;
 }
 
 /** NR20/NR21: Feldkoordinate (x, y) auf der Karte. */
@@ -96,8 +92,9 @@ export interface TutorialSperre { kurz: string; satz: string }
 export interface TutorialAnsicht {
   schritt: TutorialSchrittId; kapitel: number; kapitel_name: string;
   art: 'W' | 'H';
-  /** fertiger Blasentext nach Vorrang K4 (Sperr-Satz > Hilfe nur bei H > T13b > Grundtext; in T13 bei fehlendem Geld der
-   *  Geld-Satz), **fett**-Marken, höchstens 120 Zeichen ohne Marken */
+  /** fertiger Blasentext nach Vorrang (Bauplan NR20-22 P2): T13/T13h Geld-Satz > Sperr-Satz > eigener Abgang > Größen-Satz >
+   *  Hilfe > Zwischenstand (nur T13h) > Grundtext; T13w Sperr-Satz > Hilfe > Erklärsatz; sonst Sperr-Satz > Hilfe (nur H) >
+   *  Grundtext. **fett**-Marken, höchstens 120 Zeichen ohne Marken */
   text: string;
   /** K4: Erklär-Schritt nach drei Fehltipps – „Tippe auf Weiter.“ gedämpft in der Knopfzeile */
   knopf_hinweis?: string;
@@ -105,7 +102,8 @@ export interface TutorialAnsicht {
   wusstest_du: boolean;
   /** Löcher; Fingerziel = ziele[0] */
   ziele: ZielName[];
-  /** 'tippen' auf ziele[0]; 'spur' = fährt die Tutorial-Spur ab (T13 bis zum ersten eigenen Strich) */
+  /** 'tippen' auf ziele[0]; 'spur' = fährt finger_weg ab, in T13 und T13h für den ganzen Schritt –
+   *  weitergeschaltet wird erst nach dem Abheben des Zugs (`zugLaeuft`) */
   finger: 'aus' | 'tippen' | 'spur';
   abdunkeln: 'alles' | 'nur_hud' | 'nichts';
   /** null = Handlungs-Schritt; 'wartet' = [Weiter] noch nicht frei (T11/T23) */
