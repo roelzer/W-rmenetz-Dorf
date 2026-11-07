@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KATALOG } from '../src/core/katalog';
 import { groesse } from '../src/core/netz';
 import { Spiel } from '../src/core/spiel';
-import { ERSTE_HAEUSER, TUTORIAL_SPUR, neuesSpielMitTutorial } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
 import { Tutorial } from '../src/core/tutorial';
 import type { Bedienung } from '../src/core/tutorial-vertrag';
 import { El } from './hilfen/dom-attrappe';
@@ -63,11 +63,12 @@ describe('NR13 Design 13.16 M1: Anleiter-Karte in T13 frei von Spur und Gebäude
   beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
   afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
-  // Karte nach 13.3 (Leiste offen): Breite min(460, frei − 2 × 12), links 12, Höhe 162 (Token anleiter_hoehe), unten 12 Rand.
-  //   667 × 375: frei 667 − 216 = 451 → Breite 427, oben 375 − 12 − 162 = 201 (Foto 667x375_T13_spur.png: Karte ab x 12 bis 439).
-  //   844 × 390: frei 844 − 216 = 628 → Breite 460, oben 390 − 12 − 162 = 216.
-  for (const [breite, hoehe, karte] of [[667, 375, { x: 12, y: 201, b: 427, h: 162 }], [844, 390, { x: 12, y: 216, b: 460, h: 162 }]] as const) {
-    it(`test_nr13_t13_anleiter_verdeckt_nichts_${breite}: Spur, Heizzentrale und beide Häuser liegen über der Karte und links der Leiste`, async () => {
+  // Karte nach 13.3 (Leiste offen): Breite min(460, frei − 2 × 12), links 12, unten 12 Rand. NR20-22 P4: in T13/T13w/T13h
+  // kompakt mit Höhe 92 (Token anleiter_kompakt_hoehe) statt 162.
+  //   667 × 375: frei 667 − 216 = 451 → Breite 427, oben 375 − 12 − 92 = 271.
+  //   844 × 390: frei 844 − 216 = 628 → Breite 460, oben 390 − 12 − 92 = 286.
+  for (const [breite, hoehe, karte] of [[667, 375, { x: 12, y: 271, b: 427, h: 92 }], [844, 390, { x: 12, y: 286, b: 460, h: 92 }]] as const) {
+    it(`test_nr13_t13_anleiter_verdeckt_nichts_${breite}: in T13, T13w und T13h liegen Band, Heizzentrale und beide Häuser über der kompakten Karte und links der Leiste`, async () => {
       const uhr = { t: T0 }, spiel = new Spiel(neuesSpielMitTutorial(T0), () => uhr.t);
       // Die DOM-Nachbildung rechnet kein Layout: die offene Zeichenleiste bekommt ihre Breite wie im Browser
       const echt = El.prototype.getBoundingClientRect;
@@ -79,21 +80,36 @@ describe('NR13 Design 13.16 M1: Anleiter-Karte in T13 frei von Spur und Gebäude
         bisT13(u, spiel, uhr);
         const k = st(u).kamera;
         expect(k.winkel_rad).toBe(0);
-        // Zoom höchstens bis 2 gesenkt; die T13-Grenze gilt ab der neuen Lage (zoom_min = aktueller Zoom)
+        // NR20-22 P5: Zoom 2 … 3; die T13-Grenze gilt ab der neuen Lage (zoom_min = aktueller Zoom)
         expect(k.zoom).toBeGreaterThanOrEqual(2);
+        expect(k.zoom).toBeLessThanOrEqual(3);
         expect(k.grenze!.zoom_min).toBeCloseTo(k.zoom, 6);
         const halb = k.mitte(1, 0)[0] - k.mitte(0, 0)[0]; // halbe Feldbreite tw / 2 (ohne Drehung)
         const [h1, h2] = [hausBei(spiel, ERSTE_HAEUSER[0]), hausBei(spiel, ERSTE_HAEUSER[1])];
-        const punkte: Array<[string, [number, number]]> = [
-          ...TUTORIAL_SPUR.map(([x, y]): [string, [number, number]] => [`Spur ${x}|${y}`, k.mitte(x, y)]),
-          ['Heizzentrale', objektMitte(u, spiel.hz)], ['Haus 1', objektMitte(u, h1)], ['Haus 2', objektMitte(u, h2)],
-        ];
-        for (const [name, [px, py]] of punkte) {
-          const schneidet = px - halb < karte.x + karte.b && karte.x < px + halb && py - halb < karte.y + karte.h && karte.y < py + halb;
-          expect([name, schneidet], `${name} bei ${px.toFixed(1)}|${py.toFixed(1)}, halbe Feldbreite ${halb.toFixed(1)}`).toEqual([name, false]);
-          expect(px + halb, `${name} links der Leiste`).toBeLessThanOrEqual(breite - LEISTE_PX);
-          expect(px - halb, `${name} im Bild`).toBeGreaterThanOrEqual(0);
-        }
+        const pruefen = (schritt: string): void => {
+          expect(schrittJetzt(u)).toBe(schritt);
+          const punkte: Array<[string, [number, number]]> = [
+            ...[...TUTORIAL_HAUPT, ...TUTORIAL_ANSCHLUSS_1, ...TUTORIAL_ANSCHLUSS_2].map(([x, y]): [string, [number, number]] => [`Band ${x}|${y}`, k.mitte(x, y)]),
+            ['Heizzentrale', objektMitte(u, spiel.hz)], ['Haus 1', objektMitte(u, h1)], ['Haus 2', objektMitte(u, h2)],
+          ];
+          for (const [name, [px, py]] of punkte) {
+            const schneidet = px - halb < karte.x + karte.b && karte.x < px + halb && py - halb < karte.y + karte.h && karte.y < py + halb;
+            expect([name, schneidet], `${schritt}: ${name} bei ${px.toFixed(1)}|${py.toFixed(1)}, halbe Feldbreite ${halb.toFixed(1)}`).toEqual([name, false]);
+            expect(px + halb, `${schritt}: ${name} links der Leiste`).toBeLessThanOrEqual(breite - LEISTE_PX);
+            expect(px - halb, `${schritt}: ${name} im Bild`).toBeGreaterThanOrEqual(0);
+          }
+        };
+        pruefen('T13');
+        // Hauptleitung in einem Zug → beim Abheben T13w; Farbknopf der Hausanschluss-Größe → T13h
+        const c = u.dom.app.querySelector('canvas')!;
+        const weg = TUTORIAL_HAUPT.map(([x, y]) => k.mitte(x, y));
+        const z = (p: [number, number]) => ({ pointerId: 7, clientX: p[0], clientY: p[1], pointerType: 'touch', button: 0 });
+        c.ausloesen('pointerdown', z(weg[0])); for (const p of weg.slice(1)) c.ausloesen('pointermove', z(p)); c.ausloesen('pointerup', z(weg[weg.length - 1]));
+        st(u).tick(uhr.t);
+        pruefen('T13w');
+        u.dom.html.querySelector(`[data-id="farbe-${spiel.tutorialWerte().anschluss}"]`)!.click();
+        st(u).tick(uhr.t);
+        pruefen('T13h');
       }, { uhr: () => uhr.t, breite, hoehe });
     });
   }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { KATALOG } from '../src/core/katalog';
+import { KATALOG, type TypId } from '../src/core/katalog';
 import { laden, serialisieren } from '../src/core/speichern';
 import { Spiel } from '../src/core/spiel';
-import { ERSTE_HAEUSER, TUTORIAL_SPUR, neuesSpielMitTutorial } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
 import { Tutorial } from '../src/core/tutorial';
 import type { TippMeldung } from '../src/core/tutorial-vertrag';
 import { altesStartdorf } from './hilfen/altes-startdorf';
@@ -49,14 +49,34 @@ const bisT11 = (s: Spiel, f: Fahrer): void => {
   expect(s.abschnittPlanen().ok).toBe(true); f.melden();
   expect(f.jetzt()).toBe('T11');
 };
-/** ab T11: Planung abwarten, Spur einzeichnen, abschließen → T15 */
+/** Ein Zug: Felder einzeichnen wie die Steuerung (je Feld ein Ereignis), dann heben die Finger ab */
+const zug = (s: Spiel, f: Fahrer, typ: TypId, felder: ReadonlyArray<readonly [number, number]>, abheben = true): void => {
+  for (const [x, y] of felder) { expect(s.platzieren(typ, x, y).ok, `${typ} auf ${x}|${y}`).toBe(true); f.melden(); }
+  if (abheben) f.tippe({ tipp: 'abgehoben' });
+};
+/** ab T11: Planung abwarten, Hauptleitung und beide Hausanschlüsse einzeichnen (NR20-22 E1), abschließen → T15 */
 const t11BisT15 = (s: Spiel, f: Fahrer): void => {
   f.warte(10_000); // Tutorial-Planung 10 s (tests/nr13-kern.test.ts, test_nr13_tutorial_zeiten)
   f.tippe({ tipp: 'weiter' });
-  const typ = s.tutorialWerte().haupt;
-  f.tippe({ tipp: 'leitungskarte', typ });
+  const { haupt, anschluss } = s.tutorialWerte();
+  f.tippe({ tipp: 'leitungskarte', typ: haupt });
   expect(f.jetzt()).toBe('T13');
-  for (const [x, y] of TUTORIAL_SPUR) { expect(s.platzieren(typ, x, y).ok).toBe(true); f.melden(); }
+  // Hauptleitung: der Wechsel nach T13w kommt erst beim Abheben (B1)
+  zug(s, f, haupt, TUTORIAL_HAUPT, false);
+  expect(f.jetzt()).toBe('T13');
+  f.tippe({ tipp: 'abgehoben' });
+  expect(f.jetzt()).toBe('T13w');
+  // T13w: nur der Farbknopf der Hausanschluss-Größe führt weiter
+  f.tippe({ tipp: 'farbknopf', typ: haupt });
+  expect(f.jetzt()).toBe('T13w');
+  f.tippe({ tipp: 'farbknopf', typ: anschluss });
+  expect(f.jetzt()).toBe('T13h');
+  zug(s, f, anschluss, TUTORIAL_ANSCHLUSS_1);
+  expect(f.jetzt()).toBe('T13h');
+  // der Zug, der Haus 2 als letztes anschließt: T14 erst nach dem Abheben ([2.3])
+  zug(s, f, anschluss, TUTORIAL_ANSCHLUSS_2, false);
+  expect(f.jetzt()).toBe('T13h');
+  f.tippe({ tipp: 'abgehoben' });
   expect(f.jetzt()).toBe('T14');
   expect(s.abschnittAbschliessen().ok).toBe(true); f.melden();
   expect(s.abschnittWarnungen()).toEqual([]);
