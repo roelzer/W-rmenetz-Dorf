@@ -77,3 +77,4 @@ Q2: 10 m · Q3: 40 °C Mindest-Rücklauf (A73) · Q4: passt · Q5: ja, weiter so
 - Q20 (NR20): Was stört an der Ansicht beim Leitungsziehen im Tutorial genau?
 - Q21 (NR21): Wie soll der Spieler im Tutorial die Leitungsgrößen kennenlernen?
 - Q22 (NR22): Wie soll Überlast angezeigt werden, damit die Größe erkennbar bleibt?
+- Antworten Simon 2026-11-07: Q20 „man sieht nicht, wo man hin soll“; Q21 Hauptleitung + Hausanschluss; Q22 Farbe + Warnzeichen mit Vergrößern-Vorschlag. Erledigt.
