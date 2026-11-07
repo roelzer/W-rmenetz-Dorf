@@ -529,6 +529,18 @@ describe('NR13 P4 Einbindung – Ablauf Geldmangel', () => {
     }
     expect(zurueck).toBeLessThan(umwege);
     expect(s.erreichteHaeuser()).toEqual(expect.arrayContaining([h1.id, h2.id]));
+    // Geld reicht wieder, aber die übrigen Umwege liegen abseits der Spur → „Stück muss weg“ (DESIGN 13.17.9 F3), kein T14
+    t.zustandPruefen();
+    expect(jetzt()).toBe('T13h');
+    expect(s.tutorialLeitungen().fremd).toHaveLength(umwege - zurueck);
+    expect(t.sperre('abschliessen')?.kurz).toBe('Stück muss weg');
+    // weiter mit Zurück, bis alle Umwege weg sind – auch hier hängt der Spieler nicht fest
+    while (s.tutorialLeitungen().fremd.length > 0) {
+      expect(s.letzteLeitungZurueck().ok).toBe(true); melden(); t.handlung();
+      zurueck++;
+    }
+    expect(zurueck).toBe(umwege);
+    expect(s.erreichteHaeuser()).toEqual(expect.arrayContaining([h1.id, h2.id]));
     t.zustandPruefen();
     expect(jetzt()).toBe('T14');
 
@@ -759,8 +771,10 @@ describe('NR13 P4 Einbindung – Teil 4', () => {
     await echteSteuerung(spiel, (u) => {
       bisT14(u, spiel, uhr);
       spiel.stand.geld_eur = 0;
-      spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur();
-      wischeFelder(u, [[11, 15]]); // Stichleitung am Ende von Hausanschluss 2, kein Planungsfehler
+      // 1 € weniger als nötig. Früher machte eine Stichleitung (11|15) das Geld knapp; seit DESIGN 13.17.9 F3 wäre sie ein
+      // fremdes Stück und sperrte T14 aus einem anderen Grund. Auch der Weg zurück nach T13h kommt so allein aus dem Bild.
+      spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur() - 1;
+      expect(spiel.tutorialGeldFehlt_eur()).toBe(1);
       s2(u).tick(uhr.t);
       expect(schrittJetzt(u)).toBe('T13h');
       expect(zeile2(zielEl(u, 'abschliessen')!)).toBe('Geld reicht nicht');

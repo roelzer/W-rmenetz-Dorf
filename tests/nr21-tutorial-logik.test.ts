@@ -262,11 +262,17 @@ describe('NR21 Tutorial-Schrittlogik (Bauplan NR20-22 P2)', () => {
     // zusätzlich Hauptleitung zu dünn → Rücksprung T13, Satz eigener Abgang vor dem Größen-Satz (K4)
     setze(l, t, falsch(lage({ haupt: true, haus1: true }, ABGANG), 10, 11, 'd25', { haupt_ok: false, haupt_zu_duenn: true }));
     expect(an(t)).toMatchObject({ schritt: 'T13', text: TEXT.eigenerAbgang });
-    // Stück weg: Zwischenstand, Zielscheibe weg
+    // Stück weg: Zwischenstand; die Zielscheibe bleibt am Abzweig, bis Haus 2 richtig angeschlossen ist (DESIGN 13.17.9 F8)
     const [u, m] = inT13h();
     setze(m, u, lage({ haupt: true, haus1: true }, ABGANG));
     setze(m, u, lage({ haupt: true, haus1: true }, { planungsfehler: true }));
-    expect(an(u)).toMatchObject({ schritt: 'T13h', text: TEXT.zwischenstand, zielscheibe: null, fremd: [], ziel_ring: h2(m) });
+    expect(an(u)).toMatchObject({ schritt: 'T13h', text: TEXT.zwischenstand, zielscheibe: [10, 12], fremd: [], ziel_ring: h2(m) });
+    // Haus 2 richtig angeschlossen, aber noch ein Planungsfehler: T13h bleibt, Zielscheibe jetzt weg
+    setze(m, u, lage(ALLE, { planungsfehler: true }));
+    expect(an(u)).toMatchObject({ schritt: 'T13h', zielscheibe: null, fremd: [] });
+    expect(u.sperre('abschliessen')).toEqual(GROESSE);
+    setze(m, u, lage(ALLE));
+    expect(jetzt(u)).toBe('T14');
   });
 
   it('test_nr21_vierer_ring_ohne_haus – Streifen da, aber kein Haus als Verursacher (Zusatz PL K-d)', () => {

@@ -132,8 +132,9 @@ describe('NR20-22 P5 Einbindung: Szene, Finger, Kamera', () => {
       const [x0, y0] = st(u).kamera.mitte(10, 11);
       const runde = (n: number): number => Math.round(n * 100) / 100;
       expect(fingerEl(u)!.style.transform).toBe(`translate(${runde(x0)}px, ${runde(y0)}px)`);
-      // Finger auf einem freien Feld neben der Spur (kein Zug über die Spur) – solange er liegt, ist der Vorführ-Finger weg
-      const [mx, my] = st(u).kamera.mitte(14, 8);
+      // Finger auf das erste Spurfeld (kein Zug über die Spur) – solange er liegt, ist der Vorführ-Finger weg. Früher ein freies
+      // Feld (14|8) neben der Spur; seit DESIGN 13.17.9 F3 wäre die Probe-Leitung dort fremd und der Vorführ-Finger bliebe aus.
+      const [mx, my] = st(u).kamera.mitte(10, 11);
       leinwand(u).ausloesen('pointerdown', zeiger(7, mx, my));
       st(u).tick(uhr.t);
       expect(fingerEl(u)).toBeNull();
@@ -142,7 +143,7 @@ describe('NR20-22 P5 Einbindung: Szene, Finger, Kamera', () => {
       expect(fingerEl(u), '4 s (design/tokens.json finger_wieder) noch nicht um').toBeNull();
       vi.advanceTimersByTime(1); st(u).tick(uhr.t);
       expect(fingerEl(u)).not.toBeNull();
-      // Probe-Leitung auf (14|8) wieder weg, dann die Hauptleitung
+      // Probe-Leitung auf (10|11) wieder weg, dann die Hauptleitung
       knopfMitId(u, 'zurueck')!.click();
       wischeFelder(u, TUTORIAL_HAUPT);
       vi.advanceTimersByTime(4_000); st(u).tick(uhr.t);

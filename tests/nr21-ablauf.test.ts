@@ -238,9 +238,17 @@ describe('NR21 Ablauf: Haus 2 zuerst und eigener Abgang (DESIGN 13.17.8)', () =>
       knopfRechteck(knopfMitId(u, 'zurueck')!, 600, 300); st(u).tick(uhr.t);
       expect(ringMitten(u)).toContainEqual([622, 322]);
       expect(abschliessenText(u)).toContain(KURZ_WEG);
+      // [Zurück] nimmt nur (12|13); der Rest (12|12) bleibt gestreift, Abschließen bleibt „Stück muss weg“ (DESIGN 13.17.9 F3)
+      knopfMitId(u, 'zurueck')!.click(); st(u).tick(uhr.t);
+      expect(st(u).szene().tutorial_fremd).toEqual([[12, 12]]);
+      expect(text(u)).toBe(SATZ_EIGENER_ABGANG);
+      expect(abschliessenText(u)).toContain(KURZ_WEG);
+      expect(st(u).szene().zielscheibe).toEqual([10, 12]);
+      // zweites [Zurück] nimmt den Rest → Zwischenstand; Zielscheibe bleibt, bis Haus 2 angeschlossen ist (DESIGN 13.17.9 F8)
       knopfMitId(u, 'zurueck')!.click(); st(u).tick(uhr.t);
       expect(st(u).szene().tutorial_fremd ?? []).toEqual([]);
       expect(text(u)).toBe(ZWISCHENSTAND);
+      expect(st(u).szene().zielscheibe).toEqual([10, 12]);
       wischeFelder(u, ZUG_HAUS2); st(u).tick(uhr.t);
       expect(schritt(u)).toBe('T14');
       abT14Bauen(u, spiel, uhr);
@@ -266,6 +274,11 @@ describe('NR21 Ablauf: Haus 2 zuerst und eigener Abgang (DESIGN 13.17.8)', () =>
       expect(ringMitten(u)).not.toContainEqual([622, 322]);
       knopfMitId(u, 'radierer')!.click(); st(u).tick(uhr.t);
       wischeFelder(u, [[12, 13]]); st(u).tick(uhr.t);
+      // Rest (12|12) bleibt gestreift → kein T14 (DESIGN 13.17.9 F3); Radierer auch auf (12|12) → T14
+      expect(st(u).szene().tutorial_fremd).toEqual([[12, 12]]);
+      expect(schritt(u)).toBe('T13h');
+      expect(abschliessenText(u)).toContain(KURZ_WEG);
+      wischeFelder(u, [[12, 12]]); st(u).tick(uhr.t);
       expect(schritt(u)).toBe('T14');
     }, { uhr: () => uhr.t });
   });

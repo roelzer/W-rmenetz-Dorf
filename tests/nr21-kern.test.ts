@@ -175,10 +175,13 @@ describe('NR21 P1 Kern: Rollenprüfung (E3)', () => {
     expect(spurFeld(lage, 10, 14)).toEqual({ x: 10, y: 14, stueck: 'haus2', belegt: 'd32', richtig: false });
   });
 
-  it('test_nr21_stummel_ohne_rolle: zusätzlich (10|10) als 25er → unverändert ok, Stummel ohne Rolle', () => {
-    const { lage } = lageMit([...E1, ['d25', 10, 10]]);
-    expect(kurz(lage)).toEqual(ALLES_OK);
+  it('test_nr21_stummel_ohne_rolle: zusätzlich (10|10) als 25er → Häuser unverändert ok, Stummel ohne Rolle, aber fremd; weg → alles ok', () => {
+    // DESIGN 13.17.9 F3 (ENTSCHEIDUNGEN 2026-11-07): In Kapitel 3 ist jede Leitung außerhalb von Spur und echtem Hauptweg fremd.
+    const { s, lage } = lageMit([...E1, ['d25', 10, 10]]);
+    expect(kurz(lage)).toEqual({ ...ALLES_OK, fremd: [[10, 10]] });
     expect(lage.felder.some((f) => f.x === 10 && f.y === 10)).toBe(false);
+    expect(s.geplanteLeitungEntfernen(10, 10).ok).toBe(true);
+    expect(kurz(s.tutorialLeitungen())).toEqual(ALLES_OK);
   });
 
   it('test_nr21_neben_der_spur: (a) Haus 1 über (8|13); (b) Haus 2 über (12|13), leere Spurfelder nicht richtig', () => {
@@ -205,7 +208,10 @@ describe('NR21 P1 Kern: Rollenprüfung (E3)', () => {
     const d = lageMit([...HAUPT, ...ANSCHLUSS_1, ...abgang, ...ANSCHLUSS_2]);
     expect(anschlussFeld(d.s, d.h2)).toEqual([12, 13]);
     expect(kurz(d.lage)).toEqual({ ...ALLES_OK, haus2_ok: false, planungsfehler: false, fremd, fremd_haus: 2 });
+    // (e) DESIGN 13.17.9 F3: nach dem Wegnehmen von (12|13) bleibt der Rest (12|12) fremd (kein Hausweg mehr → fremd_haus null)
     expect(a.s.geplanteLeitungEntfernen(12, 13).ok).toBe(true);
+    expect(kurz(a.s.tutorialLeitungen())).toEqual({ ...ALLES_OK, haus2_ok: false, planungsfehler: true, fremd: [[12, 12]] });
+    expect(a.s.geplanteLeitungEntfernen(12, 12).ok).toBe(true);
     expect(kurz(a.s.tutorialLeitungen())).toEqual({ ...ALLES_OK, haus2_ok: false, planungsfehler: true });
   });
 
@@ -226,10 +232,13 @@ describe('NR21 P1 Kern: Rollenprüfung (E3)', () => {
   });
 
   it('test_nr21_vorbeilaufend_eigenes_spurfeld: Haupt + (9|12),(8|12) → Haus 1 an (9|12) ok; + Anschluss 2 → kein Planungsfehler', () => {
+    // (8|12) liegt abseits der Spur → fremd (DESIGN 13.17.9 F3), zählt aber nicht als eigener Abgang (kein Hausweg darüber).
     const { s, h1, lage } = lageMit([...HAUPT, ['d25', 9, 12], ['d25', 8, 12]]);
     expect(anschlussFeld(s, h1)).toEqual([9, 12]);
-    expect([lage.haus1_ok, lage.planungsfehler]).toEqual([true, true]);
+    expect([lage.haus1_ok, lage.planungsfehler, lage.fremd, lage.fremd_haus]).toEqual([true, true, [[8, 12]], null]);
     zeichnen(s, ANSCHLUSS_2);
+    expect(kurz(s.tutorialLeitungen())).toEqual({ ...ALLES_OK, fremd: [[8, 12]] });
+    expect(s.geplanteLeitungEntfernen(8, 12).ok).toBe(true);
     expect(kurz(s.tutorialLeitungen())).toEqual(ALLES_OK);
   });
 
@@ -252,18 +261,22 @@ describe('NR21 P1 Kern: Rollenprüfung (E3)', () => {
     const netz = netzVon(s);
     expect([...netz.engpass].sort((p, q) => p - q)).toEqual([nr(10, 9), nr(10, 10)]);
     expect(kurz(lage)).toEqual({ ...ALLES_OK, planungsfehler: true, fremd: [[10, 9], [10, 10], [11, 13]] });
-    // Zwischenstand (Haus 2 fehlt) mit demselben Stummel: Der zweite Teil von fremd greift nur, wenn beide Häuser ok sind.
+    // Zwischenstand (Haus 2 fehlt) mit demselben Stummel: Der zweite Teil von fremd greift nur, wenn beide Häuser ok sind –
+    // seit DESIGN 13.17.9 F3 ist der Stummel abseits der Spur aber trotzdem fremd (dritter Teil), sortiert nach Feldnummer.
     const zw = lageMit([...HAUPT, ...ANSCHLUSS_1, ['d25', 10, 10], ['d32', 10, 9]]).lage;
-    expect([zw.planungsfehler, zw.haus2_ok, zw.fremd]).toEqual([true, false, []]);
+    expect([zw.planungsfehler, zw.haus2_ok, zw.fremd, zw.fremd_haus]).toEqual([true, false, [[10, 9], [10, 10]], null]);
   });
 
   it('test_nr21_zweite_verbindung_11_12: volle Spur + 25er/32er auf (11|12) → was die Lage liefert (Probe PL)', () => {
     // Probe: Mit 25er auf (11|12) hängt (10|12) wieder an (10|11) (A91 hängt an den dickeren Nachbarn), (11|12) ist ein
     // Stummel an der Heizzentrale ohne Planungsfehler. Mit 32er auf (11|12) hängt (10|12) an (11|12), (10|11) wird der Stummel.
+    // DESIGN 13.17.9 F3: der 25er-Stummel (11|12) liegt abseits von Spur und echtem Hauptweg → fremd, bis er weg ist.
     const d25 = lageMit([...E1, ['d25', 11, 12]]);
     expect(netzVon(d25.s).eltern.get(nr(10, 12))).toBe(nr(10, 11));
-    expect(kurz(d25.lage)).toEqual(ALLES_OK);
+    expect(kurz(d25.lage)).toEqual({ ...ALLES_OK, fremd: [[11, 12]] });
     expect(d25.lage.felder.some((f) => f.x === 11 && f.y === 12)).toBe(false);
+    expect(d25.s.geplanteLeitungEntfernen(11, 12).ok).toBe(true);
+    expect(kurz(d25.s.tutorialLeitungen())).toEqual(ALLES_OK);
     const d32 = lageMit([...E1, ['d32', 11, 12]]);
     expect(netzVon(d32.s).eltern.get(nr(10, 12))).toBe(nr(11, 12));
     expect(kurz(d32.lage)).toEqual(ALLES_OK);
@@ -353,7 +366,8 @@ describe('NR21 P1 Kern: Randfälle', () => {
     // Haus 1 an (9|14), Haus 2 an (11|14), beide Leitungsenden; beide Hauswege laufen über (10|14),(10|13) zum Abzweig.
     const { s, h1, h2, lage } = lageMit([...HAUPT, ['d25', 10, 13], ['d25', 10, 14], ['d25', 11, 14], ['d25', 9, 14]]);
     expect([anschlussFeld(s, h1), anschlussFeld(s, h2)]).toEqual([[9, 14], [11, 14]]);
-    expect(kurz(lage)).toEqual({ ...ALLES_OK, haupt_ok: false, haus1_ok: false, haus2_ok: false, haupt_zu_duenn: true, planungsfehler: true });
+    // (9|14) liegt abseits der Spur → fremd (DESIGN 13.17.9 F3); fremd hat Vorrang, die Hausbewertung bleibt wie sie ist.
+    expect(kurz(lage)).toEqual({ ...ALLES_OK, haupt_ok: false, haus1_ok: false, haus2_ok: false, haupt_zu_duenn: true, planungsfehler: true, fremd: [[9, 14]] });
     expect(lage.felder.find((f) => f.x === 10 && f.y === 13)).toEqual({ x: 10, y: 13, rolle: 'haupt', typ: 'd25', richtig: false });
     expect(lage.felder.find((f) => f.x === 10 && f.y === 14)).toEqual({ x: 10, y: 14, rolle: 'haupt', typ: 'd25', richtig: false });
     // Spur prüft nach der Rolle, nicht nach dem Spurstück: (10|13),(10|14) sind Stück haus2, aber hier Hauptleitung.

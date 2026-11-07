@@ -43,6 +43,14 @@ describe('NR21 Einbindung: eigener Abgang in der Steuerung', () => {
       expect(ringe).not.toContainEqual(RADIERER_MITTE);
       const f = u.dom.html.querySelector('.spot-finger');
       expect(f ? [f.style.left, f.style.top] : null, 'Ring ohne Finger').not.toEqual(['622px', '322px']);
+      // [Zurück] nimmt nur (12|13); der Rest (12|12) ist jetzt das letzte Feld und bleibt fremd (DESIGN 13.17.9 F3) → Ring bleibt an [Zurück]
+      knopfMitId(u, 'zurueck')!.click(); st(u).tick(uhr.t);
+      expect(spiel.letzteLeitungFeld()).toEqual([12, 12]);
+      expect(st(u).anleitungAnsicht()!.fremd).toEqual([[12, 12]]);
+      const rest = ringeNachBild(u, uhr.t);
+      expect(rest).toContainEqual(ZURUECK_MITTE);
+      expect(rest).not.toContainEqual(RADIERER_MITTE);
+      // zweites [Zurück] → nichts mehr fremd, kein Ring mehr
       knopfMitId(u, 'zurueck')!.click(); st(u).tick(uhr.t);
       expect(st(u).anleitungAnsicht()!.fremd).toEqual([]);
       const danach = ringeNachBild(u, uhr.t);
@@ -67,15 +75,17 @@ describe('NR21 Einbindung: eigener Abgang in der Steuerung', () => {
       expect(ringe).not.toContainEqual(ZURUECK_MITTE);
     }, { uhr: () => uhr.t });
   });
-  it('test_nr21_ring_an_radierer_gleiche_zeile: Stummel (13|13) an das fremde Stück – gleiche Zeile wie (12|13), aber nicht im Stück → Ring um den Radierer', async () => {
+  it('test_nr21_ring_an_radierer_gleiche_zeile: Spurfeld (10|13) nach dem fremden Stück – gleiche Zeile wie (12|13), aber nicht im Stück → Ring um den Radierer', async () => {
+    // Früher ein Stummel (13|13); seit DESIGN 13.17.9 F3 ist jedes Feld abseits der Spur selbst fremd. In Zeile 13 ist (10|13)
+    // das einzige Feld, das nie fremd wird (Spurfeld) – es prüft weiter, dass nicht nur die Zeile verglichen wird.
     const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
       spiel.stand.geld_eur = 30_000;
       bisT13h(u, spiel, uhr);
       wischeFelder(u, ZUG_HAUS1); st(u).tick(uhr.t);
       wischeFelder(u, [[12, 12], [12, 13]]); st(u).tick(uhr.t);
-      wischeFelder(u, [[12, 13], [13, 13]]); st(u).tick(uhr.t);
-      expect(spiel.letzteLeitungFeld()).toEqual([13, 13]);
+      wischeFelder(u, [[10, 12], [10, 13]]); st(u).tick(uhr.t);
+      expect(spiel.letzteLeitungFeld()).toEqual([10, 13]);
       expect(st(u).anleitungAnsicht()!.fremd).toEqual([[12, 13], [12, 12]]);
       const ringe = ringeNachBild(u, uhr.t);
       expect(ringe).toContainEqual(RADIERER_MITTE);
