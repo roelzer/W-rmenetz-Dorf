@@ -153,6 +153,8 @@ describe('NR22 P6 Kern: ganzes Stück vergrößern (E6)', () => {
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.stueckVergroessern(feld(8, 9), 'd40')).toEqual({ ok: false, hinweis: TEXT_ERSATZ_AUSSERHALB });
     expect(stammLeitungen(s).every((o) => !o.ersatz)).toBe(true);
+    // kein Stück an diesem Feld (40er-Ende): stilles Nein, kein Satz über den Bauabschnitt
+    expect(s.stueckVergroessern(feld(4, 9), 'd40')).toEqual({ ok: false });
     // offen, aber 50er auf Stufe 1 gesperrt (A88): nichts geplant
     expect(s.abschnittWiederOeffnen().ok).toBe(true);
     expect(s.stueckVergroessern(feld(8, 9), 'd50')).toEqual({ ok: false, hinweis: '50er-Leitung ab Heizzentrale Stufe 2' });
@@ -273,8 +275,9 @@ describe('NR22 P6 Randfälle Dreieck und Tokens', () => {
     expect(Math.abs(by - ay)).toBeCloseTo(19.5);
     const mx = (ax + bx) / 2, my = (ay + by) / 2 - 25.52;
     const links = ax < bx ? feld(11, 9) : feld(12, 9), rechts = ax < bx ? feld(12, 9) : feld(11, 9);
-    expect(dreieckTreffer(k, ueberlast, mx - 3, my)).toBe(links);
-    expect(dreieckTreffer(k, ueberlast, mx + 3, my)).toBe(rechts);
+    // 1 px neben der Mitte: 18,5 px zum einen, 20,5 px zum anderen Dreieck waagrecht, je 9,75 px senkrecht – beide Flächen treffen
+    expect(dreieckTreffer(k, ueberlast, mx - 1, my)).toBe(links);
+    expect(dreieckTreffer(k, ueberlast, mx + 1, my)).toBe(rechts);
   });
   it('test_nr22_wegfall_tokens: Blink-Rot, Blinktakt und orange Spur sind aus den Tokens entfernt (DESIGN 13.17.4)', () => {
     const t = tokens as unknown as Record<string, Record<string, Record<string, unknown>>>;
