@@ -502,3 +502,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 17:33 | ▶ | designer | Entwurf NR20 Spur + NR22 Überlast |
 | 2026-11-07 17:34 | ▶ | fachpruefer | Hauptleitungsgröße Tutorial NR21 |
 | 2026-11-07 17:36 | ■ 🟡 | fachpruefer | 🟡 Gelb: Die Sache geht fachlich in Ordnung, und ich habe keinen Verstoß gegen eine bestätigte Regel gefunden. Die Hauptleitung sollte eine 32er werden. Zwe ([Bericht](docs/pruefberichte/20261107-173644-fachpruefer-a1ad83433596698a1.md)) |
+| 2026-11-07 17:48 | ■ 🟢 | designer | 🟢 Der Entwurf ist fertig. Er steht als neuer Abschnitt **13.17** in `/home/user/W-rmenetz-Dorf/docs/DESIGN.md` (Zeile 1088 ff.). Code habe ich nicht angefass ([Bericht](docs/pruefberichte/20261107-174847-designer-a3ac548acfa2f2687.md)) |

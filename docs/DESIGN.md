@@ -3,6 +3,7 @@
 Stand 2026-11-04 · Designer, Modus `entwurf` (Überarbeitung) und `vorgabe` · Werte: `design/tokens.json`, Fassung 2. Im Code stehen keine Farben, Maße oder Zeiten direkt.
 **Nachtrag 2026-11-05: Für alle Menüs und Bedienoberflächen (DOM) gilt ab jetzt Abschnitt 12 „Menü-Stil v2“.** Wo die Abschnitte 1, 4 und 9 für Menüs etwas anderes sagen (Haarlinien, kein Textumriss, eine Schrift), gilt Abschnitt 12. Die Kartengrafik (Abschnitt 3) bleibt unverändert.
 **Nachtrag 2026-11-06: Abschnitt 13 „Tutorial (NR13)“** – Ablauf, Texte, Spotlight und Zustände des Pflicht-Tutorials für neue Spiele.
+**Nachtrag 2026-11-07: Abschnitt 13.17 (NR20–NR22)** – Geisterleitung und Ziel-Häuser in T13, Hauptleitung + Hausanschluss im Tutorial, Überlast mit gelbem Warndreieck statt Rot-Blinken. Ersetzt die Überlast-Angaben in Abschnitt 3 und 9.
 Anlass: Simon wünscht „mach die Optik mehr modern, weniger kindlich“. Der Spielablauf, die Bildschirme und die Zustände aus Fassung 1 bleiben gleich. Neu sind Look, Schrift und Farben. Die offenen Mängel 3, 4, 7 und 14 aus `docs/DESIGN_TREUE_F5.md` sind hier fest eingeplant.
 
 ## 1. Richtung und Spielgefühl
@@ -27,7 +28,7 @@ Anlass: Simon wünscht „mach die Optik mehr modern, weniger kindlich“. Der S
 - **Schatten:** weich statt hart. Ein radialer Verlauf von `karte.schatten` (Kern) zu `schatten_rand` (durchsichtig), leicht nach rechts unten versetzt (`schatten_form`). Er gilt ausnahmslos für jedes Objekt.
 - **Umriss:** Es gibt **keinen dunklen Umriss** mehr. Flächen bekommen nur eine Haarlinie in `karte.umriss` (12 % Deckkraft, Stärke `max(0.75, Kachel × 0,008)`). Sie schließt die Fugen zwischen den Flächen und ist kaum zu sehen.
 - **Objekte:** klare Grundkörper (Quader, Satteldach, Zylinder) ohne Strukturen. Die Stufe erkennt man an Höhe, Dachfarbe (`objekt.dach_stufe`, gedämpft), Sternen an der Heizzentrale und Anbauten. Alle Objektfarben stehen in `objekt.*` (Wände, Tür, Schornstein, Heizzentrale, Büro, PV, Solar, Puffer, Sonde, Heizhaus-Quellen, Deko, Großabnehmer, Monteur). Eine Baustelle steht in einem hellen Holzgerüst (`geruest`), ein Monteur hämmert, darüber liegt ein heller Bautimer (siehe 4).
-- **Leitungen:** acht Durchmesser in Simons Farben, im Ton gedämpft (`leitung.d25` … `d110`): 25er rot, 32er grün, 40er hellblau, 50er dunkelblau, 63er pink, 75er gelb, 90er braun, 110er dunkelgrün. Je dicker, desto breiter gezeichnet. Aufbau von unten nach oben: Sandstreifen `graben` (Rohrbreite + 6 px), dünne Kante `leitung.umriss` (1,5 px je Seite), Rohrfarbe, feiner Glanzstrich `glanz`. Nicht verbunden: grau. Überlast: Wechsel zwischen `ueberlast_a` und `ueberlast_b` (2 Hz) plus rotes Warndreieck. Die dünne Kante bleibt, weil Hellblau, Gelb und Pink sich sonst nicht von der Wiese abheben (gemessen ohne Kante 1,0–1,5:1).
+- **Leitungen:** acht Durchmesser in Simons Farben, im Ton gedämpft (`leitung.d25` … `d110`): 25er rot, 32er grün, 40er hellblau, 50er dunkelblau, 63er pink, 75er gelb, 90er braun, 110er dunkelgrün. Je dicker, desto breiter gezeichnet. Aufbau von unten nach oben: Sandstreifen `graben` (Rohrbreite + 6 px), dünne Kante `leitung.umriss` (1,5 px je Seite), Rohrfarbe, feiner Glanzstrich `glanz`. Nicht verbunden: grau. Überlast: ~~Wechsel zwischen `ueberlast_a` und `ueberlast_b` (2 Hz) plus rotes Warndreieck~~ → **ersetzt durch 13.17.3** (Farbe bleibt, gelbes Warndreieck am Pfosten, gelber Saum, kein Blinken). Die dünne Kante bleibt, weil Hellblau, Gelb und Pink sich sonst nicht von der Wiese abheben (gemessen ohne Kante 1,0–1,5:1).
 - **Bewegung (Karte):** Rauch, Wasser im Brunnen, Lüfter der Wärmepumpe, Blasen (wippen nur ±1,5 px), Fließpunkte, Münzflug, Funken (`effekt.funken`, Pastelltöne). Beim Platzieren ein kurzes Federn (450 ms, Stärke `plopp_staerke`). Alle Zeiten stehen in `zeit_ms`. Bewegung läuft nach Uhrzeit, nicht nach Bildern (M9).
 - **Text auf der Karte** (Bautimer-Restzeit, Schwebetext „+120 €“, „BAD“, „H“, „€“): Manrope 700 in `effekt.schwebetext` (tinte) mit hellem Halo `effekt.text_halo`, wie Beschriftungen auf einer Landkarte. Kein dunkler Textumriss mehr. Geld-Schwebetext in `effekt.schwebetext_geld`.
 - **Kunden-Blasen:** weiße Scheibe mit Spitze, **ohne dunklen Rand**, mit weichem Schatten (`blase.schatten`). Innen eine farbige Scheibe mit weißem, gezeichnetem Symbol (`blase.symbol`). Je Objekt genau eine Blase, die wichtigste zuerst:
@@ -142,8 +143,8 @@ Du-Form, kurz, ruhig, keine Platzhalter. **Jede Wärmezahl mit Einheit** (A18): 
 - **Fokus:** 2 px Ring in `ui.fokus` (tinte) mit 2 px Abstand, überall (auf der Wiese 7,6:1; Weiß wäre dort nur 1,9:1). Reihenfolge HUD → Auftrag → Karte → Rundknöpfe. Popups halten den Fokus, Esc schließt. Das Blatt selbst zeigt keinen Fokusring.
 - **Tastatur am Desktop:** Pfeiltasten verschieben, +/− zoomen, B öffnet Bauen, Esc bricht ab, Platzieren mit Pfeiltasten und Enter.
 - **Beschriftungen:** Jede Pille mit Vorlesetext („Geld 1.199 von 4.000 Euro“). Rundknöpfe beschriftet. Toasts über `aria-live`.
-- **Weniger Bewegung:** `bewegung_reduziert` vollständig. Überlast ist dauerhaft rot mit Dreieck.
-- **Farbe nie allein:** kalt = blasse Fenster **und** Schneeflocke; Überlast = Rot **und** Dreieck; gewählter Reiter = Bernstein **und** Linie **und** fett; Vorschau = Farbe **und** gesperrter Knopf mit Text.
+- **Weniger Bewegung:** `bewegung_reduziert` vollständig. Überlast: siehe 13.17.3 (blinkt nie, Dreieck ohne Federn).
+- **Farbe nie allein:** kalt = blasse Fenster **und** Schneeflocke; Überlast = gelbes Dreieck **und** Saum, Rohrfarbe bleibt (13.17.3); gewählter Reiter = Bernstein **und** Linie **und** fett; Vorschau = Farbe **und** gesperrter Knopf mit Text.
 
 ## 10. Mängel des Prototyps (Fassung 1, Stand)
 M1–M9 und M11 wie in `docs/DESIGN_TREUE_F5.md` (erfüllt bzw. dort benannt). **M10 neu:** Schrift Manrope über `@fontsource/manrope` selbst hosten und im Service Worker vorhalten. **M11 neu:** Der Toast ist eine dunkle Kapsel, damit ist kein Textumriss mehr nötig.
@@ -665,7 +666,7 @@ Alle Bausteine im Menü-Stil v2 (Abschnitt 12). Neue Werte stehen in 13.10 als V
 
 **Zeigefinger.** Gezeichnete Hand (neues Symbol `finger` in `symbole.ts`, gleicher Linienstil wie die übrigen: Fläche `tafel`, 2 px `kontur`), 40 px. Die Fingerspitze sitzt auf der Mitte des Ziels, die Hand kommt von rechts unten (bei Zielen am rechten Rand von links unten). Erscheint 600 ms nach Schrittbeginn (erst lesen, dann tippen). Bewegung: tippt 6 px in Richtung Ziel und zurück (400 ms), dann 1.200 ms Ruhe, wiederholt. Das ist die **einzige** dauernde Bewegung im Spiel – eine bewusste Ausnahme von 12.9 („nichts pulsiert dauerhaft“), nur solange ein Handlungs-Schritt wartet. Kein Finger bei Erklär-Schritten.
 
-**Leitungs-Spur** (nur Kapitel 3). Gestrichelte Linie auf der Karte vom Abgang der Heizzentrale durch die Straße bis an beide Häuser: 4 px `naht_vorlauf`, Striche 10/8, heller Halo 2 px (`effekt.text_halo`), alle drei Felder eine kleine Pfeilspitze in Zugrichtung. Ein Feld der Spur verschwindet, sobald dort eine Leitung eingezeichnet ist. Der genaue Feldverlauf kommt aus dem Bau (Startdorf-Koordinaten, Projektleiter); er läuft nur über Straße und kostet keine Gestattung.
+**Leitungs-Spur** (nur Kapitel 3) – *ersetzt durch die Geisterleitung 13.17.1 B2.* Bisher: Gestrichelte Linie auf der Karte vom Abgang der Heizzentrale durch die Straße bis an beide Häuser: 4 px `naht_vorlauf`, Striche 10/8, heller Halo 2 px (`effekt.text_halo`), alle drei Felder eine kleine Pfeilspitze in Zugrichtung. Ein Feld der Spur verschwindet, sobald dort eine Leitung eingezeichnet ist. Der genaue Feldverlauf kommt aus dem Bau (Startdorf-Koordinaten, Projektleiter); er läuft nur über Straße und kostet keine Gestattung.
 
 **„Erreicht“-Zeichen.** Erreicht die eingezeichnete Leitung ein Tutorial-Haus, erscheint über dem Haus eine Kunden-Blase (Abschnitt 3) mit grüner Scheibe (`menue.chip.gruen` Grund) und gezeichnetem Haken, dazu ein kurzes Federn (450 ms, `plopp_staerke`). Die „kein Anschluss“-Blase des Hauses tritt dafür zurück.
 
@@ -1084,3 +1085,276 @@ Zeichen sind mit einem Zählskript nachgezählt (sichtbarer Text ohne `**`, Name
 - **K6 – Hauschip „8 kW“ neben Simons „7,5 kW“** (T17 sagt 7,5 kW, die Kundenschilder ab T22 zeigen gerundet 8 kW). Abhilfe: Schild mit einer Nachkommastelle nach K3-Format. Fotos `*_T24.png`, `*_T26.png`. (Für den Fachprüfer nur Hinweis, keine neue Aussage.)
 
 **Nicht geprüft (mit Grund):** Wartezustand T11/T23 mit Restzeit in der Blase (bei Tempo ×10 schon fertig, bevor das Foto kommt – das Planungs-„noch 3 s“ im Kasten ist in `*_T10_philipp_spricht.png` zu sehen); „Weniger Bewegung“, Desktop 1280×800 und Hochformat (nicht beauftragt); Fokusring je Schritt außer Wiedereinstieg; Kamerafahrt-Blende.
+
+### 13.17 NR20–NR22: Spur, zwei Leitungsgrößen im Tutorial, Überlast-Zeichen (Entwurf 2026-11-07)
+Anlass: Lastenheft NR20, NR21, NR22 mit Simons Antworten Q20–Q22. Designer, Modus `entwurf`. Grundlage: eigener Messlauf (Vite-Dev-Server, Chromium per Playwright, Gerätefaktor 2, Touch, Vorführ-Tempo ×10) bis T13 in 844×390 und 667×375, dazu ein Zug mit zwei Größen (32er bis zum ersten Haus, dann 25er). Fotos nur im Arbeitsordner (`scratchpad/t13-844.png`, `t13-667.png`, `t13-844-haupt32.png`, `t13-844-zwei.png`), nicht im Projekt. **13.17 geht bei Widerspruch den Stellen 13.2 (Leitungs-Spur), 13.3 (Karte in T13), 13.5 (T12–T14), 13.15 K9/K10 und Abschnitt 3/9 (Überlast rot) vor.**
+
+#### 13.17.0 Befund heute (gemessen, 844×390, Zoom 2, Feld 52×26 px)
+- Der ganze Weg (Heizzentrale, 6 Spurfelder, 2 Häuser) liegt in einem Fleck von rund **180×130 px** mitten in einem Dorf mit über 40 gleich aussehenden Häusern. Jedes Haus trägt dasselbe graue Schild „10 kW“. Die zwei Tutorial-Häuser unterscheiden sich durch **nichts** von den Nachbarn.
+- Die Spur ist 4 px orange gestrichelt – im selben Ton wie die Dächer. Die „10 kW“-Schilder liegen zum Teil auf der Spur, der Finger deckt ihren Anfang zu.
+- Die Anleiter-Karte ist 148 px hoch (Figur 112 px), die Blase aber nur zu 3 Zeilen gefüllt. Sie nimmt der Karte fast 40 % der Höhe; deshalb darf die Kamera nicht über Zoom 2 gehen (M1-Abweichung).
+- Eingezeichnete Leitungen sind dünn und halbdurchsichtig (Plan). Nach dem Zug sieht man kaum, was man schon gezeichnet hat.
+- Neu gemessen: Beginnt ein zweiter Zug auf dem **Ende** der eigenen Leitung, wird dieses Feld mit der neuen Größe **überschrieben**. Belegt: Erst 32er (10|10)–(10|13), dann 25er ab (10|13) ergibt `d32` auf (10|10)–(10|12) und `d25` auf (10|13). Das ist für NR21 wichtig (13.17.2 V1).
+
+#### 13.17.1 NR20 – „Man sieht, wo man hin soll“ (T13)
+**Grundidee:** Der Weg leuchtet, der Rest tritt zurück. Dafür gibt es fünf Bausteine, die alle die Sprache des Tutorials sprechen: *hell-dunkler Doppelrand mit warmem Schein = hier* (13.2 Lochrand).
+
+**B1 – Ruhe im Bild (Muss)**
+- **Leichter Schleier mit Gang:** Über der Karte liegt ein leichter Schleier `rgba(28,14,4,.30)` (neues Token `menue.farbe.schleier_leicht`, halb so stark wie das Abdunkeln). Ausgespart bleibt ein **Gang**: jede Raute der Spur × 1,5, die Heizzentrale und beide Tutorial-Häuser als Ellipse + 12 px. Der Rand ist weich (12 px Verlauf). Der Schleier **sperrt nichts**: Zeichnen bleibt überall erlaubt (13.7 „Leitung neben der Spur“). Er dunkelt nur den Hintergrund ab, damit die 40 anderen Häuser zurücktreten. Gemessen: Wiese mit Schleier zu Wiese ohne Schleier = 1,85:1 – der Gang ist klar zu sehen, die Nachbarschaft bleibt lesbar.
+- **kW-Schilder aus** in Kapitel 3 (T12 bis T14), egal wie der kW-Schalter steht. Die Einstellung selbst bleibt unverändert, ab T15 gilt sie wieder.
+- **Nur die zwei Tutorial-Häuser haben eine Blase** (den Ziel-Stecker aus B4). Andere Kunden-Blasen ruhen in Kapitel 3.
+- Die Anzeigenreihe bleibt wie heute abgedunkelt (`abdunkeln` .55).
+
+**B2 – Geisterleitung statt gestrichelter Linie (Muss, ersetzt die Leitungs-Spur aus 13.2 und K10)**
+Die Spur zeigt **die Leitung, die hier hingehört, in ihrer echten Farbe** – wie eine Schablone zum Nachmalen. Mit NR21 hat sie zwei Stücke: Hauptleitung in der Farbe von `{haupt}` (Beispiel 32er grün), Hausanschluss in der Farbe von `{anschluss}` (25er rot). Die Farbe stimmt mit dem Farbstreifen am Farbknopf der Zeichenleiste überein. So sieht man ohne Text, welchen Knopf man nimmt.
+- **Band:** Breite `b = max(12, round(Feldbreite × 0,28))`, erwartet 17 px (844) bzw. 16 px (667). Aufbau von außen nach innen: 1,5 px `kontur` (Deckkraft 0,8), 1,5 px `tafel` `#fff4df`, Füllung in der Zielfarbe mit Deckkraft 0,75. **Warum der Doppelrand:** In der Zielfarbe allein hebt sich das Band nicht von der Straße ab (gerechnet: 1,0–1,6:1 bei allen acht Farben). Der helle Rand hat zur Straße 5,0:1, der dunkle zur Wiese 8,0:1.
+- **Pfeile:** Je Feld eine Pfeilspitze in Zugrichtung in der Bandmitte, Breite `b × 0,6`. Weiß mit 1,5 px `kontur`, wenn Weiß auf der Zielfarbe mindestens 3:1 erreicht (25er 4,1, 32er 3,3, 50er 6,3, 90er 4,8, 110er 6,5). Sonst in `kontur` (40er, 63er, 75er).
+- **Aktives und ruhendes Stück:** Das Stück, das gerade dran ist, ist voll sichtbar. Das andere hat Deckkraft 0,35 und keine Pfeile. Man sieht also den ganzen Weg und weiß trotzdem, was jetzt dran ist.
+- **Verschwinden:** Ein Feld des Bands verschwindet, sobald dort eine Leitung **in der richtigen Größe** liegt (Regel in 13.17.2). Liegt dort eine falsche Größe, bleibt das Band, und das Feld bekommt die gestrichelte Raute in der Zielfarbe (12.22, Deckkraft 0,8). Zurück und Radierer bringen das Band zurück.
+- **Ebene:** wie K10. Reihenfolge von unten: Boden/Straße → eingezeichnete Leitungen → Band → Strich, der gerade gezogen wird → Gebäude → Blasen → Finger.
+- Der Anschluss an Haus 1 (Haus seitlich an der Hauptleitung, A65) erscheint als kurzes Bandstück in `{anschluss}`-Farbe vom Abzweig bis an die Hauswand, ohne Pfeil. Es verschwindet, wenn Haus 1 erreicht ist. *Nicht geprüft:* ob das A65-Stück schon an eingezeichneten Leitungen gezeichnet wird. Falls nicht, entfällt dieses Bandstück, und der Haken über Haus 1 reicht.
+
+**B3 – Nächstes Feld (Muss)**
+- Das erste noch offene Feld des aktiven Stücks bekommt eine **leuchtende Raute**: Raute × 0,92, Füllung `#ffe08a` mit Deckkraft 0,55, 3 px Rand `#ffe08a`, außen 2 px `kontur` (wie der Lochrand). Zur Straße 3,9:1. Ruhig, ohne Pulsieren.
+- „Offen“ heißt: Auf dem Feld liegt keine Leitung der richtigen Größe. „Erste“ heißt: in Zugrichtung das erste offene Feld nach dem letzten richtigen Feld, das mit der Heizzentrale verbunden ist. Am Anfang ist das (10|10) direkt an der Heizzentrale. Ist die Leitung neben die Spur gelaufen, gilt das offene Spurfeld, das dem Ende der eigenen Leitung am nächsten liegt.
+- In T13w trägt das **Abzweig-Feld** (10|13) die Raute (der „Hier“-Punkt des Erklärsatzes). In T13h wandert sie auf (10|14).
+
+**B4 – Ziel-Häuser (Muss)**
+- **Ziel-Stecker** über beiden Tutorial-Häusern vom Beginn von T13 an: dieselbe Form wie die Kunden-Blase (weiße Scheibe mit Spitze, weicher Schatten, Abschnitt 3). Innen eine Scheibe `#ffe08a` mit 2 px `kontur`, darin eine gezeichnete **Zielscheibe** (Ring + Punkt) in `kontur`, 11,9:1. Neues Symbol `zielscheibe` in `symbole.ts`, Linienstil wie die übrigen, kein Schriftzeichen. Er sitzt auf dem Platz des Erreicht-Zeichens und wird beim Erreichen zum grünen Haken (13.2, Federn 450 ms). Bei „Weniger Bewegung“ wechselt er ohne Federn.
+- **Ring um das aktive Ziel-Haus:** Ellipse um das Haus + 12 px, 3 px `#ffe08a`, 2 px `kontur`, 16 px Schein – genau wie ein Lochrand, nur ohne Abdunkeln. In T13 hat ihn Haus 1, in T13h Haus 2. Ist ein Haus erreicht, verschwindet sein Ring.
+
+**B5 – Finger zieht vor (Muss, ersetzt K9 „Finger fährt die Spur ab“)**
+- Der Finger zeigt **Ziehen, nicht Tippen**. An der Fingerspitze liegt ein Druckpunkt (Kreis 10 px `#ffe08a`, 2 px `kontur`). Er drückt auf dem nächsten Feld auf (200 ms) und zieht dann das aktive Stück entlang bis auf das Ziel-Haus, 400 ms je Feld (T13: 4 Felder plus aufs Haus = 2.000 ms; T13h: 3 Abschnitte = 1.200 ms). Hinter ihm füllt sich das Band in voller Zielfarbe (Deckkraft 1) – so sieht man, was beim Ziehen entsteht. Am Ende hebt er ab, die Füllung blendet in 200 ms aus, 600 ms Pause, dann von vorn.
+- Er verschwindet beim ersten Berühren der Karte. Nach **4 s ohne Berührung** kommt er zurück und startet am **nächsten Feld** (B3), nicht am Anfang. Neues Token `zeit_ms.finger_wieder` 4000.
+- Hand von rechts unten. Steht das Ziel näher als 60 px an der Zeichenleiste, kommt sie von links unten (13.2).
+- **Weniger Bewegung:** Der Finger steht still mit Druckpunkt auf dem nächsten Feld. Kein Ziehen, keine Füllung. Die Richtung zeigen die Pfeile im Band.
+
+**B6 – Kompakte Anleiter-Karte und größere Kamera in Kapitel 3 (Muss, ändert 13.3 und die M1-Abweichung)**
+- In T13, T13w und T13h ist die Karte **kompakt**: Figur 72 px, Blase höchstens **3 Zeilen**, kein [Weiter]. Höhe 8 + 18 + 4 + 3 × 18 + 8 = **92 px**. Lage: links 12, unten 12. Breite min(460, freie Breite − 24) → 460 (844) bzw. 427 (667). Oberkante 286 (844) bzw. 271 (667). Alle Texte in Kapitel 3 (Grundtexte, Zwischenstände, Größen-, Sperr-, Hilfe- und Geld-Sätze) haben **≤ 96 Zeichen**. Damit passen sie in 3 Zeilen, auch bei 667 (Blase rund 347 px, innen rund 38 Zeichen je Zeile).
+- **Kamera T13:** wie die heutige T13-Einpassung (Heizzentrale, Spur, beide Häuser, je Feldmitte ± halbe Feldbreite), aber in die freie Fläche **x 0 … Zeichenleiste, y 64 … Kartenoberkante − 16** mit **24 px Rand**, und zwar mit dem **größten Zoom ≤ 3, der passt**. Untergrenze 2 wie bisher. Gerechnet aus den Messwerten: rund **2,4 (844)** bzw. **2,3 (667)** statt 2. Damit ist der Weg rund 20 % größer, das Feld zum Treffen 62×31 statt 52×26 px, und der 24-px-Rand aus M1 ist wieder eingehalten. *Gerechnet, nicht gemessen* – der Bau misst nach. Die Kamera bleibt von T13 bis T14 stehen, ohne Sprung. Die Kamera-Grenze K5 gilt mit dieser Lage.
+
+**Skizze 844×390 – T13 frisch (Zeichenleiste 216 px, Karte kompakt)**
+```
+┌──────────────────────────────────────────────────────────────┬─────────────────────────┐
+│(Dorfschild)(€ 28.000)…  abgedunkelt .55                      │ Zeichnen     [?] [ X ]  │
+│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│
+│░░░ Schleier .30 ░░░░░░░░░░░░ ╭───────────╮ ░░░░░░░░░░░░░░░░░░│ [25][(32)][40][St.2]    │ 32 gewählt
+│░░░░░░░░░░░░░░░ (Ziel-Stecker)│  HEIZZENTR.│ ░░░░░░░░░░░░░░░░░░│ bis 25 kW · 560 €/Feld  │
+│░░░░░░░░░░░ ◎ ░░░░░░░░░░░░░ ◆◆╯───────────╯ ← nächstes Feld   │ [Radierer] [↶ Zurück]   │
+│░░░░░░░░ ( Haus 1 )══▶══▶══▶══ Band 32er grün, Pfeile         │ [T-Stück · ab Stufe 4]  │
+│░░░░░░░ Ring gelb ░░░░░░░░░░╲ (Gang ohne Schleier)  ░░░░░░░░░░│                         │
+│░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ┄┄┄┄ 25er rot, blass ◎ ( Haus 2 )│                         │
+│░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░│                         │ y 270
+│┌────┐┌───────────────────────────────────────────────┐░░░░░░░│                         │ y 286
+││Fig.││ Simon                             ● ● ● ○ ○ ○ │░░░░░░░├─────────────────────────┤
+││72  ││ Zieh die 32er von der Heizzentrale bis zum    │░░░░░░░│ [Abschnitt abschließen] │
+│└────┘│ ersten Haus. Folge der Spur.                  │░░░░░░░│  nichts gezeichnet      │
+└──────┴───────────────────────────────────────────────┴───────┴─────────────────────────┘
+ ◎ = Ziel-Stecker · ◆◆ = leuchtende Raute (nächstes Feld) · ══▶ = Geisterleitung aktiv · ┄┄ = ruhend
+ Finger: drückt auf ◆◆, zieht bis auf Haus 1 (2.000 ms), Band füllt sich hinter ihm.
+```
+**667×375:** gleicher Aufbau. Zeichenleiste 216 px, freie Breite 451, Karte 427 × 92 (Oberkante 271), freie Fläche für den Weg y 64 … 255, Zoom rund 2,3. Die Pfeile und der Doppelrand bleiben gleich groß (Mindestband 12 px).
+
+**Zustände NR20** (alle bei 844 und 667)
+| Zustand | Bild |
+|---|---|
+| T13 frisch | wie Skizze: Gang, Band Hauptleitung aktiv, Hausanschluss blass, Raute auf (10\|10), Ring um Haus 1, Stecker über beiden Häusern, Finger zieht vor |
+| teilweise gezeichnet | Band nur noch auf den offenen Feldern, Raute auf dem nächsten Feld, Finger weg (kommt nach 4 s wieder, ab Raute) |
+| neben der Spur gezeichnet | erlaubt; Band bleibt auf den Spurfeldern, Raute auf dem Spurfeld, das dem Leitungsende am nächsten liegt |
+| Haus 1 mit `{haupt}` erreicht | Stecker → Haken (Federn), Ring weg → **T13w** |
+| falsche Größe gezeichnet | Feld zeigt die gezeichnete Leitung **und** die gestrichelte Raute in Zielfarbe, Band bleibt; Größen-Satz in der Blase (13.17.2); Ring ohne Finger um den richtigen Farbknopf |
+| falsche Größe gewählt, noch nicht gezeichnet | Ring ohne Finger um den Farbknopf des aktiven Stücks; die Blase bleibt, wie sie ist |
+| Zurück/Radierer nimmt Haus 1 weg | Haken → Stecker, Ring kommt zurück, Schritt springt auf T13 zurück (auch aus T13h) |
+| Geld fehlt (K7/K12) | Geld-Satz hat Vorrang vor allem anderen, sonst unverändert |
+| Wiedereinstieg T12/T13 | Band nur für offene Felder, Schritt aus dem Zustand (Tabelle 13.17.2) |
+| Weniger Bewegung | Finger steht auf der Raute, kein Federn am Stecker, Pfeile zeigen die Richtung |
+| Desktop 1280×800 | gleich; Karte unten links, kompakt, Zoom nach derselben Regel |
+
+#### 13.17.2 NR21 – Hauptleitung und Hausanschluss (T12–T14)
+**Prinzip:** Ein einziger zusätzlicher Handgriff (Größe wechseln). Den Rest erklären Farbe und Band. Die Größen kommen aus dem Spiel: `{haupt}` = dünnste Leitung, die beide Häuser mit Puffer trägt (Größe bestätigt der Fachprüfer, Beispiel 32er). `{anschluss}` = dünnste Leitung, die ein Haus mit Puffer trägt (25er). Neue Platzhalter `{kw_summe}` (Netzleistung beider Häuser, Beispiel „15 kW“) und `{kw_puffer}` (wie T17, „7,5 kW“). Format nach K3.
+
+**Schritte** (ersetzen T12–T14 in 13.5; T13b entfällt)
+| Nr | Art | Text (Simon) | Zeichen | Licht / Finger | Weiter mit |
+|---|---|---|---|---|---|
+| T12 | H | „Fertig geplant! Zuerst die **Hauptleitung**: Nimm die dicke {haupt}, sie trägt die Wärme für beide Häuser.“ **[F]** | 99 | Loch Katalogkarte `{haupt}`, Fingerspitze auf Zeile 1 (13.16 K5) | Karte antippen → Zeichenleiste mit `{haupt}` gewählt |
+| T13 | H | „Zieh die {haupt} von der Heizzentrale bis zum ersten Haus. Folge der Spur.“ | 71 | 13.17.1: Band Hauptleitung aktiv, Raute, Ring Haus 1, Finger zieht vor | Haus 1 verbunden **und** alle Felder der Hauptleitung mindestens `{haupt}` |
+| T13w | H | „Bis hier fließen {kw_summe} für beide Häuser, ab hier nur {kw_puffer} für eins. Dafür reicht die {anschluss}.“ **[F]** | 92 (94 bei „12,5 kW“/„6,3 kW“) | **Ring um den Farbknopf `{anschluss}`** (Lochrand-Stil, Leiste nicht abgedunkelt), Finger tippt von links unten; Raute auf dem Abzweig-Feld (10\|13); Band Hausanschluss wird aktiv | Farbknopf `{anschluss}` antippen |
+| T13h | H | „Jetzt den **Hausanschluss** mit der {anschluss} bis zum zweiten Haus.“ | 58 | Band Hausanschluss aktiv, Raute auf (10\|14), Ring Haus 2, Finger zieht von (10\|14) bis auf Haus 2 | Haus 2 verbunden **und** die Felder, die nur Haus 2 versorgen, genau `{anschluss}` |
+| T14 | H | unverändert („Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.“) | 60 | unverändert | unverändert |
+
+- **Der Erklärsatz ist T13w** (92 Zeichen ≤ 120, auch ≤ 96 für die kompakte Karte). Er sagt mit den kW aus Kapitel 1, *warum* die Leitung dünner werden darf: Die Hauptleitung trägt die Summe. **[F]** – Fachprüfer: Summe ohne Gleichzeitigkeit (2 × 7,5 = 15 kW) als Vereinfachung in Ordnung?
+- **Fachbegriffe** neu in der Begriffsliste (NR3, 13.9): **Hauptleitung** (T12), **Hausanschluss** (T13h).
+- **In T13w ruht das Zeichnen:** Ein Zug auf der Karte zählt als Fehltipp (der Ring am Farbknopf „stupst“, 13.7). So zieht niemand aus Schwung mit der dicken Leitung weiter. Radierer und Zurück bleiben frei.
+- **Kapitel-Punkte** unverändert (Kapitel 3).
+
+**Wann ist eine Größe richtig?** (nach der Rolle im Netz, nicht nach Spurfeldern – gilt auch neben der Spur)
+- **Hauptleitung** = jedes Feld, über das Wärme für **beide** Häuser fließt (Heizzentrale bis einschließlich Abzweig-Feld). Richtig ab `{haupt}`. Dicker ist erlaubt (kostet nur mehr), dünner nicht.
+- **Hausanschluss** = jedes Feld, das **nur Haus 2** versorgt. Richtig ist genau `{anschluss}` – das ist die Lehre des Schritts.
+- Die Rolle „Hauptleitung bis zum letzten Abzweig, danach Hausanschluss“ rechnet das Spiel schon im Leitungsblatt (`kontext.ts`, Text „Hausanschlussleitung …“). Bitte dieselbe Regel nutzen, keine zweite.
+
+**Größen-Sätze** (Vorrang nach K4: Geld-Satz > Sperr-Satz > Größen-Satz > Hilfe-Satz > Zwischenstand > Grundtext)
+| Fall | Satz | Zeichen |
+|---|---|---|
+| Hauptleitung zu dünn (z. B. 25er vor dem Abzweig) | „Hier fließt Wärme für beide Häuser, da ist die {anschluss} zu dünn. Nimm die {haupt} und zieh drüber.“ **[F]** | 91 |
+| Hausanschluss zu dick | „Für ein Haus reicht die {anschluss}. Tippe auf {anschluss_zahl} und zieh noch mal über dieses Stück.“ | 79 |
+| [Abschnitt abschließen] bei falscher Größe | gesperrt nach 12.19, Zeile 2 **„Größe passt nicht“** (17 Zeichen); Satz: „Ein Stück hat die falsche Größe. Zieh mit der richtigen Größe noch mal drüber.“ | 78 |
+
+(`{anschluss_zahl}` = „25“, die Aufschrift des Farbknopfs.) Die falschen Felder zeigen die gestrichelte Raute in Zielfarbe (12.22). Der richtige Farbknopf hat einen Ring ohne Finger.
+
+**Neue und geänderte Sätze in Kapitel 3** (alle ≤ 96)
+| Stelle | Satz | Zeichen |
+|---|---|---|
+| Hilfe T13, T13h (ersetzt 13.5) | „Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.“ | 69 |
+| Hilfe T13w | „Tippe rechts in der Leiste auf {anschluss_zahl}.“ | 34 |
+| Abschließen zu früh (ersetzt 13.7) | „Zieh die Leitung bis an beide Häuser – folge der Spur.“ | 54 |
+| [X]/[?] (unverändert) | „Die Leiste bleibt offen, bis beide Häuser erreicht sind.“ | 56 |
+„gelbe Spur“ kommt nirgends mehr vor: Die Spur hat jetzt die Farbe der Leitung.
+
+**V1 – Voraussetzung im Spiel (Bitte an Projektleiter/Architekt, Muss für NR21).** Gemessen (13.17.0): Ein Zug, der auf dem eigenen Leitungsende beginnt, überschreibt dieses Feld mit der gewählten Größe. Wer nach T13w mit der 25er am Abzweig-Feld ansetzt (dort, wo die Leitung endet – das ist der natürliche Griff), macht den Abzweig zur 25er. Nach dem Bau wird die Leitung dann **vor** dem Abzweig dünner: Das ist eine Reduzierung mitten auf der Strecke (A67, Planungsfehler-Dreieck). Das Tutorial würde in seinen eigenen Fehler führen. Zwei Wege, Entscheidung beim Projektleiter:
+- (a) **Empfehlung:** Ein Zug, der auf einem vorhandenen Leitungsende beginnt, lässt dieses Startfeld unverändert und zeichnet erst ab dem nächsten Feld. Das hilft auch außerhalb des Tutorials, weil Weiterzeichnen sonst still den Anfang umbaut.
+- (b) Nur im Tutorial: Finger und Raute setzen auf (10|14) an (gemacht in T13h). Setzt jemand trotzdem am Abzweig an, greift „Hauptleitung zu dünn“ samt Raute. Das ist schlechter, weil es eine Fehlerschleife einbaut.
+*Nicht geprüft:* ob ein Zug, der auf einem leeren Feld neben dem Leitungsende beginnt, sich anschließt (für Weg b nötig).
+
+**Wiedereinstieg** (ergänzt die Tabelle in 13.7)
+| Zustand | weiter bei |
+|---|---|
+| Abschnitt offen, Haus 1 nicht über richtige Hauptleitung verbunden | T12 (öffnet das Baumenü auf „Leitungen“, Regel 2026-11-06) |
+| Hauptleitung richtig bis Haus 1, Haus 2 nicht richtig verbunden | T13w, wenn `{anschluss}` nicht gewählt ist, sonst T13h. Nach dem Neuladen ist die zuletzt gewählte Größe nicht bekannt, deshalb **T13w** |
+| beide richtig verbunden | T14 |
+
+**Werte-Hinweise (Projektleiter/Fachprüfer, keine Designfrage):** Die Kosten steigen. Gemessen: Die 32er kostet 560 €/Feld statt 400 €, also rund 4 × 160 = 640 € mehr. Test 13.9 „Tutorial-Kosten ≤ Startgeld − 5.000 €“ neu rechnen. Test 13.9 (2) wird zu: „`{haupt}` trägt 2 × Bedarf mit Puffer, `{anschluss}` trägt 1 × Bedarf mit Puffer, beide ohne NR18-Warnung, nach dem Bau weder Überlast noch Planungsfehler.“
+
+#### 13.17.3 NR22 – Überlast: Farbe bleibt, Warnzeichen dazu
+**Entscheidung:** Eine überlastete Leitung behält ihre Durchmesserfarbe. Sie bekommt (1) ein **gelbes Warndreieck** an einem Pfosten über der Leitung und (2) einen **gelben Saum** an den Rändern des überlasteten Stücks. Nichts blinkt dauerhaft. Antippen öffnet das Leitungsblatt mit „Hier auf {Größe} vergrößern“ und Knopf.
+
+**Warum gelb und nicht rot:** Rot ist schon zweimal besetzt: die 25er und das **Planungsfehler-Dreieck** (rot `#d8392f` mit weißem „!“, auf jedem Feld von Engpass, Reduzierung, Aufteilung – `szene.ts`). Gelb mit dunklem „!“ ist das bekannte Achtung-Schild. Die beiden Dreiecke unterscheiden sich nicht nur im Farbton, sondern auch in der **Helligkeit** (Gelb: relative Leuchtdichte 0,61, Rot 0,18) und in der Zeichenfarbe (dunkel auf hell gegen hell auf dunkel). So bleiben sie auch bei Rot-Grün-Schwäche unterscheidbar. Heute zeichnet der Code bei Überlast kein Dreieck, sondern lässt das Rohr rot blinken (4 Wechsel/s). Abschnitt 3 und 9 beschreiben ein Dreieck, das es nicht gibt.
+
+**Warndreieck – Maße und Farben**
+- Gleichseitiges Dreieck mit gerundeten Ecken (Radius 2), Kantenlänge `s = clamp(Feldbreite × 0,34, 16, 28)` px. Bei Zoom 2 (Feld 52) sind das 18 px, bei Zoom 3 (Startzoom Handy, Feld rund 78) 26 px, bei Zoom 1 der Mindestwert 16.
+- Füllung **`#ffc531`** (= `menue.knopf.geld[0]`, neues Token `menue.farbe.ueberlast_zeichen`), Rand 2 px `kontur` `#3b1d0a`. Innen ein gezeichnetes „!“ in `kontur` (Strich + Punkt, Höhe 0,5 s) – 9,7:1 auf der Füllung. Neues Symbol `ausruf_dunkel` oder `ausruf` mit Farbangabe, kein Schriftzeichen.
+- **Pfosten:** 2 px `kontur`, von der Leitungsmitte senkrecht nach oben, Länge `Feldbreite × 0,18`. Darauf sitzt die Unterkante des Dreiecks. So deckt das Zeichen nur einen 2-px-Strich der Leitung. Die Farbe bleibt links und rechts sichtbar.
+- **Ebene:** in der Ebene der Blasen (über Gebäuden), damit kein Haus davor das Zeichen verdeckt.
+- **Tippfläche:** 44 × 44 px um die Dreiecksmitte, unsichtbar erweitert. Das Antippen der Leitung selbst geht weiter wie heute.
+
+**Kontrast auf allen acht Leitungsfarben** (WCAG-Formel gerechnet; für grafische Zeichen reicht nach 1.4.11 eine der beiden Linien mit ≥ 3:1)
+| Untergrund | Füllung `#ffc531` | Rand `#3b1d0a` | erfüllt durch |
+|---|---|---|---|
+| 25er `#cf5646` | 2,6 | 3,7 | Rand |
+| 32er `#4f9e62` | 2,1 | 4,7 | Rand |
+| 40er `#78bde3` | 1,3 | 7,5 | Rand |
+| 50er `#35609f` | 4,0 | 2,4 | Füllung |
+| 63er `#dd79a9` | 1,8 | 5,4 | Rand |
+| 75er `#e6b93f` | 1,2 | 8,3 | Rand |
+| 90er `#946a45` | 3,0 | 3,2 | beide |
+| 110er `#2b6a47` | 4,1 | 2,4 | Füllung |
+| Straße `#6c7075` | 3,2 | 3,1 | beide |
+| Wiese `#a8c486` | 1,2 | 8,0 | Rand |
+Das Dreieck steht am Pfosten über der Leitung und hat deshalb meist Wiese oder Straße als Hintergrund. Die Tabelle gilt auch für den ungünstigen Fall, dass es über einer zweiten Leitung steht.
+
+**Saum am überlasteten Stück**
+- Auf jedem überlasteten Feld wird die dunkle Kante des Rohrs (heute `rgba(40,34,26,.4)`, Breite w + 2) ersetzt durch: außen `kontur` mit Deckkraft 0,55 (Breite w + 6), darin `#ffc531` (Breite w + 4), innen das Rohr in seiner Farbe (Breite w). Es bleiben also 2 px Gelb auf jeder Seite. Der Glanzstrich bleibt.
+- Der Saum zeigt, **wie weit** die Überlast reicht, und die Farbe in der Mitte bleibt. Gelb zur Straße 3,2:1, die dunkle Außenlinie zur Wiese 8,0:1. Bei der 75er (gelb) wirkt das Rohr mit Saum nur breiter. Das ist hinnehmbar, weil das Dreieck dort mit dem Rand 8,3:1 erreicht.
+
+**Bewegung**
+- Erscheint eine Überlast neu, **federt** das Dreieck einmal (Größe 0 → 1,08 → 1, 450 ms, `plopp_staerke`). Danach steht es still.
+- **Kein Blinken mehr**, auch nicht bei normaler Bewegung. Gründe: 12.9 („nichts pulsiert dauerhaft“) und NR12. Das heutige Blinken zwingt die Karte zum Dauerneuzeichnen (`szene-schluessel.ts` Zeile 94: Überlast = „langsam“). Aufmerksamkeit holen das Federn, die Engstellen-Raute (6 s nach Abschließen/Bestellen) und die Kunden-Blase „Leitung zu dünn“ an den kalten Häusern. → Frage an Simon F-NR22-1.
+- **Weniger Bewegung:** kein Federn, Dreieck erscheint sofort.
+
+**Wie oft auf langen Leitungen**
+- Ein **Stück** = zusammenhängende überlastete Felder gleicher Größe (derselbe Begriff wie in `engstelle.ts`).
+- Ein Dreieck steht auf dem **ersten Feld** des Stücks, von der Heizzentrale aus gezählt. Dort ist die Last am größten, und dort beginnt man beim Vergrößern.
+- Bei langen Stücken kommt alle **8 Felder** ein weiteres Dreieck dazu (Feld 0, 8, 16 …), aber nicht, wenn es weniger als 4 Felder vor dem Ende des Stücks läge. Grund: Bei Startzoom 3 zeigt das Handy rund 10 Felder in der Breite. So ist von jedem Stück fast immer ein Dreieck im Bild, ohne dass eine Kette von Schildern entsteht. Der Saum zeigt den Rest.
+- Treffen zwei Stücke mit unterschiedlicher Größe aufeinander, bekommt jedes sein eigenes Dreieck. Liegen zwei Dreiecke näher als 1,5 Felder beieinander, entfällt das spätere.
+
+**Leitungsblatt beim Antippen** (Seitenfläche wie 5, Menü-Stil v2)
+```
+844×390: Seitenfläche 388 px                       667×375: 306,8 px (gleich, Text bricht früher um)
+┌────────────────────────────────────┐
+│ 25er-Leitung                 [ X ] │  Kopfband
+│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│
+│ ╭ ▲ Überlastet ──────────────────╮ │  Kasten (12.7), Symbol = das Warndreieck 16 px
+│ │ Hier auf 32er vergrößern        │ │  Manrope 800 15, `text`
+│ │ Hier sollen 22 kW durch, die    │ │  Manrope 600 13, `text`
+│ │ 25er schafft 15 kW. Häuser      │ │
+│ │ dahinter bleiben kalt.          │ │
+│ ╰─────────────────────────────────╯ │
+│ Hauptleitung: versorgt weiter …    │  (bestehender Inhalt, scrollt)
+│ Last  22 / 15 kW  ▓▓▓▓▓▓▓▓▓▓▓▓     │
+│ [Ersetzen: 40er]  (ohne die 32er)  │
+├────────────────────────────────────┤
+│ [ Auf 32er vergrößern            ] │  Aktionsleiste, Variante `geld`
+│ [ 6 Felder · 1.920 €             ] │  Zeile 2
+└────────────────────────────────────┘
+```
+- **Kasten „Überlastet“ steht ganz oben** im Inhalt (vor „Hauptleitung …“). Gerechnet: Kopf 56 + Kasten rund 120 + Aktionsleiste 64 = 240 px. Das passt bei 667×375 (Blatt 311 px hoch) ohne Scrollen.
+- **Titelzeile:** „Hier auf {Größe} vergrößern“ (Simons Wortlaut). {Größe} = `empfohlen` aus `engstelle.ts`, die kleinste Größe, die die Last trägt.
+- **Satz:** „Hier sollen {last_kw} durch, die {typ} schafft {kap_kw}. Häuser dahinter bleiben kalt.“ (78 Zeichen mit Beispielwerten, 82 im langen Fall „1.120 kW … 980 kW“). Zahlen nach K3 mit geschütztem Leerzeichen. Ersetzt den heutigen Satz „Durch diese Stelle soll mehr Wärme fließen …“.
+- **Hauptaktion in der Aktionsleiste** (Regel aus 5): Zeile 1 „Auf {Größe} vergrößern“ (höchstens 20 Zeichen, „Auf 110er vergrößern“), Zeile 2 „{n} Felder · {Preis}“. Werden das mehr als 18 Zeichen (z. B. „12 Felder · 11.520 €“), steht in Zeile 2 nur „{Preis}“, und der Satz im Kasten bekommt „Das Stück ist {n} Felder lang.“ angehängt. Bei 1 Feld: „1 Feld · {Preis}“.
+- **Der Knopf plant den Ersatz für das ganze Stück** (alle Felder, Preis = Summe nach NR18 E1). Feld für Feld zu tauschen wäre bei langen Stücken mühsam, und ein halb vergrößertes Stück wäre wieder eine Reduzierung (A67). → Frage an Simon F-NR22-2.
+- In der Reihe „Ersetzen: …“ darunter fehlt die empfohlene Größe, weil sie oben steht. Die anderen dickeren Größen bleiben für freie Wahl.
+- **Auf der Karte**, solange das Blatt offen ist: Alle Felder des Stücks zeigen die gestrichelte Raute in der Farbe von {Größe} mit Deckkraft 0,5 (Vorschau, Sprache von 12.22). So sieht man, was „Hier“ meint. Die Kamera stellt das erste Dreieck des Stücks in die Mitte der freien Fläche (12.21 Punkt 4).
+
+**Zustände des Blatts**
+| Zustand | Kasten | Aktionsleiste |
+|---|---|---|
+| Bauabschnitt offen, Geld reicht | wie oben | [Auf 32er vergrößern · 6 Felder · 1.920 €] `geld` → Antippen: Ersatz geplant für alle Felder, Rauten auf Deckkraft 0,8 (12.22), Kasten wechselt auf „geplant“ |
+| Ersatz geplant | Titel „Wird auf 32er vergrößert“, Satz „Der Tausch kommt mit dem Bauabschnitt. Bis dahin bleibt es hier zu eng.“ (71) | [Zurücknehmen] neutral (wie „Ersatz zurücknehmen“) |
+| kein offener Bauabschnitt | wie oben | Knopf gesperrt nach 12.19 mit dem heutigen NR18-Sperrgrund (`abschnittSperreKurz`). Antippen: Hinweis wie heute |
+| Geld fehlt | wie oben | Geld-Sperre wie überall (grau, Preis bleibt, Münze; Meldung „Dir fehlen noch …“) |
+| Größe noch nicht frei | Titel unverändert | gesperrt, Zeile 2 „ab Stufe {n}“ (12.20) |
+| keine Größe reicht (`empfohlen` = null) | Titel „Zu viel für eine Leitung“, Satz „Selbst die dickste Leitung reicht hier nicht. Leg einen getrennten Abgang.“ (74, Wortlaut wie `engstelleText`) | keine Hauptaktion |
+| Stück im Bau | Titel „Wird gerade vergrößert“ | keine Hauptaktion |
+
+**Zusammenspiel mit Engstellen-Raute und Warnliste (12.22)**
+| Lage | Zeichen auf der Karte | Liste/Meldung |
+|---|---|---|
+| **Eingezeichnet, nicht gebaut**, wäre nach dem Bau zu dünn | **kein Dreieck** (eingezeichnete Leitungen gehören noch nicht zum Netz); rote Engstellen-Raute 6 s nach Abschließen/Bestellen wie heute | Warnliste „Nach dem Bau zu dünn“ im Baumenü wie heute |
+| **Gebaut und überlastet** | gelbes Dreieck + Saum, dauerhaft bis behoben | Kunden-Blase „Leitung zu dünn“ an den kalten Häusern wie heute |
+| Gebaut, überlastet, **Ersatz geplant** | Dreieck mit **Deckkraft 0,5** („erkannt, in Arbeit“), Saum bleibt, gestrichelte Raute in der Zielfarbe (12.22) | Reicht der geplante Ersatz nicht, steht das Stück in der Warnliste wie heute |
+| beides gleichzeitig (gebautes Stück überlastet, Plan macht es schlimmer) | die rote Raute liegt 6 s **über** dem Saum, das Dreieck bleibt sichtbar | Warnliste wie heute |
+| Planungsfehler (Engpass, Reduzierung, Aufteilung) | rotes Dreieck auf jedem Feld wie heute | Ist das Feld zugleich überlastet, steht das gelbe Dreieck am Pfosten darüber, das rote bleibt auf der Leitung. Das Leitungsblatt zeigt zuerst den Kasten „Planungsfehler“, darunter „Überlastet“ |
+- **Gleiche Wörter überall:** Karte und Blatt sagen „Überlastet“ und „vergrößern“, Warnliste und Meldungen sagen „zu dünn“ und „Zeichne eine 32er darüber“ (geprüfter Wortlaut NR18, bleibt). Beide nennen dieselbe Größe, weil beide `empfohlen` nutzen.
+- **Kann:** Im Hausblatt eines Hauses mit „Leitung zu dünn“ ein Knopf **[Zeig mir die Stelle]** (neutral, 19 Zeichen). Er fährt die Kamera zum ersten Dreieck des verantwortlichen Stücks und öffnet dessen Leitungsblatt. Das ist die Brücke vom kalten Haus zur richtigen Leitung.
+
+#### 13.17.4 Neue Werte (Vorschlag für `design/tokens.json`, noch nicht eingetragen – wie 13.10)
+| Token | Wert | Zweck |
+|---|---|---|
+| `menue.farbe.schleier_leicht` | `rgba(28,14,4,.30)` | Schleier mit Gang (T13) |
+| `menue.farbe.ueberlast_zeichen` | `#ffc531` (= `knopf.geld[0]`) | Warndreieck und Saum |
+| `menue.farbe.ziel` | `#ffe08a` (= `fokus_auf_dunkel`) | nächstes Feld, Ziel-Stecker, Ring, Druckpunkt |
+| `menue.mass_px.geist_band_faktor` / `geist_band_min` | 0.28 / 12 | Geisterleitung |
+| `menue.mass_px.geist_rand_hell` / `geist_rand_dunkel` | 1.5 / 1.5 | Doppelrand |
+| `menue.faktor.geist_deckkraft` / `geist_ruhend` | 0.75 / 0.35 | aktives / ruhendes Stück |
+| `menue.faktor.naechstes_feld` | 0.92 | Rautengröße |
+| `menue.mass_px.gang_rand` | 12 | weicher Rand des Gangs |
+| `menue.mass_px.anleiter_kompakt_hoehe` / `anleiter_kompakt_zeichen` | 92 / 96 | kompakte Karte Kapitel 3 |
+| `menue.mass_px.druckpunkt` | 10 | Druckpunkt am Finger |
+| `menue.zeit_ms.finger_je_feld` / `finger_aufdruecken` / `finger_wieder` | 400 / 200 / 4000 | Finger zieht vor |
+| `karte.ueberlast.zeichen_faktor` / `zeichen_min` / `zeichen_max` | 0.34 / 16 / 28 | Kantenlänge Dreieck |
+| `karte.ueberlast.pfosten_faktor` | 0.18 | Pfostenlänge |
+| `karte.ueberlast.saum_px` | 2 | gelber Saum je Seite |
+| `karte.ueberlast.wiederholen_felder` / `abstand_ende_min` | 8 / 4 | Wiederholung auf langen Stücken |
+| `karte.ueberlast.geplant_deckkraft` | 0.5 | Dreieck bei geplantem Ersatz |
+Wegfallen: `leitung.ueberlast_a/b`, `zeit_ms.ueberlast_blinken_zyklus`, `bewegung_reduziert.ueberlast_blinken`, `menue.farbe.spur` (die Spur hat jetzt die Leitungsfarbe). Die Farben `#ff4a3a`/`#b8221a` stehen heute fest im Code (`szene.ts`) und nicht aus den Tokens – sie fallen mit NR22 weg.
+
+#### 13.17.5 Barrierefreiheit
+- **Farbe nie allein:** Weg = Gang **und** Band mit Doppelrand **und** Pfeile **und** Finger. Nächstes Feld = Raute **und** Doppelrand. Ziel = Stecker mit Zielscheibe **und** Ring. Richtige Größe = Farbe **und** Zahl am Farbknopf **und** Satz. Überlast = Dreieck **und** Saum (die Farbe des Rohrs ändert sich nicht mehr).
+- **Kontraste** wie in den Tabellen oben, gerechnet mit der WCAG-Formel, noch nicht per Pipette im Foto.
+- **Vorleser:** Ein überlastetes Stück im Leitungsblatt wird gelesen als „Überlastet. Hier auf 32er vergrößern. …“. Das Dreieck selbst ist `aria-hidden`, weil man es am Bildschirm über die Leitung antippt. T13w setzt den Fokus auf den Farbknopf `{anschluss}` (13.11).
+- **Tippflächen:** Farbknöpfe 44, Dreieck 44 × 44, Aktionsknopf ≥ 44.
+- **Weniger Bewegung:** Finger steht still, kein Federn (Stecker, Dreieck), kein Blinken (gibt es nicht mehr).
+
+#### 13.17.6 Prüfkriterien (Fotos 844×390 und 667×375, Prüfumgebung wie 12.21 Punkt 4)
+Fotos: T12, T13 frisch, T13 halb gezeichnet, T13 mit 25er auf der Hauptleitung (Größen-Satz), T13w, T13h frisch, T13h mit 32er zum Haus 2, T14; „Weniger Bewegung“ bei T13; Überlast an einer 25er, 40er, 75er und 110er (Zoom 3 und Zoom 1); langes Stück (≥ 17 Felder); Leitungsblatt in allen Zuständen der Tabelle; Überlast mit geplantem Ersatz; Überlast + Planungsfehler auf demselben Feld.
+1. Kapitel 3: Die kompakte Karte schneidet keinen Punkt von Spur, Heizzentrale und beiden Häusern (Test aus M1). Der Rand zur Kartenoberkante beträgt mindestens 24 px, Zoom ≥ 2.
+2. Alle Texte in Kapitel 3 ≤ 96 Zeichen, höchstens 3 Zeilen in der Blase bei 667.
+3. Das Band verschwindet nur unter Leitungen der richtigen Größe. Die Raute steht auf genau einem Feld.
+4. Ein neues Spiel endet nach T26 mit `{haupt}` vom Abgang bis zum Abzweig und `{anschluss}` zum Haus 2, nach dem Bau ohne Überlast und ohne Planungsfehler (Abnahme NR21).
+5. In T13w ändert ein Zug auf der Karte den Spielstand nicht.
+6. Eine überlastete Leitung zeigt ihre Durchmesserfarbe (Pipette in der Rohrmitte = `leitung.dNN`), dazu Dreieck und Saum. Im Bild ist kein Wechsel zwischen zwei Rots zu sehen (zwei Fotos im Abstand von 250 ms gleich).
+7. Je Stück höchstens ⌈n / 8⌉ Dreiecke, das erste auf dem Feld an der Heizzentrale.
+8. Die Blatt-Aktion nennt dieselbe Größe wie die Warnliste für dasselbe Stück.
+
+#### 13.17.7 Offene Fragen an Simon (mit Empfehlung)
+- **F-NR22-1 Blinken:** Du hast gesagt „bei Weniger Bewegung blinkt nichts“. **Empfehlung:** Es blinkt gar nicht mehr dauerhaft, auch nicht bei normaler Bewegung. Das Dreieck federt einmal, wenn die Überlast entsteht. Dauerblinken ist im übrigen Spiel tabu, und es kostet am Handy Rechenzeit (NR12). Wenn du doch Blinken willst: nur das Dreieck, 1-mal pro Sekunde, nie das Rohr.
+- **F-NR22-2 Ganzes Stück vergrößern:** **Empfehlung:** Der Knopf „Auf 32er vergrößern“ tauscht das ganze überlastete Stück auf einmal (z. B. 6 Felder, Preis steht auf dem Knopf). Feld für Feld wäre mühsam, und ein halb vergrößertes Stück wäre wieder ein Planungsfehler.
