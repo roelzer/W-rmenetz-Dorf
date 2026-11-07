@@ -103,3 +103,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - P5f-1n fertig af087c3 (W1 ab T13h, K1–K3), 3 rot (P7). Nachprüfung läuft; Review P5f-2 gesamt läuft parallel.
 - Nachprüfung P5f-1 🟡 → nr20-p5f1n in nr20-int gemergt (af087c3). Warte auf Review P5f-2 gesamt, dann Zusammenführung p5f2c + Nachträge (Skript :269, Knopfzeile, Test T13h→T14, Satz T13h).
 - Review P5f-2 🟡 → p5f2c in nr20-int (5a7b24f). Laufen parallel: Entwickler P5f-3 (nr20-p5f3) + Tester nr20-p5ft. Danach Review P5f-3, Designer-Fotocheck (inkl. K3 Streifen über Gebäuden, Haken im Zug), dann P7.
+- Tester nr20-p5ft 🟢 (21f7be6): Browser-Skript auf F3 (44/44 OK), Test T13h→T14 mit Stummel (Fehlerprobe erkannt) → in nr20-int gemergt. Warte auf P5f-3.

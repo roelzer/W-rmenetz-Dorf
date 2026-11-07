@@ -646,3 +646,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:01 | ■ 🟡 | reviewer | 🟡 **P5f-2 kann zusammengeführt werden. Es bleiben fünf kleine Punkte, keiner davon blockiert.**  ([Bericht](docs/pruefberichte/20261107-230107-reviewer-a4b4074c2a96fd9b6.md)) |
 | 2026-11-07 23:02 | ▶ | entwickler | P5f-3 Nachträge Steuerung/Satz |
 | 2026-11-07 23:02 | ▶ | tester | Tester P5f: Skript und T14-Test |
+| 2026-11-07 23:09 | ■ 🟢 | tester | 🟢 Beide Aufgaben sind erledigt. Die neuen Tests schlagen an, wenn die Prüfung auf „fremd“ fehlt. Am Programmcode habe ich nichts geändert.  ([Bericht](docs/pruefberichte/20261107-230931-tester-a50d4b531df160b80.md)) |
