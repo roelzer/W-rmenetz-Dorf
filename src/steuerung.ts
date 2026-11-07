@@ -114,8 +114,9 @@ export class Steuerung implements Ui {
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
   private erreichtSeit = new Map<number, number>();
   private szeneTutorial: SzeneTutorial = {};
-  /** 13.17.9 F8: Stand des letzten Bilds ohne Zug (Ansicht und Ring-Knopf) – im Zug bleibt das Bild so, bis der Finger abhebt */
-  private vorZug: { schritt: string; a: TutorialAnsicht; ring_id: string | null } | null = null;
+  /** 13.17.9 F8: Stand des letzten Bilds ohne Zug (Ansicht, Ring-Knopf, Sperre von [Abschnitt abschließen]) – im Zug bleibt das
+   *  Bild so, bis der Finger abhebt */
+  private vorZug: { schritt: string; a: TutorialAnsicht; ring_id: string | null; abschliessen: TutorialSperre | null } | null = null;
   /** Läuft die Pause nach der letzten Berührung der Karte: Der Vorführ-Finger kommt erst `finger_wieder` danach zurück */
   private fingerPause: number | null = null;
 
@@ -225,10 +226,16 @@ export class Steuerung implements Ui {
     this.anleitungAnwenden();
   }
   /** Gesperrter Knopf im Tutorial: Zeile 2 = Kurzgrund, Tippen bringt den Simon-Satz in die Blase statt einer Meldung. */
-  tutorialSperreKnopf(b: Bedienung): Sperre | null {
-    const s = this.tutorialSperre(b);
+  tutorialSperreKnopf(b: Bedienung): Sperre | null { return this.sperreKnopf(b, this.tutorialSperre(b)); }
+  private sperreKnopf(b: Bedienung, s: TutorialSperre | null): Sperre | null {
     if (!s) return null;
     return { grund: s.kurz, schloss: false, hinweis: () => { this.anleitung?.gesperrtGetippt(b); this.anleitungAnwenden(); return ''; } };
+  }
+  /** Sperre von [Abschnitt abschließen], wie sie das Bild zeigt: im Zug der Stand vor dem Zug (13.17.9 F8 über imZugHalten),
+   *  sonst die aktuelle. Beim Tippen liest der Knopf sie neu – nach dem Abheben ist das wieder die aktuelle. */
+  private abschliessenSperre(): TutorialSperre | null {
+    const roh = this.anleitung?.ansicht(this.uhr()) ?? null;
+    return roh ? this.imZugHalten(roh).abschliessen : this.tutorialSperre('abschliessen');
   }
   private tutorialSperre(b: Bedienung): TutorialSperre | null { return this.anleitung?.sperre(b) ?? null; }
   /** [Bauen]: im Tutorial direkt der Reiter Leitungen (T08 → T10, T09 im selben Takt). */
@@ -333,7 +340,7 @@ export class Steuerung implements Ui {
     const l = this.leiste, typ = this.stempelTyp;
     if (!l || !typ) return;
     const sp = this.spiel, D = KATALOG[typ];
-    this.leisteSperreKurz = this.tutorialSperre('abschliessen')?.kurz ?? null;
+    this.leisteSperreKurz = this.abschliessenSperre()?.kurz ?? null;
     const fokus = document.activeElement instanceof HTMLElement && l.blatt.wurzel.contains(document.activeElement) ? document.activeElement.getAttribute('data-id') : null;
     const neuAufbau = (): void => this.leisteAufbauen();
     l.frage.setAttribute('aria-expanded', String(this.hilfeOffen));
@@ -367,7 +374,7 @@ export class Steuerung implements Ui {
     l.blatt.inhalt.replaceChildren(werkzeug, hilfe);
     // B1–B4 vor B6 (12.21 Punkt 1); beim Tippen werden alle Gründe neu gelesen (Punkt 3)
     // 13.7: die Gründe des Spiels (B1–B6) zuerst, dann die Sperre des Tutorials
-    const abschliessen = knopf('Abschnitt abschließen', () => this.leisteAbschliessen(), 'los', { id: 'abschliessen', sperre: () => ersteSperre(abschnittSperreKurz(sp, this.uhr), sp.abschnittLeitungen() ? null : NICHTS_GEZEICHNET_KURZ, this.tutorialSperreKnopf('abschliessen')), neuAufbau });
+    const abschliessen = knopf('Abschnitt abschließen', () => this.leisteAbschliessen(), 'los', { id: 'abschliessen', sperre: () => ersteSperre(abschnittSperreKurz(sp, this.uhr), sp.abschnittLeitungen() ? null : NICHTS_GEZEICHNET_KURZ, this.sperreKnopf('abschliessen', this.abschliessenSperre())), neuAufbau });
     abschliessen.setAttribute('data-ziel', 'abschliessen');
     l.aktion.replaceChildren(abschliessen);
     if (fokus) [...l.blatt.wurzel.querySelectorAll<HTMLElement>('button')].find((b) => b.getAttribute('data-id') === fokus)?.focus();
@@ -894,23 +901,24 @@ export class Steuerung implements Ui {
   }
   /**
    * 13.17.9 F8: Der Zustand „eigener Abgang“ wechselt gemeinsam beim Abheben. Solange ein Zug läuft, bleiben Satz, Ring ums Haus,
-   * Ring in der Leiste, Zielscheibe, Raute und Band wie im letzten Bild ohne Zug (nur im selben Schritt). Neue Streifen kommen
-   * erst beim Abheben; Streifen auf gerade wegradierten Feldern verschwinden sofort – kein Streifen ohne Rohr.
+   * Ring in der Leiste, Zielscheibe, Raute, Band und Zeile 2 von [Abschnitt abschließen] wie im letzten Bild ohne Zug (nur im
+   * selben Schritt). Neue Streifen kommen erst beim Abheben; Streifen auf gerade wegradierten Feldern verschwinden sofort – kein
+   * Streifen ohne Rohr.
    */
-  private imZugHalten(a: TutorialAnsicht): { a: TutorialAnsicht; ring_id: string | null } {
+  private imZugHalten(a: TutorialAnsicht): { a: TutorialAnsicht; ring_id: string | null; abschliessen: TutorialSperre | null } {
     const schritt = `${a.schritt}|${a.wiedereinstieg}`;
     if (!(this.modus === 'stempel' && this.zeiger.size > 0)) {
-      const ring_id = this.ringKnopfId(a);
-      this.vorZug = { schritt, a, ring_id };
-      return { a, ring_id };
+      const ring_id = this.ringKnopfId(a), abschliessen = this.tutorialSperre('abschliessen');
+      this.vorZug = { schritt, a, ring_id, abschliessen };
+      return { a, ring_id, abschliessen };
     }
     const v = this.vorZug?.schritt === schritt ? this.vorZug : null;
-    if (!v) return { a: { ...a, fremd: [] }, ring_id: this.ringKnopfId(a) };
+    if (!v) return { a: { ...a, fremd: [] }, ring_id: this.ringKnopfId(a), abschliessen: this.tutorialSperre('abschliessen') };
     const feldText = ([x, y]: readonly [number, number]): string => `${x},${y}`, liegt = new Set(a.fremd.map(feldText));
     return {
       a: { ...a, text: v.a.text, band: v.a.band, naechstes_feld: v.a.naechstes_feld, zielscheibe: v.a.zielscheibe, ziel_ring: v.a.ziel_ring,
         fremd: v.a.fremd.filter((f) => liegt.has(feldText(f))) },
-      ring_id: v.ring_id,
+      ring_id: v.ring_id, abschliessen: v.abschliessen,
     };
   }
   private static elRechteck(el: HTMLElement): Rechteck { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, b: r.width, h: r.height }; }
@@ -963,7 +971,7 @@ export class Steuerung implements Ui {
   private anleitungAnwenden(): void {
     const roh = this.anleitung?.ansicht(this.uhr()) ?? null;
     if (!roh) return;
-    const { a, ring_id } = this.imZugHalten(roh);
+    const { a, ring_id, abschliessen } = this.imZugHalten(roh);
     if (this.zielHerstellenOffen && !a.wiedereinstieg) { this.zielHerstellenOffen = false; this.zielHerstellen(a); }
     if (!a.wiedereinstieg) this.leisteHerstellen(a);
     const k = this.kamera, frei = this.freieFlaeche(), vorher = this.angewendet;
@@ -990,7 +998,7 @@ export class Steuerung implements Ui {
     }
     // Zeile 2 von [Abschnitt abschließen] folgt dem Tutorial auch ohne Bedienung: Geld ändert sich ohne Ereignis (Weg b)
     // und schaltet T13 ⇄ T14 – sonst stünde in der Blase „Geld reicht nicht“, am Knopf aber kein Grund
-    if (this.leiste && (this.tutorialSperre('abschliessen')?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
+    if (this.leiste && (abschliessen?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
     this.tutorialSzeneSetzen(a);
     // Vor der Schlüsselprüfung: schleierSetzen baut nur bei geändertem Gang neu auf, folgt so aber jeder Kamerabewegung
     schleierSetzen(a.ruhe ? this.schleierGang(a) : null);
