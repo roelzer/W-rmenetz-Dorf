@@ -57,6 +57,8 @@ describe('P5f-3: Schrittwechsel mitten im Zug (Zweig ohne Stand vor dem Zug in i
       expect(schritt(u), 'Vorprobe: Schrittwechsel im Zug').toBe('T13');
       expect(st(u).anleitungAnsicht()!.fremd, 'Vorprobe: der Kern meldet in T13 weiter den eigenen Abgang').toEqual([[12, 13], [12, 12]]);
       expect(st(u).szene().tutorial_fremd ?? []).toEqual([]);
+      // Anderer Schritt, kein Stand vor dem Zug: Zeile 2 nennt den aktuellen Grund des Kerns
+      expect(zeile2(u)).toBe(KURZ_WEG);
     }, { uhr: () => uhr.t });
   });
 });
