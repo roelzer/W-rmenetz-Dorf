@@ -78,3 +78,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P3 🟡 gemergt → nr20-int (P3-Merge), typecheck grün. Sammelliste P5 +: P3-K1 Kartenrand, K2 Wisch-Test, K3 HZ-Nachbarschaftstests. Läuft: P6. Danach P5, P7.
 - 2026-11-07: P5 gestartet (Branch nr20-p5 ab a65c362, Teilschritt-Commits, Sammelliste docs/bauplaene/NR20-22-sammelliste-P5.md). Läuft parallel: P6 (Branch nr20-p6 ab 3ecff9e, überschneidungsfrei). Danach P7.
 - 2026-11-07: P6 fertig 2e10c25 (Branch nr20-p6): 25 Tests, +N2 rot bis P7 (Entscheidung). Review läuft. P7-Liste +: Blinken szene.ts:586 weg, kontext.ts:464 → ersatzPreis_eur, dreieckMitte exportieren.
+- 2026-11-07: P6 🟢 gemergt → nr20-int, typecheck grün (erwartet 20 V0 + N2 rot). Merkposten: zwei wackelige Tests unter Last (A38 Abwesenheit anpassungen.test.ts, NR12 P3a nr12-ebenen) – vor der Schranke vom Tester ansehen lassen. Läuft: P5.
