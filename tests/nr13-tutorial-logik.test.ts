@@ -13,7 +13,7 @@ import { einstieg, Tutorial, TUTORIAL_SCHRITTE, TUTORIAL_TEXT_MAX, TUTORIAL_ZURU
 // Leitungslage `tutorialLeitungen()` (haupt_ok, haus1_ok, haus2_ok …), nicht an `erreichteHaeuser()`. Texte nach Bauplan E8
 // (= DESIGN 13.17.2 Fassung 2 und 13.17.8); T13b entfällt und wird zum Zwischenstand-Satz von T13h.
 const T0 = 1_000_000_000_000;
-const NB = ' ';
+const NB = ' ';
 const NAME20 = 'Abcdefghijklmnopqrst';
 const WERTE: TutorialWerte = { kessel_kw: 60, kwh: 15000, kw_ohne: 10, kw_puffer: 7.5, kw_summe: 15, haupt: 'd32', anschluss: 'd25' };
 
@@ -569,7 +569,9 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
         zielscheibe: [10, 12], naechstes_feld: [10, 12], finger_weg: [], ziel_ring: null, zeichenleiste: { typ: 'd32' }, zeichnen_ruht: true,
         kompakt: true, ruhe: true, farbknopf_ring: 'd25' },
       T13h: { ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
-        zielscheibe: null, naechstes_feld: [9, 12], zeichenleiste: { typ: 'd25' }, zeichnen_ruht: false, kompakt: true, ruhe: true, farbknopf_ring: null },
+        // Bauplan NR20-22 P2: finger_weg = ab naechstes_feld (9|12) das Stück zu Haus 1, dann Hausmitte K2 [x + (g − 1) / 2, y + (g − 1) / 2];
+        // Haus 1 = efh (Größe 1) auf (9|13) → (9|13). ziel_ring = erstes nicht-ok Haus = Haus 1 (Id, unten in der Schleife gesetzt).
+        zielscheibe: null, naechstes_feld: [9, 12], finger_weg: [[9, 12], [9, 13]], zeichenleiste: { typ: 'd25' }, zeichnen_ruht: false, kompakt: true, ruhe: true, farbknopf_ring: null },
       T14: { ziele: ['abschliessen'], finger: 'tippen', abdunkeln: 'alles', kamera: 'steht', kamera_grenze: false, spur: false, erreicht_zeigen: false, ruhe: true },
       T15: { ziele: ['haus1'], finger: 'tippen', kamera_ziele: ['haus1'], normale_aktion: true },
       T16: { art: 'W', ziele: ['kasten_station'], finger: 'aus', kamera_ziele: ['haus1'], normale_aktion: false },
@@ -594,6 +596,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       const a = t.ansicht(T0)! as unknown as Record<string, unknown>;
       const soll: Record<string, unknown> = { ...AUS, ...erwartet[id] };
       if (K3.includes(id)) { delete soll.band; soll.ziel_stecker = [h1(l).id, h2(l).id]; }
+      if (id === 'T13h') soll.ziel_ring = h1(l).id;
       for (const [k, v] of Object.entries(soll)) expect([id, k, a[k]]).toEqual([id, k, v]);
       if (!['T06', 'T07'].includes(id)) expect([id, a.info_kapsel]).toEqual([id, undefined]);
       if (!['T02', 'T03'].includes(id)) expect([id, a.effekt]).toEqual([id, undefined]);

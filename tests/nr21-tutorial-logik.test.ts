@@ -414,9 +414,13 @@ describe('NR21 Tutorial-Schrittlogik (Bauplan NR20-22 P2)', () => {
     setze(m, t13h, lage(ALLE, { planungsfehler: true }));
     texte.push(t13h.sperre('abschliessen')!.satz);
     for (const b of ['abschliessen', 'blatt_schliessen'] as Bedienung[]) texte.push(t13h.sperre(b)!.satz);
-    texte.push(an(new Tutorial(lageBauen(name))).text);
     expect(texte).toContain(TEXT.groesse);
     for (const s of texte) expect([s, s.replace(/\*\*/g, '').length <= 96]).toEqual([s, true]);
+    // T12 läuft auf der normalen Karte (Bauplan NR20-22 Z. 12: 96 Zeichen nur kompakt in T13/T13w/T13h); E8 wörtlich, 99 Zeichen
+    // ohne Marken (Grenze der normalen Karte 120 prüft test_nr13_texte_laenge).
+    const t12 = an(new Tutorial(lageBauen(name))).text;
+    expect(t12).toBe(TEXT.T12);
+    expect(t12.replace(/\*\*/g, '').length).toBe(99);
     expect(TEXT.eigenerAbgang.length).toBe(89);
   });
 
