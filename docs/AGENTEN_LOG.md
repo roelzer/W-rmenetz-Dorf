@@ -565,3 +565,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:48 | ▶ | reviewer | Review P4a NR20-22 |
 | 2026-11-07 19:53 | ■ 🟢 | tester | 🟢 Alle drei Testkorrekturen sind fertig. Commit **122bcd09921ae7f2522d80b6ea923278338213fd** im Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-ad ([Bericht](docs/pruefberichte/20261107-195355-tester-af8aa1c41ee909398.md)) |
 | 2026-11-07 19:54 | ▶ | reviewer | Review P2 NR20-22 |
+| 2026-11-07 19:57 | ■ 🔴 | reviewer | 🔴 **Paket P1 (Kern), Diff 41b1c4a..03ee0bd: Nachbesserung nötig.** Es gibt zwei kleine, schnell behebbare Muss-Punkte. Der übrige Kern hält sich an den Pl ([Bericht](docs/pruefberichte/20261107-195720-reviewer-af31a16da90033be8.md)) |
+| 2026-11-07 19:57 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig.** Eine Sache muss behoben werden: Das Band zeichnet an Anfangsfeldern einen Stummel in die falsche Richtung. Der Rest ist ordentlic ([Bericht](docs/pruefberichte/20261107-195727-reviewer-abb7a47677ca9cd8d.md)) |
