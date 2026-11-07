@@ -84,3 +84,64 @@ describe('P5f-2 Darstellung (DESIGN 13.17.9)', () => {
     expect(b.indexOf(e[2])).toBeLessThan(b.indexOf('strokeStyle=#d8392f'));
   });
 });
+
+// P5f-2 (Fortsetzung): F5 Rest – Startfeld (10|11) über der Heizzentrale, Raute Füllung → Pfeil → Rand, Pfeil der 32er mit Rand `tafel`.
+describe('P5f-2 F5: Startfeld an der Heizzentrale und Raute mit Pfeil', () => {
+  // Farben: d32 #4caf3e, d25 #d8392f (src/core/katalog.ts), tafel #fff4df, kontur #3b1d0a (design/tokens.json menue.farbe)
+  const D32 = '#4caf3e', D25 = '#d8392f', TAFEL = '#fff4df', KONTUR = '#3b1d0a';
+  /** Seitenwand der Heizzentrale (src/render/gebaeude.ts heizzentrale): Marke „Heizzentrale ist gezeichnet“ */
+  const HZ_WAND = 'fillStyle=#86412e';
+  /** Füllung der leuchtenden Raute: Deckkraft (0,55 bzw. nach F5 0,35) direkt vor fillStyle ziel */
+  const rauteFuellung = (b: string[]): number => b.findIndex((x, i) => /^globalAlpha=0\.(55|35)$/.test(x) && b[i + 1] === `fillStyle=${ZIEL}`);
+  const pfeil = (b: string[], farbe: string): number => b.findIndex((x, i) => x === `fillStyle=${farbe}` && b[i + 1] === 'beginPath()' && b[i + 2]?.startsWith('moveTo(') && b.slice(i, i + 8).includes('closePath()'));
+  const T13_BAND = [
+    { x: 10, y: 11, typ: 'd32' as const, aktiv: true, falsch: false, pfeil: [0, 1] as [number, number] },
+    { x: 10, y: 12, typ: 'd32' as const, aktiv: true, falsch: false, pfeil: null },
+  ];
+  const FELD_9_12 = [{ x: 9, y: 12, typ: 'd25' as const, aktiv: true, falsch: false, pfeil: [0, 1] as [number, number] }];
+
+  it('Band und Raute auf (10|11) liegen über der Heizzentrale, ein Spurfeld ohne Nachbarschaft zur Heizzentrale darunter', () => {
+    const b = bild(szene({ tutorial_band: T13_BAND, naechstes_feld: [10, 11] }));
+    const hz = b.indexOf(HZ_WAND);
+    expect(hz, 'Vorprobe: Heizzentrale gezeichnet').toBeGreaterThan(-1);
+    expect(b.indexOf(`strokeStyle=${D32}`), 'Band (10|11) nach der Heizzentrale').toBeGreaterThan(hz);
+    expect(rauteFuellung(b), 'Raute (10|11) nach der Heizzentrale').toBeGreaterThan(hz);
+    const unten = bild(szene({ tutorial_band: FELD_9_12, naechstes_feld: [9, 12] }));
+    const hz2 = unten.indexOf(HZ_WAND);
+    expect(unten.indexOf(`strokeStyle=${D25}`), 'Band (9|12) vor der Heizzentrale').toBeLessThan(hz2);
+    expect(rauteFuellung(unten), 'Raute (9|12) vor der Heizzentrale').toBeLessThan(hz2);
+  });
+
+  it('beim Planen (zweiter Leitungs-Durchgang über den Gebäuden) liegen Band und Raute auf (10|11) auch über den Leitungen', () => {
+    const mitRohr = [...objekte, neu('d25', 13, 12)];
+    const b = bild(szene({ objekte: mitRohr, netz: berechneNetz(mitRohr, [], 1), modus: 'stempel', tutorial_band: T13_BAND, naechstes_feld: [10, 11] }));
+    // Rohrschatten rgba(40,34,26,.4) (zeichneLeitungen): der letzte gehört zum zweiten Durchgang
+    const rohr = b.lastIndexOf('strokeStyle=rgba(40,34,26,.4)');
+    expect(rohr).toBeGreaterThan(b.indexOf(HZ_WAND));
+    expect(b.indexOf(`strokeStyle=${D32}`)).toBeGreaterThan(rohr);
+    expect(rauteFuellung(b)).toBeGreaterThan(rohr);
+  });
+
+  it('Raute in der Reihenfolge Füllung → Pfeil → Rand, auf (10|11) und auf jedem anderen Feld', () => {
+    for (const [s, farbe] of [
+      [szene({ tutorial_band: T13_BAND, naechstes_feld: [10, 11] }), KONTUR],
+      [szene({ tutorial_band: FELD_9_12, naechstes_feld: [9, 12] }), '#ffffff'],
+    ] as const) {
+      const b = bild(s), f = rauteFuellung(b), p = pfeil(b, farbe);
+      expect(f).toBeGreaterThan(-1);
+      expect(p, 'Pfeil nach der Füllung').toBeGreaterThan(f);
+      const rand = b.findIndex((x, i) => i > f && x === `strokeStyle=${ZIEL}`);
+      expect(rand, 'Rand nach dem Pfeil').toBeGreaterThan(p);
+    }
+  });
+
+  it('Pfeil in kontur (32er) bekommt einen Rand tafel 1,5 px: vor der Füllung 3 px breit gestrichen', () => {
+    const b = bild(szene({ tutorial_band: T13_BAND }));
+    const p = pfeil(b, KONTUR);
+    expect(p).toBeGreaterThan(-1);
+    const vor = b.slice(p, b.indexOf('fill()', p));
+    expect(vor).toContain(`strokeStyle=${TAFEL}`);
+    expect(vor).toContain('lineWidth=3');
+    expect(vor.at(-1)).toBe('stroke()');
+  });
+});

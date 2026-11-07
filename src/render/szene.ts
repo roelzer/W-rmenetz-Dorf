@@ -280,7 +280,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   zeichneLeitungen(m, k, s);
   // NR20 (DESIGN 13.17.1 B2, K10): Band, Streifen, Zielscheibe und Raute über den eingezeichneten Leitungen, unter den Gebäuden –
   // nie in der zwischengespeicherten Bodenebene
-  zeichneTutorialEbene(m, k, s);
+  const tutorial = tutorialLage(s);
+  zeichneTutorialUnten(m, k, s, tutorial);
 
   // Auswahlring
   const sel = s.auswahl_id != null ? s.objekte.find((o) => o.id === s.auswahl_id) : undefined;
@@ -382,6 +383,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     m.raute(cx, cy, 1); X.strokeStyle = s.stempel.ok ? '#fff' : '#d8392f'; X.lineWidth = 2.5; X.stroke();
   }
   if (durchsicht) zeichneLeitungen(m, k, s);
+  // 13.17.9 F5: Band und Raute am Feld neben der Heizzentrale liegen über ihr (und über dem zweiten Leitungs-Durchgang)
+  zeichneTutorialOben(m, k, tutorial);
   oben.forEach((f) => f());
   effekte.zeichnen(m, dt_s, (x, y) => k.mitte(x, y));
 }
@@ -404,23 +407,71 @@ const WEISS = '#ffffff';
 /** Farbe der Pfeilspitze auf einer Bandfarbe: weiß ab PFEIL_WEISS_AB, sonst `kontur` (B2). */
 export const pfeilFarbe = (farbe: string): string => (kontrastZuWeiss(farbe) >= PFEIL_WEISS_AB ? WEISS : MF.kontur);
 
+/** Bandfarbe = dieselbe Farbe wie Rohr und Farbknopf (B2). */
+const bandFarbe = (typ: TypId): string => KATALOG[typ].farbe ?? MF.kontur;
+
 /** Bandbreite b = max(geist_band_min, round(Feldbreite × geist_band_faktor)) (DESIGN 13.17.1 B2). */
 const bandBreite = (tw: number): number => Math.max(MM.geist_band_min, Math.round(tw * MM.geist_band_faktor));
 
-/** NR20/NR21 (DESIGN 13.17.1 B2–B4, 13.17.8): eine Ebene über den eingezeichneten Leitungen. Reihenfolge: Band, Streifen, Zielscheibe, Raute. */
-function zeichneTutorialEbene(m: Maler, k: Kamera, s: Szene): void {
+/** Band und Raute eines Bilds, aufgeteilt auf die Ebene unter den Gebäuden und die über der Heizzentrale (13.17.9 F5). */
+interface TutorialLage {
+  fremd: ReadonlyArray<Feld>;
+  /** Bandfelder ohne die gestreiften */
+  band: TutorialBandFeld[];
+  unten: TutorialBandFeld[];
+  oben: TutorialBandFeld[];
+  /** Feld der leuchtenden Raute (nicht auf gestreiften Feldern) */
+  raute: Feld | null;
+  raute_oben: boolean;
+}
+
+/**
+ * Über der Heizzentrale liegen nur Spurfelder, die an ihre Grundfläche grenzen (heute (10|11)). Damit sich die Deckkraft an
+ * den Stößen nicht verdoppelt (B2: ein Pfad je Farbe und Zustand), wandert die ganze Bandgruppe eines solchen Felds mit.
+ */
+function tutorialLage(s: Szene): TutorialLage {
   const fremd = s.tutorial_fremd ?? [];
-  // Auch bei Weniger Bewegung merken, sonst hielte der Takt die Felder für ungezeichnet und bliebe flüssig
-  const eingeblendet = fremdEinblendungMerken(fremd, s.jetzt_ms), deckkraft = m.reduziert ? 1 : eingeblendet;
   const gestreift = new Set(fremd.map(feldText));
   const band = (s.tutorial_band ?? []).filter((f) => !gestreift.has(feldText([f.x, f.y])));
+  const hz = band.length || s.naechstes_feld ? heizzentrale(s.objekte) : undefined;
+  const anHz = ([x, y]: Feld): boolean => {
+    if (!hz) return false;
+    const g = groesse(hz);
+    return NACHBARN.some(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= hz.x && nx < hz.x + g && ny >= hz.y && ny < hz.y + g; });
+  };
+  const gruppe = (f: TutorialBandFeld): string => `${f.typ},${f.aktiv}`;
+  const obenGruppen = new Set(band.filter((f) => anHz([f.x, f.y])).map(gruppe));
+  const raute = s.naechstes_feld && !gestreift.has(feldText(s.naechstes_feld)) ? s.naechstes_feld : null;
+  return {
+    fremd, band, raute, raute_oben: !!raute && anHz(raute),
+    unten: band.filter((f) => !obenGruppen.has(gruppe(f))), oben: band.filter((f) => obenGruppen.has(gruppe(f))),
+  };
+}
+
+/** Bandfeld mit Pfeil auf der Raute: Sein Pfeil liegt zwischen Füllung und Rand der Raute (13.17.9 F5). */
+const rautenPfeil = (t: TutorialLage): TutorialBandFeld | null =>
+  (t.raute && t.band.find((f) => f.x === t.raute![0] && f.y === t.raute![1] && f.aktiv && f.pfeil)) || null;
+
+/** NR20/NR21 (DESIGN 13.17.1 B2–B4, 13.17.8): eine Ebene über den eingezeichneten Leitungen. Reihenfolge: Band, Streifen, Zielscheibe, Raute. */
+function zeichneTutorialUnten(m: Maler, k: Kamera, s: Szene, t: TutorialLage): void {
+  const fremd = t.fremd;
+  // Auch bei Weniger Bewegung merken, sonst hielte der Takt die Felder für ungezeichnet und bliebe flüssig
+  const eingeblendet = fremdEinblendungMerken(fremd, s.jetzt_ms), deckkraft = m.reduziert ? 1 : eingeblendet;
   // F6: Ring unter Band und Raute – die Raute liegt oben, wo sich beide berühren
   const ringHaus = s.ziel?.ring != null ? s.objekte.find((o) => o.id === s.ziel!.ring) : undefined;
   if (ringHaus) { const g = groesse(ringHaus), [cx, cy] = k.mitte(ringHaus.x + (g - 1) / 2, ringHaus.y + (g - 1) / 2); zielRing(m, cx, cy, g); }
-  if (band.length) zeichneBand(m, k, band);
+  const pfeilRaute = rautenPfeil(t);
+  if (t.unten.length) zeichneBand(m, k, t.unten, pfeilRaute);
   if (fremd.length) zeichneFremd(m, k, s, fremd, deckkraft);
   if (s.zielscheibe) { const [x, y] = k.mitte(s.zielscheibe[0], s.zielscheibe[1]); zielscheibe(m, x, y, bandBreite(k.tw) * 0.45); }
-  if (s.naechstes_feld && !gestreift.has(feldText(s.naechstes_feld))) leuchtendeRaute(m, k, s.naechstes_feld);
+  if (t.raute && !t.raute_oben) leuchtendeRaute(m, k, t.raute, pfeilRaute);
+}
+
+/** 13.17.9 F5: Band dieses Felds → Raute-Füllung → Pfeil → Raute-Rand, über der Heizzentrale. */
+function zeichneTutorialOben(m: Maler, k: Kamera, t: TutorialLage): void {
+  const pfeilRaute = rautenPfeil(t);
+  if (t.oben.length) zeichneBand(m, k, t.oben, pfeilRaute);
+  if (t.raute && t.raute_oben) leuchtendeRaute(m, k, t.raute, pfeilRaute);
 }
 
 /**
@@ -429,7 +480,7 @@ function zeichneTutorialEbene(m: Maler, k: Kamera, s: Szene): void {
  * Ohne festen Vorgänger (erstes Feld der Hauptleitung) kommt er gegen den eigenen Pfeil. Ohne Pfeil (Abzweig) endet der Weg in der Mitte.
  * Alle Felder gleicher Farbe und gleichen Zustands liegen in einem Pfad, damit sich die Deckkraft an den Stößen nicht verdoppelt.
  */
-function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>): void {
+function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>, pfeilInRaute: TutorialBandFeld | null): void {
   const { X } = m, b = bandBreite(k.tw), rand_hell = MM.geist_rand_hell, rand_dunkel = MM.geist_rand_dunkel;
   const weg = (f: TutorialBandFeld): Punkt[] => {
     const vor = bandVorgaenger(f.x, f.y);
@@ -445,7 +496,7 @@ function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>)
   for (const f of band) { const g = `${f.typ},${f.aktiv}`; gruppen.set(g, [...(gruppen.get(g) ?? []), f]); }
   X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
   for (const felder of gruppen.values()) {
-    const { typ, aktiv } = felder[0], farbe = KATALOG[typ].farbe ?? MF.kontur; // dieselbe Farbe wie Rohr und Farbknopf (B2)
+    const { typ, aktiv } = felder[0], farbe = bandFarbe(typ);
     const wege = felder.map(weg);
     const ruhend = aktiv ? 1 : FAKTOR.geist_ruhend;
     for (const [strich, breite, alpha] of [
@@ -456,7 +507,7 @@ function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>)
       X.stroke();
     }
     X.globalAlpha = 1;
-    if (aktiv) for (const f of felder) if (f.pfeil) pfeilSpitze(m, k, f, b, farbe);
+    if (aktiv) for (const f of felder) if (f.pfeil && f !== pfeilInRaute) pfeilSpitze(m, k, f, b, farbe);
     for (const f of felder) if (f.falsch) {
       // 12.22: gestrichelte Raute in der Zielfarbe, Deckkraft 0,8
       const [cx, cy] = k.mitte(f.x, f.y);
@@ -467,7 +518,8 @@ function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>)
   X.restore();
 }
 
-/** Pfeilspitze in der Bandmitte, Breite b × 0,6, zeigt nach `pfeil`; weiß mit Kontur oder in `kontur` (B2). */
+/** Pfeilspitze in der Bandmitte, Breite b × 0,6, zeigt nach `pfeil`; weiß mit Kontur oder in `kontur` mit Rand `tafel`
+ *  (B2, 13.17.9 F5: der dunkle Pfeil hebt sich so vom Grün der 32er ab). */
 function pfeilSpitze(m: Maler, k: Kamera, f: TutorialBandFeld, b: number, farbe: string): void {
   const { X } = m, pfeil = f.pfeil!;
   const [ax, ay] = k.mitte(f.x, f.y), [bx, by] = k.mitte(f.x + pfeil[0], f.y + pfeil[1]);
@@ -480,15 +532,23 @@ function pfeilSpitze(m: Maler, k: Kamera, f: TutorialBandFeld, b: number, farbe:
   X.moveTo(ax + ux * h, ay + uy * h);
   X.lineTo(ax - ux * h - uy * h, ay - uy * h + ux * h);
   X.lineTo(ax - ux * h + uy * h, ay - uy * h - ux * h);
-  X.closePath(); X.fill();
+  X.closePath();
+  // Rand `tafel` doppelt breit vor der Füllung: die Füllung deckt die innere Hälfte, außen bleibt 1,5 px
+  if (!weiss) { X.strokeStyle = MF.tafel; X.lineWidth = 2 * MM.geist_rand_dunkel; X.stroke(); }
+  X.fill();
   if (weiss) { X.strokeStyle = MF.kontur; X.lineWidth = MM.geist_rand_dunkel; X.stroke(); }
 }
 
-/** Leuchtende Raute auf dem nächsten Feld (B3): Raute × 0,92, Füllung `ziel` mit Deckkraft 0,55, 3 px `ziel`, außen 2 px `kontur`. */
-function leuchtendeRaute(m: Maler, k: Kamera, f: Feld): void {
+/** Leuchtende Raute auf dem nächsten Feld (B3): Raute × 0,92, Füllung `ziel` mit Deckkraft 0,55, 3 px `ziel`, außen 2 px `kontur`.
+ *  13.17.9 F5: Der Pfeil des Bandfelds liegt zwischen Füllung und Rand, damit die Füllung ihn nicht verschleiert. */
+function leuchtendeRaute(m: Maler, k: Kamera, f: Feld, pfeil: TutorialBandFeld | null): void {
   const { X } = m, [cx, cy] = k.mitte(f[0], f[1]);
   m.raute(cx, cy, FAKTOR.naechstes_feld);
   X.globalAlpha = 0.55; X.fillStyle = MF.ziel; X.fill(); X.globalAlpha = 1;
+  if (pfeil) {
+    pfeilSpitze(m, k, pfeil, bandBreite(k.tw), bandFarbe(pfeil.typ));
+    m.raute(cx, cy, FAKTOR.naechstes_feld);
+  }
   X.strokeStyle = MF.kontur; X.lineWidth = MM.spot_ring + 2 * MM.spot_ring_kontur; X.stroke();
   X.strokeStyle = MF.ziel; X.lineWidth = MM.spot_ring; X.stroke();
 }
