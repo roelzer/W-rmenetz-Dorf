@@ -49,3 +49,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: Bauplan 2.3 🟢. Warte auf V0/P0, dann P1‖P2‖P4.
 - 2026-11-07: P0 gebaut (8f681d0), Stopp wegen Architekturtest F2d (7 Tipp-Arten) → Architekt passt an. V0 läuft.
 - 2026-11-07: P0 + Architekturtest-Anpassung (78ee473) → Review läuft. V0 Teil 1 (fb4b901, Kontext voll) → V0 2a (tutorial-logik) ‖ 2b (übrige Dateien) laufen.
+- 2026-11-07: P0 🟢 (78ee473). Warte auf V0 2a/2b, dann nr20-int = P0+V0, dann P1‖P2‖P4.
