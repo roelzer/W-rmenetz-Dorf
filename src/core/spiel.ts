@@ -804,10 +804,14 @@ export class Spiel {
     return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur() + this.bohrung_eur()
       + this.vorsehungen_eur() + this.anbohrung_eur() + this.ersatz_eur();
   }
-  /** NR18 (E1): je Ersatz Neupreis minus 50 % des alten Typs, im Fluss dazu die Spülbohrung; eine Gestattung fällt nicht an. */
+  /** NR18 (E1): Summe aller geplanten Ersatz-Leitungen. */
   ersatz_eur(): number {
-    return this.stand.objekte.reduce((summe, o) => !o.ersatz ? summe
-      : summe + (KATALOG[o.ersatz.typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0), 0);
+    return this.stand.objekte.reduce((summe, o) => !o.ersatz ? summe : summe + this.ersatzPreis_eur(o, o.ersatz.typ), 0);
+  }
+  /** NR18 (E1): Ersatz einer gebauten Leitung durch `typ` – Neupreis minus 50 % des alten Typs, im Fluss dazu die Spülbohrung;
+   *  eine Gestattung fällt nicht an (die Querung gibt es schon). */
+  ersatzPreis_eur(o: Objekt, typ: TypId): number {
+    return (KATALOG[typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0);
   }
   /** A69: geplante Vorsehungen (T-Stück mit verschlossenem Abgang) im Abschnitt. */
   vorsehungen_eur(): number { return this.stand.objekte.filter((o) => o.geplant && o.vorsehung).length * KONSTANTEN.vorsehung_eur; }
@@ -864,6 +868,42 @@ export class Spiel {
     o.ersatz = { typ: neu, nr: this.stand.naechste_id++ };
     this.schritt('leitung_gezeichnet', o.id);
     return ok();
+  }
+  /** NR22 (AE-NR22-3): überlastete Stücke im gebauten Netz – Saum, Dreiecke, Blatt und Knopf lesen nur dieses Ergebnis.
+   *  Eingezeichnete Leitungen fehlen im gebauten Netz und bekommen deshalb kein Stück. */
+  ueberlastStuecke(): Engstelle[] { return this.engstellenIn(this.netz); }
+  /** NR22 (E6): Felder des Stücks um `feld`, die für `typ` noch einen Ersatz brauchen. Felder, deren Ersatz (oder Leitung)
+   *  schon so dick ist, zählen nicht; ein dünnerer Ersatz wird abgelöst. Kein Stück an `feld` → []. */
+  stueckOffeneFelder(feld: number, typ: TypId): number[] {
+    const stueck = this.ueberlastStuecke().find((e) => e.felder.includes(feld));
+    if (!stueck) return [];
+    const kap = KATALOG[typ].kapazitaet_kw as number;
+    return stueck.felder.filter((f) => {
+      const o = this.leitungImNetz(f);
+      return kap > (KATALOG[o.ersatz?.typ ?? o.typ].kapazitaet_kw as number);
+    });
+  }
+  /** NR22 (E6, Simon F-NR22-2): das ganze überlastete Stück auf `typ` vergrößern – ganz oder gar nicht. Keine Geld-Sperre:
+   *  bezahlt wird mit der Materialbestellung (DESIGN 13.17.3). */
+  stueckVergroessern(feld: number, typ: TypId): Ergebnis {
+    if (!this.ueberlastStuecke().some((e) => e.felder.includes(feld))) return { ok: false };
+    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false, hinweis: ERSATZ_NUR_IM_ABSCHNITT };
+    const sperre = this.sperrText(typ);
+    if (sperre) return { ok: false, hinweis: sperre };
+    const offen = this.stueckOffeneFelder(feld, typ);
+    if (!offen.length) return { ok: false };
+    for (const f of offen) {
+      // Phase, Sperre und Größe sind oben für alle Felder geprüft; scheitert ein Feld trotzdem, ist der Kern inkonsistent.
+      const r = this.ersatzPlanen(this.leitungImNetz(f).id, typ);
+      if (!r.ok) throw new Error(`Ersatz auf Feld ${f} abgelehnt, obwohl vorgeprüft: ${r.hinweis ?? 'ohne Grund'}`);
+    }
+    return ok();
+  }
+  /** Gebaute Leitung auf einem Feld des gebauten Netzes; ein Stück aus engstellenFinden besteht nur aus solchen Feldern. */
+  private leitungImNetz(f: number): Objekt {
+    const o = this.objekt(this.netz.belegung[f]);
+    if (!o || !istLeitung(o.typ)) throw new Error(`Feld ${f} trägt keine gebaute Leitung`);
+    return o;
   }
   /** NR18: eingezeichnete Leitung im offenen Bauabschnitt bekommt einen anderen Typ (die Leitungsgrenze ändert sich nicht). */
   geplanteLeitungTyp(id: number, neu: TypId): Ergebnis {
