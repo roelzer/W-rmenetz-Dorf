@@ -592,3 +592,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:29 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 20:29 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** P3 ist gebaut und getestet. Die Test-Schranke meldet aber „NICHT OK“. Das liegt an den 21 Tests, die schon vor P3 rot  ([Bericht](docs/pruefberichte/20261107-202955-entwickler-a762728cd0143c1ea.md)) |
 | 2026-11-07 20:30 | ▶ | reviewer | Review P3 V1 Zug |
+| 2026-11-07 20:31 | ■ 🟢 | tester | 🟢 K3 ist erledigt. Beide Werte-Tests merken jetzt, wenn ein überzähliges Feld dazukommt.  ([Bericht](docs/pruefberichte/20261107-203134-tester-aec58820d08586a42.md)) |
