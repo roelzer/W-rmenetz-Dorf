@@ -75,3 +75,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P2-Nachzug 🟢 → gemergt, nr20-int 3ecff9e, typecheck grün. Laufen: Tester K3 toEqual (Branch nr20-k3), P6 NR22-Kern (Branch nr20-p6), P3. Danach P5, P7.
 - 2026-11-07: P3 fertig b086c7b (Branch nr20-p3, 21 rot unverändert, +10 Tests) → Review läuft. Zu bewerten: F = erstes Feld neben S beim Wischen; pointercancel = Tippen.
 - 2026-11-07: Tester K3 (toEqual) ff9ff43 gemergt → nr20-int, 20 rot unverändert, Gegenprobe erkannt.
+- 2026-11-07: P3 🟡 gemergt → nr20-int (P3-Merge), typecheck grün. Sammelliste P5 +: P3-K1 Kartenrand, K2 Wisch-Test, K3 HZ-Nachbarschaftstests. Läuft: P6. Danach P5, P7.
