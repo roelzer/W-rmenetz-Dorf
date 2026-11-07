@@ -290,7 +290,7 @@ export class Tutorial {
   /** Merkt sich das Haus mit eigenem Abgang und vergisst es, sobald es richtig angeschlossen ist oder Kapitel 3 vorbei ist. */
   private zielscheibeMerken(): void {
     if (!this.aktiv() || !(this.def.t13 || this.def.id === 'T14')) { this.zielscheibeHaus = null; return; }
-    const lg = this.lage.tutorialLeitungen();
+    const lg = this.leitungen();
     if (lg.fremd_haus !== null) this.zielscheibeHaus = lg.fremd_haus;
     else if (this.zielscheibeHaus !== null && (this.zielscheibeHaus === 1 ? lg.haus1_ok : lg.haus2_ok)) this.zielscheibeHaus = null;
   }
@@ -301,6 +301,20 @@ export class Tutorial {
 
   private get def(): TutorialSchrittDef { return TUTORIAL_SCHRITTE[this.schrittIndex]; }
   private objekte(): TutorialObjekte { return tutorialObjekte(this.lage.stand) as TutorialObjekte; }
+
+  /** Leitungslage für den aktuellen Schritt. Review P5f-1 W1, Entscheidung (a): Die Rest-Stück-Regel (DESIGN 13.17.9 F3) gilt
+   *  erst ab T13h. In T13 (Hauptleitung ziehen) und T13w (Größe wechseln) würde ein Stück abseits der Spur sonst Satz, Finger und
+   *  Ring gegen den Schritt führen und schon den ersten Zug des erlaubten Umwegs (11|12)→(10|12) streifen. Dort zählt fremd
+   *  wie vor P5f-1 nur bei eigenem Abgang oder bei einem Planungsfehler trotz beider Häuser ok. Gefiltert wird hier und nicht
+   *  im Kern, weil Spiel.tutorialLeitungen() den Schritt nicht kennt. Bewusste Vereinfachung: Liegt in T13/T13w ein eigener
+   *  Abgang, bleiben auch zusätzliche Reststücke gestreift – der Kern liefert die Teile von fremd nicht getrennt. */
+  private leitungen(): TutorialLeitungsLage {
+    const lg = this.lage.tutorialLeitungen();
+    const id = this.def.id;
+    if ((id !== 'T13' && id !== 'T13w') || lg.fremd.length === 0) return lg;
+    const wieVorher = lg.fremd_haus !== null || (lg.haus1_ok && lg.haus2_ok && lg.planungsfehler);
+    return wieVorher ? lg : { ...lg, fremd: [] };
+  }
 
   /** Bauplan NR20-22 P2: richtig angeschlossene Tutorial-Häuser laut Leitungslage, nicht „irgendwie verbunden“. */
   private erreichtZahl(lg: TutorialLeitungsLage): number {
@@ -319,9 +333,9 @@ export class Tutorial {
     const a = this.lage.stand.abschnitt, t = this.objekte();
     switch (id) {
       case 'T10': return !!a;
-      case 'T13': return this.lage.tutorialLeitungen().haupt_ok && !this.zugLaeuft;
-      case 'T13w': { const lg = this.lage.tutorialLeitungen(); return lg.haus1_ok && lg.haus2_ok; }
-      case 'T13h': return this.abschliessenBereit(this.lage.tutorialLeitungen()) && !this.zugLaeuft;
+      case 'T13': return this.leitungen().haupt_ok && !this.zugLaeuft;
+      case 'T13w': { const lg = this.leitungen(); return lg.haus1_ok && lg.haus2_ok; }
+      case 'T13h': return this.abschliessenBereit(this.leitungen()) && !this.zugLaeuft;
       case 'T14': return a?.phase === 'bestellen';
       case 'T17': return !!t.haus1.station;
       case 'T19': return !!t.haus2.station;
@@ -353,7 +367,7 @@ export class Tutorial {
   private zurueck(): boolean {
     const id = this.def.id;
     if (id !== 'T13w' && id !== 'T13h' && (id !== 'T14' || this.zustandErfuellt('T14'))) return false;
-    const lg = this.lage.tutorialLeitungen();
+    const lg = this.leitungen();
     if (!lg.haupt_ok) { this.wechseln(index('T13')); return true; }
     if (id === 'T14' && !this.abschliessenBereit(lg)) { this.wechseln(index('T13h')); return true; }
     return false;
@@ -429,11 +443,11 @@ export class Tutorial {
     const t13 = !!this.def.t13;
     switch (b) {
       case 'karte_gesten': return t13 ? null : GRUNDSPERRE;
-      case 'abschliessen': return t13 ? this.abschliessenSperre(this.lage.tutorialLeitungen()) : null;
+      case 'abschliessen': return t13 ? this.abschliessenSperre(this.leitungen()) : null;
       case 'blatt_schliessen': {
         if (!t13) return GRUNDSPERRE;
         // K12: Sind beide Häuser erreicht und fehlt Geld, weicht auch dieser Häuser-Satz dem Geld-Satz.
-        const geld = this.erreichtZahl(this.lage.tutorialLeitungen()) === 2 && this.lage.tutorialGeldFehlt_eur() > 0;
+        const geld = this.erreichtZahl(this.leitungen()) === 2 && this.lage.tutorialGeldFehlt_eur() > 0;
         return { kurz: GRUNDSPERRE.kurz, satz: geld ? SATZ_GELD : SATZ_LEISTE_OFFEN };
       }
       case 'verwerfen': case 'sofort': case 'express': case 'weiter_einzeichnen': return AKTIONSSPERRE;
@@ -465,7 +479,7 @@ export class Tutorial {
     const hilfe = d.art === 'H' && this.daneben >= 3;
     const sperrSatz = this.sperrGetippt ? this.sperre(this.sperrGetippt)?.satz : '';
     if (d.t13 && d.id !== 'T13w') {
-      const lg = this.lage.tutorialLeitungen();
+      const lg = this.leitungen();
       if (this.lage.tutorialGeldFehlt_eur() > 0) return SATZ_GELD;
       if (sperrSatz) return sperrSatz;
       if (lg.fremd.length > 0) return einsetzen(SATZ_EIGENER_ABGANG, w, name);
@@ -480,9 +494,9 @@ export class Tutorial {
   private kapitel3(d: TutorialSchrittDef, t: TutorialObjekte, w: TutorialWerte): Nr20Felder {
     const leer = nr20Leer();
     if (d.id === 'T12') return { ...leer, ruhe: true };
-    if (d.id === 'T14') return { ...leer, ruhe: true, fremd: [...this.lage.tutorialLeitungen().fremd] };
+    if (d.id === 'T14') return { ...leer, ruhe: true, fremd: [...this.leitungen().fremd] };
     if (!d.t13) return leer;
-    const lg = this.lage.tutorialLeitungen();
+    const lg = this.leitungen();
     const fertig: Record<Stueck, boolean> = { haupt: lg.haupt_ok, haus1: lg.haus1_ok, haus2: lg.haus2_ok };
     const ring = d.id === 'T13h' ? zielHaus(lg) : null;
     const ringStueck = ring ? STUECK_HAUS[ring] : null;
