@@ -70,7 +70,8 @@ export interface TutorialLeitungsLage {
   haupt_zu_duenn: boolean; anschluss_zu_dick: boolean;
   /** Probe-Netz (gebaut + eingezeichnet) zeigt Reduzierung, Aufteilung oder Engpass */
   planungsfehler: boolean;
-  /** Felder eines eigenen Abgangs (Hausweg ohne Abzweig) außerhalb der Spur; [] = kein eigener Abgang */
+  /** Felder, die weg müssen: zuerst ein eigener Abgang (Hausweg ohne Abzweig) außerhalb der Spur, dann jedes übrige Leitungsfeld
+   *  außerhalb von Spur und echtem Hauptweg (Rest-Stück, DESIGN 13.17.9 F3), aufsteigend; [] = nichts muss weg */
   fremd: ReadonlyArray<Feld>;
   /** kleinstes Tutorial-Haus mit eigenem Abgang, sonst null */
   fremd_haus: 1 | 2 | null;
@@ -138,11 +139,13 @@ export interface TutorialAnsicht {
   band: TutorialBandFeld[];
   /** NR20: Feld mit der leuchtenden Raute */
   naechstes_feld: Feld | null;
-  /** NR20: T13, T13w: TUTORIAL_ABZWEIG; T13h nur bei fremd ≠ []; sonst null */
+  /** NR20: T13, T13w: TUTORIAL_ABZWEIG; T13h bei fremd ≠ [] und nach einem eigenen Abgang, bis dessen Haus richtig angeschlossen
+   *  ist (DESIGN 13.17.9 F8); sonst null */
   zielscheibe: Feld | null;
   /** NR20: Feldkoordinaten ab naechstes_feld; T13 endet auf der Zielscheibe, T13h auf der Hausmitte; [] = kein Ziehen */
   finger_weg: ReadonlyArray<readonly [number, number]>;
-  /** NR21: = TutorialLeitungsLage.fremd in T13–T14, sonst [] */
+  /** NR21: = TutorialLeitungsLage.fremd in T13h/T14; in T13/T13w nur bei eigenem Abgang oder Planungsfehler trotz beider Häuser
+   *  ok (Review P5f-1 W1 (a), Rest-Stück erst ab T13h); sonst [] */
   fremd: ReadonlyArray<Feld>;
   /** NR20: Haus-Ids mit Ziel-Stecker */
   ziel_stecker: number[];
