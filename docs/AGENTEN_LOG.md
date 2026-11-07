@@ -635,3 +635,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:42 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Zwei Gründe: Bei den Streifenmaßen (F3) widersprechen sich zwei Tests, und mein Kontext ist voll.  ([Bericht](docs/pruefberichte/20261107-224248-entwickler-afcf1e09d12abb587.md)) |
 | 2026-11-07 22:43 | ▶ | entwickler | P5f-2c Tokens, Hülle, Fotos |
 | 2026-11-07 22:43 | ▶ | tester | Tester nr21-vertrag Streifen 5/12 |
+| 2026-11-07 22:44 | ■ 🟢 | tester | 🟢 Vorarbeit erledigt. Wie geplant ist jetzt genau ein Test rot.  ([Bericht](docs/pruefberichte/20261107-224403-tester-a69de1a5b8b6a68b2.md)) |
