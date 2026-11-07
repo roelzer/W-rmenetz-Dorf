@@ -690,17 +690,29 @@ describe('NR13 Abnahme – Zahlen aus dem Spiel und Textlängen', () => {
           pruefen(`${a.schritt} sperre ${b}`, sp.satz);
           l.tut.gesperrtGetippt(b); pruefen(`${a.schritt} blase ${b}`, jetzt(l).text); l.tut.handlung();
         }
-        if (['T03', 'T06', 'T07', 'T17'].includes(a.schritt)) {
-          // schlechtester Fall K1: 7 Zeichen je Leistung (17,5 kW / 13,1 kW), 999 kW Kessel
+        if (['T03', 'T06', 'T07', 'T13w', 'T17'].includes(a.schritt)) {
+          // Schlechtester Fall K1 im festen Tutorialdorf (Entscheidung P5 e): W1 „32er trägt 25 kW“ muss halten, also
+          // 2 × Verbrauch ÷ 2.000 h ≤ 25 kW → höchstens 25.000 kWh je Einfamilienhaus (25.001 kWh wirft W1).
+          // 25.000 kWh: Grenze selbst (16,7 kW / 12,5 kW, Summe 25 kW). 24.880 kWh: jede Leistung mit Nachkommastelle,
+          // also 7 Zeichen je Leistung auch in der Summe (24,9 kW / 16,6 kW / 12,4 kW). Dazu 999 kW Kessel als lange Zahl.
+          const FAELLE: Array<{ kwh: number; t17: string; t06: string; t13w: string }> = [
+            { kwh: 25_000, t17: `12,5${NB}kW statt 16,7${NB}kW`, t06: `25.000${NB}kWh im Jahr · bis 16,7${NB}kW`,
+              t13w: `Bis hier fließen 25${NB}kW für beide Häuser, ab hier je Haus nur 12,5${NB}kW.` },
+            { kwh: 24_880, t17: `12,4${NB}kW statt 16,6${NB}kW`, t06: `24.880${NB}kWh im Jahr · bis 16,6${NB}kW`,
+              t13w: `Bis hier fließen 24,9${NB}kW für beide Häuser, ab hier je Haus nur 12,4${NB}kW.` },
+          ];
           const altV = efh.verbrauch_kwh_a, altK = kessel[0];
-          try {
-            efh.verbrauch_kwh_a = 26_250; kessel[0] = 999; l.s.neuBerechnen();
-            const v = jetzt(l);
-            pruefen(`${a.schritt} gross`, v.text); pruefen(`${a.schritt} gross kapsel`, v.info_kapsel);
-            if (a.schritt === 'T17') expect(ohneMarken(v.text)).toContain(`13,1${NB}kW statt 17,5${NB}kW`);
-            if (a.schritt === 'T06') expect(v.info_kapsel).toBe(`26.250${NB}kWh im Jahr · bis 17,5${NB}kW`);
-            if (a.schritt === 'T03') expect(ohneMarken(v.text)).toContain(`999${NB}kW.`);
-          } finally { efh.verbrauch_kwh_a = altV; kessel[0] = altK; l.s.neuBerechnen(); }
+          for (const f of FAELLE) {
+            try {
+              efh.verbrauch_kwh_a = f.kwh; kessel[0] = 999; l.s.neuBerechnen();
+              const v = jetzt(l);
+              pruefen(`${a.schritt} gross ${f.kwh}`, v.text); pruefen(`${a.schritt} gross ${f.kwh} kapsel`, v.info_kapsel);
+              if (a.schritt === 'T17') expect(ohneMarken(v.text)).toContain(f.t17);
+              if (a.schritt === 'T06') expect(v.info_kapsel).toBe(f.t06);
+              if (a.schritt === 'T13w') expect(ohneMarken(v.text)).toContain(f.t13w);
+              if (a.schritt === 'T03') expect(ohneMarken(v.text)).toContain(`999${NB}kW.`);
+            } finally { efh.verbrauch_kwh_a = altV; kessel[0] = altK; l.s.neuBerechnen(); }
+          }
         }
         if (!W_SCHRITTE.has(a.schritt)) { for (let i = 0; i < 3; i++) tippen(l, 'daneben'); pruefen(`${a.schritt} hilfe`, jetzt(l).text); }
       },

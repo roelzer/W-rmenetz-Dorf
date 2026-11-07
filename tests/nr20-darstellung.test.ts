@@ -295,8 +295,11 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
 
   it('Schlüssel und Takt: Band, Raute, Zielscheibe, Ziel, Ruhe und Fremd ändern den Schlüssel; die Spur nicht mehr', () => {
     const s0 = szenenSchluessel(szene({}));
-    expect(szenenSchluessel(szene({ tutorial_spur: [[10, 11]] })), 'Spur wird nicht mehr gezeichnet').toBe(s0);
-    expect(bild(szene({ tutorial_spur: [[10, 11], [10, 12]] }))).toEqual(bild(szene({})));
+    // P5 (Entscheidung d): Das Feld Szene.tutorial_spur entfällt. Ein liegengebliebener Wert (alte Steuerung, alter Aufrufer)
+    // darf weder den Schlüssel noch das Bild ändern – darum ohne Typ an der Szene vorbei hineingereicht.
+    const alteSpur = (spur: Array<[number, number]>): Partial<Szene> => ({ tutorial_spur: spur }) as unknown as Partial<Szene>;
+    expect(szenenSchluessel(szene(alteSpur([[10, 11]]))), 'Spur wird nicht mehr gezeichnet').toBe(s0);
+    expect(bild(szene(alteSpur([[10, 11], [10, 12]])))).toEqual(bild(szene({})));
     const varianten: Array<Partial<Szene>> = [
       { tutorial_band: [feld(10, 11, 'd32', [0, 1])] },
       { tutorial_band: [feld(10, 11, 'd32', [0, 1], { aktiv: false })] },
