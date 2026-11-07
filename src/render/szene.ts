@@ -14,6 +14,7 @@ import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt }
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 import { bodenSchluessel, fremdEinblendungMerken } from './szene-schluessel';
+import { dreieckKante, dreieckMitte } from './ueberlast';
 
 // Bestehende Aufrufer (Tests) holen `blase` weiter hier.
 export { blase };
@@ -387,13 +388,17 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   // 13.17.9 F5: Band und Raute am Feld neben der Heizzentrale liegen über ihr (und über dem zweiten Leitungs-Durchgang)
   if (durchsicht && tutorial.fremd.length) zeichneFremd(m, k, s, tutorial.fremd, tutorial.deckkraft);
   zeichneTutorialOben(m, k, tutorial);
+  // DESIGN 13.17.3: Warndreiecke in der Ebene der Blasen, damit kein Haus davor sie verdeckt
+  oben.push(() => zeichneWarndreiecke(m, k, s));
   oben.forEach((f) => f());
   // 13.17.9 F1: Zielscheibe als oberste Kartenebene über Gebäuden, Blasen und Ziel-Steckern
   if (s.zielscheibe) { const [x, y] = k.mitte(s.zielscheibe[0], s.zielscheibe[1]); zielscheibeImBand(m, x, y); }
   effekte.zeichnen(m, dt_s, (x, y) => k.mitte(x, y));
 }
 
-const MF = tokens.menue.farbe, MM = tokens.menue.mass_px, FAKTOR = tokens.menue.faktor, FREMD = tokens.karte.fremd;
+const MF = tokens.menue.farbe, MM = tokens.menue.mass_px, FAKTOR = tokens.menue.faktor, FREMD = tokens.karte.fremd, SAUM = tokens.karte.ueberlast;
+/** DESIGN 13.17.3: äußere Linie des Saums in `kontur` mit Deckkraft 0,55 (dunkle Kante zur Wiese, 8,0:1) */
+const SAUM_AUSSEN_DECKKRAFT = 0.55;
 const feldText = ([x, y]: Feld): string => `${x},${y}`;
 
 /** Rohrbreite einer Leitung in px – dieselbe Formel für das Rohr und die Hülle der Streifen. */
@@ -618,6 +623,37 @@ function zeichneFremd(m: Maler, k: Kamera, s: Szene, fremd: ReadonlyArray<Feld>,
   X.restore();
 }
 
+/** Größe des Dreiecks beim einmaligen Federn (DESIGN 13.17.3: 0 → 1 + plopp_staerke → 1 in FEDERN_MS); `t` = Anteil 0…1. */
+function federGroesse(t: number): number {
+  const spitze = 1 + tokens.karte.plopp_staerke, wende = 0.6;
+  return t < wende ? (spitze * t) / wende : spitze - ((spitze - 1) * (t - wende)) / (1 - wende);
+}
+
+/** NR22 (DESIGN 13.17.3): gelbes Warndreieck mit dunklem „!“ auf einem Pfosten über der Leitung; bei geplantem Ersatz halb
+ *  durchsichtig. Es federt einmal ab `seit_ms`, bei Weniger Bewegung erscheint es sofort. */
+function zeichneWarndreiecke(m: Maler, k: Kamera, s: Szene): void {
+  const { X } = m, tw = k.tw;
+  for (const u of s.ueberlast ?? []) {
+    const t = (s.jetzt_ms - u.seit_ms) / FEDERN_MS;
+    const groesse = m.reduziert || t >= 1 || t < 0 ? 1 : federGroesse(t);
+    X.globalAlpha = u.geplant ? SAUM.geplant_deckkraft : 1;
+    for (const f of u.dreiecke) {
+      const [lx, ly] = k.mitte(f % N, Math.floor(f / N)), [cx, cy] = dreieckMitte(k, f);
+      const kante = dreieckKante(k) * groesse, hoehe = (kante * Math.sqrt(3)) / 2;
+      X.lineCap = 'round'; X.lineJoin = 'round';
+      X.strokeStyle = MF.kontur; X.lineWidth = 2;
+      X.beginPath(); X.moveTo(lx, ly); X.lineTo(lx, ly - tw * SAUM.pfosten_faktor); X.stroke();
+      m.bahn([[cx, cy - hoehe / 2], [cx + kante / 2, cy + hoehe / 2], [cx - kante / 2, cy + hoehe / 2]]);
+      X.fillStyle = MF.ueberlast_zeichen; X.fill(); X.stroke();
+      // „!“ gezeichnet (Strich und Punkt, zusammen etwa die halbe Kante), kein Schriftzeichen
+      X.lineWidth = Math.max(1.5, kante * 0.1);
+      X.beginPath(); X.moveTo(cx, cy - kante * 0.1); X.lineTo(cx, cy + kante * 0.15); X.stroke();
+      X.beginPath(); X.arc(cx, cy + kante * 0.29, Math.max(1, kante * 0.06), 0, Math.PI * 2); X.fillStyle = MF.kontur; X.fill();
+    }
+    X.globalAlpha = 1;
+  }
+}
+
 /** A37: Beim Planen sind Gebäude durchsichtig, damit nichts dahinter verschwindet. */
 export function istDurchsichtig(modus: string, abschnittPhase?: string): boolean {
   return modus === 'stempel' || modus === 'platzieren' || abschnittPhase === 'offen';
@@ -629,6 +665,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   for (const o of s.objekte) { const kante = groesse(o); for (let dy = 0; dy < kante; dy++) for (let dx = 0; dx < kante; dx++) nachFeld.set((o.y + dy) * N + o.x + dx, o); }
   const rohrNachbarn = (x: number, y: number): number => leitungsNachbarn(x, y, (f) => { const n = nachFeld.get(f); return !!n && istLeitung(n.typ); });
   const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
+  const ueberlastFelder = new Set((s.ueberlast ?? []).flatMap((u) => u.felder));
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
@@ -671,15 +708,22 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     }
     const plan = !!o.geplant;
     if (plan) { X.save(); X.globalAlpha = 0.6; }
-    const D = KATALOG[o.typ], w = rohrBreite(tw, o.typ), ueber = an && netz.kapazitaet_ok.get(key) === false;
+    const D = KATALOG[o.typ], w = rohrBreite(tw, o.typ);
     m.raute(cx, cy, 0.55); X.fillStyle = 'rgba(140,100,55,.35)'; X.fill();
     X.lineCap = 'round';
-    const rohr = plan ? (D.farbe ?? '#e2582b') : ueber ? (Math.floor(m.zeit_s * 4) % 2 ? '#ff4a3a' : '#b8221a') : an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
-    for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, rohr]] as const) {
+    // NR22 (DESIGN 13.17.3): Die Rohrfarbe bleibt auch bei Überlast; das überlastete Stück zeigt stattdessen den gelben Saum
+    const rohr = plan || an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
+    const kante: ReadonlyArray<readonly [number, string, number]> = ueberlastFelder.has(key)
+      ? [[w + 2 * SAUM.saum_px + 2, MF.kontur, SAUM_AUSSEN_DECKKRAFT], [w + 2 * SAUM.saum_px, MF.ueberlast_zeichen, 1]]
+      : [[w + 2, 'rgba(40,34,26,.4)', 1]];
+    for (const [lw, c, alpha] of [...kante, [w, rohr, 1] as const]) {
+      // Saumfelder liegen im gebauten Netz und sind nie eingezeichnet: die Deckkraft 0,6 der Planung gilt hier nicht
+      if (alpha !== 1) X.globalAlpha = alpha;
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy); X.lineTo(mx, my); }
       if (!seg.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
       X.stroke();
+      if (alpha !== 1) X.globalAlpha = 1;
     }
     X.strokeStyle = 'rgba(255,255,255,.45)'; X.lineWidth = Math.max(1, w * 0.3); X.beginPath();
     for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }

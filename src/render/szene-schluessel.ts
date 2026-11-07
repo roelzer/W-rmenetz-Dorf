@@ -7,7 +7,7 @@ import type { Szene } from './szene';
 /** Wie oft muss neu gezeichnet werden, damit sichtbare Bewegung weiterläuft? */
 export type AnimBedarf = 'keine' | 'langsam' | 'fluessig';
 
-/** Dauer der Aufpop-Animation in ms (gebaeude.ts: `1 − (jetzt − _pop) / 450`). */
+/** Dauer der Aufpop-Animation und des Federns der Warndreiecke in ms (gebaeude.ts FEDERN_MS: `1 − (jetzt − _pop) / 450`). */
 const PLOPP_MS = 450;
 
 /** Kamerawerte auf 1e-4 runden: Gleitkomma-Rauschen soll den Boden nicht neu bauen (wie der Kameraschlüssel). */
@@ -90,6 +90,9 @@ export function szenenSchluessel(s: Szene): string {
     `band,${(s.tutorial_band ?? []).map((f) => `${f.x},${f.y},${f.typ},${ja(f.aktiv)},${ja(f.falsch)},${f.pfeil?.join(',') ?? ''}`).join(';')}`,
     `raute,${s.naechstes_feld?.join(',') ?? ''}`, `zielscheibe,${s.zielscheibe?.join(',') ?? ''}`,
     `ziel,${s.ziel?.stecker.join(';') ?? ''},${s.ziel?.ring ?? ''}`, `ruhe,${ja(s.ruhe)}`, `fremd,${koordinaten(s.tutorial_fremd)}`,
+    `blass,${ja(s.stecker_blass)}`,
+    // NR22: Saum, Dreiecke und ihre Deckkraft; `seit_ms` gehört dazu, weil ein neues Federn ein neues Bild braucht
+    `ueberlast,${(s.ueberlast ?? []).map((u) => `${u.felder.join(';')}/${u.dreiecke.join(';')}/${ja(u.geplant)}/${u.seit_ms}`).join(':')}`,
   );
   return teile.join('|');
 }
@@ -116,6 +119,8 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   if (s.fluss?.length) return 'fluessig'; // Wasserglitzern (szene.ts:83)
   if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
   if (s.ziel?.stecker.length) return 'fluessig'; // Ziel-Stecker wippt wie jede Blase (gebaeude.ts, zeichneBlase)
+  // NR22 E7: Überlast blinkt nicht; flüssig nur, solange ein Warndreieck federt (szene.ts, zeichneWarndreiecke)
+  if (s.ueberlast?.some((u) => s.jetzt_ms >= u.seit_ms && s.jetzt_ms - u.seit_ms < PLOPP_MS)) return 'fluessig';
   if (s.tutorial_fremd?.length && fremdEinblendung(s.tutorial_fremd, s.jetzt_ms) < 1) return 'fluessig'; // Streifen blenden ein (szene.ts, zeichneFremd)
   if (s.innen.some((q) => q.typ === 'wpg')) return 'fluessig'; // Rotor der Großwärmepumpe (gebaeude.ts:135)
   for (const o of s.objekte) {
@@ -130,6 +135,5 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   }
   if (s.innen.some((q) => q.bau)) return 'langsam'; // Baubalken am Heizhaus
   if (s.objekte.some((o) => o.upgrade_auftrag)) return 'langsam';
-  for (const ok of netz.kapazitaet_ok.values()) if (!ok) return 'langsam'; // Überlast blinkt 4/s (szene.ts:374)
   return 'keine';
 }

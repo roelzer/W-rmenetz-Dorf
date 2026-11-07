@@ -45,13 +45,15 @@ export function dreieckFelder(stuecke: ReadonlyArray<ReadonlyArray<number>>, tie
   });
 }
 
+/** Kantenlänge des Warndreiecks in px: clamp(Feldbreite × 0,34, 16, 28) (DESIGN 13.17.3). */
+export const dreieckKante = (k: Kamera): number => Math.min(U.zeichen_max, Math.max(U.zeichen_min, k.tw * U.zeichen_faktor));
+
 /** Bildschirmmitte des Warndreiecks über einem Feld (DESIGN 13.17.3): Pfosten von der Leitungsmitte nach oben, darauf die
- *  Unterkante des gleichseitigen Dreiecks mit Kante clamp(Feldbreite × 0,34, 16, 28). */
-function dreieckMitte(k: Kamera, feld: number): [number, number] {
+ *  Unterkante des gleichseitigen Dreiecks. Zeichnen und Treffer nutzen dieselbe Mitte. */
+export function dreieckMitte(k: Kamera, feld: number): [number, number] {
   const N = KONSTANTEN.feldanzahl;
   const [x, y] = k.mitte(feld % N, Math.floor(feld / N));
-  const kante = Math.min(U.zeichen_max, Math.max(U.zeichen_min, k.tw * U.zeichen_faktor));
-  return [x, y - k.tw * U.pfosten_faktor - (kante * Math.sqrt(3)) / 4];
+  return [x, y - k.tw * U.pfosten_faktor - (dreieckKante(k) * Math.sqrt(3)) / 4];
 }
 
 /** Welches Warndreieck liegt unter dem Finger? Tippfläche 44 × 44 px um die Dreiecksmitte; bei Überdeckung das nächste.
