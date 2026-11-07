@@ -20,3 +20,4 @@
 - [Bauplan] Architekturregeln, die erst beim Anlegen einer Datei greifen („greift ab Datei X“), gegen alle Pakete prüfen: Darf das Paket, das X anlegt, die verbotene Stelle nicht entfernen, wird ein Test zwischen den Paketen rot. (NR22, N2 gegen szene.ts, 2026-11-07)
 
 - [Prozess] Ändert ein Tester einen Zahlenwert nach neuem Design, alle Tests mitprüfen, die dasselbe Token festschreiben (z. B. Vertragstests der Tokens) – sonst Widerspruch zwischen zwei Tests. (P5f-2 Streifen 4→5, 2026-11-07)
+- [Prozess] Paketaufträge „berichtigen, Test zuerst“ vorher gegen bestehende Tests prüfen, die das alte Verhalten wörtlich festschreiben – sonst ist es Tester-Arbeit (Tester zuerst). (P5f-3 Satz T13h, 2026-11-07)

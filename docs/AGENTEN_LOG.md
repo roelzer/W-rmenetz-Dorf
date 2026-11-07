@@ -647,3 +647,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:02 | ▶ | entwickler | P5f-3 Nachträge Steuerung/Satz |
 | 2026-11-07 23:02 | ▶ | tester | Tester P5f: Skript und T14-Test |
 | 2026-11-07 23:09 | ■ 🟢 | tester | 🟢 Beide Aufgaben sind erledigt. Die neuen Tests schlagen an, wenn die Prüfung auf „fremd“ fehlt. Am Programmcode habe ich nichts geändert.  ([Bericht](docs/pruefberichte/20261107-230931-tester-a50d4b531df160b80.md)) |
+| 2026-11-07 23:14 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-07 23:14 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Aufgaben 1, 3, 4 und 5 sind fertig, getestet und committet. **Aufgabe 2 (Satz in T13h) habe ich nicht gebaut.** Sie brauch ([Bericht](docs/pruefberichte/20261107-231452-entwickler-a63e54eb76c8e14bb.md)) |
