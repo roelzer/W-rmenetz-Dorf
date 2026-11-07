@@ -641,3 +641,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 22:50 | ▶ | reviewer | Review P5f-2 gesamt |
 | 2026-11-07 22:51 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 22:51 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle vier Befunde sind behoben. Typprüfung und Build sind grün. Die Test-Schranke meldet aber NICHT OK, und zwar nur aus ([Bericht](docs/pruefberichte/20261107-225104-entwickler-a15ef9dc9a00520a7.md)) |
+| 2026-11-07 22:52 | ▶ | reviewer | Nachprüfung P5f-1 W1/K1-K3 |
