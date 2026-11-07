@@ -213,7 +213,7 @@ function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   void st;
 }
 
-export type Blase = 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot' | 'anfrage' | 'erreicht';
+export type Blase = 'stecker' | 'kalt' | 'wuetend' | 'weg' | 'leitung' | 'angebot' | 'anfrage' | 'erreicht' | 'ziel';
 
 /** `federn` 0…1: Rest des kurzen Federns (1 = gerade begonnen), vergrößert die Blase um bis zu `plopp_staerke`. */
 export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase, federn = 0): void {
@@ -225,6 +225,7 @@ export function zeichneBlase(m: Maler, cx: number, y: number, art: Blase, federn
   X.beginPath(); X.arc(cx, y, r - 1.5, 0, ALLES); X.fill();
   // A88/F2: Kundenanfrage in Heat-Orange (Rohrnaht Vorlauf, DESIGN.md 12.2)
   if (art === 'erreicht') { hakenScheibe(m, cx, y, r * 0.7); return; }
+  if (art === 'ziel') { zielscheibe(m, cx, y, r * 0.7); return; }
   const farbe = { stecker: '#8d99a5', kalt: '#3b86d1', wuetend: '#d8392f', weg: '#4a4038', leitung: '#e2582b', angebot: '#4caf3e', anfrage: '#ff8a1f' }[art];
   m.kreis(cx, y, r * 0.7, farbe);
   if (art === 'anfrage') { flammeMitPlus(m, cx, y, r * 0.5); return; }
@@ -240,6 +241,16 @@ function hakenScheibe(m: Maler, x: number, y: number, r: number): void {
   X.strokeStyle = schrift; X.lineWidth = Math.max(1.5, r * 0.22);
   X.beginPath(); X.moveTo(x - r * 0.45, y + r * 0.02); X.lineTo(x - r * 0.12, y + r * 0.35); X.lineTo(x + r * 0.5, y - r * 0.32); X.stroke();
   X.restore();
+}
+
+/** NR20 (DESIGN 13.17.1 B4): Scheibe `menue.farbe.ziel` mit 2 px `kontur`, darin Ring + Punkt in `kontur` – wie das SVG-Symbol `zielscheibe`.
+ *  Gilt für den Ziel-Stecker und die Zielscheibe im Band. */
+export function zielscheibe(m: Maler, x: number, y: number, r: number): void {
+  const { X } = m, F = tokens.menue.farbe;
+  m.kreis(x, y, r, F.ziel);
+  X.strokeStyle = F.kontur; X.lineWidth = 2; X.stroke();
+  X.beginPath(); X.arc(x, y, r * 0.55, 0, ALLES); X.lineWidth = Math.max(1.5, r * 0.16); X.stroke();
+  m.kreis(x, y, r * 0.2, F.kontur);
 }
 
 /** A88/F2: Symbol der Kundenanfrage – Flamme („mehr Wärme“) mit kleinem Plus rechts oben. */

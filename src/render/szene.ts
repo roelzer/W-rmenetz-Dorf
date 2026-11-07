@@ -2,7 +2,6 @@ import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
 import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz';
-import { TUTORIAL_SPUR } from '../core/start';
 import type { Spiel } from '../core/spiel';
 import type { Feld, TutorialBandFeld } from '../core/tutorial-vertrag';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
@@ -10,10 +9,10 @@ import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
-import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
+import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt, zielscheibe } from './gebaeude';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
-import { bodenSchluessel } from './szene-schluessel';
+import { bodenSchluessel, fremdEinblendung } from './szene-schluessel';
 
 // Bestehende Aufrufer (Tests) holen `blase` weiter hier.
 export { blase };
@@ -276,8 +275,9 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   zeichneGlitzern(m, k, s);
 
   zeichneLeitungen(m, k, s);
-  // NR13 K10: Spur über den eingezeichneten Leitungen, unter den Gebäuden – nie in der zwischengespeicherten Bodenebene
-  if (s.tutorial_spur?.length) zeichneSpur(m, k, s.tutorial_spur);
+  // NR20 (DESIGN 13.17.1 B2, K10): Band, Streifen, Zielscheibe und Raute über den eingezeichneten Leitungen, unter den Gebäuden –
+  // nie in der zwischengespeicherten Bodenebene
+  zeichneTutorialEbene(m, k, s);
 
   // Auswahlring
   const sel = s.auswahl_id != null ? s.objekte.find((o) => o.id === s.auswahl_id) : undefined;
@@ -310,6 +310,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       m.raute(cx, cy, kante + 0.5 + puls * 0.15); X.fillStyle = `rgba(255,214,64,${0.28 + puls * 0.22})`; X.fill();
       X.strokeStyle = 'rgba(255,196,0,.85)'; X.lineWidth = Math.max(1.5, tw * 0.03); X.stroke();
     }
+    if (s.ziel?.ring === o.id) zielRing(m, cx, cy, kante);
     if (durch) X.globalAlpha = 0.5;
     zeichneObjekt(m, o, cx, cy, st, s.jetzt_ms);
     if (durch) X.globalAlpha = 1;
@@ -323,14 +324,18 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       const seit_ms = erreicht.get(o.id)!;
       const federn = m.reduziert ? 0 : Math.max(0, 1 - (s.jetzt_ms - seit_ms) / FEDERN_MS);
       oben.push(() => zeichneBlase(m, cx, topY, 'erreicht', federn));
-    } else if (s.spiel) {
+    } else if (s.ziel?.stecker.includes(o.id)) {
+      // NR20 B4: Ziel-Stecker auf dem Platz des „Erreicht“-Zeichens
+      oben.push(() => zeichneBlase(m, cx, topY, 'ziel'));
+    } else if (s.spiel && !s.ruhe) {
+      // NR20 B1: In Kapitel 3 ruhen die übrigen Kunden-Blasen
       const b = blase(s.spiel, s.netz, o, st.warm, angeschlossen);
       if (b) oben.push(() => zeichneBlase(m, cx, topY, b));
     }
     // A25: Verbrauch jedes Kunden als kleines Schild am Fuß des Gebäudes
     const DK = KATALOG[o.typ];
     const planung = s.modus === 'stempel' || s.spiel?.abschnitt?.phase === 'offen';
-    const relevant = planung || s.netz.anschluss.has(o.id) && !o.ohne_station || !!o.interessent;
+    const relevant = (planung || s.netz.anschluss.has(o.id) && !o.ohne_station || !!o.interessent) && !s.ruhe;
     if (kwSchildZeigen(o, DK.kategorie, DK.bedarf_kw, tw, s.kw_anzeigen, relevant)) {
       // Designer A66: helles, kleines Schild an der vorderen Ecke, Punkt zeigt den Zustand (warm / kalt / nicht angeschlossen)
       const txt = `${Math.round(bedarfKw(o))} kW`, fx = cx + tw * 0.18 * kante, fy = cy + tw * 0.2 * kante;
@@ -374,40 +379,143 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   effekte.zeichnen(m, dt_s, (x, y) => k.mitte(x, y));
 }
 
-/** NR13 (DESIGN 13.2 Leitungs-Spur, K10): gestrichelte Linie durch die noch freien Spurfelder in Zugrichtung, heller Halo darunter,
- *  alle drei Felder (gezählt ab dem Abgang) eine Pfeilspitze. Halo = `text_halo` wie bei Text auf der Karte. Lücken in der Spur (schon eingezeichnete Felder) bleiben offen.
- *  Strichmuster 10/8 aus DESIGN 13.10 (`spur_strich`/`spur_luecke`); Farbe und Breite = `naht_vorlauf`/`naht` (13.10: gleiche Werte). */
-function zeichneSpur(m: Maler, k: Kamera, spur: ReadonlyArray<readonly [number, number]>): void {
-  const { X } = m, M = tokens.menue, breite = M.mass_px.naht;
-  const stuecke: Array<Array<readonly [number, number]>> = [];
-  for (const f of spur) {
-    const letztes = stuecke.at(-1)?.at(-1);
-    if (letztes && Math.abs(letztes[0] - f[0]) + Math.abs(letztes[1] - f[1]) === 1) stuecke.at(-1)!.push(f); else stuecke.push([f]);
-  }
+const MF = tokens.menue.farbe, MM = tokens.menue.mass_px, FAKTOR = tokens.menue.faktor, FREMD = tokens.karte.fremd;
+const feldText = ([x, y]: Feld): string => `${x},${y}`;
+
+/** Rohrbreite einer Leitung in px – dieselbe Formel für das Rohr und die Hülle der Streifen. */
+const rohrBreite = (tw: number, typ: TypId): number => Math.max(2, tw * (KATALOG[typ].breite ?? 0.1));
+
+/** WCAG-Kontrast von Weiß auf einer Farbe `#rrggbb` (DESIGN 13.17.1 B2: weiße Pfeile ab 3:1). */
+function kontrastZuWeiss(hex: string): number {
+  const kanal = (i: number): number => { const v = parseInt(hex.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 1.05 / (0.2126 * kanal(1) + 0.7152 * kanal(3) + 0.0722 * kanal(5) + 0.05);
+}
+/** Mindestkontrast für Grafik (WCAG 1.4.11), ab dem der Pfeil weiß ist (DESIGN 13.17.1 B2). */
+const PFEIL_WEISS_AB = 3;
+
+/** Bandbreite b = max(geist_band_min, round(Feldbreite × geist_band_faktor)) (DESIGN 13.17.1 B2). */
+const bandBreite = (tw: number): number => Math.max(MM.geist_band_min, Math.round(tw * MM.geist_band_faktor));
+
+/** NR20/NR21 (DESIGN 13.17.1 B2–B4, 13.17.8): eine Ebene über den eingezeichneten Leitungen. Reihenfolge: Band, Streifen, Zielscheibe, Raute. */
+function zeichneTutorialEbene(m: Maler, k: Kamera, s: Szene): void {
+  const fremd = s.tutorial_fremd ?? [];
+  const deckkraft = m.reduziert ? 1 : fremdEinblendung(fremd, s.jetzt_ms);
+  const gestreift = new Set(fremd.map(feldText));
+  const band = (s.tutorial_band ?? []).filter((f) => !gestreift.has(feldText([f.x, f.y])));
+  if (band.length) zeichneBand(m, k, band);
+  if (fremd.length) zeichneFremd(m, k, s, fremd, deckkraft);
+  if (s.zielscheibe) { const [x, y] = k.mitte(s.zielscheibe[0], s.zielscheibe[1]); zielscheibe(m, x, y, bandBreite(k.tw) * 0.45); }
+  if (s.naechstes_feld && !gestreift.has(feldText(s.naechstes_feld))) leuchtendeRaute(m, k, s.naechstes_feld);
+}
+
+/**
+ * Geisterleitung (B2): je Feld ein Weg vom Eingang (halber Schritt zurück) über die Mitte zum Ausgang (halber Schritt in `pfeil`).
+ * Der Eingang kommt vom Bandfeld, dessen Pfeil hierher zeigt; sonst gegen den eigenen Pfeil. Ohne Pfeil (Abzweig) endet der Weg in der Mitte.
+ * Alle Felder gleicher Farbe und gleichen Zustands liegen in einem Pfad, damit sich die Deckkraft an den Stößen nicht verdoppelt.
+ */
+function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>): void {
+  const { X } = m, b = bandBreite(k.tw), rand_hell = MM.geist_rand_hell, rand_dunkel = MM.geist_rand_dunkel;
+  const weg = (f: TutorialBandFeld): Punkt[] => {
+    const von = band.find((q) => q.pfeil && q.x + q.pfeil[0] === f.x && q.y + q.pfeil[1] === f.y)?.pfeil ?? f.pfeil;
+    const p: Punkt[] = [];
+    if (von) p.push(k.mitte(f.x - von[0] / 2, f.y - von[1] / 2));
+    p.push(k.mitte(f.x, f.y));
+    if (f.pfeil) p.push(k.mitte(f.x + f.pfeil[0] / 2, f.y + f.pfeil[1] / 2));
+    if (p.length === 1) p.push(p[0]); // einzelnes Feld ohne Richtung: runder Punkt
+    return p;
+  };
+  const gruppen = new Map<string, TutorialBandFeld[]>();
+  for (const f of band) { const g = `${f.typ},${f.aktiv}`; gruppen.set(g, [...(gruppen.get(g) ?? []), f]); }
   X.save(); X.lineCap = 'round'; X.lineJoin = 'round';
-  for (const [farbe, b] of [[tokens.farbe.effekt.text_halo, breite + 4], [M.farbe.naht_vorlauf, breite]] as const) {
-    X.strokeStyle = farbe; X.lineWidth = b; X.setLineDash([M.mass_px.spur_strich, M.mass_px.spur_luecke]);
-    for (const st of stuecke) {
-      if (st.length < 2) continue;
-      X.beginPath();
-      st.forEach(([x, y], i) => { const [px, py] = k.mitte(x, y); if (i) X.lineTo(px, py); else X.moveTo(px, py); });
+  for (const felder of gruppen.values()) {
+    const { typ, aktiv } = felder[0], farbe = KATALOG[typ].farbe ?? MF.kontur; // dieselbe Farbe wie Rohr und Farbknopf (B2)
+    const wege = felder.map(weg);
+    const ruhend = aktiv ? 1 : FAKTOR.geist_ruhend;
+    for (const [strich, breite, alpha] of [
+      [MF.kontur, b, 0.8], [MF.tafel, b - 2 * rand_dunkel, 1], [farbe, b - 2 * rand_dunkel - 2 * rand_hell, FAKTOR.geist_deckkraft],
+    ] as const) {
+      X.globalAlpha = alpha * ruhend; X.strokeStyle = strich; X.lineWidth = breite; X.beginPath();
+      for (const p of wege) p.forEach(([px, py], i) => (i ? X.lineTo(px, py) : X.moveTo(px, py)));
       X.stroke();
     }
+    X.globalAlpha = 1;
+    if (aktiv) for (const f of felder) if (f.pfeil) pfeilSpitze(m, k, f, b, farbe);
+    for (const f of felder) if (f.falsch) {
+      // 12.22: gestrichelte Raute in der Zielfarbe, Deckkraft 0,8
+      const [cx, cy] = k.mitte(f.x, f.y);
+      X.globalAlpha = 0.8; X.setLineDash([k.tw * 0.08, k.tw * 0.06]); X.strokeStyle = farbe; X.lineWidth = 2;
+      m.raute(cx, cy, FAKTOR.naechstes_feld); X.stroke(); X.setLineDash([]); X.globalAlpha = 1;
+    }
   }
-  X.setLineDash([]);
-  // Pfeilspitzen in Zugrichtung: gezählt in der vollen Spur ab dem Abgang, damit übrige Felder ihre Spitze behalten (K10)
-  const voll = TUTORIAL_SPUR.map(([x, y]) => `${x},${y}`);
-  spur.forEach(([x, y]) => {
-    const i = voll.indexOf(`${x},${y}`);
-    if (i < 0 || i % 3) return;
-    const vor = TUTORIAL_SPUR[i - 1], nach = TUTORIAL_SPUR[i + 1] ?? (vor ? [2 * x - vor[0], 2 * y - vor[1]] : [x, y]);
-    const [ax, ay] = k.mitte(x, y), [bx, by] = k.mitte(nach[0], nach[1]);
-    const l = Math.hypot(bx - ax, by - ay);
-    if (l === 0) return;
-    const ux = (bx - ax) / l, uy = (by - ay) / l, g = breite * 2.5;
-    X.fillStyle = M.farbe.naht_vorlauf;
-    X.beginPath(); X.moveTo(ax + ux * g, ay + uy * g); X.lineTo(ax - uy * g * 0.7, ay + ux * g * 0.7); X.lineTo(ax + uy * g * 0.7, ay - ux * g * 0.7); X.closePath(); X.fill();
-  });
+  X.restore();
+}
+
+/** Pfeilspitze in der Bandmitte, Breite b × 0,6, zeigt nach `pfeil`; weiß mit Kontur oder in `kontur` (B2). */
+function pfeilSpitze(m: Maler, k: Kamera, f: TutorialBandFeld, b: number, farbe: string): void {
+  const { X } = m, pfeil = f.pfeil!;
+  const [ax, ay] = k.mitte(f.x, f.y), [bx, by] = k.mitte(f.x + pfeil[0], f.y + pfeil[1]);
+  const l = Math.hypot(bx - ax, by - ay);
+  if (l === 0) return;
+  const ux = (bx - ax) / l, uy = (by - ay) / l, h = (b * 0.6) / 2;
+  const weiss = kontrastZuWeiss(farbe) >= PFEIL_WEISS_AB;
+  X.fillStyle = weiss ? '#ffffff' : MF.kontur;
+  X.beginPath();
+  X.moveTo(ax + ux * h, ay + uy * h);
+  X.lineTo(ax - ux * h - uy * h, ay - uy * h + ux * h);
+  X.lineTo(ax - ux * h + uy * h, ay - uy * h - ux * h);
+  X.closePath(); X.fill();
+  if (weiss) { X.strokeStyle = MF.kontur; X.lineWidth = MM.geist_rand_dunkel; X.stroke(); }
+}
+
+/** Leuchtende Raute auf dem nächsten Feld (B3): Raute × 0,92, Füllung `ziel` mit Deckkraft 0,55, 3 px `ziel`, außen 2 px `kontur`. */
+function leuchtendeRaute(m: Maler, k: Kamera, f: Feld): void {
+  const { X } = m, [cx, cy] = k.mitte(f[0], f[1]);
+  m.raute(cx, cy, FAKTOR.naechstes_feld);
+  X.globalAlpha = 0.55; X.fillStyle = MF.ziel; X.fill(); X.globalAlpha = 1;
+  X.strokeStyle = MF.kontur; X.lineWidth = MM.spot_ring + 2 * MM.spot_ring_kontur; X.stroke();
+  X.strokeStyle = MF.ziel; X.lineWidth = MM.spot_ring; X.stroke();
+}
+
+/** Ring um das aktive Ziel-Haus (B4): Ellipse um die Grundfläche + 12 px, 16 px Schein, 2 px `kontur`, 3 px `ziel` – wie der Lochrand. */
+function zielRing(m: Maler, cx: number, cy: number, kante: number): void {
+  const { X } = m, rx = m.tw * kante / 2 + MM.spot_abstand_karte, ry = m.th * kante / 2 + MM.spot_abstand_karte;
+  for (const [farbe, breite] of [
+    [MF.spot_schein, MM.spot_schein], [MF.kontur, MM.spot_ring + 2 * MM.spot_ring_kontur], [MF.ziel, MM.spot_ring],
+  ] as const) {
+    X.strokeStyle = farbe; X.lineWidth = breite; X.beginPath(); X.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); X.stroke();
+  }
+}
+
+/**
+ * Streifen auf dem fremden Stück (DESIGN 13.17.8 Punkt 2): Hülle Rohrbreite + 8 px entlang der Felder, darin 45°-Streifen
+ * dunkel/hell je 4 px mit Deckkraft 0,85, außen 1,5 px `kontur`. `einblendung` 0…1 skaliert die Deckkraft, danach still.
+ */
+function zeichneFremd(m: Maler, k: Kamera, s: Szene, fremd: ReadonlyArray<Feld>, einblendung: number): void {
+  const { X } = m;
+  const typen = new Map(s.objekte.filter((o) => istLeitung(o.typ)).map((o) => [feldText([o.x, o.y]), o.typ]));
+  const breite = Math.max(...fremd.map((f) => rohrBreite(k.tw, typen.get(feldText(f)) ?? 'd25'))) + FREMD.huelle_zusatz_px;
+  const mitten = fremd.map(([x, y]) => k.mitte(x, y));
+  const paare: Array<[Punkt, Punkt]> = [];
+  fremd.forEach((a, i) => fremd.forEach((c, j) => { if (j > i && Math.abs(a[0] - c[0]) + Math.abs(a[1] - c[1]) === 1) paare.push([mitten[i], mitten[j]]); }));
+  const huelle = (w: number): void => {
+    X.beginPath();
+    for (const [x, y] of mitten) { X.moveTo(x + w / 2, y); X.arc(x, y, w / 2, 0, Math.PI * 2); }
+    for (const [[ax, ay], [bx, by]] of paare) {
+      const l = Math.hypot(bx - ax, by - ay) || 1, nx = -(by - ay) / l * w / 2, ny = (bx - ax) / l * w / 2;
+      X.moveTo(ax + nx, ay + ny); X.lineTo(bx + nx, by + ny); X.lineTo(bx - nx, by - ny); X.lineTo(ax - nx, ay - ny); X.closePath();
+    }
+  };
+  X.save();
+  X.globalAlpha = FREMD.deckkraft * einblendung;
+  huelle(breite + 2 * FREMD.rand_px); X.fillStyle = FREMD.dunkel; X.fill();
+  huelle(breite); X.clip();
+  X.fillStyle = FREMD.hell; X.fill();
+  const xs = mitten.map((p) => p[0]), ys = mitten.map((p) => p[1]);
+  const x0 = Math.min(...xs) - breite, x1 = Math.max(...xs) + breite, y0 = Math.min(...ys) - breite, y1 = Math.max(...ys) + breite;
+  const schritt = 2 * FREMD.streifen_px / Math.sin(FREMD.winkel_grad * Math.PI / 180);
+  X.strokeStyle = FREMD.dunkel; X.lineWidth = FREMD.streifen_px; X.beginPath();
+  for (let d = x0 - (y1 - y0); d <= x1; d += schritt) { X.moveTo(d, y1); X.lineTo(d + (y1 - y0), y0); }
+  X.stroke();
   X.restore();
 }
 
@@ -464,7 +572,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     }
     const plan = !!o.geplant;
     if (plan) { X.save(); X.globalAlpha = 0.6; }
-    const D = KATALOG[o.typ], w = Math.max(2, tw * (D.breite ?? 0.1)), ueber = an && netz.kapazitaet_ok.get(key) === false;
+    const D = KATALOG[o.typ], w = rohrBreite(tw, o.typ), ueber = an && netz.kapazitaet_ok.get(key) === false;
     m.raute(cx, cy, 0.55); X.fillStyle = 'rgba(140,100,55,.35)'; X.fill();
     X.lineCap = 'round';
     const rohr = plan ? (D.farbe ?? '#e2582b') : ueber ? (Math.floor(m.zeit_s * 4) % 2 ? '#ff4a3a' : '#b8221a') : an ? (D.farbe ?? '#e2582b') : '#9aa4ab';

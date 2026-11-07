@@ -33,6 +33,22 @@ const ja = (b: boolean | undefined): string => (b ? '1' : '0');
 const koordinaten = (felder: ReadonlyArray<readonly [number, number]> | undefined): string =>
   (felder ?? []).map(([x, y]) => `${x},${y}`).join(';');
 
+/** DESIGN 13.17.8 Punkt 2: Die Streifen blenden 200 ms ein, ab dem ersten Bild, in dem ein Feld neu in `tutorial_fremd` steht. */
+export const FREMD_EINBLENDEN_MS = 200;
+let fremdFelder = new Set<string>();
+let fremdSeit_ms = 0;
+
+/**
+ * Anteil des Einblendens 0…1 der Streifen. Merkt sich die zuletzt gesehenen Felder: Kommt ein Feld neu hinzu, beginnt das
+ * Einblenden mit diesem Bild. Zeichnen und Takt fragen dieselbe Stelle, damit beide dasselbe Ende sehen.
+ */
+export function fremdEinblendung(felder: ReadonlyArray<readonly [number, number]>, jetzt_ms: number): number {
+  const neu = new Set(felder.map(([x, y]) => `${x},${y}`));
+  if ([...neu].some((f) => !fremdFelder.has(f))) fremdSeit_ms = jetzt_ms;
+  fremdFelder = neu;
+  return Math.min(1, Math.max(0, (jetzt_ms - fremdSeit_ms) / FREMD_EINBLENDEN_MS));
+}
+
 /** Ändert sich genau dann, wenn sich etwas Sichtbares an der Szene ändert (Kamera NICHT). */
 export function szenenSchluessel(s: Szene): string {
   const teile: string[] = [];
@@ -51,8 +67,11 @@ export function szenenSchluessel(s: Szene): string {
     `netz,${netzNummer(s.netz)}`, s.modus, `${s.auswahl_id ?? ''}`, `${s.verschiebe_id ?? ''}`,
     g ? `${g.typ},${g.x},${g.y},${g.kante},${ja(g.ok)}` : '', st ? `${st.x},${st.y},${ja(st.ok)}` : '',
     `${s.kw_anzeigen ?? ''}`, s.spiel?.abschnitt?.phase ?? '', `${s.strassen?.length ?? 0}`, `${s.fluss?.length ?? 0}`,
-    // NR13: Spurfelder und „Erreicht“-Zeichen sind sichtbar und ändern sich ohne Objektänderung
-    `spur,${s.tutorial_spur?.length ?? 0}`, `erreicht,${(s.erreicht ?? []).map((e) => e.id).join(';')}`,
+    // NR13/NR20: Tutorial-Zeichen sind sichtbar und ändern sich ohne Objektänderung
+    `erreicht,${(s.erreicht ?? []).map((e) => e.id).join(';')}`,
+    `band,${(s.tutorial_band ?? []).map((f) => `${f.x},${f.y},${f.typ},${ja(f.aktiv)},${ja(f.falsch)},${f.pfeil?.join(',') ?? ''}`).join(';')}`,
+    `raute,${s.naechstes_feld?.join(',') ?? ''}`, `zielscheibe,${s.zielscheibe?.join(',') ?? ''}`,
+    `ziel,${s.ziel?.stecker.join(';') ?? ''},${s.ziel?.ring ?? ''}`, `ruhe,${ja(s.ruhe)}`, `fremd,${koordinaten(s.tutorial_fremd)}`,
   );
   return teile.join('|');
 }
@@ -78,6 +97,8 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   if (s.auswahl_id != null) return 'fluessig'; // laufender Auswahlring (szene.ts:218)
   if (s.fluss?.length) return 'fluessig'; // Wasserglitzern (szene.ts:83)
   if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
+  if (s.ziel?.stecker.length) return 'fluessig'; // Ziel-Stecker wippt wie jede Blase (gebaeude.ts, zeichneBlase)
+  if (s.tutorial_fremd?.length && fremdEinblendung(s.tutorial_fremd, s.jetzt_ms) < 1) return 'fluessig'; // Streifen blenden ein (szene.ts, zeichneFremd)
   if (s.innen.some((q) => q.typ === 'wpg')) return 'fluessig'; // Rotor der Großwärmepumpe (gebaeude.ts:135)
   for (const o of s.objekte) {
     if (o.bau) return 'fluessig'; // Gerüst mit Arbeiterarm (gebaeude.ts:274)
@@ -87,7 +108,7 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
     if (kat === 'gross' && o.zustand === 'vertrag' && o.typ !== 'bad' && o.typ !== 'klinik') return 'fluessig'; // Rauch (gebaeude.ts:205)
     const angeschlossen = netz.anschluss.has(o.id);
     if (o.interessent && !angeschlossen) return 'fluessig'; // gelber Puls (szene.ts:240)
-    if (s.spiel && !istLeitung(o.typ) && blase(s.spiel, netz, o, netz.warm.has(o.id), angeschlossen)) return 'fluessig'; // Wippen (gebaeude.ts:217)
+    if (s.spiel && !s.ruhe && !istLeitung(o.typ) && blase(s.spiel, netz, o, netz.warm.has(o.id), angeschlossen)) return 'fluessig'; // Wippen (gebaeude.ts:217)
   }
   if (s.innen.some((q) => q.bau)) return 'langsam'; // Baubalken am Heizhaus
   if (s.objekte.some((o) => o.upgrade_auftrag)) return 'langsam';
