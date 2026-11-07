@@ -597,3 +597,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:38 | ▶ | entwickler | P5 Einbindung Tutorial |
 | 2026-11-07 20:46 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-07 20:46 | ■ 🟡 | entwickler | ## 🟡 FERTIG_MIT_BEDENKEN – P6 „NR22 Kern und Regel“  ([Bericht](docs/pruefberichte/20261107-204620-entwickler-ac097c919c45c4fe0.md)) |
+| 2026-11-07 20:46 | ▶ | reviewer | Review P6 NR22 Kern |
