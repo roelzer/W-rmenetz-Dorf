@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 // Bauplan docs/bauplaene/NR13-tutorial.md, Abschnitt 3. Die Regeln lesen Dateien, sie führen keinen Code aus.
 // U1 (AE-NR13-3): Die Tutorial-Merke im Spielstand schreiben nur spiel.ts, start.ts und speichern.ts. Bewusst breit (jedes
 //    `.tutorial =`), darum heißt das Feld in Steuerung `anleitung` (Bauplan F2, Kritiker-Befund 1).
-// U2 (AE-NR13-4): Schritt-Kennungen (T01 … T26, T13b) stehen nur im Kern – die Oberfläche entscheidet keinen Schritt.
+// U2 (AE-NR13-4): Schritt-Kennungen (T01 … T26, T13b, T13w, T13h – letztere NR20-22 §5) stehen nur im Kern – die Oberfläche entscheidet keinen Schritt.
 // U2b (F2): Auch die Kapitelnummer entscheidet außerhalb des Kerns nichts – `.kapitel` liest nur anleiter.ts (Kapitel-Punkte).
 // U3 (AE-NR13-4): Kein Kreis: spiel.ts kennt die Schrittlogik nicht; tutorial.ts importiert nur Vertrag, Start, Typen, Katalog.
 // U4 (AE-NR13-1 erweitert): Sobald es neuesSpielMitTutorial gibt, ruft außer start.ts niemand neuerSpielstand auf.
@@ -37,8 +37,8 @@ describe('NR13 Tutorial: Struktur', { timeout: 30000 }, () => {
     expect(verstoesse).toEqual([]);
   });
 
-  it('U2: Schritt-Kennungen T01 … T26 / T13b als Zeichenkette nur in src/core', () => {
-    const fremd = dateien('src').map(norm).filter((f) => !f.startsWith('src/core/') && /['"`]T\d{2}b?['"`]/.test(lesen(f)));
+  it('U2: Schritt-Kennungen T01 … T26 / T13b / T13w / T13h als Zeichenkette nur in src/core', () => {
+    const fremd = dateien('src').map(norm).filter((f) => !f.startsWith('src/core/') && /['"`]T\d{2}[bwh]?['"`]/.test(lesen(f)));
     expect(fremd).toEqual([]);
   });
 

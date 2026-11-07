@@ -19,10 +19,11 @@ function dateien(dir: string): string[] {
 }
 const importe = (f: string): string[] => [...lesen(f).matchAll(/(?:from|import)\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
 
-/** Bauplan 5.4 – die einzigen erlaubten Namen. */
+/** Bauplan 5.4 – die einzigen erlaubten Namen. TIPPS ergänzt um 'farbknopf' und 'abgehoben' (NR20-22 §5, Paket P0). */
 const SCHRITTE = ['abschnitt_geplant', 'abschnitt_offen', 'leitung_gezeichnet', 'haus_erreicht', 'haus_getrennt', 'station_gekauft',
   'abschnitt_abgeschlossen', 'material_bestellt', 'abschnitt_gebaut', 'haus_warm'];
-const TIPPS = ['heizzentrale', 'baumenue', 'reiter_leitungen', 'leitungskarte', 'haus', 'weiter', 'daneben'];
+const TIPPS = ['heizzentrale', 'baumenue', 'reiter_leitungen', 'leitungskarte', 'haus', 'weiter', 'daneben',
+  'farbknopf', 'abgehoben'];
 const VERTRAG = 'src/core/tutorial-vertrag.ts';
 /** Werte eines String-Literal-Typs `export type Name = | 'a' | 'b';` */
 function literale(quelle: string, name: string): string[] | null {
