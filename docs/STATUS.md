@@ -68,3 +68,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-07: P4b Review 🟡 (Merge nach Tester-Lauf in wt-int). Für P5 sammeln: Test Aussparung (Maske Löcher schwarz), Foto 667×375, Schleier-Neuaufbau bei Kamerafahrt (Werte runden/messen), knopf_hinweis in kompakter Karte unsichtbar, 96-Zeichen-Test über alle Kap.-3-Texte.
 - 2026-11-07: nr20-int = P0+V0+P2(+Testlücken 7192800)+P4b bei cefa9e5; typecheck grün, 67 rot/1436 grün (alle warten auf P1/P4a/P5/P7). Offen: P1-Nachbesserung, P4a-Nachbesserung.
 - 2026-11-07: P1-Nachbesserung 8f51830 (Branch worktree-agent-afc10940b72120937) → Nachprüfung läuft.
+- 2026-11-07: P1 🟢 gemergt → nr20-int 41d8025, typecheck grün, 21 rot/1517 grün. Start: P2-Nachzug ‖ P3. P4a-Nachbesserung läuft. Danach P6, P5, P7.
