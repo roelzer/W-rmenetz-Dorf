@@ -516,4 +516,77 @@ describe('NR21 Tutorial-Schrittlogik (Bauplan NR20-22 P2)', () => {
     an(tw);
     expect([l.leitungenGelesen, w.leitungenGelesen]).toEqual([0, 0]);
   });
+
+  // Review P2 – Testlücken (Tester 2026-11-07). Erwartungen aus Bauplan NR20-22 P2 bzw. §5, nicht aus der Ausgabe.
+  it('test_nr21_ring_auf_haus_mit_eigenem_abgang – T13h, Haus 1 offen, Haus 2 mit eigenem Abgang → Ring, Band und Raute auf Haus 2', () => {
+    // Tabelle P2: ziel_ring = Haus `fremd_haus`, erst sonst das erste nicht-ok Haus. Haus 1 ist hier nicht ok – die Regel
+    // „erstes offenes Haus“ allein ergäbe Haus 1.
+    const [t, l] = inT13h();
+    setze(l, t, lage({ haupt: true }, { fremd: [[11, 13], [11, 12]], fremd_haus: 2, planungsfehler: true }));
+    const a = an(t);
+    expect(a).toMatchObject({ schritt: 'T13h', text: TEXT.eigenerAbgang, ziel_ring: h2(l), naechstes_feld: [10, 13],
+      zielscheibe: [10, 12], finger_weg: [], erreicht_ids: [] });
+    expect(a.band.map((f) => [f.x, f.y, f.aktiv])).toEqual([[9, 12, false], [10, 13, true], [10, 14, true], [11, 14, true]]);
+  });
+
+  it('test_nr21_zustandpruefen_nur_kapitel_3 – T17 mit schon gekaufter Station bleibt nach zustandPruefen T17', () => {
+    // P2: „zustandPruefen gilt für T13, T13w, T13h, T14.“ In Kapitel 4 schaltet erst das Ereignis station_gekauft weiter.
+    const l = lageBauen();
+    l.stand.tutorial = { kapitel: 4 };
+    l.stand.abschnitt = { phase: 'bestellen', bau: null };
+    const t = new Tutorial(l);
+    expect(jetzt(t)).toBe('T15');
+    t.tipp({ art: 'tipp', tipp: 'haus', objekt_id: h1(l) });
+    t.tipp({ art: 'tipp', tipp: 'weiter' });
+    expect(jetzt(t)).toBe('T17');
+    haus(l, 9, 13).station = 'puffer';
+    t.zustandPruefen();
+    expect(jetzt(t)).toBe('T17');
+  });
+
+  it('test_nr21_geld_satz_vor_sperr_satz – T13 und T13h: Geld fehlt, Blatt schließen getippt → Blase = Geld-Satz', () => {
+    // Textvorrang P2 (T13/T13h): Geld-Satz > Sperr-Satz. Häuser nicht erreicht → Sperr-Satz wäre „Leiste bleibt offen“.
+    const [t, l] = inT13();
+    l.geldFehlt = 50;
+    t.gesperrtGetippt('blatt_schliessen');
+    expect(t.sperre('blatt_schliessen')!.satz).toBe(TEXT.leisteOffen);
+    expect(an(t)).toMatchObject({ schritt: 'T13', text: TEXT.geld });
+    const [u, m] = inT13h();
+    m.geldFehlt = 50;
+    u.gesperrtGetippt('blatt_schliessen');
+    expect(u.sperre('blatt_schliessen')!.satz).toBe(TEXT.leisteOffen);
+    expect(an(u)).toMatchObject({ schritt: 'T13h', text: TEXT.geld });
+  });
+
+  it('test_nr21_zug_endet_beim_schrittwechsel – Zug in T13h, Rücksprung T13, Hauptleitung wieder gut ohne Strich → sofort T13w', () => {
+    // P2: zugLaeuft wird false „bei jedem Schrittwechsel“; ohne Zug gilt T13 → T13w sofort.
+    const [t, l] = inT13h();
+    strich(t);
+    setze(l, t, zuDuenn());
+    expect(jetzt(t)).toBe('T13');
+    setze(l, t, lage({ haupt: true }));
+    expect(jetzt(t)).toBe('T13w');
+  });
+
+  it('test_nr21_t14_ansicht_zeigt_fremd – Lage.fremd steht in T14 in der Ansicht, bevor zustandPruefen zurückspringt', () => {
+    // §5: `fremd` = Lage.fremd in T13–T14, sonst [].
+    const [t, l] = inT14();
+    expect(an(t).fremd).toEqual([]);
+    l.leitungen = lage(ALLE, RING);
+    expect(an(t)).toMatchObject({ schritt: 'T14', fremd: [[11, 13]] });
+  });
+
+  it('test_nr21_blatt_schliessen_geld_satz – beide Häuser erreicht und Geld fehlt → Sperr-Satz von [X] ist der Geld-Satz (K12)', () => {
+    // NR13 F3/K12 (Muss): Sind beide Häuser erreicht und fehlt Geld, weicht auch der Sperr-Satz von blatt_schliessen dem Geld-Satz;
+    // mit nur einem Haus bleibt „Leiste bleibt offen“.
+    const [t, l] = inT13h();
+    l.geldFehlt = 50;
+    setze(l, t, lage({ haupt: true, haus1: true }));
+    expect(t.sperre('blatt_schliessen')).toEqual({ kurz: 'später wählbar', satz: TEXT.leisteOffen });
+    setze(l, t, lage(ALLE));
+    expect(jetzt(t)).toBe('T13h');
+    expect(t.sperre('blatt_schliessen')).toEqual({ kurz: 'später wählbar', satz: TEXT.geld });
+    l.geldFehlt = 0;
+    expect(t.sperre('blatt_schliessen')).toEqual({ kurz: 'später wählbar', satz: TEXT.leisteOffen });
+  });
 });
