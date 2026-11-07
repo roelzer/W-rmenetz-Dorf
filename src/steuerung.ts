@@ -890,14 +890,21 @@ export class Steuerung implements Ui {
     return { x0: Math.min(...os.map((o) => o.x)), y0: Math.min(...os.map((o) => o.y)), x1: Math.max(...os.map((o) => o.x + groesse(o) - 1)), y1: Math.max(...os.map((o) => o.y + groesse(o) - 1)) };
   }
 
-  /** Gang im Schleier (DESIGN 13.17.1): jede Raute der Spur × 1,5, Heizzentrale und beide Tutorial-Häuser. Die Raute wird
-   *  als Ellipse durch ihre Ecken ausgespart (Halbachsen 0,75 · Feldbreite bzw. -höhe); `Loch.r` geht in spotlight.ts durch
-   *  √2, darum hier das Rechteck mit Kante 1,5 · Feld / √2. Den Abstand von 12 px gibt spotlight.ts dazu. */
+  /** Ellipse durch die Ecken einer Bodenraute mit Kante `kante` Felder um (x|y): Halbachsen kante/2 · Feldbreite bzw. -höhe.
+   *  `Loch.r` geht in spotlight.ts durch √2, darum hier das Rechteck mit Kante · Feld / √2. Den Abstand von 12 px gibt
+   *  spotlight.ts dazu. */
+  private rautenLoch(x: number, y: number, kante: number): Loch {
+    const k = this.kamera, [cx, cy] = k.mitte(x, y), b = (kante * k.tw) / Math.SQRT2, hh = (kante * k.th) / Math.SQRT2;
+    return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' };
+  }
+  /** Gang im Schleier (DESIGN 13.17.1, 13.17.9 F5): jede Raute der Spur × 1,5, die Heizzentrale nur mit ihrer Grundfläche
+   *  (Gebäudehöhe und Dach bleiben unter dem Schleier, sonst stünden fremde Häuser im Gang) und beide Tutorial-Häuser. */
   private schleierGang(a: TutorialAnsicht): Loch[] {
-    const k = this.kamera, b = (1.5 * k.tw) / Math.SQRT2, hh = (1.5 * k.th) / Math.SQRT2;
-    const rauten = a.band.map(({ x, y }): Loch => { const [cx, cy] = k.mitte(x, y); return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' }; });
-    const objekte = (['heizzentrale', 'haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
-    return [...rauten, ...objekte.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
+    const rauten = a.band.map(({ x, y }) => this.rautenLoch(x, y, 1.5));
+    const hz = this.kartenObjekt(a, 'heizzentrale')!, g = groesse(hz);
+    const haeuser = (['haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
+    return [...rauten, this.rautenLoch(hz.x + (g - 1) / 2, hz.y + (g - 1) / 2, g),
+      ...haeuser.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
   }
 
   /** Band, Raute, Zielscheibe, Ziel-Stecker/Ring, Ruhe und Häkchen nur aus der Ansicht (Bauplan NR20-22 P5): Die Regeln,

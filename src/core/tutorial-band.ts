@@ -1,14 +1,14 @@
 import { TUTORIAL_ABZWEIG, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT } from './start';
 import type { Feld } from './tutorial-vertrag';
 
-/**
- * Vorgänger jedes Tutorial-Spurfelds in Zugrichtung (DESIGN 13.17.1 B2): Hauptleitung der Reihe nach, beide Hausanschlüsse
- * beginnen am Abzweig. Steht hier und nicht in der Darstellung, weil die Tutorial-Geometrie nur im Kern liegt (AE-NR20-1).
- */
 /** Feld der Heizzentrale, aus dem die Hauptleitung kommt: Die hz steht bei (11|10) mit Größe 2 (start.ts neuerSpielstand,
  *  katalog.ts), belegt also (11|11) direkt östlich von (10|11). Das Band kommt dort aus der Fließrichtung der Wärme herein
  *  (ENTSCHEIDUNGEN 2026-11-07). */
 const HZ_AUSGANG: readonly [number, number] = [11, 11];
+/**
+ * Vorgänger jedes Tutorial-Spurfelds in Zugrichtung (DESIGN 13.17.1 B2): Hauptleitung der Reihe nach, beide Hausanschlüsse
+ * beginnen am Abzweig. Steht hier und nicht in der Darstellung, weil die Tutorial-Geometrie nur im Kern liegt (AE-NR20-1).
+ */
 const VORGAENGER = new Map<string, Feld>();
 const kette = (felder: ReadonlyArray<readonly [number, number]>, start: readonly [number, number] | null): void => {
   felder.forEach(([x, y], i) => {
