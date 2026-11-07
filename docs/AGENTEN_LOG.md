@@ -589,3 +589,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 20:28 | ■ 🟢 | reviewer | 🟢 Freigegeben. Paket P2-Nachzug (Commit a0f71fb gegen Basis 41d8025)  ([Bericht](docs/pruefberichte/20261107-202836-reviewer-a3cc6438ede363b63.md)) |
 | 2026-11-07 20:29 | ▶ | tester | Tester toEqual nach Nachzug |
 | 2026-11-07 20:29 | ▶ | entwickler | P6 NR22 Kern |
+| 2026-11-07 20:29 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-07 20:29 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** P3 ist gebaut und getestet. Die Test-Schranke meldet aber „NICHT OK“. Das liegt an den 21 Tests, die schon vor P3 rot  ([Bericht](docs/pruefberichte/20261107-202955-entwickler-a762728cd0143c1ea.md)) |
+| 2026-11-07 20:30 | ▶ | reviewer | Review P3 V1 Zug |
