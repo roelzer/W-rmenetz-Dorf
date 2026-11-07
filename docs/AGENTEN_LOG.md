@@ -534,3 +534,8 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 19:06 | ■ 🟢 | kritiker | 🟢 **Grün: M1 ist behoben. Die beiden Änderungen schaffen keine neue Sackgasse und keine Schleife. K-a bis K-c sind erledigt.**  ([Bericht](docs/pruefberichte/20261107-190659-kritiker-a1fac0f064deb2ca6.md)) |
 | 2026-11-07 19:11 | ■ 🔴 | entwickler | **Status: 🔴 BLOCKIERT.** P0 ist vollständig gebaut und committet. Ein bestehender Architekturtest wird durch den Vertrag aber rot, und die Tester-Vorarbeit  ([Bericht](docs/pruefberichte/20261107-191121-entwickler-a84df9ba2efdf0db1.md)) |
 | 2026-11-07 19:11 | ▶ | architekt | F2d-Architekturtest an Vertrag |
+| 2026-11-07 19:12 | ■ 🔴 | tester | 🔴 V0 ist nur zum Teil fertig. Der Grund: Mein Arbeitsspeicher (Kontext) war voll. Was steht, ist sauber und eingecheckt. Für den Rest brauchst du einen zwei ([Bericht](docs/pruefberichte/20261107-191213-tester-af1dfb7f88f63ebd2.md)) |
+| 2026-11-07 19:12 | ■ 🟢 | architekt | 🟢 Grün. Die Architekturtests passen jetzt zum neuen Vertrag aus NR20-22 §5 und laufen alle durch. Produktivcode habe ich nicht angefasst.  ([Bericht](docs/pruefberichte/20261107-191224-architekt-a74bda4873c8122fa.md)) |
+| 2026-11-07 19:12 | ▶ | tester | V0 Teil 2a tutorial-logik |
+| 2026-11-07 19:12 | ▶ | tester | V0 Teil 2b übrige Dateien |
+| 2026-11-07 19:12 | ▶ | reviewer | Review P0 NR20-22 |
