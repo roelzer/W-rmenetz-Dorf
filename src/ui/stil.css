@@ -403,7 +403,7 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .knopf.farbknopf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:var(--menue-mass-px-farbknopf-streifen);background:var(--streifen)}
 .knopf.farbknopf .farb-sperre{display:flex;flex-direction:column;align-items:center;gap:1px;font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-farbknopf-sperre);letter-spacing:0;white-space:nowrap}
 .knopf.farbknopf .farb-sperre .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein)}
-/* 4 px unter den Farbknöpfen statt 8 (12.18 Höhenrechnung) – die Kennzeile gehört zur gewählten Leitung */
+/* 12 px Abstand unter den Farbknöpfen (13.17.9 F7): 8 px Lücke der Spalte + 4 px Rand – Platz für den Ring am Farbknopf */
 .blatt.zeichenleiste .kennzeile{margin:4px 0 0;line-height:16px;font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .zeichen-reihe{display:grid;grid-template-columns:1fr 1fr;gap:var(--abstand-px-1)}
 .zeichen-reihe .knopf{min-width:0;padding:0 var(--menue-mass-px-zeichen-knopf-innen-seite)}
