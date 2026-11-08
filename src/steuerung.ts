@@ -731,7 +731,8 @@ export class Steuerung implements Ui {
    *  vergrößern“ ersetzen würde. Kein Blatt, kein Stück, keine reichende Größe oder schon alles geplant → keine Vorschau. */
   private ueberlastVorschau(): Szene['ueberlast_vorschau'] {
     const id = this.kontextUi.offenFuer, o = id === null ? undefined : this.spiel.objekt(id);
-    if (!o || !istLeitung(o.typ)) return undefined;
+    if (!o) return undefined;
+    // Ein Stück besteht nur aus Leitungsfeldern: Für ein Gebäude findet sich keins
     const feld = o.y * KONSTANTEN.feldanzahl + o.x;
     const stueck = this.spiel.ueberlastStuecke().find((e) => e.felder.includes(feld));
     if (!stueck?.empfohlen) return undefined;
