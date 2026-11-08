@@ -122,6 +122,13 @@ function planungsfehlerKasten(engpass: boolean, aufteilung: boolean, reduzierung
   return null;
 }
 
+/** NR22 (DESIGN 13.17.3): Kasten „Überlastet“ – im Kopf vor dem Titel das gelbe Warndreieck der Karte (16 px über stil.css). */
+function ueberlastKasten(...inhalt: Node[]): HTMLDivElement {
+  const k = kasten('Überlastet', ...inhalt);
+  k.querySelector('h3')!.prepend(symbol('warndreieck'));
+  return k;
+}
+
 /** Kontextkarte: je Objekttyp die passenden Auskünfte und Aktionen. Baut sich bei Änderungen neu auf, Zeitwerte laufen live. */
 export class Kontext {
   private blatt: Blatt | null = null;
@@ -467,15 +474,15 @@ export class Kontext {
     const sp = this.ui.spiel, phase = sp.abschnitt?.phase;
     const titel = (t: string): HTMLParagraphElement => h('p', {}, h('strong', {}, t));
     if (!e.empfohlen) {
-      c.append(kasten('Überlastet', titel('Zu viel für eine Leitung'), h('p', {}, 'Selbst die dickste Leitung reicht hier nicht. Leg einen getrennten Abgang.')));
+      c.append(ueberlastKasten(titel('Zu viel für eine Leitung'), h('p', {}, 'Selbst die dickste Leitung reicht hier nicht. Leg einen getrennten Abgang.')));
       return;
     }
     const typ = e.empfohlen, groesse_kurz = kurzname(typ);
     const offen = sp.stueckOffeneFelder(key, typ);
     // E6: „geplant“ erst, wenn kein Feld mehr offen ist; gebaut wird es mit dem Abschnitt
     if (!offen.length) {
-      if (phase === 'bau') { c.append(kasten('Überlastet', titel('Wird gerade vergrößert'))); return; }
-      c.append(kasten('Überlastet', titel(`Wird auf ${groesse_kurz} vergrößert`), h('p', {}, 'Der Tausch kommt mit dem Bauabschnitt. Bis dahin bleibt es hier zu eng.')));
+      if (phase === 'bau') { c.append(ueberlastKasten(titel('Wird gerade vergrößert'))); return; }
+      c.append(ueberlastKasten(titel(`Wird auf ${groesse_kurz} vergrößert`), h('p', {}, 'Der Tausch kommt mit dem Bauabschnitt. Bis dahin bleibt es hier zu eng.')));
       // Zurückgenommen wird nur, was „Auf {Größe} vergrößern“ geplant hätte: Ersatz in genau der empfohlenen Größe. Von Hand
       // dicker geplante Felder bleiben; gibt es keinen solchen Ersatz, gibt es nichts zurückzunehmen (Entscheidung PL 2026-11-08).
       // Beim Tippen neu gelesen, damit ein seit dem Zeichnen geänderter Ersatz nicht falsch entfernt wird.
@@ -491,7 +498,7 @@ export class Kontext {
     // (wörtlich wahr, Entscheidung PL 2026-11-08); Zeile 2 und Preis zählen weiter nur die offenen Felder.
     const lang = `${offen.length} ${offen.length === 1 ? 'Feld' : 'Felder'} · ${eurGebunden(preis)}`;
     const passt = lang.length <= 18;
-    c.append(kasten('Überlastet', titel(`Hier auf ${groesse_kurz} vergrößern`),
+    c.append(ueberlastKasten(titel(`Hier auf ${groesse_kurz} vergrößern`),
       h('p', {}, `Hier sollen ${kw(e.last_kw)}\u00a0kW durch, die ${kurzname(e.typ)} schafft ${kw(e.kapazitaet_kw)}\u00a0kW. Häuser dahinter bleiben kalt.${passt ? '' : ` Das Stück ist ${e.felder.length} Felder lang.`}`)));
     const stufe = stufenSperre(sp, typ);
     // Keine Geld-Sperre (E6): bezahlt wird mit Lauras Bestellung

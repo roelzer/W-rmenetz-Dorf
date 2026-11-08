@@ -1,3 +1,5 @@
+import tokens from '../../design/tokens.json';
+
 /** Eigene SVG-Symbole im Stil der Karte (keine Emoji-Schrift, M7). 24×24, Umriss tinte-tief. */
 const U = 'stroke="#1a1208" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"';
 // xmlns ist nötig: bausteine.ts parst die Symbole per DOMParser als SVG, ohne Namensraum würde nichts gezeichnet
@@ -31,6 +33,9 @@ export const SYMBOLE = {
   // DESIGN.md 13.2 Zeigefinger: Fläche tafel, 2 px kontur bei 40 px (= 1,2 im 24er-Raster). Schräg gedreht, damit die
   // Fingerspitze oben links (bei 2|2) sitzt – dort setzt spotlight.ts sie auf die Mitte des Ziels.
   finger: SVG(`<g transform="rotate(-45 12 12)" fill="#fff4df" stroke="#3b1d0a" stroke-width="1.2" stroke-linejoin="round"><rect x="7" y="9" width="11" height="12" rx="3"/><rect x="10" y="-2" width="4" height="13" rx="2"/><path d="M7 13H5.5a1.5 1.5 0 0 0 0 3H7"/></g>`),
+  // DESIGN.md 13.17.3: dasselbe gelbe Warndreieck wie an der Karte (Füllung ueberlast_zeichen, Rand und gezeichnetes „!“ in
+  // kontur) – kein rotes „ausruf“, das ist für Planungsfehler besetzt. Runde Ecken über stroke-linejoin.
+  warndreieck: SVG(`<path d="M12 3L22 20.5H2z" fill="${tokens.menue.farbe.ueberlast_zeichen}" stroke="${tokens.menue.farbe.kontur}" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v5.5" stroke="${tokens.menue.farbe.kontur}" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.4" fill="${tokens.menue.farbe.kontur}"/>`),
 } as const;
 
 export type SymbolName = keyof typeof SYMBOLE;
