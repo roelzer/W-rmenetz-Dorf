@@ -11,6 +11,7 @@ import { FEDERN_MS } from './render/gebaeude';
 import { Kamera } from './render/kamera';
 import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
+import { dreieckFelder, dreieckTreffer } from './render/ueberlast';
 import type { Maler } from './render/maler';
 import type { Szene } from './render/szene';
 import { chip, knopf, sperren, symbol, type Sperre } from './ui/bausteine';
@@ -113,6 +114,9 @@ export class Steuerung implements Ui {
   private freigestelltFuer = '';
   /** Seit wann ein Tutorial-Haus erreicht ist (Federn des Häkchens) */
   private erreichtSeit = new Map<number, number>();
+  /** NR22 (DESIGN 13.17.3): Seit wann jedes überlastete Stück zu sehen ist, je erstem Feld – das Warndreieck federt nur beim
+   *  ersten Erscheinen. Verschwundene Stücke fallen heraus, damit ein neues Erscheinen wieder federt. */
+  private ueberlastSeit = new Map<number, number>();
   private szeneTutorial: SzeneTutorial = {};
   /** 13.17.9 F8: Stand des letzten Bilds ohne Zug (Ansicht, Ring-Knopf, Sperre von [Abschnitt abschließen]) – im Zug bleibt das
    *  Bild so, bis der Finger abhebt */
@@ -664,6 +668,9 @@ export class Steuerung implements Ui {
       return;
     }
     if (this.anleitung) { this.kartentippImTutorial(mx, my); return; }
+    // NR22 (Bauplan P7): Das Warndreieck steht über Gebäuden; sein Tipp öffnet das Blatt der Leitung auf dem Dreieck-Feld
+    const dreieck = dreieckTreffer(this.kamera, this.ueberlastSzene(), mx, my);
+    if (dreieck !== null) { this.kontext(this.spiel.netz.belegung[dreieck]); return; }
     const o = objektAmPunkt(this.kamera, this.spiel.stand.objekte, mx, my); // A80: gezeichnete Form zählt, nicht nur das Bodenfeld
     if (!o) { this.kontextUi.schliessen(); return; }
     this.kontext(o.id);
@@ -702,8 +709,34 @@ export class Steuerung implements Ui {
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
       strassen: ortHolen(this.spiel.stand.ort).strassen, fluss: ortHolen(this.spiel.stand.ort).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
+      ueberlast: this.ueberlastSzene(), ueberlast_vorschau: this.ueberlastVorschau(),
       ...this.szeneTutorial,
     };
+  }
+  /** NR22 (Bauplan P7, DESIGN 13.17.3): überlastete Stücke des gebauten Netzes mit Dreieck-Feldern, Planungsstand und dem
+   *  Zeitpunkt ihrer ersten Sichtung. `geplant` = jedes Feld hat schon einen Ersatz, der die Last trägt. */
+  private ueberlastSzene(): NonNullable<Szene['ueberlast']> {
+    const sp = this.spiel, stuecke = sp.ueberlastStuecke(), jetzt = this.uhr();
+    const dreiecke = dreieckFelder(stuecke.map((e) => e.felder), sp.netz.tiefe, KONSTANTEN.feldanzahl);
+    const da = new Set(stuecke.map((e) => e.felder[0]));
+    for (const f of [...this.ueberlastSeit.keys()]) if (!da.has(f)) this.ueberlastSeit.delete(f);
+    return stuecke.map((e, i) => {
+      const erstes = e.felder[0], seit = this.ueberlastSeit.get(erstes) ?? jetzt;
+      this.ueberlastSeit.set(erstes, seit);
+      const geplant = e.empfohlen !== null && sp.stueckOffeneFelder(erstes, e.empfohlen).length === 0;
+      return { felder: e.felder, dreiecke: dreiecke[i], geplant, seit_ms: seit };
+    });
+  }
+  /** NR22 (DESIGN 13.17.3): Ist das Leitungsblatt einer überlasteten Leitung offen, zeigt die Karte, welche Felder „Auf {Größe}
+   *  vergrößern“ ersetzen würde. Kein Blatt, kein Stück, keine reichende Größe oder schon alles geplant → keine Vorschau. */
+  private ueberlastVorschau(): Szene['ueberlast_vorschau'] {
+    const id = this.kontextUi.offenFuer, o = id === null ? undefined : this.spiel.objekt(id);
+    if (!o || !istLeitung(o.typ)) return undefined;
+    const feld = o.y * KONSTANTEN.feldanzahl + o.x;
+    const stueck = this.spiel.ueberlastStuecke().find((e) => e.felder.includes(feld));
+    if (!stueck?.empfohlen) return undefined;
+    const felder = this.spiel.stueckOffeneFelder(feld, stueck.empfohlen);
+    return felder.length ? { felder, typ: stueck.empfohlen } : undefined;
   }
 
   /** Spiel fortschreiben, Ereignisse in Effekte/Toasts übersetzen, Oberfläche auffrischen. */

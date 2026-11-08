@@ -1,0 +1,85 @@
+import { describe, expect, it } from 'vitest';
+import { KONSTANTEN } from '../src/core/katalog';
+import { berechneNetz } from '../src/core/netz';
+import { Effekte } from '../src/render/effekte';
+import { Kamera } from '../src/render/kamera';
+import { Maler } from '../src/render/maler';
+import { bodenEbeneEinrichten, zeichneSzene, type Szene } from '../src/render/szene';
+import { szenenSchluessel } from '../src/render/szene-schluessel';
+import { neu } from './hilfen';
+
+// Bauplan NR20-22 P7 (Vorschau-Rauten), DESIGN 13.17.3 „Auf der Karte, solange das Blatt offen ist“: gestrichelte Raute in der
+// Farbe der empfohlenen Größe mit Deckkraft 0,5 auf den Feldern, die vergrößert würden. Farben von Hand aus core/katalog.ts:
+// 40er '#6ec6ff', 32er '#4caf3e'. Im Bild liegen nur 25er, also stammt jeder Strich in diesen Farben von einer Raute.
+
+const N = KONSTANTEN.feldanzahl;
+const D40 = '#6ec6ff', D32 = '#4caf3e';
+
+function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {
+  const befehle: string[] = [];
+  const zustand = new Map<PropertyKey, unknown>();
+  const text = (a: unknown): string => (Array.isArray(a) ? JSON.stringify(a) : typeof a === 'object' && a !== null ? 'objekt' : String(a));
+  const X = new Proxy({}, {
+    get(_z, p) {
+      if (zustand.has(p)) return zustand.get(p);
+      return (...a: unknown[]) => {
+        befehle.push(`${String(p)}(${a.map(text).join(',')})`);
+        if (p === 'measureText') return { width: String(a[0]).length * 6 };
+        if (p === 'createRadialGradient' || p === 'createLinearGradient') return { addColorStop: () => {} };
+        return undefined;
+      };
+    },
+    set(_z, p, v) { zustand.set(p, v); befehle.push(`${String(p)}=${text(v)}`); return true; },
+  }) as unknown as CanvasRenderingContext2D;
+  return { X, befehle };
+}
+
+// Heizzentrale 2×2 ab (11|10), gebaute 25er (10|10) → (6|10); (10|10) hat schon einen 32er-Ersatz
+const F = (x: number): number => 10 * N + x;
+const objekte = [neu('hz', 11, 10), neu('d25', 10, 10, { ersatz: { typ: 'd32', nr: 99 } }), ...[9, 8, 7, 6].map((x) => neu('d25', x, 10))];
+const netz = berechneNetz(objekte, [], 1);
+const szene = (extra: Partial<Szene>): Szene => ({
+  objekte, innen: [], netz, spiel: null, auswahl_id: null, modus: 'normal', geist: null,
+  verschiebe_id: null, stempel: null, jetzt_ms: 10_000, strassen: [], fluss: [], kw_anzeigen: false, ...extra,
+});
+function bild(s: Szene): string[] {
+  const a = aufnahme(), m = new Maler(a.X), k = new Kamera();
+  k.groesseSetzen(844, 390, 1); k.zoom = 2; k.zentrieren(9, 10, 1);
+  bodenEbeneEinrichten(null);
+  zeichneSzene(m, k, s, new Effekte(), 0.016);
+  return a.befehle;
+}
+const zahl = (b: string[], marke: string): number => b.filter((x) => x === marke).length;
+/** Letzte Deckkraft vor dem Befehl an Stelle `i` */
+const deckkraftVor = (b: string[], i: number): string | undefined => b.slice(0, i).reverse().find((x) => x.startsWith('globalAlpha='));
+
+describe('NR22 P7b Vorschau-Rauten', () => {
+  it('ohne Vorschau: keine Raute in der 40er-Farbe, die vorhandene 32er-Ersatzraute bleibt', () => {
+    const b = bild(szene({}));
+    expect(zahl(b, `strokeStyle=${D40}`)).toBe(0);
+    expect(zahl(b, `strokeStyle=${D32}`)).toBe(1);
+  });
+
+  it('je Vorschau-Feld eine gestrichelte Raute in der Farbe der Zielgröße mit Deckkraft 0,5', () => {
+    const b = bild(szene({ ueberlast_vorschau: { felder: [F(9), F(8), F(7)], typ: 'd40' } }));
+    const stellen = b.flatMap((x, i) => (x === `strokeStyle=${D40}` ? [i] : []));
+    expect(stellen).toHaveLength(3);
+    for (const i of stellen) {
+      expect(deckkraftVor(b, i)).toBe('globalAlpha=0.5');
+      expect(b.slice(0, i).reverse().find((x) => x.startsWith('setLineDash('))).not.toBe('setLineDash([])');
+    }
+  });
+
+  it('Feld mit dünnerem Ersatz in der Vorschau: die Vorschau-Raute ersetzt die Ersatzraute (keine zwei Rauten übereinander)', () => {
+    const b = bild(szene({ ueberlast_vorschau: { felder: [F(10), F(9)], typ: 'd40' } }));
+    expect(zahl(b, `strokeStyle=${D40}`)).toBe(2);
+    expect(zahl(b, `strokeStyle=${D32}`)).toBe(0);
+  });
+
+  it('Szenen-Schlüssel ändert sich mit den Vorschau-Feldern und der Zielgröße', () => {
+    const basis = szenenSchluessel(szene({ ueberlast_vorschau: { felder: [F(9)], typ: 'd40' } }));
+    expect(szenenSchluessel(szene({}))).not.toBe(basis);
+    expect(szenenSchluessel(szene({ ueberlast_vorschau: { felder: [F(9), F(8)], typ: 'd40' } }))).not.toBe(basis);
+    expect(szenenSchluessel(szene({ ueberlast_vorschau: { felder: [F(9)], typ: 'd50' } }))).not.toBe(basis);
+  });
+});

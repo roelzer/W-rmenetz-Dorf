@@ -59,6 +59,8 @@ export interface Szene {
   tutorial_fremd?: ReadonlyArray<Feld>;
   /** NR22: überlastete Stücke; `dreiecke` = Feldnummern der Warndreiecke, `geplant` = Ersatz für alle Felder geplant */
   ueberlast?: ReadonlyArray<{ felder: number[]; dreiecke: number[]; geplant: boolean; seit_ms: number }>;
+  /** NR22: Leitungsblatt eines überlasteten Stücks offen – Felder, die „Auf {typ} vergrößern“ ersetzen würde */
+  ueberlast_vorschau?: { felder: number[]; typ: TypId };
 }
 
 interface Gras { n: Punkt[]; blume: number; hell: number }
@@ -399,6 +401,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
 const MF = tokens.menue.farbe, MM = tokens.menue.mass_px, FAKTOR = tokens.menue.faktor, FREMD = tokens.karte.fremd, SAUM = tokens.karte.ueberlast;
 /** DESIGN 13.17.3: äußere Linie des Saums in `kontur` mit Deckkraft 0,55 (dunkle Kante zur Wiese, 8,0:1) */
 const SAUM_AUSSEN_DECKKRAFT = 0.55;
+/** DESIGN 13.17.3: Vorschau-Raute bei offenem Leitungsblatt halb durchsichtig – geplanter Ersatz zeigt sie mit 0,8 (12.22). */
+const VORSCHAU_DECKKRAFT = 0.5;
 const feldText = ([x, y]: Feld): string => `${x},${y}`;
 
 /** Rohrbreite einer Leitung in px – dieselbe Formel für das Rohr und die Hülle der Streifen. */
@@ -666,6 +670,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const rohrNachbarn = (x: number, y: number): number => leitungsNachbarn(x, y, (f) => { const n = nachFeld.get(f); return !!n && istLeitung(n.typ); });
   const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
   const ueberlastFelder = new Set((s.ueberlast ?? []).flatMap((u) => u.felder));
+  const vorschau = s.ueberlast_vorschau, vorschauFelder = new Set(vorschau?.felder ?? []);
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
@@ -750,6 +755,10 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     }
     if (plan) {
       planRaute(cx, cy);
+      X.restore();
+    } else if (vorschau && vorschauFelder.has(key)) {
+      // NR22 (DESIGN 13.17.3): Was „Hier vergrößern“ meint – an die Stelle der Ersatzraute, damit nicht zwei Rauten übereinander liegen
+      X.save(); X.globalAlpha = VORSCHAU_DECKKRAFT; planRaute(cx, cy, KATALOG[vorschau.typ].farbe);
       X.restore();
     } else if (o.ersatz) {
       // NR18: Gebaute Leitung mit geplantem Ersatz zeigt eine gestrichelte Planraute; die alte Leitung bleibt bis zum Bauende

@@ -93,6 +93,7 @@ export function szenenSchluessel(s: Szene): string {
     `blass,${ja(s.stecker_blass)}`,
     // NR22: Saum, Dreiecke und ihre Deckkraft; `seit_ms` gehört dazu, weil ein neues Federn ein neues Bild braucht
     `ueberlast,${(s.ueberlast ?? []).map((u) => `${u.felder.join(';')}/${u.dreiecke.join(';')}/${ja(u.geplant)}/${u.seit_ms}`).join(':')}`,
+    `vorschau,${s.ueberlast_vorschau?.typ ?? ''},${s.ueberlast_vorschau?.felder.join(';') ?? ''}`,
   );
   return teile.join('|');
 }
