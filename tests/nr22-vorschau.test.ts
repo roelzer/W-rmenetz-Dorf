@@ -7,6 +7,7 @@ import { Maler } from '../src/render/maler';
 import { bodenEbeneEinrichten, zeichneSzene, type Szene } from '../src/render/szene';
 import { szenenSchluessel } from '../src/render/szene-schluessel';
 import { neu } from './hilfen';
+import { aufnahme } from './hilfen/nr22';
 
 // Bauplan NR20-22 P7 (Vorschau-Rauten), DESIGN 13.17.3 „Auf der Karte, solange das Blatt offen ist“: gestrichelte Raute in der
 // Farbe der empfohlenen Größe mit Deckkraft 0,5 auf den Feldern, die vergrößert würden. Farben von Hand aus core/katalog.ts:
@@ -15,24 +16,6 @@ import { neu } from './hilfen';
 const N = KONSTANTEN.feldanzahl;
 const D40 = '#6ec6ff', D32 = '#4caf3e';
 
-function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {
-  const befehle: string[] = [];
-  const zustand = new Map<PropertyKey, unknown>();
-  const text = (a: unknown): string => (Array.isArray(a) ? JSON.stringify(a) : typeof a === 'object' && a !== null ? 'objekt' : String(a));
-  const X = new Proxy({}, {
-    get(_z, p) {
-      if (zustand.has(p)) return zustand.get(p);
-      return (...a: unknown[]) => {
-        befehle.push(`${String(p)}(${a.map(text).join(',')})`);
-        if (p === 'measureText') return { width: String(a[0]).length * 6 };
-        if (p === 'createRadialGradient' || p === 'createLinearGradient') return { addColorStop: () => {} };
-        return undefined;
-      };
-    },
-    set(_z, p, v) { zustand.set(p, v); befehle.push(`${String(p)}=${text(v)}`); return true; },
-  }) as unknown as CanvasRenderingContext2D;
-  return { X, befehle };
-}
 
 // Heizzentrale 2×2 ab (11|10), gebaute 25er (10|10) → (6|10); (10|10) hat schon einen 32er-Ersatz
 const F = (x: number): number => 10 * N + x;

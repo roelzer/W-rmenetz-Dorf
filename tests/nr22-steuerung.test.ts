@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import type { Spiel } from '../src/core/spiel';
 import { KONSTANTEN, istLeitung, passendeStation, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
 import type { Objekt } from '../src/core/typen';
@@ -9,6 +9,7 @@ import { objektAmPunkt } from '../src/render/treffer';
 import { dreieckMitte } from '../src/render/ueberlast';
 import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
 import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
+import { leeresDorf } from './hilfen/nr22';
 
 // Bauplan docs/bauplaene/NR20-22.md P7 (Punkt steuerung.ts, Rückfrage „welche Leitung öffnet das Blatt“), DESIGN 13.17.3.
 // Dorf wie tests/nr22-kern.test.ts, von Hand hergeleitet: Heizzentrale 2×2 ab (11|10), 25er-Stamm (11|9) → (6|9), danach 40er
@@ -28,18 +29,6 @@ type Innen = {
 };
 const innen = (u: EchteUmgebung): Innen => u.st as unknown as Innen;
 
-function leeresDorf(): { s: Spiel; z: Uhr } {
-  const z = { t: T0 };
-  const st = neuerSpielstand(T0);
-  st.objekte = st.objekte.filter((o) => !istLeitung(o.typ));
-  for (const o of st.objekte) if (o.station) { delete o.station; o.ohne_station = true; }
-  const s = new Spiel(st, () => z.t);
-  if (!s.stand.quelle_gewaehlt) s.ersteQuelleWaehlen('kessel');
-  s.stand.geld_eur = 1_000_000;
-  s.neuBerechnen();
-  s.ereignisse.length = 0;
-  return { s, z };
-}
 const zeichne = (s: Spiel, typ: TypId, weg: ReadonlyArray<[number, number]>): void => {
   for (const [x, y] of weg) expect(s.platzieren(typ, x, y).ok, `platzieren ${typ} (${x}|${y})`).toBe(true);
 };
@@ -48,7 +37,7 @@ const leitung = (s: Spiel, x: number, y: number): Objekt => objektBei(s, x, y, (
 
 /** Stamm und Ende eingezeichnet, beide Kunden mit Station, Abschnitt abgeschlossen (noch nicht bestellt). */
 function eingezeichnet(): { s: Spiel; z: Uhr } {
-  const d = leeresDorf();
+  const d = leeresDorf(T0);
   expect(abschnittOeffnen(d.s, d.z)).toBe(true);
   zeichne(d.s, 'd25', STAMM);
   zeichne(d.s, 'd40', ENDE);
