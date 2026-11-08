@@ -14,6 +14,9 @@
 //  B  T13: Hauptleitung (10|11)→(10|13), also über den Abzweig hinaus; Foto nach dem Abheben.
 //  C  T13h, Haus 1, dann 25er (12|12)→(12|13) – eigener Abgang: Foto mit dem Finger noch auf (12|13), Foto nach dem
 //     Abheben, [Zurück] antippen, Foto danach.
+//  D  (P5g, DESIGN 13.17.10 G2/G3) T13h, Haus 1, dann eigener Abgang (12|12)→(12|13) bis aufs Haus 2 mit liegendem Finger:
+//     kein Haken an Haus 2 (G2). Abheben, [Zurück], Haus 2 vom Abzweig: beide Häuser richtig + Rest (12|12) → nur der erste
+//     Satz, keine Zielscheibe (G3). Bis P5g gebaut ist, erscheinen diese Prüfpunkte als FEHLT.
 // Messhilfen wie tests/browser/nr13-tutorial.browser.cjs: Die Seite lädt '/src/render/kamera.ts' und '/src/steuerung.ts'
 // (dieselben Modul-Instanzen wie das Spiel), um Feldmitten zu projizieren und den Schritt mitzulesen. Bedient wird nur
 // über Touch.
@@ -36,6 +39,8 @@ const ERSTE_HAEUSER = [[9, 13], [12, 14]];
 /** Bauplan P5 Ablauftest (7): eigener Abgang neben der Spur */
 const EIGENER_ABGANG = [[12, 12], [12, 13]];
 const ANSCHLUSS_TYP = 'd25';
+/** DESIGN 13.17.10 G3: nur der erste Satz von satz_eigener_abgang (55 Zeichen) */
+const SATZ_REST = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.';
 const WARTEN_MS = 40000;
 const GROESSEN = [{ b: 844, h: 390 }, { b: 667, h: 375 }];
 
@@ -106,6 +111,8 @@ const lage = (p) => p.evaluate(() => {
     text: el ? el.textContent.replace(/\s+/g, ' ').trim() : null, fremd: a ? a.fremd.length : 0,
     fahrt: st.fahrtJetzt, weiter: !!w && w.getClientRects().length > 0, karte: !!document.getElementById('anleiter'),
     schleier: !!document.getElementById('schleier'),
+    satz: a ? a.text : null, zielscheibe: a ? a.zielscheibe : null,
+    haken2: !!a && (st.szene().erreicht || []).some((e) => e.id === a.objekt_ids.haus2),
   };
 });
 const feldPunkt = (p, x, y) => p.evaluate(({ x, y }) => {
@@ -275,6 +282,45 @@ async function laufC(s, a, g, ort) {
   await foto(s, a, g, 'abgang-nach-zurueck');
 }
 
+/** P5g (DESIGN 13.17.10 G2, G3): „Zug mit eigenem Abgang bis aufs Haus: kein Haken“ und „Zwei Häuser mit Rest: nur der erste
+ *  Satz, keine Zielscheibe“ – die beiden letzten Punkte der Prüfliste für den nächsten Fotocheck. */
+async function laufD(s, a, g, ort) {
+  const { p } = s;
+  await bisSchritt(s, ort, 'T13');
+  await ruhe(p);
+  await ziehen(s, await punkte(p, HAUPT));
+  await bis(p, (x) => x.schritt === 'T13w', 3000);
+  await ruhe(p);
+  await tippe(p, await mitteVon(p, `button[data-id="farbe-${ANSCHLUSS_TYP}"]`));
+  let l = await bis(p, (x) => x.schritt === 'T13h', 3000);
+  muss(ort, 'T13h erreicht', l.schritt === 'T13h', String(l.schritt));
+  await ruhe(p);
+  await ziehen(s, await punkte(p, [...ANSCHLUSS_1, ERSTE_HAEUSER[0]]));
+  await warten(p, 300);
+  // G2: Finger liegt auf Haus 2; der Zug zählt nach dem Abheben als „muss weg“ – darum auch jetzt kein Haken
+  await ziehen(s, await punkte(p, [...EIGENER_ABGANG, ERSTE_HAEUSER[1]]), false);
+  let haken = false;
+  for (let i = 0; i < 10; i++) { l = await lage(p); haken = haken || l.haken2; await warten(p, 50); }
+  l = await foto(s, a, g, 'abgang-bis-haus', false);
+  pruefe(ort, 'P5g G2: eigener Abgang bis aufs Haus, Finger liegt – kein Haken an Haus 2', !haken && !l.haken2, `Haken ${haken || l.haken2}`);
+  await abhebenJetzt(s);
+  l = await bis(p, (x) => x.fremd > 0, 3000);
+  pruefe(ort, 'P5g G2: nach dem Abheben kein Haken an Haus 2', !l.haken2, `fremd ${l.fremd}, Haken ${l.haken2}`);
+  const zurueck = await mitteVon(p, 'button[data-id="zurueck"]');
+  muss(ort, 'Knopf [Zurück] sichtbar', !!zurueck, '');
+  // [Zurück] so oft, bis nur noch das Rest-Stück (12|12) liegt (der Zug kann das Hausfeld als eigenen Schritt enthalten)
+  for (let i = 0; i < 3 && l.fremd !== 1; i++) { await tippe(p, zurueck); await warten(p, 300); l = await lage(p); }
+  muss(ort, 'Nach [Zurück]: nur das Rest-Stück liegt', l.fremd === 1, `fremd ${l.fremd}`);
+  await ruhe(p);
+  await ziehen(s, await punkte(p, [...ANSCHLUSS_2, ERSTE_HAEUSER[1]]));
+  l = await bis(p, (x) => x.haken2, 3000);
+  muss(ort, 'Haus 2 vom Abzweig richtig angeschlossen (Haken)', l.haken2, `Schritt ${l.schritt}, fremd ${l.fremd}`);
+  l = await foto(s, a, g, 'zwei-haeuser-rest');
+  pruefe(ort, 'P5g G3: zwei Häuser + Rest – noch T13h mit Streifen', l.schritt === 'T13h' && l.fremd === 1, `${l.schritt}, fremd ${l.fremd}`);
+  pruefe(ort, 'P5g G3: zwei Häuser + Rest – nur der erste Satz', l.satz === SATZ_REST && l.text === SATZ_REST, `Ansicht „${l.satz}“, Karte „${l.text}“`);
+  pruefe(ort, 'P5g G3: zwei Häuser + Rest – keine Zielscheibe', l.zielscheibe === null, JSON.stringify(l.zielscheibe));
+}
+
 async function lauf(browser, url, a, g, name, f) {
   const ort = `${g.b}×${g.h} ${name}`;
   const s = await seiteOeffnen(browser, url, g);
@@ -311,6 +357,7 @@ async function main() {
       await lauf(browser, url, a, g, 'A', laufA);
       await lauf(browser, url, a, g, 'B', laufB);
       await lauf(browser, url, a, g, 'C', laufC);
+      await lauf(browser, url, a, g, 'D', laufD);
     }
   } catch (fehler) {
     console.error('Aufbaufehler:', fehler && fehler.message ? fehler.message : fehler);
