@@ -187,6 +187,31 @@ describe('NR22 P7 Leitungsblatt: Kasten „Überlastet“ und Hauptaktion', () =
   });
 });
 
+describe('NR22 P7 Leitungsblatt: Zusammenspiel', () => {
+  it('test_nr22_blatt_planungsfehler_zuerst: Feld mit Planungsfehler und Überlast → „Planungsfehler“ zuerst, darunter „Überlastet“, beide oben', async () => {
+    const { s, z } = gebautOffen();
+    const key = 9 * N + 8;
+    await echteSteuerung(s, (u) => {
+      // Reduzierung auf (8|9) nachgestellt: die Lage selbst ist für den Kern kein Planungsfehler, geprüft wird nur die Reihenfolge im Blatt
+      s.netz.reduzierung.add(key);
+      oeffne(u, s, 8, 9);
+      const titel = blatt(u).querySelectorAll('.kasten').map((k) => norm(k.querySelector('h3')?.textContent ?? ''));
+      expect(titel).toEqual(['Planungsfehler', 'Überlastet']);
+      expect(blattText(u).indexOf('Überlastet')).toBeLessThan(blattText(u).indexOf('Hauptleitung:'));
+    }, { uhr: () => z.t });
+  });
+
+  it('test_nr22_blatt_kern_lehnt_ab: lehnt der Kern trotz freiem Knopf ab, erscheint sein Hinweis', async () => {
+    const { s, z } = gebautOffen();
+    vi.spyOn(s, 'stueckVergroessern').mockReturnValue({ ok: false, hinweis: 'Kern sagt nein' });
+    await echteSteuerung(s, (u) => {
+      oeffne(u, s, 8, 9);
+      mit(u, 'Auf 32er vergrößern')[0].click();
+      expect(norm(u.meldung())).toBe('Kern sagt nein');
+    }, { uhr: () => z.t });
+  });
+});
+
 describe('NR22 P7 Leitungsblatt: Zustände (DESIGN 13.17.3)', () => {
   it('test_nr22_blatt_kein_abschnitt: Knopf gesperrt mit „kein Bauabschnitt“, Antippen zeigt den Hinweis, plant nichts', async () => {
     const { s, z } = gebaut();
