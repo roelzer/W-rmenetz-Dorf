@@ -45,7 +45,7 @@ const T13_ZOOM_MIN = 2;
 const BLATT_ZU_NACH_KAUF_MS = 200;
 /** Wie Kamera.groesseSetzen: kürzere Bildkante unter 500 px = Handy */
 const HANDY_KANTE_PX = 500;
-type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'stecker_blass' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
+type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'stecker_blass' | 'stecker_blass_ids' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
 type Modus = 'normal' | 'platzieren' | 'verschieben' | 'stempel';
 
 /** Verbindet Eingabe, Karte, Oberfläche und Spiel. Enthält keine Spielregeln – die liegen in src/core. */
@@ -955,6 +955,10 @@ export class Steuerung implements Ui {
     // F2: Solange die Leiste die Hauptleitung verlangt (T13, T13w), sind die Häuser noch nicht das Ziel – ihre Stecker ruhen,
     // damit die Zielscheibe im Band das hellste Ziel ist. Aus der Ansicht abgeleitet, ohne Schrittnamen (Architekturtest U2).
     if (a.ziel_stecker.length && a.zeichenleiste?.typ === this.spiel.tutorialWerte().haupt) sz.stecker_blass = true;
+    // G5 (DESIGN 13.17.10): Zielscheibe und Ring zugleich gibt es nur, solange ein eigener Abgang zurück zum Abzweig führt
+    // (Ring nur in T13h, dort Zielscheibe nur dann). Der Stecker des Ring-Hauses ruht, sonst stünden zwei gleiche Zeichen
+    // übereinander; das Haus ist durch den Ring schon als Ziel markiert.
+    else if (a.zielscheibe && a.ziel_ring !== null && a.ziel_stecker.includes(a.ziel_ring)) sz.stecker_blass_ids = [a.ziel_ring];
     if (a.ruhe) sz.ruhe = true;
     // Im Zug hat imZugHalten die Streifen schon auf den Stand vor dem Zug begrenzt (DESIGN 13.17.8, 13.17.9 F8)
     if (a.fremd.length) sz.tutorial_fremd = a.fremd;
@@ -1033,9 +1037,11 @@ export class Steuerung implements Ui {
     }
     const erstes = ziele[0]?.l?.loch.r ?? null;
     const finger = this.vorfuehrFinger(a, erstes, ringR, fingerRuht);
-    const hud = this.hud.wurzel.getBoundingClientRect();
+    // G6 (DESIGN 13.17.10): „nur HUD“ dunkelt nur die Anzeigenreihe oben ab (Dorfschild, Pillen). Der HUD-Behälter selbst
+    // liegt über dem ganzen Bildschirm (stil.css #hud, inset 0) – sein Rechteck dunkelte auch Karte und Zeichenleiste ab.
+    const anzeigen = [...this.hud.wurzel.querySelectorAll<HTMLElement>('.hud-links, .pillen')].map(Steuerung.elRechteck);
     // Während der Fahrt zeigt das Bild kein Abdunkeln; die Sperre liest weiter die Ansicht (AE-NR13-6)
-    spotlightSetzen({ loecher, abdunkeln: this.fahrtJetzt ? 'nichts' : a.abdunkeln, finger, ruhig, hud: [{ x: hud.left, y: hud.top, b: hud.width, h: hud.height }] });
+    spotlightSetzen({ loecher, abdunkeln: this.fahrtJetzt ? 'nichts' : a.abdunkeln, finger, ruhig, hud: anzeigen });
     // 13.3: Spricht Philipp oder Laura, macht Simon Platz und kommt danach zurück
     if (sprecherAktiv()) anleiterAusblenden();
     else anleiterZeigen(a, freierPlatz ?? anleiterPlatz(frei, erstes, bild), { weiter: () => this.tutorialMelden({ art: 'tipp', tipp: 'weiter' }) }, this.uhr());

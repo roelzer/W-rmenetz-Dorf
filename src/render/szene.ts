@@ -52,6 +52,8 @@ export interface Szene {
   ziel?: { stecker: number[]; ring: number | null };
   /** DESIGN 13.17.9 F2: Ziel-Stecker blass wie ruhende Bandstücke (`faktor.geist_ruhend`), solange die Häuser noch nicht das Ziel sind */
   stecker_blass?: boolean;
+  /** DESIGN 13.17.10 G5: nur diese Ziel-Stecker blass (`faktor.geist_ruhend`), solange die Zielscheibe wegen eines eigenen Abgangs steht */
+  stecker_blass_ids?: ReadonlyArray<number>;
   /** NR20: Ruhe im Bild in Kapitel 3 (kW-Schilder und fremde Blasen aus, leichter Schleier) */
   ruhe?: boolean;
   /** NR21: gestreiftes fremdes Stück (eigener Abgang) */
@@ -330,7 +332,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       oben.push(() => zeichneBlase(m, cx, topY, 'erreicht', federn));
     } else if (s.ziel?.stecker.includes(o.id)) {
       // NR20 B4: Ziel-Stecker auf dem Platz des „Erreicht“-Zeichens; F2: blass, damit die Zielscheibe im Band das hellste Ziel ist
-      const blass = !!s.stecker_blass;
+      const blass = !!s.stecker_blass || !!s.stecker_blass_ids?.includes(o.id);
       oben.push(() => {
         if (blass) X.globalAlpha = FAKTOR.geist_ruhend;
         zeichneBlase(m, cx, topY, 'ziel');
