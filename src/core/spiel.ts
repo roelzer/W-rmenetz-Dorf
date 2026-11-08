@@ -873,9 +873,11 @@ export class Spiel {
    *  Eingezeichnete Leitungen fehlen im gebauten Netz und bekommen deshalb kein Stück. */
   ueberlastStuecke(): Engstelle[] { return this.engstellenIn(this.netz); }
   /** NR22 (E6): Felder des Stücks um `feld`, die für `typ` noch einen Ersatz brauchen. Felder, deren Ersatz (oder Leitung)
-   *  schon so dick ist, zählen nicht; ein dünnerer Ersatz wird abgelöst. Kein Stück an `feld` → []. */
-  stueckOffeneFelder(feld: number, typ: TypId): number[] {
-    const stueck = this.ueberlastStuecke().find((e) => e.felder.includes(feld));
+   *  schon so dick ist, zählen nicht; ein dünnerer Ersatz wird abgelöst. Kein Stück an `feld` → [].
+   *  `stuecke`: Ergebnis von ueberlastStuecke() zum selben Netz-Stand. Wer es schon hat (Szene je Bild, Blatt), reicht es
+   *  durch und spart die zweite Suche über das ganze Netz. */
+  stueckOffeneFelder(feld: number, typ: TypId, stuecke: Engstelle[] = this.ueberlastStuecke()): number[] {
+    const stueck = stuecke.find((e) => e.felder.includes(feld));
     if (!stueck) return [];
     const kap = KATALOG[typ].kapazitaet_kw as number;
     return stueck.felder.filter((f) => {

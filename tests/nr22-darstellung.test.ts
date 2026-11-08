@@ -7,6 +7,7 @@ import { Maler } from '../src/render/maler';
 import { bodenEbeneEinrichten, zeichneSzene, type Szene } from '../src/render/szene';
 import { szenenSchluessel } from '../src/render/szene-schluessel';
 import { neu } from './hilfen';
+import { aufnahme } from './hilfen/nr22';
 
 // Bauplan NR20-22 P7, DESIGN 13.17.3. Werte von Hand: 25er-Farbe '#d8392f' und Breite 0,06 (core/katalog.ts), Warngelb '#ffc531'
 // und Kontur '#3b1d0a' (design/tokens.json menue.farbe). Kamera 844×390, Zoom 2 → Grundmaß min(844 / 26, 390 / 15) = 26
@@ -14,26 +15,8 @@ import { neu } from './hilfen';
 // die dunkle Kante w + 2 = 5,12.
 
 const N = KONSTANTEN.feldanzahl;
-const D25 = '#d8392f', GELB = '#ffc531';
+const D25 = '#d8392f', GELB = '#ffc531', KONTUR = '#3b1d0a';
 
-function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {
-  const befehle: string[] = [];
-  const zustand = new Map<PropertyKey, unknown>();
-  const text = (a: unknown): string => (Array.isArray(a) ? JSON.stringify(a) : typeof a === 'object' && a !== null ? 'objekt' : String(a));
-  const X = new Proxy({}, {
-    get(_z, p) {
-      if (zustand.has(p)) return zustand.get(p);
-      return (...a: unknown[]) => {
-        befehle.push(`${String(p)}(${a.map(text).join(',')})`);
-        if (p === 'measureText') return { width: String(a[0]).length * 6 };
-        if (p === 'createRadialGradient' || p === 'createLinearGradient') return { addColorStop: () => {} };
-        return undefined;
-      };
-    },
-    set(_z, p, v) { zustand.set(p, v); befehle.push(`${String(p)}=${text(v)}`); return true; },
-  }) as unknown as CanvasRenderingContext2D;
-  return { X, befehle };
-}
 
 // Heizzentrale 2×2 ab (11|10), gebaute 25er (10|10) → (6|10): fünf Felder Tiefe 1…5
 const objekte = [neu('hz', 11, 10), ...[10, 9, 8, 7, 6].map((x) => neu('d25', x, 10))];
@@ -109,5 +92,31 @@ describe('NR22 P7 Darstellung: Farbe bleibt, Saum und Dreieck', () => {
     expect(szenenSchluessel(szene({ ueberlast: [{ ...STUECK, dreiecke: [F(9)] }] }))).not.toBe(basis);
     expect(szenenSchluessel(szene({ ueberlast: [{ ...STUECK, geplant: true }] }))).not.toBe(basis);
     expect(szenenSchluessel(szene({ ueberlast: [STUECK], stecker_blass: true }))).not.toBe(basis);
+  });
+});
+
+// Tester-Vorarbeit P7t (Review P7 gesamt K3): Verhalten, das es schon gibt – sofort grün.
+describe('NR22 P7t Darstellung: fehlende Prüfungen (Saum-Außenlinie, seit_ms im Schlüssel)', () => {
+  const letzte = (b: string[], bis: number, anfang: string): string | undefined => b.slice(0, bis).filter((x) => x.startsWith(anfang)).pop();
+
+  // Fehler, der ihn rot macht: Außenlinie voll deckend (Deckkraft 1) oder in anderer Farbe; Deckkraft 0,55 bleibt für das Gelb stehen.
+  it('Saum: Außenlinie w + 6 in kontur mit Deckkraft 0,55, das Gelb darin wieder voll deckend', () => {
+    const b = bild(szene({ ueberlast: [STUECK] }));
+    const aussen = b.flatMap((x, i) => (x.startsWith('lineWidth=') && Math.abs(Number(x.slice(10)) - 9.12) < 1e-9 ? [i] : []));
+    expect(aussen).toHaveLength(5);
+    for (const i of aussen) {
+      expect(letzte(b, i, 'strokeStyle=')).toBe(`strokeStyle=${KONTUR}`);
+      expect(letzte(b, i, 'globalAlpha=')).toBe('globalAlpha=0.55');
+      const gelb = b.indexOf(`strokeStyle=${GELB}`, i);
+      expect(gelb).toBeGreaterThan(i);
+      expect(letzte(b, gelb, 'globalAlpha=')).toBe('globalAlpha=1');
+    }
+  });
+
+  // Fehler, der ihn rot macht: `seit_ms` fehlt im Szenen-Schlüssel – ein neu auftauchendes Stück am selben Ort federt nicht, weil kein neues Bild kommt.
+  it('Szenen-Schlüssel ändert sich mit `seit_ms` allein, bei gleichem `seit_ms` bleibt er gleich', () => {
+    const mit = (seit_ms: number): string => szenenSchluessel(szene({ ueberlast: [{ ...STUECK, seit_ms }] }));
+    expect(mit(5_000)).not.toBe(mit(1_000));
+    expect(mit(1_000)).toBe(mit(1_000));
   });
 });

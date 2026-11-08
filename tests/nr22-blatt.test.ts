@@ -1,13 +1,17 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Spiel, neuerSpielstand } from '../src/core/spiel';
+import type { Spiel } from '../src/core/spiel';
 import { KONSTANTEN, istLeitung, passendeStation, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
 import type { Objekt } from '../src/core/typen';
 import type { Engstelle } from '../src/core/engstelle';
+import { SYMBOLE } from '../src/ui/symbole';
+import { tokensAnwenden } from '../src/ui/tokens';
 import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
-import type { El } from './hilfen/dom-attrappe';
+import { El } from './hilfen/dom-attrappe';
 import { gesperrtMitHinweis } from './hilfen/gesperrt';
 import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
+import { leeresDorf } from './hilfen/nr22';
 
 // Bauplan docs/bauplaene/NR20-22.md, P7 (Leitungsblatt, E5, E6) und DESIGN 13.17.3 „Leitungsblatt beim Antippen“ und
 // „Zustände des Blatts“. Echte Steuerung mit echtem Blatt (tests/hilfen/echte-steuerung.ts), echter Kern.
@@ -26,24 +30,12 @@ const norm = (t: string): string => t.replace(/ /g, ' ').replace(/\s+/g, ' ').t
 const SATZ = 'Hier sollen 16 kW durch, die 25er schafft 15 kW. Häuser dahinter bleiben kalt.';
 const B1_HINWEIS = 'Erst mit Philipp einen Bauabschnitt planen: Bauen → Leitungen.';
 
-function leeresDorf(): { s: Spiel; z: Uhr } {
-  const z = { t: T0 };
-  const st = neuerSpielstand(T0);
-  st.objekte = st.objekte.filter((o) => !istLeitung(o.typ));
-  for (const o of st.objekte) if (o.station) { delete o.station; o.ohne_station = true; }
-  const s = new Spiel(st, () => z.t);
-  if (!s.stand.quelle_gewaehlt) s.ersteQuelleWaehlen('kessel');
-  s.stand.geld_eur = 1_000_000;
-  s.neuBerechnen();
-  s.ereignisse.length = 0;
-  return { s, z };
-}
 const leitung = (s: Spiel, x: number, y: number): Objekt => objektBei(s, x, y, (o) => istLeitung(o.typ))!;
 const wegLeitungen = (s: Spiel): Objekt[] => WEG.map(([x, y]) => leitung(s, x, y));
 const ersatzTypen = (s: Spiel): Array<TypId | undefined> => wegLeitungen(s).map((o) => o.ersatz?.typ);
 /** Weg gebaut, Kunde mit Station; der Stamm ist überlastet. Ohne offenen Abschnitt. */
 function gebaut(): { s: Spiel; z: Uhr } {
-  const d = leeresDorf();
+  const d = leeresDorf(T0);
   expect(abschnittOeffnen(d.s, d.z)).toBe(true);
   for (const [x, y] of WEG) expect(d.s.platzieren('d25', x, y).ok, `platzieren (${x}|${y})`).toBe(true);
   const h = objektBei(d.s, KUNDE[0], KUNDE[1], (o) => !istLeitung(o.typ))!;
@@ -168,7 +160,9 @@ describe('NR22 P7 Leitungsblatt: Kasten „Überlastet“ und Hauptaktion', () =
     const faelle: Array<{ geplant: number; zeile: string; satzZusatz: string }> = [
       { geplant: 7, zeile: '4 Felder · 1.440 €', satzZusatz: '' },
       { geplant: 2, zeile: '9 Felder · 3.240 €', satzZusatz: '' },                                // genau 18 Zeichen
-      { geplant: 1, zeile: '3.600 €', satzZusatz: ' Das Stück ist 10 Felder lang.' },            // 19 Zeichen → nur Preis
+      // 10 offen: 19 Zeichen → Zeile 2 nur Preis; der Satz nennt die Gesamtlänge des Stücks (11), nicht die offenen 10
+      // (Entscheidung PL 2026-11-08 nach Review P7, Nacharbeit P7d (1))
+      { geplant: 1, zeile: '3.600 €', satzZusatz: ' Das Stück ist 11 Felder lang.' },
       { geplant: 10, zeile: '1 Feld · 360 €', satzZusatz: '' },
     ];
     for (const f of faelle) {
@@ -279,6 +273,84 @@ describe('NR22 P7 Leitungsblatt: Zustände (DESIGN 13.17.3)', () => {
       expect(kastenTeile(u)).toEqual(['Überlastet', 'Wird gerade vergrößert']);
       expect(mit(u, 'Auf ')).toEqual([]);
       expect(mit(u, 'Zurücknehmen')).toEqual([]);
+    }, { uhr: () => z.t });
+  });
+});
+
+// ───────────── Tester-Vorarbeit P7t (Review P7 gesamt, Nacharbeit P7d) ─────────────
+/** CSS-Variablen so, wie tokensAnwenden sie aus design/tokens.json setzt (damit `var(--…)` und `16px` gleich zählen). */
+function cssVariablen(): Map<string, string> {
+  const v = new Map<string, string>();
+  tokensAnwenden({ style: { setProperty: (k: string, w: string) => { v.set(k, w); } } } as unknown as HTMLElement);
+  return v;
+}
+/** Letzter Wert einer Eigenschaft (`width`, `height`) aus allen CSS-Regeln, deren Selektor `passt`; `var(--…)` aufgelöst. */
+function cssWert(passt: (selektor: string) => boolean, eigenschaft: string): string | undefined {
+  const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const vars = cssVariablen();
+  let wert: string | undefined;
+  for (const [, sel, decl] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (!sel.split(',').some((t) => passt(t.trim()))) continue;
+    for (const d of decl.split(';')) {
+      const [k, ...w] = d.split(':');
+      if (k.trim() === eigenschaft) wert = w.join(':').trim().replace(/var\((--[\w-]+)\)/g, (g, n: string) => vars.get(n) ?? g);
+    }
+  }
+  return wert;
+}
+
+describe('NR22 P7t: Nacharbeit P7d (rot bis P7d)', () => {
+  // Fehler, der ihn rot macht: [Zurücknehmen] entfernt jeden Ersatz auf dem Stück, auch eine von Hand geplante dickere Leitung.
+  it('test_nr22_blatt_zuruecknehmen_nur_empfohlen: [Zurücknehmen] nimmt nur den 32er-Ersatz zurück, eine von Hand geplante 40er bleibt', async () => {
+    const { s, z } = gebautOffen();
+    // Drei Felder in der Mitte des Stücks bekommen von Hand eine 40er (dicker als die empfohlene 32er)
+    const DICK = [3, 4, 5];
+    for (const i of DICK) expect(s.ersatzPlanen(wegLeitungen(s)[i].id, 'd40').ok, `40er auf Feld ${i}`).toBe(true);
+    const mitDick = <T>(sonst: T): Array<TypId | T> => WEG.map((_, i) => (DICK.includes(i) ? 'd40' : sonst));
+    await echteSteuerung(s, (u) => {
+      oeffne(u, s, 11, 9);
+      // 8 offene Felder × 360 € = 2.880 €; „8 Felder · 2.880 €“ hat 18 Zeichen → passt in Zeile 2
+      expect(mit(u, 'Auf 32er vergrößern').map(zeile2)).toEqual(['8 Felder · 2.880 €']);
+      mit(u, 'Auf 32er vergrößern')[0].click();
+      expect(ersatzTypen(s)).toEqual(mitDick('d32'));
+      expect(kastenTeile(u)[1]).toBe('Wird auf 32er vergrößert');
+      const zurueck = mit(u, 'Zurücknehmen');
+      expect(zurueck).toHaveLength(1);
+      zurueck[0].click();
+      // nur die 32er sind weg, die drei 40er bleiben geplant
+      expect(ersatzTypen(s)).toEqual(mitDick(undefined));
+      expect(mit(u, 'Auf 32er vergrößern').map(zeile2)).toEqual(['8 Felder · 2.880 €']);
+    }, { uhr: () => z.t });
+  });
+
+  // Fehler, der ihn rot macht: Der Kastenkopf „Überlastet“ hat kein Symbol, ein falsches (rotes „!“) oder es steht hinter dem Titel.
+  it('test_nr22_blatt_warndreieck_im_kopf: Kopf „Überlastet“ beginnt mit dem gelben Warndreieck (16 px), offen und geplant', async () => {
+    const { s, z } = gebautOffen();
+    await echteSteuerung(s, (u) => {
+      oeffne(u, s, 8, 9);
+      for (const zustand of ['offen', 'geplant'] as const) {
+        if (zustand === 'geplant') mit(u, 'Auf 32er vergrößern')[0].click();
+        const k = ueberlastKasten(u);
+        expect(k, `${zustand}: Kasten „Überlastet“ (Titeltext ohne Symboltext)`).toBeDefined();
+        const kopf = k!.querySelector('h3')!;
+        const erstes = kopf.kinder[0];
+        expect(erstes instanceof El, `${zustand}: erstes Kind im Kopf ist ein Element`).toBe(true);
+        const sym = erstes as El;
+        expect(sym.klassen(), `${zustand}: Symbol vor dem Titel`).toContain('sym');
+        expect(sym.textContent.trim(), `${zustand}: das Symbol trägt keinen Text`).toBe('');
+        const quelle = (sym.querySelector('svg') as El | null)?.attrs.quelle ?? '';
+        // DESIGN 13.17.3: Füllung #ffc531 (menue.farbe.ueberlast_zeichen), Rand und „!“ in kontur #3b1d0a – nicht das rote „ausruf“
+        expect(quelle.toLowerCase(), `${zustand}: gelbe Füllung`).toContain('#ffc531');
+        expect(quelle.toLowerCase(), `${zustand}: dunkler Rand`).toContain('#3b1d0a');
+        expect(quelle).not.toBe(SYMBOLE.ausruf);
+        expect(norm(kopf.textContent)).toBe('Überlastet');
+        // 16 px: eine CSS-Regel für eine eigene Klasse des Symbols oder für `.kasten h3 .sym`
+        const eigene = sym.klassen().filter((c) => c !== 'sym');
+        const passt = (t: string): boolean => eigene.some((c) => new RegExp(`\\.${c}(?![\\w-])`).test(t))
+          || (/\.kasten\b/.test(t) && /\bh3\b/.test(t) && /\.sym\b/.test(t));
+        expect(cssWert(passt, 'width'), `${zustand}: Breite (Klassen ${sym.className})`).toBe('16px');
+        expect(cssWert(passt, 'height'), `${zustand}: Höhe (Klassen ${sym.className})`).toBe('16px');
+      }
     }, { uhr: () => z.t });
   });
 });

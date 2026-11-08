@@ -165,6 +165,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* ---------- Kasten mit Mini-Kopfband ---------- */
 .kasten{background:var(--menue-farbe-tafel-innen);border:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie);border-radius:var(--menue-mass-px-radius-kasten);box-shadow:0 3px 0 var(--menue-farbe-tafel-linie);padding:0 12px 8px;margin:12px 0;overflow:hidden}
 .kasten h3{margin:0 -12px 4px;padding:8px 12px 6px;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie);font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-kasten-titel);letter-spacing:.02em;color:var(--k)}
+/* DESIGN 13.17.3: Warndreieck 16 px vor dem Titel „Überlastet“, auf der Schriftlinie */
+.kasten h3 .sym{width:16px;height:16px;margin-right:6px;vertical-align:-2px}
 /* DESIGN 12.22: Warnliste „Nach dem Bau zu dünn“ als roter Streifen im Kasten (kein Kasten im Kasten); hebt .kasten h3 auf */
 .warnstreifen{background:var(--menue-chip-rot-0);border-radius:12px;padding:8px 12px;margin:8px 0}
 .warnstreifen h3{display:flex;align-items:center;gap:6px;margin:0 0 4px;padding:0;background:none;border:0;font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-kasten-titel);color:var(--menue-chip-rot-1)}

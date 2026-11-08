@@ -1,4 +1,5 @@
 import { pruefeAuftraege, type Auftrag } from './core/auftraege';
+import type { Engstelle } from './core/engstelle';
 import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/katalog';
 import { groesse, leitungsNachbarn } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
@@ -669,7 +670,7 @@ export class Steuerung implements Ui {
     }
     if (this.anleitung) { this.kartentippImTutorial(mx, my); return; }
     // NR22 (Bauplan P7): Das Warndreieck steht über Gebäuden; sein Tipp öffnet das Blatt der Leitung auf dem Dreieck-Feld
-    const dreieck = dreieckTreffer(this.kamera, this.ueberlastSzene(), mx, my);
+    const dreieck = dreieckTreffer(this.kamera, this.ueberlastSzene(this.spiel.ueberlastStuecke()), mx, my);
     if (dreieck !== null) { this.kontext(this.spiel.netz.belegung[dreieck]); return; }
     const o = objektAmPunkt(this.kamera, this.spiel.stand.objekte, mx, my); // A80: gezeichnete Form zählt, nicht nur das Bodenfeld
     if (!o) { this.kontextUi.schliessen(); return; }
@@ -704,39 +705,41 @@ export class Steuerung implements Ui {
   szene(): Szene {
     const g = this.geist, v = this.besuch;
     if (v) return { objekte: v.objekte, innen: v.innen, netz: v.netz, spiel: null, auswahl_id: null, modus: 'normal', verschiebe_id: null, jetzt_ms: this.uhr(), geist: null, stempel: null };
+    // Je Bild genau eine Suche nach überlasteten Stücken: Saum, Dreiecke, „geplant“ und Vorschau lesen dasselbe Ergebnis.
+    const stuecke = this.spiel.ueberlastStuecke();
     return {
       objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
       strassen: ortHolen(this.spiel.stand.ort).strassen, fluss: ortHolen(this.spiel.stand.ort).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
-      ueberlast: this.ueberlastSzene(), ueberlast_vorschau: this.ueberlastVorschau(),
+      ueberlast: this.ueberlastSzene(stuecke), ueberlast_vorschau: this.ueberlastVorschau(stuecke),
       ...this.szeneTutorial,
     };
   }
   /** NR22 (Bauplan P7, DESIGN 13.17.3): überlastete Stücke des gebauten Netzes mit Dreieck-Feldern, Planungsstand und dem
    *  Zeitpunkt ihrer ersten Sichtung. `geplant` = jedes Feld hat schon einen Ersatz, der die Last trägt. */
-  private ueberlastSzene(): NonNullable<Szene['ueberlast']> {
-    const sp = this.spiel, stuecke = sp.ueberlastStuecke(), jetzt = this.uhr();
+  private ueberlastSzene(stuecke: Engstelle[]): NonNullable<Szene['ueberlast']> {
+    const sp = this.spiel, jetzt = this.uhr();
     const dreiecke = dreieckFelder(stuecke.map((e) => e.felder), sp.netz.tiefe, KONSTANTEN.feldanzahl);
     const da = new Set(stuecke.map((e) => e.felder[0]));
     for (const f of [...this.ueberlastSeit.keys()]) if (!da.has(f)) this.ueberlastSeit.delete(f);
     return stuecke.map((e, i) => {
       const erstes = e.felder[0], seit = this.ueberlastSeit.get(erstes) ?? jetzt;
       this.ueberlastSeit.set(erstes, seit);
-      const geplant = e.empfohlen !== null && sp.stueckOffeneFelder(erstes, e.empfohlen).length === 0;
+      const geplant = e.empfohlen !== null && sp.stueckOffeneFelder(erstes, e.empfohlen, stuecke).length === 0;
       return { felder: e.felder, dreiecke: dreiecke[i], geplant, seit_ms: seit };
     });
   }
   /** NR22 (DESIGN 13.17.3): Ist das Leitungsblatt einer überlasteten Leitung offen, zeigt die Karte, welche Felder „Auf {Größe}
    *  vergrößern“ ersetzen würde. Kein Blatt, kein Stück, keine reichende Größe oder schon alles geplant → keine Vorschau. */
-  private ueberlastVorschau(): Szene['ueberlast_vorschau'] {
+  private ueberlastVorschau(stuecke: Engstelle[]): Szene['ueberlast_vorschau'] {
     const id = this.kontextUi.offenFuer, o = id === null ? undefined : this.spiel.objekt(id);
     if (!o) return undefined;
     // Ein Stück besteht nur aus Leitungsfeldern: Für ein Gebäude findet sich keins
     const feld = o.y * KONSTANTEN.feldanzahl + o.x;
-    const stueck = this.spiel.ueberlastStuecke().find((e) => e.felder.includes(feld));
+    const stueck = stuecke.find((e) => e.felder.includes(feld));
     if (!stueck?.empfohlen) return undefined;
-    const felder = this.spiel.stueckOffeneFelder(feld, stueck.empfohlen);
+    const felder = this.spiel.stueckOffeneFelder(feld, stueck.empfohlen, stuecke);
     return felder.length ? { felder, typ: stueck.empfohlen } : undefined;
   }
 
