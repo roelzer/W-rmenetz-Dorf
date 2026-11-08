@@ -38,8 +38,6 @@ export interface Szene {
   fluss?: ReadonlyArray<readonly [number, number]>;
   /** Verbrauchsschilder (kW) der Häuser anzeigen; Standard: ja */
   kw_anzeigen?: boolean;
-  /** NR13: noch freie Felder der Tutorial-Spur (nur T13) */
-  tutorial_spur?: ReadonlyArray<readonly [number, number]>;
   /** NR13: erreichte Tutorial-Häuser mit Zeitpunkt, ab dem ihr „Erreicht“-Zeichen federt */
   erreicht?: ReadonlyArray<{ id: number; seit_ms: number }>;
   /** NR20: Geisterleitung mit Pfeilen (T13/T13w/T13h) */
