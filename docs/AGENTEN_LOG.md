@@ -676,3 +676,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-08 00:40 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Alle 26 Tests von P5g sind grün. Rot sind nur noch die 3 angekündigten Tests, die P7 grün macht (N2, zweimal E7). Desha ([Bericht](docs/pruefberichte/20261108-004053-entwickler-a914b027277e9bc36.md)) |
 | 2026-11-08 00:41 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-08 00:41 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261108-004141-entwickler-a714e2f11722a7458.md)) |
+| 2026-11-08 00:43 | ▶ | reviewer | Review P5g + P7d |
+| 2026-11-08 00:43 | ▶ | designer | Fotocheck P5g + Überlast |
