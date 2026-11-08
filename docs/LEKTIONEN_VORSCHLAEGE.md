@@ -21,3 +21,5 @@
 
 - [Prozess] Ändert ein Tester einen Zahlenwert nach neuem Design, alle Tests mitprüfen, die dasselbe Token festschreiben (z. B. Vertragstests der Tokens) – sonst Widerspruch zwischen zwei Tests. (P5f-2 Streifen 4→5, 2026-11-07)
 - [Prozess] Paketaufträge „berichtigen, Test zuerst“ vorher gegen bestehende Tests prüfen, die das alte Verhalten wörtlich festschreiben – sonst ist es Tester-Arbeit (Tester zuerst). (P5f-3 Satz T13h, 2026-11-07)
+- [Sichtprüfung] Für Fotos eines erzeugten Spielstands die Spielzeit nahe an der echten Uhr wählen – sonst rechnet das Spiel beim Laden nach und der Zustand ist weg. (P7b, 2026-11-08)
+- [Tests/DOM-Nachbildung] Mehrere Elemente Teil für Teil vergleichen (children.map(textContent)), nicht den ganzen textContent. (P7c, 2026-11-08)

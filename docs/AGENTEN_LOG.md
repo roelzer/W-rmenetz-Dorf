@@ -663,3 +663,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:53 | ▶ | entwickler | P7b Überlast-Steuerung |
 | 2026-11-08 00:10 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-08 00:10 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261108-001001-entwickler-a470ca87e48b622e7.md)) |
+| 2026-11-08 00:10 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-08 00:10 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG.** Die Schranke meldet am Ende „NICHT OK“. Der einzige Fehler darin ist der Hinweis zum Abzweigpunkt, und den hast du als bekannt ange ([Bericht](docs/pruefberichte/20261108-001055-entwickler-aabfc23b063a3335b.md)) |
+| 2026-11-08 00:12 | ▶ | reviewer | Review P7 gesamt |
