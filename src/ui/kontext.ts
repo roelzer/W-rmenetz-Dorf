@@ -478,7 +478,7 @@ export class Kontext {
       return;
     }
     const typ = e.empfohlen, groesse_kurz = kurzname(typ);
-    const offen = sp.stueckOffeneFelder(key, typ);
+    const offen = sp.stueckOffeneFelder(key, typ, [e]);
     // E6: „geplant“ erst, wenn kein Feld mehr offen ist; gebaut wird es mit dem Abschnitt
     if (!offen.length) {
       if (phase === 'bau') { c.append(ueberlastKasten(titel('Wird gerade vergrößert'))); return; }
