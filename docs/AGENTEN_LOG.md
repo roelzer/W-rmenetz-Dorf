@@ -666,3 +666,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-08 00:10 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-08 00:10 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG.** Die Schranke meldet am Ende „NICHT OK“. Der einzige Fehler darin ist der Hinweis zum Abzweigpunkt, und den hast du als bekannt ange ([Bericht](docs/pruefberichte/20261108-001055-entwickler-aabfc23b063a3335b.md)) |
 | 2026-11-08 00:12 | ▶ | reviewer | Review P7 gesamt |
+| 2026-11-08 00:19 | ■ 🟡 | tester | 🟡 Tester-Vorarbeit P5g Teil 2 ist fertig. Commit **67571f6ad7a3a5cfe3dfe8477583cd380b5d3e0c** auf `nr20-p5gt` (vorher f351a42). Geändert sind nur zwei Testd ([Bericht](docs/pruefberichte/20261108-001904-tester-a3215c3e10ddbba17.md)) |
+| 2026-11-08 00:19 | ▶ | entwickler | P5g Tutorial-Nacharbeit G1-G7 |
