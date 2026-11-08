@@ -109,3 +109,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - Designer-Fotocheck 🟡 (Bericht 20261107-designer-p5f-final.md, DESIGN 13.17.10 G1–G7). Starte parallel: Tester P5g (nr20-p5gt ab d711a3a) und Entwickler P7 (nr20-p7 ab d711a3a). Danach Entwickler P5g auf Tester-Stand.
 - Tester P5g Teil 1 fertig (f351a42); Teil 2 läuft (frischer Tester, Entwurf im Scratchpad). P7-Entwickler läuft.
 - P7 Teil 1 fertig (d4e53e1, Darstellung, 0 rot). Laufen: P7b Steuerung (nr20-p7b), P7c Blatt (nr20-p7c), Tester P5g Teil 2.
+- P7c fertig (d1ebe12). Warte auf P7b und Tester P5g Teil 2. Dann: P7b+P7c zusammenführen → Review P7 gesamt + Nacharbeit (Gesamtlänge-Satz, Symbol im Kasten).

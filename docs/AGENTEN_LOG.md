@@ -661,3 +661,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-07 23:53 | ▶ | tester | Tester P5g Teil 2 |
 | 2026-11-07 23:53 | ▶ | entwickler | P7c Überlast-Leitungsblatt |
 | 2026-11-07 23:53 | ▶ | entwickler | P7b Überlast-Steuerung |
+| 2026-11-08 00:10 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-08 00:10 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261108-001001-entwickler-a470ca87e48b622e7.md)) |
