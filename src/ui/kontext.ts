@@ -484,11 +484,12 @@ export class Kontext {
       return;
     }
     const preis = offen.reduce((summe, f) => summe + sp.ersatzPreis_eur(this.leitungAuf(f), typ), 0);
-    // DESIGN 13.17.3: Zeile 2 höchstens 18 Zeichen, sonst nur der Preis und die Länge wandert in den Satz
+    // DESIGN 13.17.3: Zeile 2 höchstens 18 Zeichen, sonst nur der Preis. Der Satz nennt dann die Gesamtlänge des Stücks
+    // (wörtlich wahr, Entscheidung PL 2026-11-08); Zeile 2 und Preis zählen weiter nur die offenen Felder.
     const lang = `${offen.length} ${offen.length === 1 ? 'Feld' : 'Felder'} · ${eurGebunden(preis)}`;
     const passt = lang.length <= 18;
     c.append(kasten('Überlastet', titel(`Hier auf ${groesse_kurz} vergrößern`),
-      h('p', {}, `Hier sollen ${kw(e.last_kw)}\u00a0kW durch, die ${kurzname(e.typ)} schafft ${kw(e.kapazitaet_kw)}\u00a0kW. Häuser dahinter bleiben kalt.${passt ? '' : ` Das Stück ist ${offen.length} Felder lang.`}`)));
+      h('p', {}, `Hier sollen ${kw(e.last_kw)}\u00a0kW durch, die ${kurzname(e.typ)} schafft ${kw(e.kapazitaet_kw)}\u00a0kW. Häuser dahinter bleiben kalt.${passt ? '' : ` Das Stück ist ${e.felder.length} Felder lang.`}`)));
     const stufe = stufenSperre(sp, typ);
     // Keine Geld-Sperre (E6): bezahlt wird mit Lauras Bestellung
     const sperre = ersteSperre(abschnittSperreKurz(sp, () => this.ui.jetzt_ms()), stufe && { ...stufe, grund: kurzGrund(typ) });
