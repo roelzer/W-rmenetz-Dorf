@@ -23,3 +23,5 @@
 - [Prozess] Paketaufträge „berichtigen, Test zuerst“ vorher gegen bestehende Tests prüfen, die das alte Verhalten wörtlich festschreiben – sonst ist es Tester-Arbeit (Tester zuerst). (P5f-3 Satz T13h, 2026-11-07)
 - [Sichtprüfung] Für Fotos eines erzeugten Spielstands die Spielzeit nahe an der echten Uhr wählen – sonst rechnet das Spiel beim Laden nach und der Zustand ist weg. (P7b, 2026-11-08)
 - [Tests/DOM-Nachbildung] Mehrere Elemente Teil für Teil vergleichen (children.map(textContent)), nicht den ganzen textContent. (P7c, 2026-11-08)
+- [Darstellung] Formkriterien aus Canvas-Aufzeichnungen am echten Browserfoto gegenprüfen – Kantenglättung rundet spitze Ecken stärker ab. (P5g G7, 2026-11-08)
+- [Tests] Mit DOM-Nachbildung leere Knopflisten über `.length` prüfen statt toEqual([]) – sonst bricht die Fehlerausgabe ab. (P7d, 2026-11-08)
