@@ -542,10 +542,11 @@ function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>,
   X.restore();
 }
 
-/** Halbe Länge des Pfeils in Vielfachen seiner halben Breite. Bei 1,3 liegt die Spitze 1,31-mal so weit vom Schwerpunkt wie
- *  die hinteren Ecken (4·1,3/3 zu √((2·1,3/3)² + 1)) – damit liest man sie eindeutig als Spitze (13.17.10 G7, verlangt ≥ 1,25);
- *  bei 1 (gleichseitig wirkend, 1,11) sah man auch eine hintere Ecke als Spitze. */
-const PFEIL_LAENGE = 1.3;
+/** Halbe Länge des Pfeils in Vielfachen seiner halben Breite (die Breite b × 0,6 bleibt, B2). Bei 1,8 liegt die Spitze
+ *  1,54-mal so weit vom Schwerpunkt wie die hinteren Ecken (4·1,8/3 zu √((2·1,8/3)² + 1)); 13.17.10 G7 verlangt ≥ 1,25. Bei 1
+ *  (1,11) und noch bei 1,3 (1,31) las man im Browserfoto eine hintere Ecke als Spitze: Rand und Kantenglättung runden die
+ *  spitze Ecke bei rund 9 px Breite stärker ab als die stumpfen. */
+const PFEIL_LAENGE = 1.8;
 
 /** Pfeilspitze in der Bandmitte, Breite b × 0,6, zeigt auf dem Bildschirm zur Mitte des nächsten Felds (B2, 13.17.10 G7) –
  *  die Richtung kommt aus den Bildschirmpunkten, gilt also auch bei gedrehter Karte. Weiß mit Kontur oder in `kontur` mit
