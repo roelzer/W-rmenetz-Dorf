@@ -3,6 +3,7 @@ import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzung
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import { WANDSTATION_TUTORIAL, type Spiel } from '../core/spiel';
 import type { Objekt } from '../core/typen';
+import type { Engstelle } from '../core/engstelle';
 import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, zeile, type Sperre } from './bausteine';
 import { ANSCHLUSS_GEPLANT, OHNE_ABSCHNITT_HINWEIS_HAUS, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -79,12 +80,13 @@ export const kurzGrund = (m: Merkmal): string => `ab Stufe\u00a0${abStufe(m)}`;
 /** A88: freigeschaltete Leitungen als Knöpfe (ohne `ohne`) plus höchstens ein deaktivierter Knopf „Dickere“ mit dem Grund –
  *  für Zeichenleiste und Leitungskarte. LEITUNGEN ist dünn → dick sortiert, die erste gesperrte ist also die nächste Freischaltung.
  *  `kurz`: In der engen Zeichenleiste reicht „ab Stufe X“ (DESIGN.md 12.15), die Leitungskarte behält den langen Grund.
- *  `nurDicker`: nur Leitungen, die dicker sind als `ohne` (Ersetzen auf der Leitungskarte). */
-export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement, kurz = false, nurDicker = false): HTMLButtonElement[] {
+ *  `nurDicker`: nur Leitungen, die dicker sind als `ohne` (Ersetzen auf der Leitungskarte).
+ *  `auslassen`: eine weitere Leitung ohne Knopf (NR22: die empfohlene Größe steht schon im Kasten „Überlastet“). */
+export function leitungsKnoepfe(sp: Spiel, ohne: TypId | null, knopfFuer: (t: TypId) => HTMLButtonElement, kurz = false, nurDicker = false, auslassen: TypId | null = null): HTMLButtonElement[] {
   // Auf der Leitungskarte zählt nur eine gesperrte Leitung, die dicker ist als die vorhandene (`ohne`) – sonst gäbe es dort nichts „Dickeres“.
   const ab = ohne ? LEITUNGEN.indexOf(ohne) + 1 : 0;
   // NR18 `nurDicker`: Ersetzen lohnt nur mit einer dickeren Leitung, der Kern lehnt dünnere ohnehin ab.
-  const knoepfe = LEITUNGEN.filter((t, i) => t !== ohne && sp.freigeschaltet(t) && (!nurDicker || i >= ab)).map(knopfFuer);
+  const knoepfe = LEITUNGEN.filter((t, i) => t !== ohne && t !== auslassen && sp.freigeschaltet(t) && (!nurDicker || i >= ab)).map(knopfFuer);
   const naechste = LEITUNGEN.slice(ab).find((t) => !sp.freigeschaltet(t));
   const grund = naechste ? (kurz ? kurzGrund(naechste) : sp.sperrgrund(naechste)) : null;
   // DESIGN.md 12.19: Hinweis beim Antippen nennt die volle Stufe, auch wenn der Knopf nur den kurzen Grund trägt
@@ -110,6 +112,14 @@ function signatur(c: HTMLElement): string {
   // Wackeln nach dem Antippen (12.19) ist kein neuer Inhalt – sonst baute der nächste Takt das Blatt mitten im Wackeln neu
   k.querySelectorAll('.wackelt').forEach((e) => e.classList.remove('wackelt'));
   return k.innerHTML;
+}
+
+/** Planungsfehler-Kasten einer Leitung (Engpass vor Aufteilung vor Reduzierung); null ohne Planungsfehler. */
+function planungsfehlerKasten(engpass: boolean, aufteilung: boolean, reduzierung: boolean): HTMLDivElement | null {
+  if (engpass) return kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.'));
+  if (aufteilung) return kasten('Planungsfehler', h('p', {}, 'Hier teilt sich die Leitung in zwei Abgänge, die beide so dick sind wie die Zuleitung. So plant das niemand: Nimm eine dickere Zuleitung (z. B. eine 90er aus der Heizzentrale), führe zwei eigene Abgänge aus der Heizzentrale oder lass mindestens einen Abgang dünner weiterlaufen.'));
+  if (reduzierung) return kasten('Planungsfehler', h('p', {}, 'Hier wird die Leitung mitten auf der Strecke dünner. Wie in echt wechselt der Durchmesser nur an einem Abzweig (T-Stück). Tausche den dünneren Abschnitt auf die Größe davor oder lass die Leitung erst am Abzweig dünner werden.'));
+  return null;
 }
 
 /** Kontextkarte: je Objekttyp die passenden Auskünfte und Aktionen. Baut sich bei Änderungen neu auf, Zeitwerte laufen live. */
@@ -427,15 +437,16 @@ export class Kontext {
       return ex >= k.x - 1 && ex <= k.x + g && ey >= k.y - 1 && ey <= k.y + g && !(ex >= k.x && ex < k.x + g && ey >= k.y && ey < k.y + g);
     });
     const anHaus = !verzweigt && haeuser.length === 1;
+    // NR22 (DESIGN 13.17.3): Planungsfehler steht vor „Überlastet“, beide ganz oben, wenn das Feld zu einem überlasteten Stück gehört.
+    const stueck = sp.ueberlastStuecke().find((e) => e.felder.includes(key));
+    const fehler = planungsfehlerKasten(n.engpass.has(key), n.aufteilung.has(key), n.reduzierung.has(key));
+    if (stueck) { if (fehler) c.append(fehler); this.ueberlastBereich(c, stueck, key); }
     c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser, deshalb dick. Dünner werden darf sie nur an einem Abzweig (T-Stück).'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     // Fachprüfung A73: Unter 1 liegt der Faktor, wenn der Vorlauf so niedrig ist, dass bis 40 °C Rücklauf wenig Spreizung bleibt.
     if (n.spreizung_faktor > 1.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
     else if (n.spreizung_faktor < 0.99) c.append(h('p', { class: 'gedaempft' }, `Der Vorlauf ist so niedrig, dass bis zum Rücklauf (mindestens ${MIN_RUECKLAUF_C} °C) wenig Spreizung bleibt – die Leitung schafft ${Math.round((1 - n.spreizung_faktor) * 100)} % weniger als nominal.`));
-    if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
-    else if (n.aufteilung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier teilt sich die Leitung in zwei Abgänge, die beide so dick sind wie die Zuleitung. So plant das niemand: Nimm eine dickere Zuleitung (z. B. eine 90er aus der Heizzentrale), führe zwei eigene Abgänge aus der Heizzentrale oder lass mindestens einen Abgang dünner weiterlaufen.')));
-    else if (n.reduzierung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier wird die Leitung mitten auf der Strecke dünner. Wie in echt wechselt der Durchmesser nur an einem Abzweig (T-Stück). Tausche den dünneren Abschnitt auf die Größe davor oder lass die Leitung erst am Abzweig dünner werden.')));
-    else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
+    if (fehler) { if (!stueck) c.append(fehler); }
     else if (o.geplant) c.append(h('p', {}, `Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung${sp.freigeschaltet('gestattung') ? ' (abseits der Straße samt Gestattung)' : ''}. Zählt noch nicht fürs Netz.`));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
     // A69: T-Stück mit Vorsehung (verschlossener Abgang für einen späteren Anschluss)
@@ -446,13 +457,58 @@ export class Kontext {
     // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
     const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
     if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, hinweis: tStueckHinweis(), unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
-    if (!o.geplant) this.ersatzBereich(c, o);
+    if (!o.geplant) this.ersatzBereich(c, o, stueck?.empfohlen ?? null);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
+  }
+
+  /** NR22 (DESIGN 13.17.3, Bauplan E6): Kasten „Überlastet“ mit Größe und Last, direkt darunter die Hauptaktion für das ganze
+   *  Stück. Stück, Größe, offene Felder und Preis kommen aus dem Kern; das Blatt rechnet nichts selbst. */
+  private ueberlastBereich(c: HTMLElement, e: Engstelle, key: number): void {
+    const sp = this.ui.spiel, phase = sp.abschnitt?.phase;
+    const titel = (t: string): HTMLParagraphElement => h('p', {}, h('strong', {}, t));
+    if (!e.empfohlen) {
+      c.append(kasten('Überlastet', titel('Zu viel für eine Leitung'), h('p', {}, 'Selbst die dickste Leitung reicht hier nicht. Leg einen getrennten Abgang.')));
+      return;
+    }
+    const typ = e.empfohlen, groesse_kurz = kurzname(typ);
+    const offen = sp.stueckOffeneFelder(key, typ);
+    // E6: „geplant“ erst, wenn kein Feld mehr offen ist; gebaut wird es mit dem Abschnitt
+    if (!offen.length) {
+      if (phase === 'bau') { c.append(kasten('Überlastet', titel('Wird gerade vergrößert'))); return; }
+      c.append(kasten('Überlastet', titel(`Wird auf ${groesse_kurz} vergrößert`), h('p', {}, 'Der Tausch kommt mit dem Bauabschnitt. Bis dahin bleibt es hier zu eng.')));
+      // wie „Ersatz zurücknehmen“: nur im offenen Abschnitt, für jedes Feld des Stücks mit geplantem Ersatz
+      if (phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf('Zurücknehmen', () => {
+        for (const f of e.felder) { const o = this.leitungAuf(f); if (o.ersatz) sp.geplanteLeitungEntfernen(o.x, o.y); }
+        this.ui.geaendert();
+      })));
+      return;
+    }
+    const preis = offen.reduce((summe, f) => summe + sp.ersatzPreis_eur(this.leitungAuf(f), typ), 0);
+    // DESIGN 13.17.3: Zeile 2 höchstens 18 Zeichen, sonst nur der Preis und die Länge wandert in den Satz
+    const lang = `${offen.length} ${offen.length === 1 ? 'Feld' : 'Felder'} · ${eurGebunden(preis)}`;
+    const passt = lang.length <= 18;
+    c.append(kasten('Überlastet', titel(`Hier auf ${groesse_kurz} vergrößern`),
+      h('p', {}, `Hier sollen ${kw(e.last_kw)}\u00a0kW durch, die ${kurzname(e.typ)} schafft ${kw(e.kapazitaet_kw)}\u00a0kW. Häuser dahinter bleiben kalt.${passt ? '' : ` Das Stück ist ${offen.length} Felder lang.`}`)));
+    const stufe = stufenSperre(sp, typ);
+    // Keine Geld-Sperre (E6): bezahlt wird mit Lauras Bestellung
+    const sperre = ersteSperre(abschnittSperreKurz(sp, () => this.ui.jetzt_ms()), stufe && { ...stufe, grund: kurzGrund(typ) });
+    c.append(h('div', { class: 'knopfreihe' }, knopf(`Auf ${groesse_kurz} vergrößern`, () => {
+      const r = sp.stueckVergroessern(key, typ);
+      if (!r.ok && r.hinweis) this.ui.toast(r.hinweis);
+      this.ui.geaendert();
+    }, 'geld', { unter: passt ? lang : eurGebunden(preis), sperre })));
+  }
+
+  /** Gebaute Leitung auf einem Feld eines überlasteten Stücks (der Kern bildet Stücke nur aus solchen Feldern). */
+  private leitungAuf(f: number): Objekt {
+    const o = this.ui.spiel.objekt(this.ui.spiel.netz.belegung[f]);
+    if (!o) throw new Error(`Feld ${f} des überlasteten Stücks trägt keine Leitung`);
+    return o;
   }
 
   /** NR18: Eine gebaute Leitung wird nur im offenen Bauabschnitt dicker (bezahlt mit der Materialbestellung, getauscht beim
    *  Bauende). Außerhalb zeigt ein gesperrter Knopf „Dickere Leitung“, woran es hängt. */
-  private ersatzBereich(c: HTMLElement, o: Objekt): void {
+  private ersatzBereich(c: HTMLElement, o: Objekt, empfohlen: TypId | null): void {
     const sp = this.ui.spiel, offen = sp.abschnitt?.phase === 'offen';
     if (o.ersatz) {
       c.append(h('p', {}, `Wird im Bauabschnitt durch eine ${kurzname(o.ersatz.typ)} ersetzt.`));
@@ -460,9 +516,8 @@ export class Kontext {
       return;
     }
     if (offen) {
-      // E1: Neupreis minus 50 % des Altpreises; im Fluss kommt die Spülbohrung dazu (Bauplan NR18 5.1)
-      const preis = (t: TypId): number => KATALOG[t].kosten_eur![0] - sp.rueckkauf_eur(o.typ, 1) + (sp.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0);
-      const ersatz = leitungsKnoepfe(sp, o.typ, (t) => knopf(`Ersetzen: ${kurzname(t)}`, () => { sp.ersatzPlanen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(preis(t)), klein: true }), false, true);
+      // E1-Preis aus dem Kern (Neupreis minus 50 % des Altpreises, im Fluss mit Spülbohrung); die empfohlene Größe hat oben ihren Knopf
+      const ersatz = leitungsKnoepfe(sp, o.typ, (t) => knopf(`Ersetzen: ${kurzname(t)}`, () => { sp.ersatzPlanen(o.id, t); this.ui.geaendert(); }, 'geld', { unter: eur(sp.ersatzPreis_eur(o, t)), klein: true }), false, true, empfohlen);
       if (ersatz.length) c.append(h('div', { class: 'knopfreihe' }, ...ersatz));
     } else if (LEITUNGEN.indexOf(o.typ) < LEITUNGEN.length - 1) {
       c.append(h('div', { class: 'knopfreihe' }, knopf('Dickere Leitung', () => undefined, '', { klein: true, sperre: abschnittSperreKurz(sp, () => this.ui.jetzt_ms()) })));
