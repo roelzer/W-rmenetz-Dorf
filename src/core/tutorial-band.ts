@@ -2,8 +2,8 @@ import { TUTORIAL_ABZWEIG, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_
 import type { Feld } from './tutorial-vertrag';
 
 /** Feld der Heizzentrale, aus dem die Hauptleitung kommt: Die hz steht bei (11|10) mit Größe 2 (start.ts neuerSpielstand,
- *  katalog.ts), belegt also (11|11) direkt östlich von (10|11). Das Band kommt dort aus der Fließrichtung der Wärme herein
- *  (ENTSCHEIDUNGEN 2026-11-07). */
+ *  katalog.ts), belegt also (11|11) direkt östlich von (10|11). Das Band kommt dort aus der Fließrichtung der Wärme herein,
+ *  also von Osten (Sammelliste P5 Punkt 14, DESIGN 13.17.9 F5 „Vorgänger Osten“). */
 const HZ_AUSGANG: readonly [number, number] = [11, 11];
 /**
  * Vorgänger jedes Tutorial-Spurfelds in Zugrichtung (DESIGN 13.17.1 B2): Hauptleitung der Reihe nach, beide Hausanschlüsse

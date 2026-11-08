@@ -16,6 +16,8 @@ const T0 = 1_000_000;
 const SATZ_EIGENER_ABGANG = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.';
 const ZWISCHENSTAND = 'Das erste Haus hat seinen Hausanschluss. Jetzt zieh die 25er zum zweiten Haus.';
 const KURZ_WEG = 'Stück muss weg';
+/** DESIGN 13.17.10 G3: beide Häuser richtig + gestreifter Rest → nur der erste Satz von SATZ_EIGENER_ABGANG */
+const SATZ_REST = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.';
 
 type Strich = readonly [TypId, number, number];
 const HAUPT: Strich[] = TUTORIAL_HAUPT.map(([x, y]) => ['d32', x, y] as const);
@@ -85,15 +87,15 @@ describe('Feinschliff Kern (9): Rest-Stück abseits der Spur ist fremd', () => {
 });
 
 describe('Feinschliff Kern (9): Tutorial-Ablauf mit Rest-Stück', () => {
-  it('test_nr21_rest_stueck_sperrt_t14: volle Spur + Stummel (12|12) → T13h, Satz und „Stück muss weg“; Stummel weg → T14', () => {
+  it('test_nr21_rest_stueck_sperrt_t14: volle Spur + Stummel (12|12) → T13h, nur erster Satz (G3) und „Stück muss weg“; Stummel weg → T14', () => {
     const { s } = offen();
     zeichnen(s, [...E1, ['d25', 12, 12]]);
     const t = new Tutorial(s);
     t.zustandPruefen();
     expect(t.ansicht(T0)?.schritt).toBe('T13h');
-    expect(t.ansicht(T0)?.text).toBe(SATZ_EIGENER_ABGANG);
+    expect(t.ansicht(T0)?.text).toBe(SATZ_REST);
     expect(t.ansicht(T0)?.fremd).toEqual([[12, 12]]);
-    expect(t.sperre('abschliessen')?.kurz).toBe(KURZ_WEG);
+    expect(t.sperre('abschliessen')).toEqual({ kurz: KURZ_WEG, satz: SATZ_REST });
     expect(s.geplanteLeitungEntfernen(12, 12).ok).toBe(true);
     t.zustandPruefen();
     expect(t.ansicht(T0)?.schritt).toBe('T14');

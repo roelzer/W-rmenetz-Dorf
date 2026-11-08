@@ -220,9 +220,11 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     expect(br, 'Radius bei Zoom 3').toBeCloseTo(d2 / 2, 6);
   });
 
-  // DESIGN 13.17.9 F5: Raute-Füllung Deckkraft 0,35; F1: Zielscheibe oberste Kartenebene (über Raute, Gebäuden, Ziel-Steckern).
-  it('genau eine leuchtende Raute auf naechstes_feld (Füllung 0,35, unter der Zielscheibe), auch bei mehreren Bandfeldern', () => {
-    const istRaute = (b: string[], i: number): boolean => b[i] === 'globalAlpha=0.35' && b[i + 1] === `fillStyle=${ZIEL}`;
+  // DESIGN 13.17.10 G4 (ersetzt F5): Raute ohne Füllung, erkannt am Rand 3 px `ziel` auf dem Rautenpfad (stroke ohne neues
+  // beginPath); F1: Zielscheibe oberste Kartenebene (über Raute, Gebäuden, Ziel-Steckern).
+  it('genau eine leuchtende Raute auf naechstes_feld (ohne Füllung, unter der Zielscheibe), auch bei mehreren Bandfeldern', () => {
+    const istRaute = (b: string[], i: number): boolean => b[i] === `strokeStyle=${ZIEL}` && b.slice(i + 1, i + 3).includes('lineWidth=3')
+      && b.slice(i + 1, i + 4).includes('stroke()') && !b.slice(i + 1, i + 4).includes('beginPath()');
     const raute = (b: string[]): number => b.filter((_x, i) => istRaute(b, i)).length;
     const [zx, zy] = mitte(10, 12), r = Math.max(18, Math.round(kamera().tw * 0.32)) / 2;
     /** Füllung der Zielscheibe: fillStyle ziel direkt nach dem Kreis um (10|12) mit dem Zielscheiben-Radius */
@@ -237,13 +239,13 @@ describe('NR20 P4 Darstellung Kapitel 3', () => {
     expect(raute(bild(szene({ tutorial_band: band })))).toBe(0);
     const b = bild(szene({ tutorial_band: band, naechstes_feld: [10, 12], zielscheibe: [10, 12] }));
     expect(raute(b)).toBe(1);
-    expect(b.some((x, i) => x === 'globalAlpha=0.55' && b[i + 1] === `fillStyle=${ZIEL}`), 'keine Raute mehr mit 0,55').toBe(false);
+    expect(b.some((x, i) => /^globalAlpha=0\.(55|35)$/.test(x) && b[i + 1] === `fillStyle=${ZIEL}`), 'keine Raute-Füllung mehr (G4)').toBe(false);
     const iRaute = b.findIndex((_x, i) => istRaute(b, i));
     const iScheibe = zielscheibeAn(b);
     expect(iScheibe, 'Zielscheibe gefunden').toBeGreaterThan(-1);
     expect(iScheibe, 'Raute zuerst, Zielscheibe darüber').toBeGreaterThan(iRaute);
-    // Raute × 0,92 um (10|12): erste Ecke wie m.raute
-    expect(b.slice(iRaute - 12, iRaute).some((x) => x.startsWith('moveTo('))).toBe(true);
+    // Raute × 0,92 um (10|12): Pfad mit moveTo vor dem Rand
+    expect(b.slice(Math.max(0, iRaute - 30), iRaute).some((x) => x.startsWith('moveTo('))).toBe(true);
     // Über Gebäuden und Ziel-Steckern: keine gelbe Füllung (Stecker-Scheibe) nach der Zielscheibe
     const mitStecker = bild(szene({ tutorial_band: band, naechstes_feld: [10, 12], zielscheibe: [10, 12], ziel: { stecker: [HAUS1, HAUS2], ring: null } }));
     const jS = zielscheibeAn(mitStecker);

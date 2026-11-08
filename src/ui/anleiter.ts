@@ -141,7 +141,8 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
   }
   const blase = h('div', { class: 'anleiter-blase' },
     h('div', { class: 'anleiter-kopf' }, h('strong', { class: 'anleiter-name' }, 'Simon'), punkte),
-    a.wusstest_du ? h('span', { class: 'chip gold' }, 'Wusstest du?') : null,
+    // Sammelliste P5 Punkt 5: kein Chip auf der kompakten Karte – ihre drei Zeilen gehören dem Satz
+    !a.kompakt && a.wusstest_du ? h('span', { class: 'chip gold' }, 'Wusstest du?') : null,
     h('p', { class: 'anleiter-text' }, ...mitFett(a.text)),
     h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf));
   wurzel.replaceChildren(h('div', { class: 'anleiter-figur' }, sprecherFigur('Simon')), blase);

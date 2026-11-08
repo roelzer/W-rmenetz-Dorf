@@ -299,7 +299,9 @@ describe('NR21 Ablauf: Haus 2 zuerst und eigener Abgang (DESIGN 13.17.8)', () =>
       const lg = spiel.tutorialLeitungen();
       expect([lg.haus1_ok, lg.haus2_ok]).toEqual([true, true]);
       expect(schritt(u)).toBe('T13h');
-      expect(text(u)).toBe(SATZ_EIGENER_ABGANG);
+      // DESIGN 13.17.10 G3: beide Häuser richtig + Rest → nur der erste Satz, keine Zielscheibe
+      expect(text(u)).toBe('Nimm das gestreifte Stück mit Zurück oder Radierer weg.');
+      expect(st(u).szene().zielscheibe).toBeUndefined();
       expect(st(u).szene().tutorial_fremd).toEqual([[11, 13]]);
       expect(abschliessenText(u)).toContain(KURZ_WEG);
       wischeFelder(u, [[11, 13]], false); st(u).tick(uhr.t);

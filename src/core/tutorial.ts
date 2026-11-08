@@ -115,7 +115,9 @@ const ZWISCHENSTAND = 'Das erste Haus hat seinen Hausanschluss. Jetzt zieh die {
 const SATZ_ZU_DUENN = 'Hier fließt Wärme für beide Häuser, die {anschluss} wäre randvoll. Nimm die {haupt} und zieh drüber.';
 const SATZ_ZU_DICK = 'Für ein Haus reicht die {anschluss}. Tippe auf {anschluss_zahl} und zieh noch mal über dieses Stück.';
 const SATZ_GROESSE = 'Ein Stück passt nicht zum Plan. Zieh mit der richtigen Größe noch mal drüber.';
-const SATZ_EIGENER_ABGANG = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die {anschluss} von der Abzweigung.';
+// DESIGN 13.17.10 G3: Sind in T13h beide Häuser richtig angeschlossen, gibt es nichts mehr zu ziehen – dann nur der erste Satz.
+const SATZ_STUECK_WEG = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.';
+const SATZ_EIGENER_ABGANG = `${SATZ_STUECK_WEG} Zieh die {anschluss} von der Abzweigung.`;
 const KURZ_GROESSE = 'Größe passt nicht';
 const KURZ_WEG = 'Stück muss weg';
 const INFO_KAPSEL = '{kwh} im Jahr · bis {kw_ohne}';
@@ -316,6 +318,17 @@ export class Tutorial {
     return wieVorher ? lg : { ...lg, fremd: [] };
   }
 
+  /** DESIGN 13.17.10 G3: T13h, beide Häuser richtig angeschlossen, aber noch ein gestreifter Rest. Nur in T13h: In T13 bleibt
+   *  der volle Satz (Review P5f-1 W1 (a), tests/nr21-feinschliff-w1.test.ts). */
+  private nurRestWeg(lg: TutorialLeitungsLage): boolean {
+    return this.def.id === 'T13h' && lg.fremd.length > 0 && lg.haus1_ok && lg.haus2_ok;
+  }
+
+  /** Satz „Stück muss weg“ für Blase und Sperre: ohne Aufforderung zum Ziehen, wenn nur noch ein Rest liegt (G3). */
+  private satzWeg(lg: TutorialLeitungsLage, w: TutorialWerte): string {
+    return this.nurRestWeg(lg) ? SATZ_STUECK_WEG : einsetzen(SATZ_EIGENER_ABGANG, w, this.lage.spielerName);
+  }
+
   /** Bauplan NR20-22 P2: richtig angeschlossene Tutorial-Häuser laut Leitungslage, nicht „irgendwie verbunden“. */
   private erreichtZahl(lg: TutorialLeitungsLage): number {
     return (lg.haus1_ok ? 1 : 0) + (lg.haus2_ok ? 1 : 0);
@@ -459,7 +472,7 @@ export class Tutorial {
    *  Größe passt nicht (Planungsfehler, Simon Weg b). */
   private abschliessenSperre(lg: TutorialLeitungsLage): TutorialSperre | null {
     if (this.lage.tutorialGeldFehlt_eur() > 0) return { kurz: KURZ_GELD, satz: SATZ_GELD };
-    if (lg.fremd.length > 0) return { kurz: KURZ_WEG, satz: einsetzen(SATZ_EIGENER_ABGANG, this.lage.tutorialWerte(), this.lage.spielerName) };
+    if (lg.fremd.length > 0) return { kurz: KURZ_WEG, satz: this.satzWeg(lg, this.lage.tutorialWerte()) };
     if (lg.felder.some((f) => !f.richtig)) return { kurz: KURZ_GROESSE, satz: SATZ_GROESSE };
     const fehlen = 2 - this.erreichtZahl(lg);
     if (fehlen > 0) return { kurz: fehlen === 1 ? KURZ_EIN_HAUS : KURZ_ZWEI_HAEUSER, satz: SATZ_ZU_FRUEH };
@@ -482,7 +495,7 @@ export class Tutorial {
       const lg = this.leitungen();
       if (this.lage.tutorialGeldFehlt_eur() > 0) return SATZ_GELD;
       if (sperrSatz) return sperrSatz;
-      if (lg.fremd.length > 0) return einsetzen(SATZ_EIGENER_ABGANG, w, name);
+      if (lg.fremd.length > 0) return this.satzWeg(lg, w);
       if (lg.haupt_zu_duenn) return einsetzen(SATZ_ZU_DUENN, w, name);
       if (lg.anschluss_zu_dick) return einsetzen(SATZ_ZU_DICK, w, name);
       if (!hilfe && d.id === 'T13h' && lg.haus1_ok && !lg.haus2_ok) return einsetzen(ZWISCHENSTAND, w, name);
@@ -517,10 +530,11 @@ export class Tutorial {
         if (ring) weg.push(hausmitte(ring === 1 ? t.haus1 : t.haus2));
       }
     }
-    const fremd = lg.fremd.length > 0;
+    // G3: Liegt nur noch ein Rest, führt keine Zielscheibe mehr zum Abzweig – es gibt dort nichts mehr anzuschließen
+    const fremd = lg.fremd.length > 0, abgangOffen = fremd && !this.nurRestWeg(lg);
     const farbknopf_ring = d.id === 'T13w' ? w.anschluss : lg.haupt_zu_duenn ? w.haupt : lg.anschluss_zu_dick ? w.anschluss : null;
     return {
-      band, naechstes_feld: naechstes, zielscheibe: d.id !== 'T13h' || fremd || this.zielscheibeHaus !== null ? [...TUTORIAL_ABZWEIG] : null,
+      band, naechstes_feld: naechstes, zielscheibe: d.id !== 'T13h' || abgangOffen || this.zielscheibeHaus !== null ? [...TUTORIAL_ABZWEIG] : null,
       finger_weg: fremd || d.id === 'T13w' ? [] : weg, fremd: [...lg.fremd], ziel_stecker: [t.haus1.id, t.haus2.id],
       ziel_ring: ring === 1 ? t.haus1.id : ring === 2 ? t.haus2.id : null,
       erreicht_ids: [...(lg.haus1_ok ? [t.haus1.id] : []), ...(lg.haus2_ok ? [t.haus2.id] : [])],
