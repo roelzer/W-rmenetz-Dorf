@@ -476,9 +476,12 @@ export class Kontext {
     if (!offen.length) {
       if (phase === 'bau') { c.append(kasten('Überlastet', titel('Wird gerade vergrößert'))); return; }
       c.append(kasten('Überlastet', titel(`Wird auf ${groesse_kurz} vergrößert`), h('p', {}, 'Der Tausch kommt mit dem Bauabschnitt. Bis dahin bleibt es hier zu eng.')));
-      // wie „Ersatz zurücknehmen“: nur im offenen Abschnitt, für jedes Feld des Stücks mit geplantem Ersatz
-      if (phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf('Zurücknehmen', () => {
-        for (const f of e.felder) { const o = this.leitungAuf(f); if (o.ersatz) sp.geplanteLeitungEntfernen(o.x, o.y); }
+      // Zurückgenommen wird nur, was „Auf {Größe} vergrößern“ geplant hätte: Ersatz in genau der empfohlenen Größe. Von Hand
+      // dicker geplante Felder bleiben; gibt es keinen solchen Ersatz, gibt es nichts zurückzunehmen (Entscheidung PL 2026-11-08).
+      // Beim Tippen neu gelesen, damit ein seit dem Zeichnen geänderter Ersatz nicht falsch entfernt wird.
+      const empfohlenGeplant = (): Objekt[] => e.felder.map((f) => this.leitungAuf(f)).filter((o) => o.ersatz?.typ === typ);
+      if (phase === 'offen' && empfohlenGeplant().length) c.append(h('div', { class: 'knopfreihe' }, knopf('Zurücknehmen', () => {
+        for (const o of empfohlenGeplant()) sp.geplanteLeitungEntfernen(o.x, o.y);
         this.ui.geaendert();
       })));
       return;
