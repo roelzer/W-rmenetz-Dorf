@@ -112,3 +112,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - P7c fertig (d1ebe12). Warte auf P7b und Tester P5g Teil 2. Dann: P7b+P7c zusammenführen → Review P7 gesamt + Nacharbeit (Gesamtlänge-Satz, Symbol im Kasten).
 - P7b fertig; P7 komplett auf nr20-p7z (6c08d28, 1716 grün). Review P7 gesamt läuft; Tester P5g Teil 2 läuft.
 - Tester P5g Teil 2 fertig (67571f6). Laufen: Entwickler P5g (nr20-p5g), Review P7 gesamt (nr20-p7z).
+- P7 in nr20-int (6c08d28, 1716 grün). Laufen: Entwickler P5g, Tester P7t (nr20-p7t ab 6c08d28). Danach P7d.
