@@ -670,3 +670,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-08 00:19 | ▶ | entwickler | P5g Tutorial-Nacharbeit G1-G7 |
 | 2026-11-08 00:20 | ■ 🟡 | reviewer | 🟡 **Review P7 gesamt (NR22 Überlast-Darstellung), Worktree /home/user/wt-p7, d711a3a..6c08d28: freigegeben mit kleinen Punkten**  ([Bericht](docs/pruefberichte/20261108-002039-reviewer-a23fefe9013fb97e6.md)) |
 | 2026-11-08 00:21 | ▶ | tester | Tester P7t Vorarbeit |
+| 2026-11-08 00:29 | ■ 🟡 | tester | 🟡 **Tester-Vorarbeit P7t ist erledigt.** Commit `58759b255cc98f5414ebe1e88aca099abd251507` auf Branch `nr20-p7t`, Worktree `/home/user/wt-p7t`. Gelb, weil vi ([Bericht](docs/pruefberichte/20261108-002930-tester-a2cfc7d0b753bba48.md)) |
+| 2026-11-08 00:29 | ▶ | entwickler | P7d Überlast-Nacharbeit |
