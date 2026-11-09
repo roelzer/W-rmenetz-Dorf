@@ -841,7 +841,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
   /** gebaute Leitung bei (x|y) und ein freier Nachbar, auf den eine Leitung passt */
   const andock = (s: Spiel, x: number, y: number) => {
     const ziel = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === x && o.y === y)!;
-    const frei = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [x + dx, y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b))!;
+    const frei = ([[-1, 0], [1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [x + dx, y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b))!;
     return { ziel, frei };
   };
   it('A69: Vorsehung nur auf geplanten Leitungen im offenen Abschnitt; sie kostet und lässt sich wieder entfernen', () => {
@@ -1055,7 +1055,7 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     }
   });
   it('A72: 25er bis 15 kW, 32er bis 25 kW, danach nach Rohrquerschnitt', () => {
-    expect(LEITUNGEN.map((l) => KATALOG[l].kapazitaet_kw)).toEqual([15, 25, 40, 60, 95, 135, 195, 290]);
+    expect(LEITUNGEN.map((l) => KATALOG[l].kapazitaet_kw)).toEqual([15, 25, 40, 60, 120, 180, 270, 400, 550, 700, 900]);
     for (const l of LEITUNGEN) expect(KATALOG[l].beschreibung).toContain(`bis ${KATALOG[l].kapazitaet_kw} kW`);
   });
   it('A73: Der Rücklauf fällt nie unter 40 °C; Upgrades vergrößern die Spreizung', async () => {

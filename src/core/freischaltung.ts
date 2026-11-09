@@ -15,6 +15,7 @@ export type Merkmal = TypId | Funktion;
 export const FREISCHALTUNGEN: Readonly<Partial<Record<Merkmal, number>>> = {
   d50: 2, d63: 2,
   d75: 3, d90: 3, d110: 3,
+  d125: 4, d140: 4, d160: 5,
   stationstypen: 2,
   express: 2,
   gestattung: 2,

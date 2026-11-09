@@ -759,7 +759,7 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
     zeichne(SPUR.slice(0, 4));
     expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(0);
     expect(l.tut.sperre('abschliessen')?.kurz).toBe(`noch 1${NB}Haus fehlt`);
-    zeichne([[9, 12], [8, 12], [7, 12], [9, 11]]); // vier Felder neben der Spur
+    zeichne([[9, 12], [8, 12], [7, 12], [10, 9]]); // vier Felder neben der Spur
     expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '8 Felder + 2 Stationen − 14.000 €').toBe(340);
     expect(l.tut.sperre('abschliessen'), 'Geld-Sperre vor Häuser-Sperre').toEqual({ kurz: GELD_KURZ, satz: GELD_SATZ });
     l.tut.gesperrtGetippt('abschliessen');
@@ -788,7 +788,7 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     l.tut.handlung();
     // Zurück/Radieren: erst zwei Felder (Geld fehlt noch) → weiter T13 mit Geld-Satz
-    for (const [x, y] of [[9, 11], [7, 12]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
+    for (const [x, y] of [[10, 9], [7, 12]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
     l.tut.zustandPruefen();
     expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(340);
     expect(jetzt(l).schritt, '340 € fehlen noch → T13').toBe('T13');

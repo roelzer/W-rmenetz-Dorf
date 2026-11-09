@@ -580,7 +580,8 @@ export class Steuerung implements Ui {
       const vorher = this.stempelLetzte ? rohrBei(...this.stempelLetzte) : undefined;
       const vorhanden = rohrBei(fx, fy);
       if (vorhanden) {
-        const verbunden = vorher ? sp.trasseBeimZeichnenVerbinden(vorher, vorhanden) : false;
+        const verbunden = vorher ? sp.trasseBeimZeichnenVerbinden(vorher, vorhanden) : null;
+        if (verbunden && !verbunden.ok) { this.hinweiseZeigen(); break; }
         if (verbunden || this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1)) geaendert = true;
         this.stempelLetzte = [fx, fy];
         continue;
@@ -594,9 +595,10 @@ export class Steuerung implements Ui {
       }
       if (!sp.platzieren(this.stempelTyp, fx, fy).ok) { this.hinweiseZeigen(); break; }
       const neu = rohrBei(fx, fy);
-      if (vorher && neu) sp.trasseBeimZeichnenVerbinden(vorher, neu);
+      const verbunden = vorher && neu ? sp.trasseBeimZeichnenVerbinden(vorher, neu) : null;
       geaendert = true;
       this.stempelLetzte = [fx, fy];
+      if (verbunden && !verbunden.ok) { this.hinweiseZeigen(); break; }
     }
     if (geaendert) this.geaendert();
   }

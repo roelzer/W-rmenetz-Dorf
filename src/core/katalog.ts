@@ -11,7 +11,7 @@ export type Kategorie =
 export type TypId =
   | 'hz' | 'kessel' | 'wpg' | 'ptk' | 'pellet' | 'gas' | 'bhkw'
   | 'pv' | 'puffer' | 'solar' | 'sonde'
-  | 'd25' | 'd32' | 'd40' | 'd50' | 'd63' | 'd75' | 'd90' | 'd110'
+  | 'd25' | 'd32' | 'd40' | 'd50' | 'd63' | 'd75' | 'd90' | 'd110' | 'd125' | 'd140' | 'd160'
   | 'efh' | 'rh' | 'baeck' | 'mfh'
   | 'bad' | 'gewerbe' | 'klinik'
   | 'buero' | 'huette'
@@ -208,24 +208,39 @@ export const KATALOG: Record<TypId, Definition> = {
     beschreibung: 'Für eine Straße mit mehreren Häusern. Durchmesser 50 mm (dunkelblau), überträgt im Spiel bis 60 kW.',
   },
   d63: {
-    name: '63er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 95, durchmesser_mm: 63,
+    name: '63er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 120, durchmesser_mm: 63,
     kosten_eur: [38], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.11, farbe: '#e86aa0',
-    beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt im Spiel bis 95 kW.',
+    beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt im Spiel bis 120 kW.',
   },
   d75: {
-    name: '75er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 135, durchmesser_mm: 75,
+    name: '75er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 180, durchmesser_mm: 75,
     kosten_eur: [50], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.125, farbe: '#f6c22c',
-    beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt im Spiel bis 135 kW.',
+    beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt im Spiel bis 180 kW.',
   },
   d90: {
-    name: '90er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 195, durchmesser_mm: 90,
+    name: '90er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 270, durchmesser_mm: 90,
     kosten_eur: [68], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.145, farbe: '#8a5a2b',
-    beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt im Spiel bis 195 kW.',
+    beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt im Spiel bis 270 kW.',
   },
   d110: {
-    name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 290, durchmesser_mm: 110,
+    name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 400, durchmesser_mm: 110,
     kosten_eur: [90], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.165, farbe: '#1f6b3a',
-    beschreibung: 'Dickste Leitung (110 mm, dunkelgrün), überträgt im Spiel bis 290 kW. Nur dort sinnvoll, wo viel Wärme fließt – für ein einzelnes Haus ist sie zu teuer.',
+    beschreibung: 'Hauptleitung (110 mm, dunkelgrün), überträgt im Spiel bis 400 kW. Nur dort sinnvoll, wo viel Wärme fließt – für ein einzelnes Haus ist sie zu teuer.',
+  },
+  d125: {
+    name: '125er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 550, durchmesser_mm: 125,
+    kosten_eur: [115], sofort: true, grenze: [0, 0, 0, 180, 240], breite: 0.18, farbe: '#8455bb',
+    beschreibung: 'Hauptleitung (125 mm, violett), überträgt im Spiel bis 550 kW.',
+  },
+  d140: {
+    name: '140er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 700, durchmesser_mm: 140,
+    kosten_eur: [145], sofort: true, grenze: [0, 0, 0, 180, 240], breite: 0.195, farbe: '#007e81',
+    beschreibung: 'Hauptleitung (140 mm, petrol), überträgt im Spiel bis 700 kW.',
+  },
+  d160: {
+    name: '160er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 900, durchmesser_mm: 160,
+    kosten_eur: [185], sofort: true, grenze: [0, 0, 0, 0, 240], breite: 0.21, farbe: '#db681b',
+    beschreibung: 'Größte Hauptleitung (160 mm, orange), überträgt im Spiel bis 900 kW.',
   },
   efh: {
     name: 'Einfamilienhaus', groesse: 1, kategorie: 'haus', verbrauch_kwh_a: 15000,
@@ -467,11 +482,11 @@ export const HZ_ZIELE: ReadonlyArray<{ stufe: number; anschluesse: number; absat
 /** PV auf dem Dach der Heizzentrale (A36, Simon: PV gehört an die Heizzentrale, nicht an einzelne Häuser): Leistung in kWp je Heizzentralen-Stufe und Preis je kWp in € (Spielwerte). */
 export const DACH_PV = { kw_je_stufe: [10, 15, 25, 40, 60] as ReadonlyArray<number>, eur_je_kw: 1100 };
 
-export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110'];
+export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110', 'd125', 'd140', 'd160'];
 export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);
 export const istQuelle = (t: TypId): boolean =>
   KATALOG[t].kategorie === 'innen' || KATALOG[t].kategorie === 'waerme';
 /** Rang der Leitung: 1 dünn (25er) … 8 dick (110er) */
-export const LEITUNGSRANG: Record<string, number> = { d25: 1, d32: 2, d40: 3, d50: 4, d63: 5, d75: 6, d90: 7, d110: 8 };
+export const LEITUNGSRANG: Record<string, number> = Object.fromEntries(LEITUNGEN.map((typ, index) => [typ, index + 1]));
 /** Hat das Objekt eine Stufenleiter (Ausbau)? */
 export const hatStufen = (t: TypId): boolean => t === 'hz' || !!KATALOG[t].bauzeit_s;

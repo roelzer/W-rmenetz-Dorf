@@ -163,9 +163,9 @@ describe('NR18-P3 Leitungskarte – Ersetzen nur im offenen Bauabschnitt', () =>
         expect(norm(u.meldung()), p.name).toBe(p.hinweis);
       }, { uhr: () => uhr.t });
     }
-    // Nichts ist dicker als die 110er: kein Knopf
+    // Nichts ist dicker als die 160er: kein Knopf
     const s = neu(3);
-    const dick = lege(s, 'd110', 3, 20);
+    const dick = lege(s, 'd160', 3, 20);
     await echteSteuerung(s, (u) => {
       u.st.kontext(dick.id);
       expect(namen(u, 'Dickere Leitung')).toEqual([]);

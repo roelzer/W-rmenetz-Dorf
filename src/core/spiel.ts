@@ -44,6 +44,7 @@ export const START_TIPP = `Tipp ein Haus an – ${ABSCHNITT_HELFER.planung} plan
 export const WANDSTATION_TUTORIAL = 'Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.';
 const ERSATZ_NUR_IM_ABSCHNITT = `Dickere Leitungen entstehen nur im Bauabschnitt – lass ${ABSCHNITT_HELFER.planung} einen planen.`;
 const ERSATZ_IM_BAU = 'Diese Leitung wird gerade ersetzt – warte, bis der Abschnitt gebaut ist.';
+const RINGSCHLUSS = 'Diese Verbindung würde einen Ringschluss erzeugen. Baue die Trasse als Abzweig weiter.';
 const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
 const brauchtFestenPlatz = (typ: TypId): boolean =>
   istLeitung(typ) || ['haus', 'gross', 'hindernis'].includes(KATALOG[typ].kategorie);
@@ -513,10 +514,11 @@ export class Spiel {
     if (istLeitung(t)) {
       // A41: Leitungen entstehen nur in einem Bauabschnitt, bezahlt wird erst bei der Materialbestellung.
       if (this.stand.abschnitt?.phase !== 'offen') return this.nein(this.stand.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : `Leitungen entstehen in Bauabschnitten – erst mit ${ABSCHNITT_HELFER.planung} einen Abschnitt planen`);
+      const nachbarn = this.stand.objekte.filter((o) => istLeitung(o.typ) && Math.abs(o.x - x) + Math.abs(o.y - y) === 1);
+      const geplant = nachbarn.filter((o) => o.geplant);
+      if (geplant.length && this.schliesstLeitungsring(geplant, x, y)) return this.nein(RINGSCHLUSS);
       const id = this.stand.naechste_id++;
-      const trassenUebergaenge = Object.fromEntries(this.stand.objekte
-        .filter((o) => !o.geplant && istLeitung(o.typ) && Math.abs(o.x - x) + Math.abs(o.y - y) === 1)
-        .map((o) => [o.id, false]));
+      const trassenUebergaenge = Object.fromEntries(nachbarn.filter((o) => !o.geplant).map((o) => [o.id, false]));
       this.stand.objekte.push({ id, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr(),
         ...(Object.keys(trassenUebergaenge).length ? { trassenUebergaenge } : {}) });
       this.schritt('leitung_gezeichnet', id);
@@ -874,6 +876,45 @@ export class Spiel {
   private laeuftDurch(o: Objekt): boolean {
     return istLeitung(o.typ) && !o.geplant && !o.vorsehung && this.gebauteNachbarn(o) >= 2;
   }
+  /** Prüft einen neuen Rohrknoten oder einen einzelnen Übergang gegen vorhandene Wege. */
+  private schliesstLeitungsring(abgaenge: Objekt[], x?: number, y?: number): boolean {
+    const rohre = new Map(this.stand.objekte.filter((o) => istLeitung(o.typ)).map((o) => [o.y * N + o.x, o]));
+    const anschlussfelder = new Set(randFelder(this.hz).map(([fx, fy]) => fy * N + fx));
+    const anHeizzentrale = (o: Objekt): boolean => anschlussfelder.has(o.y * N + o.x);
+
+    const pruefe = (starts: Objekt[], bereitsAnHz: boolean, mitHeizzentrale: boolean): boolean => {
+      const ziele = new Set(starts);
+      const besucht = new Set<Objekt>();
+      for (const start of starts) {
+        const offen = [start];
+        besucht.add(start);
+        let erreichtHz = false;
+        for (const rohr of offen) {
+          if (mitHeizzentrale && anHeizzentrale(rohr)) erreichtHz = true;
+          for (const [fx, fy] of randFelder(rohr)) {
+            const nachbar = rohre.get(fy * N + fx);
+            if (!nachbar || besucht.has(nachbar) || trassenUebergang(rohr, nachbar) === false) continue;
+            if (ziele.has(nachbar)) return true;
+            besucht.add(nachbar);
+            offen.push(nachbar);
+          }
+        }
+        if (erreichtHz && bereitsAnHz) return true;
+        bereitsAnHz ||= erreichtHz;
+      }
+      return false;
+    };
+
+    if (abgaenge.length > 1 && pruefe(abgaenge, false, false)) return true;
+    if (x === undefined || y === undefined) {
+      // Direkte Nachbarfelder am Heizhaus zählen als gemeinsamer Abgang.
+      return !abgaenge.every(anHeizzentrale) && pruefe(abgaenge, false, true);
+    }
+    const direkt = anschlussfelder.has(y * N + x);
+    const weitere = direkt ? abgaenge.filter((o) => !anHeizzentrale(o)) : abgaenge;
+    return weitere.length + Number(direkt) > 1 && pruefe(weitere, direkt, true);
+  }
+
   /** Benachbarte Rohrenden mit einem manuell schaltbaren Übergang. */
   trassenNachbarn(o: Objekt): { nachbar: Objekt; verbunden: boolean; kosten: number }[] {
     if (!istLeitung(o.typ)) return [];
@@ -924,9 +965,9 @@ export class Spiel {
   }
 
   /** Beim Zeichnen gilt nur das tatsächlich überstrichene Rohrpaar als gewählter Übergang. */
-  trasseBeimZeichnenVerbinden(von: Objekt, nach: Objekt): boolean {
-    if (!!von.geplant === !!nach.geplant || trassenUebergang(von, nach) !== false) return false;
-    return this.trassenUmschalten(von.id, nach.id).ok;
+  trasseBeimZeichnenVerbinden(von: Objekt, nach: Objekt): Ergebnis | null {
+    if (!!von.geplant === !!nach.geplant || trassenUebergang(von, nach) !== false) return null;
+    return this.trassenUmschalten(von.id, nach.id);
   }
 
   trassenUmschalten(id: number, nachbarId: number): Ergebnis {
@@ -934,6 +975,7 @@ export class Spiel {
     const uebergang = o && this.trassenNachbarn(o).find(({ nachbar }) => nachbar.id === nachbarId);
     if (!o || !uebergang) return { ok: false };
     const { nachbar, verbunden, kosten } = uebergang;
+    if (!verbunden && this.schliesstLeitungsring([o, nachbar])) return this.nein(RINGSCHLUSS);
     if (kosten) {
       const bezahlt = this.bezahlen({ eur: kosten });
       if (!bezahlt.ok) return bezahlt;

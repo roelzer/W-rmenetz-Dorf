@@ -373,7 +373,7 @@ describe('NR13 P4 Einbindung – Teil 2', () => {
       // Geld genau so knapp, dass Spur und Stationen gerade bezahlbar sind; ein Feld Umweg ist zu viel
       spiel.stand.geld_eur = 0;
       spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur();
-      wischeFelder(u, [[11, 13]]);
+      wischeFelder(u, [[10, 15]]);
       expect(spiel.tutorialGeldFehlt_eur(), 'Testaufbau: Umweg kostet').toBeGreaterThan(0);
       s2(u).tick(uhr.t);
       expect(schrittJetzt(u)).toBe('T13');
@@ -690,7 +690,7 @@ describe('NR13 P4 Einbindung – Teil 4', () => {
       wischeFelder(u, SPUR_BIS_HAUS2);
       spiel.stand.geld_eur = 0;
       spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur();
-      wischeFelder(u, [[11, 13]]);
+      wischeFelder(u, [[10, 15]]);
       s2(u).tick(uhr.t);
       expect(schrittJetzt(u)).toBe('T13');
       expect(zeile2(zielEl(u, 'abschliessen')!)).toBe('Geld reicht nicht');

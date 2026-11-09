@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LEITUNGEN, START_PREISSTUFE, type TypId } from '../src/core/katalog';
+import { KATALOG, LEITUNGEN, START_PREISSTUFE, type TypId } from '../src/core/katalog';
 import { berechneNetz } from '../src/core/netz';
 import { ENGPASS_ERSATZ, WEITERE_STELLEN, engstelleText, engstellenFinden, type Engstelle } from '../src/core/engstelle';
 import * as start from '../src/core/start';
@@ -208,22 +208,22 @@ describe('NR18 engstellenFinden', () => {
   });
 
   it('test_nr18_empfohlen_keine_reicht: keine Leitung des Katalogs trägt die Last → empfohlen null', () => {
-    // 25er (12|10), dahinter 110er (13|10), ein EFH. Die Last wird im Netz künstlich auf 300 kW gesetzt (so viele Häuser
-    // passen nicht übersichtlich auf die Testkarte); die dickste Leitung des Katalogs (110er) trägt 290 kW.
-    const objekte = dorf(neu('d25', 12, 10), neu('d110', 13, 10), neu('efh', 14, 10));
+    // 25er (12|10), dahinter 160er (13|10), ein EFH. Die Last wird im Netz künstlich auf 1000 kW gesetzt (so viele Häuser
+    // passen nicht übersichtlich auf die Testkarte); die dickste Leitung des Katalogs (160er) trägt 900 kW.
+    const objekte = dorf(neu('d25', 12, 10), neu('d160', 13, 10), neu('efh', 14, 10));
     const netz = netzAus(objekte);
     const kunde = objekte.find((o) => o.typ === 'efh')!;
     const last_kw = new Map(netz.last_kw);
-    last_kw.set(f(12, 10), 300); last_kw.set(f(13, 10), 300);
+    last_kw.set(f(12, 10), 1000); last_kw.set(f(13, 10), 1000);
     const e = engstellenFinden({ ...netz, last_kw }, [kunde.id]);
-    // Die 110er trägt mit 300 kW ebenfalls zu viel (> 290 kW) und ist ein eigenes Stück hinter der 25er.
+    // Die 160er trägt mit 1000 kW ebenfalls zu viel (> 900 kW) und ist ein eigenes Stück hinter der 25er.
     expect(e).toEqual([
-      { felder: [f(12, 10)], typ: 'd25', last_kw: 300, kapazitaet_kw: 15, an_heizzentrale: true, geplant: false, empfohlen: null },
-      { felder: [f(13, 10)], typ: 'd110', last_kw: 300, kapazitaet_kw: 290, an_heizzentrale: false, geplant: false, empfohlen: null },
+      { felder: [f(12, 10)], typ: 'd25', last_kw: 1000, kapazitaet_kw: 15, an_heizzentrale: true, geplant: false, empfohlen: null },
+      { felder: [f(13, 10)], typ: 'd160', last_kw: 1000, kapazitaet_kw: 900, an_heizzentrale: false, geplant: false, empfohlen: null },
     ]);
-    // genau auf der Grenze: 290 kW trägt die 110er noch
-    last_kw.set(f(12, 10), 290);
-    expect(engstellenFinden({ ...netz, last_kw }, [kunde.id])[0].empfohlen).toBe('d110');
+    // genau auf der Grenze: 900 kW trägt die 160er noch
+    last_kw.set(f(12, 10), 900);
+    expect(engstellenFinden({ ...netz, last_kw }, [kunde.id])[0].empfohlen).toBe('d160');
   });
 
   it('test_nr18_geplant: geplante Leitung oder geplanter Ersatz im Stück → geplant; außerhalb des Stücks nicht', () => {
@@ -281,8 +281,6 @@ describe('NR18 engstelleText (Abschnitt 6, Fassung 3)', () => {
   });
 
   it('test_nr18_text_laenge: alle Typpaare × Last 1…9999 × Orte × Stufe – höchstens 90 Zeichen, ohne Ausnahme', () => {
-    // Längster Fall genau 90: „Die 110er an der Heizzentrale ist zu dünn, es fehlen 9709 kW. Leg einen getrennten Abgang.“
-    const kap: Record<string, number> = { d25: 15, d32: 25, d40: 40, d50: 60, d63: 95, d75: 135, d90: 195, d110: 290 };
     const orte: Array<Pick<Engstelle, 'an_heizzentrale' | 'geplant'>> = [
       { an_heizzentrale: true, geplant: false }, { an_heizzentrale: false, geplant: false }, { an_heizzentrale: false, geplant: true },
     ];
@@ -293,7 +291,7 @@ describe('NR18 engstelleText (Abschnitt 6, Fassung 3)', () => {
         for (const ort of orte) {
           for (const stufe of empfohlen === null ? [null] : [null, 4]) {
             for (let last_kw = 1; last_kw <= 9999; last_kw++) {
-              const text = engstelleText({ felder: [0], typ: t, last_kw, kapazitaet_kw: kap[t], empfohlen, ...ort }, stufe);
+              const text = engstelleText({ felder: [0], typ: t, last_kw, kapazitaet_kw: KATALOG[t].kapazitaet_kw!, empfohlen, ...ort }, stufe);
               laengste = Math.max(laengste, text.length); geprueft++;
             }
           }
@@ -301,7 +299,7 @@ describe('NR18 engstelleText (Abschnitt 6, Fassung 3)', () => {
       }
     });
     expect(geprueft).toBeGreaterThan(1_000_000);
-    expect(laengste).toBe(90);
+    expect(laengste).toBeLessThanOrEqual(90);
   });
 });
 

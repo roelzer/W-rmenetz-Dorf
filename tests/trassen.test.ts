@@ -87,3 +87,42 @@ it('unterscheidet ein geplantes Rohr an der Gebäudekante von einem Rohr, das nu
   rohr.y--;
   expect(spiel.saegewerkTrasse(saegewerk)).toEqual({ rohr: undefined });
 });
+
+function leererAbschnitt(): Spiel {
+  const jetzt = 1_000_000;
+  const stand = neuerSpielstand(jetzt);
+  stand.objekte = stand.objekte.filter((o) => o.typ === 'hz');
+  stand.abschnitt = { phase: 'offen', bau: null };
+  return new Spiel(stand, () => jetzt);
+}
+
+it('verhindert einen Ring beim Zeichnen, erlaubt aber einen Abzweig', () => {
+  const spiel = leererAbschnitt();
+  for (const [x, y] of [[3, 3], [4, 3], [4, 4]]) expect(spiel.platzieren('d25', x, y).ok).toBe(true);
+  const vorher = serialisieren(spiel.stand);
+  expect(spiel.platzieren('d25', 3, 4)).toMatchObject({ ok: false, hinweis: expect.stringContaining('Ringschluss') });
+  expect(serialisieren(spiel.stand)).toBe(vorher);
+  expect(spiel.platzieren('d25', 5, 3).ok).toBe(true);
+});
+
+it('verhindert einen Ring beim manuellen Zusammenschluss zweier Trassen', () => {
+  const spiel = leererAbschnitt();
+  for (const [x, y] of [[3, 3], [4, 3], [4, 4]]) {
+    expect(spiel.platzieren('d25', x, y).ok).toBe(true);
+    delete spiel.stand.objekte.at(-1)!.geplant;
+  }
+  const rohre = spiel.stand.objekte.slice(1);
+  for (const rohr of rohre) delete rohr.trassenUebergaenge;
+  expect(spiel.platzieren('d25', 3, 4).ok).toBe(true);
+  const neu = spiel.stand.objekte.at(-1)!;
+  expect(spiel.trassenUmschalten(neu.id, rohre[0].id).ok).toBe(true);
+  expect(spiel.trassenUmschalten(neu.id, rohre[2].id)).toMatchObject({ ok: false, hinweis: expect.stringContaining('Ringschluss') });
+  expect(spiel.trassenNachbarn(neu).find(({ nachbar }) => nachbar === rohre[2])?.verbunden).toBe(false);
+});
+
+it('verhindert die Rückführung zum Heizhaus und erlaubt separate Abgänge', () => {
+  const spiel = leererAbschnitt();
+  for (const [x, y] of [[10, 10], [10, 11], [10, 12]]) expect(spiel.platzieren('d25', x, y).ok).toBe(true);
+  expect(spiel.platzieren('d25', 11, 12)).toMatchObject({ ok: false, hinweis: expect.stringContaining('Ringschluss') });
+  expect(spiel.platzieren('d25', 12, 12).ok).toBe(true);
+});

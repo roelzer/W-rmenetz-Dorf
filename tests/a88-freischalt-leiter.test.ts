@@ -44,7 +44,8 @@ describe('A88 Freischalt-Leiter – Tabelle', () => {
       1: ['d25', 'd32', 'd40', 'kessel', 'buero', 'huette', 'baum', 'blumen', 'hecke', 'bank', 'laterne', 'efh'],
       2: ['d50', 'd63', 'stationstypen', 'express', 'gestattung', 'spuelbohrung', 'wpg', 'puffer', 'solar', 'bad', 'gewerbe', 'brunnen'],
       3: ['d75', 'd90', 'd110', 'vorlauf', 'ruecklauf_helfer', 'pellet', 'gas', 'sonde', 'klinik'],
-      4: ['vorsehung', 'bhkw', 'ptk', 'pv', 'dach_pv', 'baugebiet'],
+      4: ['d125', 'd140', 'vorsehung', 'bhkw', 'ptk', 'pv', 'dach_pv', 'baugebiet'],
+      5: ['d160'],
     };
     for (const [stufe, liste] of Object.entries(soll)) for (const m of liste) expect(abStufe(m), m).toBe(Number(stufe));
   });
@@ -60,9 +61,9 @@ describe('A88 Freischalt-Leiter – Tabelle', () => {
     }
   });
   it('A88: neuBeiStufe in Tabellenreihenfolge', () => {
-    expect(neuBeiStufe(4)).toEqual(['vorsehung', 'bhkw', 'ptk', 'pv', 'dach_pv', 'baugebiet']);
+    expect(neuBeiStufe(4)).toEqual(['d125', 'd140', 'vorsehung', 'bhkw', 'ptk', 'pv', 'dach_pv', 'baugebiet']);
     expect(neuBeiStufe(2).slice(0, 4)).toEqual(['d50', 'd63', 'stationstypen', 'express']);
-    expect(neuBeiStufe(5)).toEqual([]);
+    expect(neuBeiStufe(5)).toEqual(['d160']);
   });
 });
 
@@ -71,8 +72,8 @@ describe('A88 Freischalt-Leiter – je Stufe, was baubar ist (T2)', () => {
   const s1: Merkmal[] = ['kessel', 'd25', 'd32', 'd40', 'buero', 'huette', 'baum', 'blumen', 'hecke', 'bank', 'laterne'];
   const s2: Merkmal[] = [...s1, 'wpg', 'puffer', 'solar', 'd50', 'd63', 'bad', 'gewerbe', 'brunnen', 'stationstypen', 'express', 'gestattung', 'spuelbohrung'];
   const s3: Merkmal[] = [...s2, 'pellet', 'gas', 'sonde', 'd75', 'd90', 'd110', 'klinik', 'vorlauf', 'ruecklauf_helfer'];
-  const s4: Merkmal[] = [...s3, 'bhkw', 'ptk', 'pv', 'vorsehung', 'dach_pv', 'baugebiet'];
-  for (const [n, soll] of [[1, s1], [2, s2], [3, s3], [4, s4], [5, s4]] as Array<[number, Merkmal[]]>) {
+  const s4: Merkmal[] = [...s3, 'd125', 'd140', 'bhkw', 'ptk', 'pv', 'vorsehung', 'dach_pv', 'baugebiet'];
+  for (const [n, soll] of [[1, s1], [2, s2], [3, s3], [4, s4], [5, [...s4, 'd160']]] as Array<[number, Merkmal[]]>) {
     it(`A88: test_a88_stufe_${n}_baubar`, () => {
       const { s } = neu(n);
       expect(welt.filter((m) => freigeschaltet(s.stand, m)).sort()).toEqual([...soll].sort());
@@ -315,15 +316,15 @@ describe('A88 Freischalt-Leiter – Meldung beim Ausbau (T9)', () => {
     expect(s.hzStufe).toBe(2);
     expect(hinweise(s)).toContain('Neu ab Stufe 2: 50er-Leitung, 63er-Leitung, Freie Stationswahl, Expresslieferung …');
   });
-  it('A88: Ausbau auf Stufe 5 meldet nichts Neues, andere Ausbauten auch nicht', () => {
+  it('A88: Ausbau auf Stufe 4 und 5 meldet neue Leitungen', () => {
     const { s, z } = neu(4);
     s.hz.bau = { art: 'ausbau', start_ms: z.t, ende_ms: z.t + 1000 };
     z.t += 2000; s.bis(z.t);
-    expect(hinweise(s).some((t) => t.startsWith('Neu ab Stufe'))).toBe(false);
+    expect(hinweise(s)).toContain('Neu ab Stufe 5: 160er-Leitung');
     const n4 = neu(3);
     n4.s.hz.bau = { art: 'ausbau', start_ms: n4.z.t, ende_ms: n4.z.t + 1000 };
     n4.z.t += 2000; n4.s.bis(n4.z.t);
-    expect(hinweise(n4.s)).toContain('Neu ab Stufe 4: T-Stück mit Vorsehung, Biogas-BHKW, Power-to-Heat-Kessel, PV-Anlage …');
+    expect(hinweise(n4.s)).toContain('Neu ab Stufe 4: 125er-Leitung, 140er-Leitung, T-Stück mit Vorsehung, Biogas-BHKW …');
   });
 });
 
@@ -470,7 +471,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
         .map((e) => { const el = e as unknown as InstanceType<typeof a.El>; return { text: a.text(el), aus: gesperrt(el) }; });
       expect(liste(1, null)).toEqual([{ text: 'd25', aus: false }, { text: 'd32', aus: false }, { text: 'd40', aus: false }, { text: 'Dickereab Heizzentrale Stufe 2', aus: true }]);
       expect(liste(2, 'd40').map((k) => k.text)).toEqual(['d25', 'd32', 'd50', 'd63', 'Dickereab Heizzentrale Stufe 3']);
-      expect(liste(3, null).map((k) => k.text)).toEqual(['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110']);
+      expect(liste(3, null).map((k) => k.text)).toEqual(['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110', 'Dickereab Heizzentrale Stufe 4']);
     });
   });
 
@@ -485,7 +486,8 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     for (const [stufe, tstueckAus, zahlen, dicker] of [
       [1, true, ['25', '32', '40'], 2],
       [2, true, ['25', '32', '40', '50', '63'], 3],
-      [4, false, ['25', '32', '40', '50', '63', '75', '90', '110'], null],
+      [4, false, ['25', '32', '40', '50', '63', '75', '90', '110', '125', '140'], 5],
+      [5, false, ['25', '32', '40', '50', '63', '75', '90', '110', '125', '140', '160'], null],
     ] as Array<[number, boolean, string[], number | null]>) {
       const s = neu(stufe).s;
       offenerAbschnitt(s); // die Zeichenleiste öffnet sich nur im offenen Bauabschnitt (12.18)
@@ -532,8 +534,8 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     expect(mit(k1.knoepfe, 'Tauschen:')).toEqual([]);
     expect((await karte(eins, start40(eins))).text).not.toContain('angebohrt');
     const k4 = await karte(vier, start25(vier));
-    expect(mit(k4.knoepfe, 'Ersetzen:').length).toBe(7); // 32er, 40er, 50er, 63er, 75er, 90er, 110er
-    expect(mit(k4.knoepfe, 'Dickere')).toEqual([]);
+    expect(mit(k4.knoepfe, 'Ersetzen:').length).toBe(9); // 32er bis 140er
+    expect(mit(k4.knoepfe, 'Dickere')).toEqual([expect.objectContaining({ text: 'Dickereab Heizzentrale Stufe 5', aus: true })]);
     expect((await karte(vier, start40(vier))).text).toContain('angebohrt');
   });
 

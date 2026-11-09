@@ -34,7 +34,7 @@ const ENGSTELLE = [11 * N + 10, 12 * N + 10, 13 * N + 10];
  *  Heizzentrale (11|10)–(12|11) und ist damit eine eigene Einspeisung direkt an der Heizzentrale (Netzmodell, vor NR18).
  *  Die Last beider Häuser (9|13) und (12|14) fließt deshalb über (11|12) → (10|12) → (10|13); (10|11) trägt dann 0 kW.
  *  Geprüft im Debuglauf 06.11. (Probe-Netz: (11|12) Tiefe 1 Last 20, (10|12) Tiefe 2 Last 20, (10|13) Tiefe 3 Last 20). */
-const ENGSTELLE_MEHRERE = [12 * N + 11, 12 * N + 10, 13 * N + 10];
+const ENGSTELLE_MEHRERE = [11 * N + 10, 12 * N + 9, 12 * N + 10];
 
 type EngstelleEreignis = { art: 'engstelle'; felder: number[] };
 const engstellen = (s: Spiel): EngstelleEreignis[] =>
@@ -207,10 +207,10 @@ describe('NR18 Abnahme auf dem leeren Dorf (Bauplan Abschnitt 1 (a)–(d), rot b
   it('NR18: test_nr18_mehrere_haeuser_warnung_beim_abschliessen – drei Häuser an einer 25er: abschließen geht, Warnung nennt die 25er', () => {
     const { s } = leeresDorfOffen();
     for (const [x, y] of SPUR) expect(s.platzieren('d25', x, y).ok).toBe(true);
-    s.stand.objekte.push(frueheresAusbauHaus(s.stand.naechste_id++));
-    // (13|12) über (11|12), (12|12) an die 25er auf (10|12)
-    for (const [x, y] of [[11, 12], [12, 12]] as const) expect(s.platzieren('d25', x, y).ok).toBe(true);
-    for (const [x, y] of [[12, 14], [9, 13], [13, 12]] as const) {
+    s.stand.objekte.push({ ...frueheresAusbauHaus(s.stand.naechste_id++), x: 8, y: 12 });
+    // Der dritte Hausanschluss zweigt westlich von der 25er auf (10|12) ab.
+    expect(s.platzieren('d25', 9, 12).ok).toBe(true);
+    for (const [x, y] of [[12, 14], [9, 13], [8, 12]] as const) {
       const h = hausBei(s, x, y);
       expect(s.stationKaufen(h.id, passendeStation(bedarfKw(h)).id).ok, `Station (${x}|${y})`).toBe(true);
     }
