@@ -921,7 +921,8 @@ export class Steuerung implements Ui {
     else anleiterZeigen(a, freierPlatz ?? anleiterPlatz(frei, erstes, bild), { weiter: () => this.tutorialMelden({ art: 'tipp', tipp: 'weiter' }) }, this.uhr());
     const haus1 = this.spiel.objekt(a.objekt_ids.haus1);
     infoKapsel(a.info_kapsel ?? null, a.info_kapsel && haus1 ? this.objektRechteck(haus1, true) : null);
-    this.sperrLage = { fahrt: this.fahrtJetzt, anleiter: null, abdunkeln: a.abdunkeln, art: a.art, loecher: loecher.map((l) => l.r) };
+    // Die Karte ist beim Zeichnen hell, die Eingaberegel bleibt aber wie beim früheren HUD-Spotlight.
+    this.sperrLage = { fahrt: this.fahrtJetzt, anleiter: null, abdunkeln: a.spur ? 'nur_hud' : a.abdunkeln, art: a.art, loecher: loecher.map((l) => l.r) };
     // 13.11/K9: Kartenziel eines Handlungs-Schritts bekommt ein fokussierbares Ersatz-Element mit Vorlesenamen
     const z0 = a.art === 'H' ? a.ziele[0] : undefined, karte0 = z0 && istKartenziel(z0) ? this.kartenObjekt(a, z0) : null;
     ersatzZiel(z0 && istKartenziel(z0) && karte0 && erstes ? { r: erstes, name: KARTEN_VORLESENAME[z0], enter: () => this.kartenzielGetippt(karte0.id) } : null);
