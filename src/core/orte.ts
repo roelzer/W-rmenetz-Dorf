@@ -30,6 +30,7 @@ export function typAusGrundflaeche(m2: number): TypId | null {
 }
 
 const N = 24;
+// Der alte Hausplatz (13|12) bleibt bei der Generierung belegt, damit die übrigen Häuser ihre Plätze behalten.
 const STARTHAEUSER: Array<{ typ: TypId; x: number; y: number }> = [
   { typ: 'efh', x: 9, y: 13 }, { typ: 'efh', x: 12, y: 14 }, { typ: 'efh', x: 13, y: 12 },
 ];

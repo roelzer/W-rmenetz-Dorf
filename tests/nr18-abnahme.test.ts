@@ -1,3 +1,4 @@
+import { frueheresAusbauHaus } from './hilfen/altes-startdorf';
 import { describe, expect, it } from 'vitest';
 import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
 import { KATALOG, KONSTANTEN, STATIONEN, passendeStation } from '../src/core/katalog';
@@ -206,6 +207,7 @@ describe('NR18 Abnahme auf dem leeren Dorf (Bauplan Abschnitt 1 (a)–(d), rot b
   it('NR18: test_nr18_mehrere_haeuser_warnung_beim_abschliessen – drei Häuser an einer 25er: abschließen geht, Warnung nennt die 25er', () => {
     const { s } = leeresDorfOffen();
     for (const [x, y] of SPUR) expect(s.platzieren('d25', x, y).ok).toBe(true);
+    s.stand.objekte.push(frueheresAusbauHaus(s.stand.naechste_id++));
     // (13|12) über (11|12), (12|12) an die 25er auf (10|12)
     for (const [x, y] of [[11, 12], [12, 12]] as const) expect(s.platzieren('d25', x, y).ok).toBe(true);
     for (const [x, y] of [[12, 14], [9, 13], [13, 12]] as const) {
