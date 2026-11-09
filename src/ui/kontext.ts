@@ -106,7 +106,9 @@ export function dickereFarbknopf(sp: Spiel): HTMLButtonElement | null {
 
 function signatur(c: HTMLElement): string {
   const k = c.cloneNode(true) as HTMLElement;
-  k.querySelectorAll('[data-live]').forEach((e) => { e.textContent = ''; e.removeAttribute('style'); });
+  k.querySelectorAll('[data-live]').forEach((e) => {
+    e.textContent = ''; e.removeAttribute('style'); e.removeAttribute('aria-valuenow');
+  });
   // Wackeln nach dem Antippen (12.19) ist kein neuer Inhalt – sonst baute der nächste Takt das Blatt mitten im Wackeln neu
   k.querySelectorAll('.wackelt').forEach((e) => e.classList.remove('wackelt'));
   return k.innerHTML;
@@ -146,11 +148,20 @@ export class Kontext {
     if (s !== this.sig) {
       this.sig = s;
       this.blatt.stufe.textContent = hatStufen(o.typ) ? `Stufe ${o.stufe}` : '';
+      const scroll = this.blatt.inhalt.scrollTop;
       this.blatt.inhalt.replaceChildren(...neu.childNodes);
+      this.blatt.inhalt.scrollTop = scroll;
     } else {
       neu.querySelectorAll<HTMLElement>('[data-live]').forEach((e) => {
         const alt = this.blatt!.inhalt.querySelector<HTMLElement>(`[data-live="${e.dataset.live}"]`);
-        if (alt) { alt.textContent = e.textContent; if (e.getAttribute('style')) alt.setAttribute('style', e.getAttribute('style')!); }
+        if (!alt) return;
+        if (e.getAttribute('role') === 'progressbar') {
+          alt.setAttribute('aria-valuenow', e.getAttribute('aria-valuenow')!);
+          alt.firstElementChild?.setAttribute('style', e.firstElementChild?.getAttribute('style') ?? '');
+        } else {
+          alt.textContent = e.textContent;
+          if (e.getAttribute('style')) alt.setAttribute('style', e.getAttribute('style')!);
+        }
       });
     }
   }
@@ -230,7 +241,9 @@ export class Kontext {
     if (o.vollversorgung) chips.append(chip('Kamin aus', 'gruen'));
     if (o.aufgestockt) chips.append(chip('aufgestockt', 'blau'));
     const z = o.zufriedenheit_pct ?? 80;
-    c.append(zeile('Zufriedenheit', `${zahl(z)} %`), balken(z / 100));
+    const zufriedenheit = balken(z / 100);
+    zufriedenheit.setAttribute('data-live', 'zufriedenheit-balken');
+    c.append(zeile('Zufriedenheit', h('span', { 'data-live': 'zufriedenheit' }, `${zahl(z)} %`)), zufriedenheit);
     if (o.gekuendigt) {
       c.append(h('p', {}, 'Der Kunde ist wieder bei seinem Öl-Kessel. Mit einem fairen Preis und guter Wärme kommt er zurück.'),
         h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'geld', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
@@ -272,8 +285,8 @@ export class Kontext {
     const k = kasten('Wärmerechnung');
     const jahr_eur = sp.jahresverbrauch_kwh(o) * ct / 100 + 12 * sp.grundgebuehr_eur;
     k.append(zeile('Wärmepreis', `${zahl(ct)} ct/kWh`), zeile('Grundgebühr', `${eur(sp.grundgebuehr_eur)} im Monat`),
-      zeile(`${sp.monatsname(m.nr)} bisher`, `${zahl(o.zaehler_kwh ?? 0)} kWh`),
-      zeile(`Rechnung ${sp.monatsname(m.nr)} (erwartet)`, eur(sp.monatsbetrag_eur(o, m.nr))),
+      zeile(`${sp.monatsname(m.nr)} bisher`, h('span', { 'data-live': 'zaehler' }, `${zahl(o.zaehler_kwh ?? 0)} kWh`)),
+      zeile(`Rechnung ${sp.monatsname(m.nr)} (erwartet)`, h('span', { 'data-live': 'monatsbetrag' }, eur(sp.monatsbetrag_eur(o, m.nr)))),
       h('p', { class: 'gedaempft' }, `Im Jahr etwa ${eur(jahr_eur)}. Im Winter wird mehr geheizt als im Sommer – die Rechnung schwankt. Im Spiel wird jeden Monat abgerechnet, der Kunde zahlt automatisch (in echt meist Abschlag plus Jahresabrechnung).`));
     c.append(k);
   }
@@ -290,7 +303,7 @@ export class Kontext {
     k.append(zeile('Braucht mindestens', `${mind} °C Vorlauf`), h('p', { class: 'gedaempft' }, `Die Heizzentrale fährt gerade ${sp.vorlauf_c} °C.${mind > sp.vorlauf_c ? ' Das ist diesem Haus zu kalt – die Zufriedenheit sinkt.' : ''}`));
     if (o.upgrade_auftrag) {
       const u = UPGRADES[n], rest = Math.max(0, o.upgrade_auftrag.ende_ms - this.ui.jetzt_ms());
-      k.append(h('p', {}, `${o.upgrade_auftrag.helfer} arbeitet an: ${u.name} · noch ${zeitText(Math.ceil(rest / 1000))}`));
+      k.append(h('p', {}, `${o.upgrade_auftrag.helfer} arbeitet an: ${u.name} · noch `, h('span', { 'data-live': 'hausupgrade-rest' }, zeitText(Math.ceil(rest / 1000)))));
     } else if (n < UPGRADES.length) {
       const u = UPGRADES[n], frei = sp.freierHelfer();
       // DESIGN.md 12.20 H3 vor H4: Sind alle Helfer beschäftigt, nennt der Knopf das zuerst (so legt es tests/a92-sperrtexte H3 fest)

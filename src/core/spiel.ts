@@ -889,6 +889,12 @@ export class Spiel {
     });
   }
 
+  /** Beim Zeichnen gilt nur das tatsächlich überstrichene Rohrpaar als gewählter Übergang. */
+  trasseBeimZeichnenVerbinden(von: Objekt, nach: Objekt): boolean {
+    if (!!von.geplant === !!nach.geplant || trassenUebergang(von, nach) !== false) return false;
+    return this.trassenUmschalten(von.id, nach.id).ok;
+  }
+
   trassenUmschalten(id: number, nachbarId: number): Ergebnis {
     const o = this.objekt(id);
     const uebergang = o && this.trassenNachbarn(o).find(({ nachbar }) => nachbar.id === nachbarId);

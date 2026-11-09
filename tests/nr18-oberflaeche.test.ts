@@ -210,6 +210,23 @@ describe('NR18-P3 Leitungskarte – Ersetzen nur im offenen Bauabschnitt', () =>
 });
 
 describe('NR18-P3 Zeichnen über vorhandene Leitungen', () => {
+  it('verbindet beim Ziehen über die Naht nur den gewählten Übergang zum Bestand', async () => {
+    const s = offen(neu(2));
+    await echteSteuerung(s, (u) => {
+      u.st.stempeln('d40'); hilfeZu(u);
+      wische(u, [[9, 11], [9, 12]]);
+      const neuOben = bei(s, 9, 11), altOben = bei(s, 10, 11);
+      const neuUnten = bei(s, 9, 12), altUnten = bei(s, 10, 12);
+      expect(s.trassenNachbarn(neuOben)).toContainEqual(expect.objectContaining({ nachbar: altOben, verbunden: false }));
+      expect(s.trassenNachbarn(neuUnten)).toContainEqual(expect.objectContaining({ nachbar: altUnten, verbunden: false }));
+
+      wische(u, [[10, 11], [9, 11]]);
+      wische(u, [[9, 11], [10, 11]]);
+      expect(s.trassenNachbarn(neuOben)).toContainEqual(expect.objectContaining({ nachbar: altOben, verbunden: true }));
+      expect(s.trassenNachbarn(neuUnten)).toContainEqual(expect.objectContaining({ nachbar: altUnten, verbunden: false }));
+    });
+  });
+
   it('test_nr18_ueberzeichnen: dicker über gebaut → Ersatz je Feld; dünner oder gleich → nichts, keine Meldung', async () => {
     const s = offen(neu(2));
     const ersatz = vi.spyOn(s, 'ersatzPlanen').mockReturnValue({ ok: true });

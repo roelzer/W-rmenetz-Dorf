@@ -559,8 +559,9 @@ export class Steuerung implements Ui {
     }
     // A47: Die Leitung läuft gerade durch. Ein Knick entsteht nur, wenn der Finger deutlich (2 Felder) zur Seite zieht.
     const l = this.stempelLetzte;
+    if (l && x === l[0] && y === l[1]) return;
     let felder: Array<[number, number]> = [[x, y]];
-    if (l && (x !== l[0] || y !== l[1])) {
+    if (l) {
       const dx = x - l[0], dy = y - l[1];
       if (!this.stempelAchse) this.stempelAchse = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
       const entlang = this.stempelAchse === 'h' ? dx : dy, quer = this.stempelAchse === 'h' ? dy : dx;
@@ -570,18 +571,31 @@ export class Steuerung implements Ui {
       felder = [];
       for (let i = 1; i <= Math.abs(laenge); i++) felder.push(horizontal ? [l[0] + i * schritt, l[1]] : [l[0], l[1] + i * schritt]);
     }
+    const sp = this.spiel;
+    const rohrBei = (fx: number, fy: number): Objekt | undefined =>
+      sp.stand.objekte.find((o) => o.x === fx && o.y === fy && istLeitung(o.typ));
     let geaendert = false;
     for (const [fx, fy] of felder) {
-      if (!this.spiel.kannPlatzieren(this.stempelTyp, fx, fy)) {
-        const r = this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1);
-        if (r) { geaendert = true; this.stempelLetzte = [fx, fy]; }
-        else if (this.spiel.sperrtAusbaureserve(this.stempelTyp, fx, fy)) {
+      const vorher = this.stempelLetzte ? rohrBei(...this.stempelLetzte) : undefined;
+      const vorhanden = rohrBei(fx, fy);
+      if (vorhanden) {
+        const verbunden = vorher ? sp.trasseBeimZeichnenVerbinden(vorher, vorhanden) : false;
+        if (verbunden || this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1)) geaendert = true;
+        this.stempelLetzte = [fx, fy];
+        continue;
+      }
+      if (!sp.kannPlatzieren(this.stempelTyp, fx, fy)) {
+        if (sp.sperrtAusbaureserve(this.stempelTyp, fx, fy)) {
           if (gesteStart) toast('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
           break;
         }
         continue;
       }
-      if (this.spiel.platzieren(this.stempelTyp, fx, fy).ok) { geaendert = true; this.stempelLetzte = [fx, fy]; } else { this.hinweiseZeigen(); break; }
+      if (!sp.platzieren(this.stempelTyp, fx, fy).ok) { this.hinweiseZeigen(); break; }
+      const neu = rohrBei(fx, fy);
+      if (vorher && neu) sp.trasseBeimZeichnenVerbinden(vorher, neu);
+      geaendert = true;
+      this.stempelLetzte = [fx, fy];
     }
     if (geaendert) this.geaendert();
   }
