@@ -222,7 +222,12 @@ export class Steuerung implements Ui {
   tutorialSperreKnopf(b: Bedienung): Sperre | null {
     const s = this.tutorialSperre(b);
     if (!s) return null;
-    return { grund: s.kurz, schloss: false, hinweis: () => { this.anleitung?.gesperrtGetippt(b); this.anleitungAnwenden(); return ''; } };
+    return { grund: s.kurz, schloss: false, hinweis: () => {
+      this.anleitung?.gesperrtGetippt(b);
+      this.anleitungAnwenden();
+      if (b === 'blatt_schliessen' && !s.satz) toastWichtig('Dieses Menü bleibt für den aktuellen Tutorialschritt offen.');
+      return '';
+    } };
   }
   private tutorialSperre(b: Bedienung): TutorialSperre | null { return this.anleitung?.sperre(b) ?? null; }
   /** [Bauen]: im Tutorial direkt der Reiter Leitungen (T08 → T10, T09 im selben Takt). */
@@ -670,15 +675,15 @@ export class Steuerung implements Ui {
   }
 
   /** Spiel fortschreiben, Ereignisse in Effekte/Toasts übersetzen, Oberfläche auffrischen. */
-  tick(jetzt_ms: number): void {
+  tick(jetzt_ms: number, oberflaeche_ms = jetzt_ms): void {
     // Fahrt nach der Bildzeit, nicht nach der Spieluhr – im Vorführ-Tempo wäre sie sonst sofort vorbei (Entscheidung PL)
     this.fahrtJetzt = this.kamera.fahrtLaeuft(this.bildzeit());
     this.spiel.bis(jetzt_ms);
     this.ereignisse();
-    if (jetzt_ms - this.letzterAuftragMs > 1000) { this.letzterAuftragMs = jetzt_ms; this.auftrag = pruefeAuftraege(this.spiel); this.ereignisse(); }
-    if (jetzt_ms - this.letzteHudMs > 250) { this.letzteHudMs = jetzt_ms; this.hudJetzt(); this.kontextUi.aktualisieren(); }
+    if (oberflaeche_ms - this.letzterAuftragMs > 1000) { this.letzterAuftragMs = oberflaeche_ms; this.auftrag = pruefeAuftraege(this.spiel); this.ereignisse(); }
+    if (oberflaeche_ms - this.letzteHudMs > 250) { this.letzteHudMs = oberflaeche_ms; this.hudJetzt(); this.kontextUi.aktualisieren(); }
     // A92: Restzeit des Bauabschnitts im Baumenü; einmal je Sekunde reicht für eine Sekundenanzeige und schont die Bildrate (A90)
-    if (jetzt_ms - this.letzterKatalogMs >= 1000) { this.letzterKatalogMs = jetzt_ms; this.katalogUi.aktualisieren(); }
+    if (oberflaeche_ms - this.letzterKatalogMs >= 1000) { this.letzterKatalogMs = oberflaeche_ms; this.katalogUi.aktualisieren(); }
     if (this.anleitung && !this.anleitung.aktiv()) this.anleitungBeenden();
     // Weg b: Geld ändert sich auch ohne Ereignis, darum in jedem Bild prüfen (vor dem Anwenden)
     this.anleitung?.zustandPruefen();

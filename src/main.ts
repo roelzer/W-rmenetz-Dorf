@@ -157,7 +157,7 @@ let letzt = performance.now(), letztGezeichnet = letzt, letzteKamera = '';
 const t0 = letzt;
 function bild(jetzt: number): void {
   const raf_abstand_ms = jetzt - letzt; letzt = jetzt;
-  steuerung.tick(uhr());
+  steuerung.tick(uhr(), jetzt);
   kamera.schritt(raf_abstand_ms / 1000);
   // Überschreibt steuerung.bewegungAnwenden je Bild absichtlich: der Sparmodus schaltet die Umgebungsanimation ebenfalls ab.
   maler.reduziert = animationAus(einstellungen);

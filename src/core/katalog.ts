@@ -74,7 +74,7 @@ export const KATALOG: Record<TypId, Definition> = {
   hz: {
     name: 'Heizzentrale', groesse: 2, kategorie: 'dorf' /* wird speziell behandelt */,
     grenze: [1, 1, 1, 1, 1],
-    kosten_eur: [0, 1200, 3500, 9000, 20000],
+    kosten_eur: [0, 200, 3500, 9000, 20000],
     bauzeit_s: [0, 30, 90, 240, 480],
     plaetze: [2, 3, 4, 5, 6],
     beschreibung:
@@ -490,3 +490,4 @@ export const istQuelle = (t: TypId): boolean =>
 export const LEITUNGSRANG: Record<string, number> = Object.fromEntries(LEITUNGEN.map((typ, index) => [typ, index + 1]));
 /** Hat das Objekt eine Stufenleiter (Ausbau)? */
 export const hatStufen = (t: TypId): boolean => t === 'hz' || !!KATALOG[t].bauzeit_s;
+

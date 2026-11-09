@@ -241,6 +241,12 @@ function tabWeiter(ev: KeyboardEvent, ziele: HTMLElement[]): void {
 
 function sperrEreignis(s: SperrQuelle, ev: Event): void {
   const typ = ev.type;
+  // Der Schließen-Knopf entscheidet selbst, ob er schließen darf, und zeigt sonst den Grund.
+  const ziel = ev.target as Element | null;
+  if ((typ === 'pointerdown' || typ === 'touchstart' || typ === 'click' || typ === 'keydown')
+    && typeof ziel?.closest === 'function' && ziel.closest('.blatt button.schliessen')) {
+    if (typ !== 'keydown' || ['Enter', ' '].includes((ev as KeyboardEvent).key)) return;
+  }
   if (typ === 'keydown') {
     const k = (ev as KeyboardEvent).key;
     if (k === 'Tab') tabWeiter(ev as KeyboardEvent, s.tab_ziele());

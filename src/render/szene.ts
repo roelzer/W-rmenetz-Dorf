@@ -78,7 +78,14 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
           X.strokeStyle = KARTE.halm; X.lineWidth = 1; X.beginPath();
           for (const [a, b] of g.n) { const px = cx + a * tw * 0.6, py = cy + b * th * 0.6; X.moveTo(px, py); X.lineTo(px - 1.5, py - tw * 0.05); X.moveTo(px, py); X.lineTo(px + 1.5, py - tw * 0.045); }
           X.stroke();
-          if (g.blume >= 0) m.kreis(cx + g.n[0][0] * tw * 0.4, cy + g.n[0][1] * th * 0.4, Math.max(1.2, tw * 0.022), KARTE.blumen[g.blume]);
+          if (g.blume >= 0) {
+            const bx = cx + g.n[0][0] * tw * 0.4, by = cy + g.n[0][1] * th * 0.4;
+            const r = Math.max(1.2, tw * 0.022);
+            m.kreis(bx + r, by + r, r * 1.4, 'rgba(52,76,30,.20)');
+            m.kreis(bx - r, by, r, KARTE.blumen[g.blume]);
+            m.kreis(bx + r, by - r, r * 0.8, KARTE.blumen[g.blume]);
+            m.kreis(bx, by - r * 0.4, r * 0.45, '#fff0a0');
+          }
         }
       } else { X.fillStyle = (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b; X.fill(); }
     }
