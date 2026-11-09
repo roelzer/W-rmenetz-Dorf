@@ -273,7 +273,7 @@ export class Spiel {
     const z = HZ_ZIELE.find((x) => x.stufe === this.hzStufe + 1);
     if (!z) return [];
     const anschluesse = this.versorgteHaeuser();
-    const liste = [{ text: 'Angeschlossene Häuser', ist: anschluesse, soll: z.anschluesse }];
+    const liste = [{ text: 'Warm versorgte Häuser', ist: anschluesse, soll: z.anschluesse }];
     if (z.absatz_kw) liste.push({ text: 'Wärmeabsatz in kW', ist: Math.round(this.netz.genutzt_kw), soll: z.absatz_kw });
     if (z.spreizung_k) liste.push({ text: 'Spreizung in K', ist: Math.round(this.spreizung_k()), soll: z.spreizung_k });
     return liste.map((x) => ({ ...x, erreicht: x.ist >= x.soll }));

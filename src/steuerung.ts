@@ -22,6 +22,7 @@ import { anleiterAusblenden, anleiterKasten, anleiterPlaetze, anleiterPlatz, anl
 import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
+import { zieleOeffnen } from './ui/ziele';
 import { ortHolen } from './core/orte';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
@@ -123,7 +124,7 @@ export class Steuerung implements Ui {
       bauen: () => this.bauenGetippt(),
       besuchen: () => this.doerferOeffnen(),
       einstellungen: () => einstellungenOeffnen(this, this.einstellungen, (e) => { this.einstellungen = e; this.bewegungAnwenden(); }),
-      auftrag: () => { if (this.auftrag) toast(this.auftrag.text); },
+      auftrag: () => zieleOeffnen(this.spiel, () => this.kontext(this.spiel.hz.id)),
       kwUmschalten: () => this.kwUmschalten(),
       kwAn: () => this.einstellungen.kw_anzeigen,
     });

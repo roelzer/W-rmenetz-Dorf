@@ -101,10 +101,11 @@ export class Hud {
       if (!this.tutorialModusAn) this.auftragKarte.classList.remove('versteckt');
       this.auftragText.textContent = auftrag.text;
       this.auftragLohn.textContent = `+${auftrag.taler}`;
-      this.auftragKarte.setAttribute('aria-label', `Auftrag: ${auftrag.text}. Belohnung ${auftrag.taler} Dorftaler`);
+      this.auftragKarte.setAttribute('aria-label', `Ziele öffnen. Auftrag: ${auftrag.text}. Belohnung ${auftrag.taler} Dorftaler`);
     } else {
       this.auftragText.textContent = 'Alle Aufträge erledigt';
       this.auftragLohn.textContent = '★';
+      this.auftragKarte.setAttribute('aria-label', 'Ziele öffnen. Alle Dorfaufträge erledigt.');
     }
     // A81: Keine Münzen mehr an den Häusern – der Balken zeigt, wie voll das Konto im Verhältnis zum Kassenspeicher ist
     const grenze = sp.kassengrenze_eur(), voll = s.geld_eur >= grenze - 0.5;
