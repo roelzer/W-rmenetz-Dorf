@@ -171,6 +171,8 @@ describe('A88 Freischalt-Leiter – Kosten vor der Freischaltung (T5)', () => {
     for (const [stufe, n] of [[1, 0], [3, 0], [4, 1]]) {
       const { s } = neu(stufe); offenerAbschnitt(s);
       expect(s.platzieren('d25', 9, 11).ok).toBe(true); // seitlich an die Start-40er (10|11)
+      const alt = s.stand.objekte.find((o) => o.x === 10 && o.y === 11)!;
+      expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, alt.id).ok).toBe(true);
       expect(s.anbohrungsFelder().length, `Stufe ${stufe}`).toBe(n);
     }
   });

@@ -2,7 +2,7 @@ import {
   KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht,
+  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, trassenUebergang,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
@@ -307,7 +307,7 @@ export class Spiel {
   private probeGespeichert(): Netz {
     const schluessel = this.stand.objekte
       .filter((o) => o.geplant || o.ersatz)
-      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}`).join('|');
+      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}:${JSON.stringify(o.trassenUebergaenge ?? {})}`).join('|');
     const sp = this.probeSpeicher;
     if (sp && sp.zu === this.netz && sp.schluessel === schluessel) return sp.netz;
     const netz = this.probeNetz();
@@ -460,7 +460,11 @@ export class Spiel {
       // A41: Leitungen entstehen nur in einem Bauabschnitt, bezahlt wird erst bei der Materialbestellung.
       if (this.stand.abschnitt?.phase !== 'offen') return this.nein(this.stand.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : `Leitungen entstehen in Bauabschnitten – erst mit ${ABSCHNITT_HELFER.planung} einen Abschnitt planen`);
       const id = this.stand.naechste_id++;
-      this.stand.objekte.push({ id, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
+      const trassenUebergaenge = Object.fromEntries(this.stand.objekte
+        .filter((o) => !o.geplant && istLeitung(o.typ) && Math.abs(o.x - x) + Math.abs(o.y - y) === 1)
+        .map((o) => [o.id, false]));
+      this.stand.objekte.push({ id, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr(),
+        ...(Object.keys(trassenUebergaenge).length ? { trassenUebergaenge } : {}) });
       this.schritt('leitung_gezeichnet', id);
       this.erreichtAbgleichen();
       return ok();
@@ -797,9 +801,12 @@ export class Spiel {
   vorsehungen_eur(): number { return this.stand.objekte.filter((o) => o.geplant && o.vorsehung).length * KONSTANTEN.vorsehung_eur; }
   anbohrung_eur(): number { return this.anbohrungsFelder().length * KONSTANTEN.anbohrung_eur; }
   /** Gebaute Leitungsnachbarn eines Feldes (die Heizzentrale zählt mit). */
-  private gebauteNachbarn(f: number): number {
+  private gebauteNachbarn(rohr: Objekt): number {
     const bel = belegungskarte(this.stand.objekte);
-    return leitungsNachbarn(f % N, Math.floor(f / N), (n) => { const o = this.objekt(bel[n]); return !!o && ((istLeitung(o.typ) && !o.geplant) || o.typ === 'hz'); });
+    return leitungsNachbarn(rohr.x, rohr.y, (n) => {
+      const o = this.objekt(bel[n]);
+      return !!o && (o.typ === 'hz' || (istLeitung(o.typ) && !o.geplant && trassenUebergang(rohr, o) !== false));
+    });
   }
   /** A69: Muss hier an eine laufende Leitung angebohrt werden? Ja, wenn sie durchläuft (kein Leitungsende) und keine Vorsehung hat. */
   private brauchtAnbohrung(o: Objekt): boolean {
@@ -808,8 +815,42 @@ export class Spiel {
   }
   /** Gebaute Leitung, die hier durchläuft (kein Leitungsende) und keine Vorsehung hat. */
   private laeuftDurch(o: Objekt): boolean {
-    return istLeitung(o.typ) && !o.geplant && !o.vorsehung && this.gebauteNachbarn(o.y * N + o.x) >= 2;
+    return istLeitung(o.typ) && !o.geplant && !o.vorsehung && this.gebauteNachbarn(o) >= 2;
   }
+  /** Benachbarte Rohrenden mit einem manuell schaltbaren Übergang. */
+  trassenNachbarn(o: Objekt): { nachbar: Objekt; verbunden: boolean; kosten: number }[] {
+    if (!istLeitung(o.typ)) return [];
+    const phase = this.stand.abschnitt?.phase;
+    if (phase && phase !== 'offen') return [];
+    return this.stand.objekte.flatMap((nachbar) => {
+      if (!istLeitung(nachbar.typ) || Math.abs(o.x - nachbar.x) + Math.abs(o.y - nachbar.y) !== 1) return [];
+      const verbunden = trassenUebergang(o, nachbar);
+      const geplant = !!(o.geplant || nachbar.geplant);
+      if (verbunden === undefined || (verbunden && !geplant)) return [];
+      const kosten = geplant ? 0 : [o, nachbar].filter((rohr) => this.brauchtAnbohrung(rohr)).length * KONSTANTEN.anbohrung_eur;
+      return [{ nachbar, verbunden, kosten }];
+    });
+  }
+
+  trassenUmschalten(id: number, nachbarId: number): Ergebnis {
+    const o = this.objekt(id);
+    const uebergang = o && this.trassenNachbarn(o).find(({ nachbar }) => nachbar.id === nachbarId);
+    if (!o || !uebergang) return { ok: false };
+    const { nachbar, verbunden, kosten } = uebergang;
+    if (kosten) {
+      const bezahlt = this.bezahlen({ eur: kosten });
+      if (!bezahlt.ok) return bezahlt;
+    }
+    if (o.trassenUebergaenge?.[nachbarId] !== undefined) o.trassenUebergaenge[nachbarId] = !verbunden;
+    else nachbar.trassenUebergaenge![id] = !verbunden;
+    if (!o.geplant && !nachbar.geplant) {
+      this.vorsehungenVerbrauchen();
+      this.neuBerechnen();
+    }
+    this.erreichtAbgleichen();
+    return ok();
+  }
+
   /** A69: Gebaute, durchlaufende Leitungen ohne Vorsehung, an die eine geplante Leitung des Abschnitts andockt. */
   anbohrungsFelder(): number[] {
     const bel = belegungskarte(this.stand.objekte), felder = new Set<number>();
@@ -819,7 +860,7 @@ export class Spiel {
         const nx = g.x + dx, ny = g.y + dy;
         if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
         const o = this.objekt(bel[ny * N + nx]);
-        if (o && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
+        if (o && trassenUebergang(g, o) !== false && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
       }
     }
     return [...felder];
@@ -929,7 +970,7 @@ export class Spiel {
   /** A69: Nach dem Bau ist eine Vorsehung belegt, wenn an ihr ein Abzweig hängt (drei oder mehr Leitungsnachbarn, Heizzentrale zählt mit).
    *  Erst bei Bauende, damit sie während der Bauzeit weiter als Abzweig zählt (A67); ein bloß verlängertes Leitungsende verbraucht sie nicht. */
   private vorsehungenVerbrauchen(): void {
-    for (const o of this.stand.objekte) if (o.vorsehung && !o.geplant && istLeitung(o.typ) && this.gebauteNachbarn(o.y * N + o.x) >= 3) delete o.vorsehung;
+    for (const o of this.stand.objekte) if (o.vorsehung && !o.geplant && istLeitung(o.typ) && this.gebauteNachbarn(o) >= 3) delete o.vorsehung;
   }
   /** A62: Aufpreis für die Expresslieferung des laufenden Bauabschnitts. */
   expresskosten_eur(): number {

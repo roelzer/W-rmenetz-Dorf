@@ -1,7 +1,7 @@
 import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
-import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz';
+import { bedarfKw, groesse, heizzentrale, leitungsNachbarn, trassenUebergang } from '../core/netz';
 import { TUTORIAL_SPUR } from '../core/start';
 import type { Spiel } from '../core/spiel';
 import type { InnenQuelle, Netz, Objekt } from '../core/typen';
@@ -405,7 +405,9 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m, tw = k.tw, netz = s.netz;
   const nachFeld = new Map<number, Objekt>();
   for (const o of s.objekte) { const kante = groesse(o); for (let dy = 0; dy < kante; dy++) for (let dx = 0; dx < kante; dx++) nachFeld.set((o.y + dy) * N + o.x + dx, o); }
-  const rohrNachbarn = (x: number, y: number): number => leitungsNachbarn(x, y, (f) => { const n = nachFeld.get(f); return !!n && istLeitung(n.typ); });
+  const verbunden = (o: Objekt, n: Objekt | undefined): boolean =>
+    !!n && istLeitung(n.typ) && trassenUebergang(o, n) !== false;
+  const rohrNachbarn = (o: Objekt): number => leitungsNachbarn(o.x, o.y, (f) => verbunden(o, nachFeld.get(f)));
   const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
@@ -424,13 +426,14 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       // A57: Zu einem Gebäude nur abknicken, wenn genau dieses Leitungsfeld sein Anschluss ist (oder ein geplantes Leitungsende)
       const gebaeude = c === 'haus' || c === 'waerme' || c === 'gross';
       if (gebaeude) {
-        if (n.ohne_station && !o.geplant) continue; // Haus ohne Station ist nicht angeschlossen
+        if (n.typ !== 'gewerbe' && n.ohne_station && !o.geplant) continue; // Haus ohne Station ist nicht angeschlossen
         const a = netz.anschluss.get(n.id);
-        if (a ? a.feld !== key : !(o.geplant && rohrNachbarn(o.x, o.y) <= 1)) continue;
+        if (a ? a.feld !== key : !(o.geplant && rohrNachbarn(o) <= 1)) continue;
       }
       // A65: Treffen zwei verschieden dicke Leitungen, läuft die dünnere in ihrer Farbe bis in die dickere hinein
       // (Abzweig schließt an die Hauptleitung an); die dicke Leitung zeichnet keinen eigenen Stummel zum Abzweig.
       if (istLeitung(n.typ)) {
+        if (!verbunden(o, n)) continue;
         const art = abzweigZeichnen(o.typ, n.typ);
         if (art === 'nichts') continue;
         const [a, b] = k.mitte(nx, ny);
@@ -442,7 +445,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
         // A65: Liegt das Haus direkt an einer dicken Leitung, führt ein eigener, dünner Hausanschluss
         // (kleinste passende Leitung) vom Haus bis an die Hauptleitung – kein Stummel in der Farbe der Hauptleitung.
         const [a, b] = k.mitte(nx, ny), mx = (cx + a) / 2, my = (cy + b) / 2;
-        const eigen = KATALOG[n.typ].kategorie !== 'waerme' ? eigenerHausanschluss(o.typ, bedarfKw(n)) : null;
+        const eigen = KATALOG[n.typ].kategorie !== 'waerme' && n.typ !== 'gewerbe' ? eigenerHausanschluss(o.typ, bedarfKw(n)) : null;
         if (eigen) stummel.push({ von: [cx, cy], bis: [mx, my], typ: eigen, an });
         else seg.push([mx, my]);
       }
@@ -464,8 +467,8 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     X.stroke();
     // A69: T-Stück mit Vorsehung: kurzer Abgang quer zur Leitung mit dunkler Verschlusskappe
     if (o.vorsehung) {
-      const quer = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !(n && istLeitung(n.typ)); });
-      const lauf = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !!n && istLeitung(n.typ); });
+      const quer = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !verbunden(o, n); });
+      const lauf = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return verbunden(o, n); });
       // A74: An einer Ecke zeigt der Abgang geradeaus (Fortsetzung der Zuleitung), sonst quer zur Leitung, bevorzugt zu einem freien Feld
       const p = netz.eltern.get(key), px = p !== undefined && p >= 0 ? p % N - o.x : null, py = p !== undefined && p >= 0 ? Math.floor(p / N) - o.y : null;
       const geradeaus = quer.filter(([dx, dy]) => px === null ? lauf.some(([lx, ly]) => lx === -dx && ly === -dy) : px === -dx && py === -dy);

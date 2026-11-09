@@ -43,6 +43,8 @@ export interface Objekt {
   vorsehung?: boolean;
   /** A41: Leitung gehört zum laufenden Bauabschnitt und ist erst nach dem Bau Teil des Netzes */
   geplant?: boolean;
+  /** Übergänge zu vorhandenen Rohrfeldern, nach Objekt-ID. Ohne Eintrag gilt die bisherige Verbindung. */
+  trassenUebergaenge?: Record<number, boolean>;
   /** Sekunden als warmer Kunde / Sekunden dauerhaft sehr zufrieden (A34, Aufstockung) */
   warm_s?: number;
   voll_s?: number;

@@ -863,6 +863,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const s = offen();
     const { ziel, frei } = andock(s, 10, 12);
     s.platzieren('d25', frei[0], frei[1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ziel.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toEqual([ziel.y * N + ziel.x]);
     expect(s.abschnittKosten_eur()).toBe((KATALOG.d25.kosten_eur as number[])[0] + s.gestattung_eur() + s.bohrung_eur() + KONSTANTEN.anbohrung_eur);
   });
@@ -871,6 +872,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const { ziel, frei } = andock(s, 10, 12);
     ziel.vorsehung = true;
     s.platzieren('d25', frei[0], frei[1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ziel.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toEqual([]);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
@@ -885,12 +887,14 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const frei = ([[1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [ende.x + dx, ende.y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b));
     expect(frei).toBeDefined();
     s.platzieren('d25', frei![0], frei![1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ende.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toEqual([]);
   });
   it('A69: Neben der Heizzentrale ist die erste Leitung durchlaufend – Andocken kostet eine Anbohrung', () => {
     const s = offen();
-    const { frei } = andock(s, 10, 10);
+    const { ziel, frei } = andock(s, 10, 10);
     s.platzieren('d25', frei[0], frei[1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ziel.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toContain(10 * N + 10);
   });
   it('A69/A67: Während der Bauzeit zählt eine genutzte Vorsehung weiter als Abzweig (kein falsches Warnzeichen)', () => {
@@ -901,6 +905,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(s.netz.reduzierung.size).toBe(0);
     s.stand.abschnitt = { phase: 'offen', bau: null };
     expect(s.platzieren('d25', 9, 12).ok).toBe(true); // links andocken; rechts (11|12) läge an der Heizzentrale
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, v.id).ok).toBe(true);
     s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
     for (const anteil of [0.1, 0.5, 0.9]) { t = s.stand.abschnitt!.bau!.ende_ms * anteil; s.bis(t); s.neuBerechnen(); expect(s.netz.reduzierung.size).toBe(0); }
     t = s.stand.abschnitt!.bau!.ende_ms; s.bis(t); s.neuBerechnen();
@@ -915,6 +920,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     // Leitungsende nach unten verlängern: (11|15), (11|16); auf (11|15) Vorsehung, daran nach rechts ein Abzweig (12|15)
     for (const [x, y] of [[11, 15], [11, 16], [12, 15]] as const) expect(s.platzieren('d25', x, y).ok).toBe(true);
     const mitte = s.stand.objekte.find((o) => o.geplant && o.x === 11 && o.y === 15)!;
+    expect(s.trassenUmschalten(mitte.id, ende.id).ok).toBe(true);
     expect(s.vorsehungUmschalten(mitte.id).ok).toBe(true);
     s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
     t = s.stand.abschnitt!.bau!.ende_ms; s.bis(t);

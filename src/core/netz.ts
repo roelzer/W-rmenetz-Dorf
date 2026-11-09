@@ -60,6 +60,10 @@ export function istKunde(o: Objekt): boolean {
   );
 }
 
+export function trassenUebergang(a: Objekt, b: Objekt): boolean | undefined {
+  return a.trassenUebergaenge?.[b.id] ?? b.trassenUebergaenge?.[a.id];
+}
+
 const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 /** Zahl der Leitungsfelder rund um (x|y) – gemeinsame Grundlage für „Leitungsende“ (≤ 1) und „durchlaufend“ (≥ 2). */
@@ -95,6 +99,11 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     return r.filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < N);
   };
 
+  const verbunden = (a: number, b: number): boolean => {
+    const nachbar = leitungAn(b);
+    return !!nachbar && trassenUebergang(leitungAn(a)!, nachbar) !== false;
+  };
+
   // Ausbreitung von der Heizzentrale über zusammenhängende Leitungsfelder
   const tiefe = new Map<number, number>();
   const eltern = new Map<number, number>();
@@ -109,7 +118,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       const nx = x + dx, ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
       const nk = ny * N + nx;
-      if (leitungAn(nk) && !tiefe.has(nk)) {
+      if (verbunden(k, nk) && !tiefe.has(nk)) {
         tiefe.set(nk, (tiefe.get(k) as number) + 1);
         eltern.set(nk, k);
         reihenfolge.push(nk);
@@ -139,7 +148,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       // A57: Eine Leitung, die nur am Haus vorbeiläuft, ist kein Anschluss. Bevorzugt wird ein Leitungsende,
       // das am Haus endet (Hausanschluss); nur wenn es keins gibt, zählt die vorbeilaufende Leitung.
       const px = k % N, py = (k - px) / N;
-      const nb = leitungsNachbarn(px, py, (f) => !!leitungAn(f));
+      const nb = leitungsNachbarn(px, py, (f) => verbunden(k, f));
       if (nb <= 1) eigenesEnde = true;
       felder.push(k);
       const wert = (nb <= 1 ? 0 : 1000) + t;

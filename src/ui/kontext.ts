@@ -379,6 +379,9 @@ export class Kontext {
 
   private gross(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, D = KATALOG[o.typ], n = sp.netz;
+    if (o.typ === 'gewerbe' && !n.anschluss.has(o.id)) {
+      c.append(h('p', {}, 'Lege eine durchgehende Leitung bis direkt an die Gebäudekante. Prüfe bei benachbarten Trassen, ob der Übergang zur Heizzentrale verbunden ist.'));
+    }
     if (o.zustand !== 'vertrag') {
       const b = sp.vertragBedingungen(o);
       const kasten_ = kasten('Bedingungen für den Vertrag');
@@ -396,7 +399,7 @@ export class Kontext {
     if (D.bedarf_kw && (o.ohne_station || n.kalt.get(o.id) === 'station')) this.stationswahl(c, o);
     if (D.bedarf_kw) c.append(zeile('Jahresverbrauch', `${zahl(D.verbrauch_kwh_a ?? 0)} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW`));
     if (istKunde(o) && sp.netz.anschluss.has(o.id)) this.rechnungBereich(c, o);
-    if (D.abwaerme_kw) c.append(zeile('Abwärme ins Netz', `bis ${D.abwaerme_kw} kW`));
+    if (D.abwaerme_kw && n.anschluss.has(o.id)) c.append(zeile('Abwärme ins Netz', `bis ${D.abwaerme_kw} kW`));
   }
 
   private aussenquelle(c: HTMLElement, o: Objekt): void {
@@ -446,6 +449,17 @@ export class Kontext {
     // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
     const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
     if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, hinweis: tStueckHinweis(), unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
+    const uebergaenge = sp.trassenNachbarn(o);
+    if (uebergaenge.length) {
+      const k = kasten('Trassen verbinden');
+      for (const { nachbar, verbunden, kosten } of uebergaenge) {
+        const richtung = nachbar.x > o.x ? 'Osten' : nachbar.x < o.x ? 'Westen' : nachbar.y > o.y ? 'Süden' : 'Norden';
+        k.append(knopf(verbunden ? `Verbindung nach ${richtung} zurücknehmen` : `Nach ${richtung} verbinden`, () => {
+          sp.trassenUmschalten(o.id, nachbar.id); this.ui.geaendert();
+        }, 'los', { unter: kosten ? eur(kosten) : `${KATALOG[nachbar.typ].name} · Feld ${nachbar.x}|${nachbar.y}`, sperre: kosten ? geldSperre(sp, kosten) : null }));
+      }
+      c.append(k);
+    }
     if (!o.geplant) this.ersatzBereich(c, o);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
   }
