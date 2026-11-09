@@ -903,7 +903,12 @@ export class Steuerung implements Ui {
       this.gescrollt.add(z);
       // ohne Layout (Rechteck 0 × 0) gibt es nichts ins Bild zu holen
       const r = el.getBoundingClientRect();
-      if (r.width > 0 || r.height > 0) zielSichtbarMachen(el, ruhig, () => this.anleitungAnwenden());
+      if (r.width > 0 || r.height > 0) {
+        // Nach dem Scrollen komplett neu vermessen. Das alte Loch darf nicht anschließend mit den Koordinaten von vor
+        // dem Scrollen wieder eingesetzt werden – sonst ist das sichtbare Ziel auf dem Handy trotzdem nicht anklickbar.
+        zielSichtbarMachen(el, ruhig, () => this.anleitungAnwenden());
+        return;
+      }
     }
     const erstes = ziele[0]?.l?.loch.r ?? null;
     const finger: Finger | null = a.finger === 'tippen' && erstes ? { art: 'tippen', ziel: erstes }
@@ -968,3 +973,4 @@ export class Steuerung implements Ui {
     }
   }
 }
+

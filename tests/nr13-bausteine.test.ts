@@ -547,22 +547,17 @@ describe('NR13 Spotlight', () => {
     zielSichtbarMachen(ziel as unknown as HTMLElement, true, fertig);
     expect(inhalt.scrollTop).toBe(102);
     expect(fertig).toHaveBeenCalledTimes(1);
-    // Über dem sichtbaren Bereich: 80 − 100 − 8 = −28 (von 102 auf 74), weich in 200 ms
-    vi.useFakeTimers();
-    const ziele: unknown[] = [];
-    (inhalt as unknown as { scrollTo(o: unknown): void }).scrollTo = (o: unknown) => { ziele.push(o); };
+    // Über dem sichtbaren Bereich: 80 − 100 − 8 = −28 (von 102 auf 74), auch ohne Animation sofort erreichbar
     ziel.rechteck = { left: 0, top: 80, right: 300, bottom: 124, width: 300, height: 44, x: 0, y: 80 };
     const fertig2 = vi.fn();
     zielSichtbarMachen(ziel as unknown as HTMLElement, false, fertig2);
-    expect(ziele).toEqual([{ top: 74, behavior: 'smooth' }]);
-    expect(fertig2).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(200);
+    expect(inhalt.scrollTop).toBe(74);
     expect(fertig2).toHaveBeenCalledTimes(1);
     // Schon sichtbar (mit 8 px Abstand genau auf der Grenze): kein Scrollen, sofort fertig
     ziel.rechteck = { left: 0, top: 108, right: 300, bottom: 292, width: 300, height: 184, x: 0, y: 108 };
     const fertig3 = vi.fn();
     zielSichtbarMachen(ziel as unknown as HTMLElement, false, fertig3);
-    expect(ziele).toHaveLength(1);
+    expect(inhalt.scrollTop).toBe(74);
     expect(fertig3).toHaveBeenCalledTimes(1);
     // Kein scrollender Vorfahr: sofort fertig
     const frei = a.doc.createElement('div'); a.app.append(frei);

@@ -90,13 +90,14 @@ export class Katalog {
       // A88/F1: Gestattung, Spülbohrung, Anbohrung und Vorsehung erst erwähnen, wenn sie freigeschaltet sind – vorher kosten sie nichts.
       const anschluesse = sp.abschnittAnschluesse();
       const saetze = [
-        `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}. Leitungen liegen am besten in der öffentlichen Straße. Grenzt eine Leitung an ein Haus, kann es darüber Wärme bekommen – den kurzen Abzweig setzt das Spiel selbst. Endet ein eigenes Leitungsstück am Haus, ist es sein Hausanschluss${anschluesse.length ? ` – in diesem Abschnitt: ${anschluesse.length} (${anschluesse.map((a) => KATALOG[a.typ].name).slice(0, 4).join(', ')}${anschluesse.length > 4 ? ' …' : ''})` : ''}; er muss dick genug für das Haus sein.`,
+        `Leitungen liegen am besten in der öffentlichen Straße. Grenzt eine Leitung an ein Haus, kann es darüber Wärme bekommen – den kurzen Abzweig setzt das Spiel selbst. Endet ein eigenes Leitungsstück am Haus, ist es sein Hausanschluss${anschluesse.length ? ` – in diesem Abschnitt: ${anschluesse.length} (${anschluesse.map((a) => KATALOG[a.typ].name).slice(0, 4).join(', ')}${anschluesse.length > 4 ? ' …' : ''})` : ''}; er muss dick genug für das Haus sein.`,
         'Zum Andocken zieh direkt über den Übergang zur Bestandsleitung oder wähle am Rohr „Trassen verbinden“.',
         sp.freigeschaltet('gestattung') ? `Abseits davon brauchst du die Gestattung des Eigentümers (${eur(KONSTANTEN.gestattung_eur_je_feld)} je Feld${sp.gestattungsFelder().length ? `, aktuell ${sp.gestattungsFelder().length} Felder = ${eur(sp.gestattung_eur())}` : ''}).` : '',
         sp.freigeschaltet('spuelbohrung') ? `Über den Fluss kommst du im Spiel nur per Spülbohrung (${eur(KONSTANTEN.bohrung_eur_je_feld)} je Feld${sp.bohrungsFelder().length ? `, aktuell ${eur(sp.bohrung_eur())}` : ''}).` : '',
         sp.freigeschaltet('vorsehung') ? `Dockst du an eine laufende Leitung an, muss sie angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}${sp.anbohrungsFelder().length ? `, aktuell ${sp.anbohrungsFelder().length}× = ${eur(sp.anbohrung_eur())}` : ''}) – außer an einem Leitungsende oder an einem T-Stück mit Vorsehung (${eur(KONSTANTEN.vorsehung_eur)}), das du jetzt beim Bau mit einplanst.` : '',
       ];
-      k.append(h('p', { class: 'gedaempft' }, saetze.filter(Boolean).join(' ')),
+      k.append(h('p', { class: 'gedaempft abschnitt-kurz' }, `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}.`),
+        h('details', { class: 'abschnitt-hilfe' }, h('summary', {}, 'Tipps zu Trassen und Anschlüssen'), h('p', { class: 'gedaempft' }, saetze.filter(Boolean).join(' '))),
         h('div', { class: 'knopfreihe' },
           knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, sperre: n ? null : NICHTS_GEZEICHNET }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('verwerfen') })));
@@ -171,3 +172,4 @@ export class Katalog {
     this.ui.platzieren(t);
   }
 }
+

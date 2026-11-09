@@ -90,6 +90,10 @@ function groesseAnpassen(): void {
   if (kamera.groesseSetzen(r.width, r.height, a.faktor)) steuerung.zentrieren();
 }
 window.addEventListener('resize', groesseAnpassen);
+// Die mobile Browserleiste verändert den sichtbaren Bereich nicht in jeder iOS-Version über ein zuverlässiges
+// window.resize. Bleiben Kamera/Leinwand auf dem alten Seitenverhältnis, streckt CSS das Bild und Häuser wirken verzerrt.
+window.visualViewport?.addEventListener('resize', groesseAnpassen);
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(groesseAnpassen).observe(leinwand.parentElement!);
 groesseAnpassen();
 beiEinstellungsAenderung((e) => {
   const sparWechsel = e.sparmodus !== einstellungen.sparmodus;
