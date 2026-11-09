@@ -20,13 +20,14 @@ describe('A16 – installierbar (PWA) und offline spielbar', () => {
     expect(lies('index.html')).toContain('apple-mobile-web-app-status-bar-style');
     expect(lies('src/main.ts')).toContain("serviceWorker.register('./sw.js')");
   });
-  it('Handy: bietet Installation ohne Browserleiste an und nutzt die dynamische Bildschirmhöhe', () => {
+  it('Handy: bietet Installation ohne Browserleiste an, ohne Tutorial oder Zeichenfläche zu überlagern', () => {
     const installation = lies('src/ui/installation.ts');
     expect(installation).toContain('beforeinstallprompt');
     expect(installation).toContain('(display-mode: standalone)');
     expect(installation).toContain('Zum Home-Bildschirm');
-    expect(lies('src/main.ts')).toContain('installationStarten()');
-    expect(lies('src/ui/stil.css')).toContain('100dvh');
+    expect(lies('src/main.ts')).toContain('nachTutorial(() => installationStarten())');
+    expect(installation).toContain("document.getElementById('anleiter')");
+    expect(lies('src/ui/stil.css')).not.toContain('100dvh');
   });
   it('A16: Der Service Worker legt beim Einrichten die komplette Dateiliste des Builds ab (nicht erst beim zweiten Laden)', () => {
     const vorlage = lies('tools/sw-vorlage.js');

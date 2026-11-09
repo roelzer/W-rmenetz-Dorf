@@ -113,6 +113,8 @@ describe('NR13 Anleiter-Karte', () => {
     expect(k.getAttribute('role')).toBe('status');
     expect(k.getAttribute('aria-live')).toBe('polite');
     expect(k.querySelectorAll('button')).toHaveLength(0);
+    expect(k.klassen()).toContain('handlung');
+    expect(k.querySelector('.anleiter-knopfzeile')).toBeNull();
     expect(k.style.left).toBe('12px');
     expect(k.style.width).toBe('432px');
     expect(sichtbarerText(k)).toContain('Simon');
@@ -123,6 +125,7 @@ describe('NR13 Anleiter-Karte', () => {
 
     // Warten: Wartetext mit Restzeit (10 000 − 2 500 ms = 7,5 s → aufgerundet „8s“), kein Knopf
     anleiterZeigen(ansicht({ weiter: 'wartet', warte_text: 'Philipp plant noch {Restzeit}.', warte_bis_ms: 10000 }), PLATZ, { weiter }, 2500);
+    expect(karte().klassen()).not.toContain('handlung');
     expect(karte().querySelectorAll('button')).toHaveLength(0);
     expect(karte().querySelector('.anleiter-knopfzeile .gedaempft')!.textContent).toBe('Philipp plant noch 8s.');
     // Restzeit läuft ab: nach dem Ende 0s, nie negativ

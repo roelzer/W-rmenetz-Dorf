@@ -1,9 +1,9 @@
 /* Wärmenetz-Dorf – Oberfläche. Alle Farben, Maße und Zeiten kommen aus design/tokens.json (als Variablen, siehe tokens.ts). */
 *,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;height:100%;height:100dvh;background:var(--farbe-karte-hintergrund);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--farbe-karte-hintergrund);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 body{font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-text);color:var(--farbe-ui-tinte);font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit;cursor:pointer}
-#app{position:fixed;inset:0;width:100%;height:100%;height:100dvh}
+#app{position:fixed;inset:0}
 #karte{display:block;width:100%;height:100%;touch-action:none}
 #hud,#ebene{position:absolute;inset:0;pointer-events:none;padding:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left))}
 #hud>*,#ebene>*{pointer-events:auto}
@@ -458,6 +458,12 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .anleiter-knopfzeile{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;min-height:var(--menue-mass-px-knopf-hoehe-klein)}
 .anleiter-knopfzeile .gedaempft{color:var(--menue-farbe-text-gedaempft);font-size:var(--schrift-groesse-px-absatz)}
 #anleiter-weiter{margin-left:auto}
+/* Auf sehr niedrigen Handy-Bildschirmen bleibt bei Antipp-Schritten mehr Karte und damit das leuchtende Ziel sichtbar. */
+@media (orientation:landscape) and (max-height:430px){
+  #anleiter.handlung .anleiter-figur{width:72px;height:72px}
+  #anleiter.handlung .anleiter-blase{padding:6px 10px}
+  #anleiter.handlung .anleiter-text{margin-top:2px;font-size:14px;line-height:16px}
+}
 .weniger-bewegung .spot-ring:not(.stupst-ruhig),.weniger-bewegung .info-kapsel,.weniger-bewegung #anleiter{animation:none}
 @media (prefers-reduced-motion:reduce){.spot-ring:not(.stupst-ruhig),.info-kapsel,#anleiter{animation:none}}
 /* Hochformat: das Tutorial ruht hinter dem Dreh-Hinweis (13.7) */

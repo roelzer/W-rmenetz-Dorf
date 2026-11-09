@@ -60,6 +60,11 @@ async function installieren(): Promise<void> {
 
 function bannerZeigen(): void {
   if (banner || laeuftAlsApp() || !istHandyOderTablet() || ausgeblendet()) return;
+  // Keine zusätzliche Fläche über einem Spielmenü, Simons Tutorial-Karte oder einer gerade sprechenden Figur.
+  if (document.body.classList.contains('blatt-offen') || document.getElementById('anleiter') || document.querySelector('#sprecher .sichtbar')) {
+    window.setTimeout(bannerZeigen, 1500);
+    return;
+  }
   const text = h('p', { class: 'install-text' }, 'Ohne Browserleiste spielen und mehr von deinem Dorf sehen.');
   const aktion = knopf(angebot ? 'Als App installieren' : 'So geht’s', () => { void installieren(); }, '', { klein: true });
   aktion.classList.add('install-aktion');
@@ -71,7 +76,7 @@ function bannerZeigen(): void {
   document.body.append(banner);
 }
 
-/** Zeigt den Hinweis erst nach dem Vorspann, damit der Spielstart ruhig bleibt. */
+/** Zeigt den Hinweis erst nach dem Vorspann; main.ts ruft dies bei neuen Spielern zusätzlich erst nach dem Tutorial auf. */
 export function installationStarten(): void {
   if (laeuftAlsApp() || !istHandyOderTablet()) return;
   window.setTimeout(bannerZeigen, 3200);

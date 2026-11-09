@@ -22,7 +22,6 @@ import { tempoSpeichern, uhr } from './tempo';
 import { installationStarten } from './ui/installation';
 
 tokensAnwenden();
-installationStarten();
 /** Nur lesen: Änderungen kommen über beiEinstellungsAenderung; geschrieben wird von der Oberfläche, nie von hier. */
 let einstellungen: Einstellungen = einstellungenLesen();
 vorspannZeigen(einstellungen.weniger_bewegung);
@@ -57,6 +56,9 @@ try {
 const leinwand = document.getElementById('karte') as HTMLCanvasElement;
 const maler = new Maler(leinwand.getContext('2d')!);
 const steuerung = new Steuerung(spiel, leinwand, maler, uhr);
+// Der Installationshinweis darf das Tutorial und dessen Ziele nie verdecken. Bei bestehenden Dörfern startet er sofort,
+// bei neuen Spielern erst nach dem vollständigen Tutorial.
+steuerung.nachTutorial(() => installationStarten());
 const kamera = steuerung.kamera;
 let ersteMeldung = startHinweis;
 // K6 (DESIGN 13.15): Im Tutorial entfällt „Willkommen zurück“ ganz und wird nicht nachgeholt.

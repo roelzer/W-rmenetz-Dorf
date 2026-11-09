@@ -123,6 +123,7 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
     wurzel = h('div', { id: 'anleiter', class: 'anleiter', role: 'status', 'aria-live': 'polite' });
     document.getElementById('app')!.append(wurzel);
   }
+  wurzel.classList.toggle('handlung', a.art === 'H' && a.weiter === null);
   platzSetzen(wurzel, platz);
   const inhalt = JSON.stringify([a.schritt, a.kapitel, a.text, a.weiter, a.knopf_hinweis ?? '', a.wusstest_du, a.warte_text ?? '', a.wiedereinstieg]);
   if (inhalt === gebaut && warteZeile) { warteZeile.textContent = a.weiter === 'wartet' ? warteText(a, jetzt_ms) : a.knopf_hinweis ?? ''; return; }
@@ -135,11 +136,12 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
     weiterKnopf = knopf(a.weiter === 'los' ? 'Los geht’s' : 'Weiter', () => aktionen.weiter(), 'los', { klein: true });
     weiterKnopf.setAttribute('id', 'anleiter-weiter');
   }
+  const zeileZeigen = weiterKnopf !== null || a.weiter === 'wartet' || !!a.knopf_hinweis;
   const blase = h('div', { class: 'anleiter-blase' },
     h('div', { class: 'anleiter-kopf' }, h('strong', { class: 'anleiter-name' }, 'Simon'), punkte),
     a.wusstest_du ? h('span', { class: 'chip gold' }, 'Wusstest du?') : null,
     h('p', { class: 'anleiter-text' }, ...mitFett(a.text)),
-    h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf));
+    zeileZeigen ? h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf) : null);
   wurzel.replaceChildren(h('div', { class: 'anleiter-figur' }, sprecherFigur('Simon')), blase);
   // 13.11: Erklär-Schritt → Fokus auf [Weiter], sobald er erscheint
   weiterKnopf?.focus();
