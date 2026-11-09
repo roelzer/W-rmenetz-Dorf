@@ -434,7 +434,7 @@ describe('NR13 Abnahme – kompletter Ablauf', () => {
     expect(gesehen.T08.info_kapsel ?? null).toBeNull();
     expect(gesehen.T13.kamera_grenze, 'K5 Kamera-Grenze in T13').toBe(true);
     expect(gesehen.T13.spur).toBe(true);
-    expect(gesehen.T13.abdunkeln).toBe('nur_hud');
+    expect(gesehen.T13.abdunkeln).toBe('nichts');
     for (const id of FOLGE.filter((x) => x !== 'T13')) { expect(gesehen[id].kamera_grenze, id).toBe(false); expect(gesehen[id].spur, id).toBe(false); }
     expect(gesehen.T15.normale_aktion && gesehen.T18.normale_aktion, 'T15/T18 Tipp aufs Haus öffnet das Hausblatt').toBe(true);
     for (const id of FOLGE.filter((x) => x !== 'T15' && x !== 'T18')) expect(gesehen[id].normale_aktion, id).toBe(false);
@@ -858,3 +858,4 @@ describe('NR13 Abnahme – Oberfläche', () => {
     expect(r.nachher, 'Gegenprobe: dieselben Gesten bewegen die Karte').not.toEqual(r.vorher);
   });
 });
+

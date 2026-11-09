@@ -429,7 +429,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       T10: { ziele: ['philipp'], finger: 'tippen' },
       T11: { art: 'W', ziele: ['kasten_abschnitt'], finger: 'aus', weiter: 'wartet' },
       T12: { ziele: ['leitungskarte'], finger: 'tippen', leitung_typ: 'd25', kamera_ziele: HZ3, abdunkeln: 'alles' },
-      T13: { ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true, leitung_typ: undefined },
+      T13: { ziele: [], finger: 'spur', abdunkeln: 'nichts', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true, leitung_typ: undefined },
       T14: { ziele: ['abschliessen'], finger: 'tippen', abdunkeln: 'alles', kamera: 'steht', kamera_grenze: false, spur: false, erreicht_zeigen: false },
       T15: { ziele: ['haus1'], finger: 'tippen', kamera_ziele: ['haus1'], normale_aktion: true },
       T16: { art: 'W', ziele: ['kasten_station'], finger: 'aus', kamera_ziele: ['haus1'], normale_aktion: false },

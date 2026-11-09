@@ -69,7 +69,9 @@ export const TUTORIAL_SCHRITTE: ReadonlyArray<TutorialSchrittDef> = [
   { id: 'T12', kapitel: 3, art: 'H', tipp: 'leitungskarte', ziele: ['leitungskarte'], finger: 'tippen', kamera_ziele: HZ_HAEUSER,
     hilfe: 'Tippe auf die leuchtende Leitungs-Karte.',
     text: 'Fertig geplant! Nimm die {leitung} – sie trägt im Spiel bis {kap_kw}, genug für beide Häuser.' },
-  { id: 'T13', kapitel: 3, art: 'H', ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ_HAEUSER, t13: true,
+  // Beim eigentlichen Zeichnen ist die ganze Karte wieder hell. Die Eingabesperre und die gelbe Spur bleiben aktiv,
+  // aber keine dunkle Tutorial-Fläche erschwert das Erkennen von Straßen, Gebäuden oder bereits verlegten Rohren.
+  { id: 'T13', kapitel: 3, art: 'H', ziele: [], finger: 'spur', abdunkeln: 'nichts', kamera: 'frei', kamera_ziele: HZ_HAEUSER, t13: true,
     hilfe: 'Leg den Finger auf die Heizzentrale und zieh ihn die gelbe Spur entlang.',
     text: 'Zieh die Leitung mit dem Finger von der Heizzentrale bis an beide Häuser. Folge der gelben Spur.' },
   { id: 'T14', kapitel: 3, art: 'H', ziele: ['abschliessen'], finger: 'tippen', hilfe: 'Unten in der Leiste: Abschnitt abschließen.',
