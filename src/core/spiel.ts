@@ -490,13 +490,24 @@ export class Spiel {
     const D = KATALOG[o.typ];
     if (o.stufe >= this.maxStufe(o)) return this.nein(o.typ === 'hz' ? 'Höchste Stufe' : 'Erst die Heizzentrale ausbauen');
     if (o.typ === 'hz' && !this.hzZiele().every((z) => z.erreicht)) return this.nein('Die Ziele für die nächste Stufe sind noch nicht erreicht');
-    if (o.typ === 'hz' && o.stufe === 2 && !this.kannPlatzieren('hz', o.x, o.y, o.id, 3))
-      return this.nein('Für den Anbau auf 3×3 müssen die Felder rechts und unten frei sein');
+    // Alle vier 3×3-Flächen enthalten den bisherigen 2×2-Grundriss.
+    let ausbauplatz: { x: number; y: number } | undefined;
+    if (o.typ === 'hz' && o.stufe === 2) {
+      ausbauplatz = [
+        { x: o.x, y: o.y }, { x: o.x, y: o.y - 1 },
+        { x: o.x - 1, y: o.y }, { x: o.x - 1, y: o.y - 1 },
+      ].find(({ x, y }) => this.kannPlatzieren('hz', x, y, o.id, 3));
+      if (!ausbauplatz) return this.nein('Rund um die Heizzentrale ist keine freie 3×3-Fläche für den Ausbau');
+    }
     if (!this.braucheMonteur()) return { ok: false };
     const c = { eur: (D.kosten_eur as number[])[o.stufe] };
     const b = this.bezahlen(c);
     if (!b.ok) return b;
     if (istQuelle(o.typ) && this.foerderungNutzen(o.typ)) o.foerderung_eur = c.eur;
+    if (ausbauplatz) {
+      o.x = ausbauplatz.x;
+      o.y = ausbauplatz.y;
+    }
     o.bau = this.neuerBau('ausbau', (D.bauzeit_s as number[])[o.stufe]);
     this.neuBerechnen();
     return ok();
