@@ -397,7 +397,13 @@ export class Steuerung implements Ui {
   private bestaetigen(): void {
     const g = this.geist;
     if (!g) return;
-    if (!this.geistOk()) { toast('Hier ist kein Platz – such dir freie Wiese.'); return; }
+    if (!this.geistOk()) {
+      const bestand = this.verschiebeId != null && this.spiel.objekt(this.verschiebeId)?.bestand;
+      toast(this.spiel.sperrtAusbaureserve(g.typ, g.x, g.y, g.kante, !!bestand)
+        ? 'Dieses Feld ist für den Ausbau der Heizzentrale reserviert'
+        : 'Hier ist kein Platz – such dir freie Wiese.');
+      return;
+    }
     const r = this.verschiebeId != null ? this.spiel.verschieben(this.verschiebeId, g.x, g.y) : this.spiel.platzieren(g.typ, g.x, g.y);
     if (r.ok) { this.abbrechen(); this.geaendert(); }
     this.hinweiseZeigen();
@@ -569,6 +575,10 @@ export class Steuerung implements Ui {
       if (!this.spiel.kannPlatzieren(this.stempelTyp, fx, fy)) {
         const r = this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1);
         if (r) { geaendert = true; this.stempelLetzte = [fx, fy]; }
+        else if (this.spiel.sperrtAusbaureserve(this.stempelTyp, fx, fy)) {
+          if (gesteStart) toast('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
+          break;
+        }
         continue;
       }
       if (this.spiel.platzieren(this.stempelTyp, fx, fy).ok) { geaendert = true; this.stempelLetzte = [fx, fy]; } else { this.hinweiseZeigen(); break; }

@@ -53,3 +53,29 @@ describe('Heizzentrale auf Stufe 3 ausbauen', () => {
     expect(serialisieren(spiel.stand)).toBe(vorher);
   });
 });
+
+it('hält die Ausbaureserve von festen Gebäuden und Leitungen frei, erlaubt aber verschiebbare Deko', () => {
+  const { spiel } = spielVorAusbau();
+  spiel.stand.abschnitt = { phase: 'offen', bau: null };
+  expect(spiel.kannPlatzieren('mfh', 13, 8)).toBe(false);
+  expect(spiel.platzieren('d25', 11, 9)).toMatchObject({ ok: false, hinweis: expect.stringContaining('reserviert') });
+  expect(spiel.platzieren('d25', 11, 12).ok).toBe(true);
+  expect(spiel.platzieren('baum', 11, 9).ok).toBe(true);
+  const baum = spiel.stand.objekte.at(-1)!;
+  expect(spiel.ausbauen(spiel.hz.id).ok).toBe(false);
+  expect(spiel.verschieben(baum.id, 7, 8).ok).toBe(true);
+  expect(spiel.ausbauen(spiel.hz.id).ok).toBe(true);
+});
+
+it('lässt ein festes Haus aus einer blockierten Ausbaureserve eines alten Spielstands umziehen', () => {
+  const { spiel, objekt } = spielVorAusbau();
+  objekt('d25', 11, 12);
+  const haus = objekt('efh', 11, 9, { bestand: true, station: 'st_15' });
+  const geladen = new Spiel(laden(serialisieren(spiel.stand), START), () => START);
+  const blocker = geladen.objekt(haus.id)!;
+  expect(geladen.istAusbauUmzug(blocker)).toBe(true);
+  expect(geladen.verschieben(haus.id, 12, 9).ok).toBe(false);
+  expect(geladen.verschieben(haus.id, 7, 8).ok).toBe(true);
+  expect(geladen.objekt(haus.id)?.station).toBe('st_15');
+  expect(geladen.ausbauen(geladen.hz.id).ok).toBe(true);
+});

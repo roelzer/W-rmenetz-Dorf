@@ -22,7 +22,7 @@ export function neuesSpielMitTutorial(jetzt_ms: number, ortId?: string): Spielst
 
 /** Entfernt das frühere Bestands-EFH auf der Ausbaufläche der Heizzentrale. */
 export function hzAusbauflaecheFreiraeumen(stand: Spielstand): void {
-  stand.objekte = stand.objekte.filter((o) => !(o.typ === 'efh' && o.bestand && o.x === 13 && o.y === 12));
+  stand.objekte = stand.objekte.filter((o) => !((o.id === 6 || o.id === 12) && o.typ === 'efh' && o.bestand && o.x === 13 && o.y === 12));
 }
 
 export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT): Spielstand {

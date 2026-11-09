@@ -173,6 +173,10 @@ export class Kontext {
     } else if (kat === 'deko') {
       c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id)), knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); })));
     }
+    if (sp.istAusbauUmzug(o) || (['buero', 'huette'].includes(o.typ) && sp.hzAusbauBlocker().includes(o))) {
+      c.append(h('p', {}, 'Steht auf der Ausbaureserve der Heizzentrale.'),
+        h('div', { class: 'knopfreihe' }, knopf('Aus der Ausbaufläche verschieben', () => this.ui.verschieben(o.id))));
+    }
     if (!istAktiv(o)) return;
     void n;
   }

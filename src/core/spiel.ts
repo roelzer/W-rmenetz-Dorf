@@ -45,6 +45,13 @@ export const WANDSTATION_TUTORIAL = 'Im Tutorial nimmst du den Standard. Die Wan
 const ERSATZ_NUR_IM_ABSCHNITT = `Dickere Leitungen entstehen nur im Bauabschnitt – lass ${ABSCHNITT_HELFER.planung} einen planen.`;
 const ERSATZ_IM_BAU = 'Diese Leitung wird gerade ersetzt – warte, bis der Abschnitt gebaut ist.';
 const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
+const brauchtFestenPlatz = (typ: TypId): boolean =>
+  istLeitung(typ) || ['haus', 'gross', 'hindernis'].includes(KATALOG[typ].kategorie);
+type Ausbauplatz = { x: number; y: number };
+
+function ueberlapptAusbau(x: number, y: number, kante: number, platz: Ausbauplatz): boolean {
+  return x < platz.x + 3 && platz.x < x + kante && y < platz.y + 3 && platz.y < y + kante;
+}
 
 export { neuerSpielstand } from './start';
 
@@ -368,10 +375,56 @@ export class Spiel {
   dorfwert(): number { return dorfwert(this.stand.objekte, this.stand.innen); }
   objekt(id: number): Objekt | undefined { return this.stand.objekte.find((o) => o.id === id); }
 
+  /** Mögliche 3×3-Flächen, die den bisherigen 2×2-Grundriss vollständig enthalten. */
+  private hzAusbauFlaechen(hz: Objekt): Ausbauplatz[] {
+    const { x, y } = hz;
+    // Nach Norden zuerst, damit auf der Standardkarte der Anschluss nach Süden frei bleibt.
+    return [{ x, y: y - 1 }, { x, y }, { x: x - 1, y: y - 1 }, { x: x - 1, y }].filter((platz) => {
+      if (platz.x < 0 || platz.y < 0 || platz.x + 3 > N || platz.y + 3 > N) return false;
+      for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
+        if (this.istStrasse(platz.x + dx, platz.y + dy) || this.istFluss(platz.x + dx, platz.y + dy)) return false;
+      }
+      return true;
+    });
+  }
+
+  /** Eine Fläche für den Ausbau reservieren. Bei alten Ständen die mit den wenigsten festen Blockern wählen. */
+  private hzAusbauReserve(hz = this.hz): { platz: Ausbauplatz; blocker: Objekt[] } | undefined {
+    if (groesse(hz) !== 2) return;
+    let beste: { platz: Ausbauplatz; blocker: Objekt[] } | undefined;
+    let festeMin = Infinity;
+    for (const platz of this.hzAusbauFlaechen(hz)) {
+      const blocker = this.stand.objekte.filter((o) => o.id !== hz.id && ueberlapptAusbau(o.x, o.y, groesse(o), platz));
+      const feste = blocker.filter((o) => brauchtFestenPlatz(o.typ) || o.bestand).length;
+      if (feste < festeMin) { beste = { platz, blocker }; festeMin = feste; }
+      if (!feste) break;
+    }
+    return beste;
+  }
+
+  hzAusbauBlocker(): Objekt[] { return this.hzAusbauReserve()?.blocker ?? []; }
+
+  /** Feste Gebäude dürfen aus einer bereits blockierten Ausbaufläche heraus umgesetzt werden. */
+  istAusbauUmzug(o: Objekt): boolean {
+    return !istLeitung(o.typ) && !o.bau && (brauchtFestenPlatz(o.typ) || !!o.bestand) && this.hzAusbauBlocker().includes(o);
+  }
+
+  sperrtAusbaureserve(t: TypId, x: number, y: number, kante = KATALOG[t].groesse ?? 1, bestand = false): boolean {
+    if (!brauchtFestenPlatz(t) && !bestand) return false;
+    const reserve = this.hzAusbauReserve();
+    return !!reserve && ueberlapptAusbau(x, y, kante, reserve.platz);
+  }
+
   kannPlatzieren(t: TypId, x: number, y: number, ohneId = 0, kante?: number): boolean {
     const s = kante ?? KATALOG[t].groesse ?? 1;
     if (x < 0 || y < 0 || x + s > N || y + s > N) return false;
-    const belegung = belegungskarte(this.stand.objekte, this.objekt(ohneId));
+    const alt = this.objekt(ohneId);
+    if (t === 'hz' && alt && s === 2 && (x !== alt.x || y !== alt.y)) {
+      const reserve = this.hzAusbauReserve({ ...alt, x, y });
+      if (!reserve || reserve.blocker.some((o) => brauchtFestenPlatz(o.typ) || o.bestand)) return false;
+    }
+    if (this.sperrtAusbaureserve(t, x, y, s, alt?.bestand)) return false;
+    const belegung = belegungskarte(this.stand.objekte, alt);
     for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) {
       if (belegung[(y + dy) * N + x + dx]) return false;
       // A46: Auf Straßen steht nichts (außer Leitungen, Laternen, Bänke); im Fluss nur Leitungen (per Spülbohrung)
@@ -450,6 +503,7 @@ export class Spiel {
     const D = KATALOG[t];
     const sperre = this.gesperrt(t);
     if (sperre) return sperre;
+    if (this.sperrtAusbaureserve(t, x, y)) return this.nein('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
     if (!this.kannPlatzieren(t, x, y)) return this.nein('Hier ist kein Platz');
     if (istLeitung(t) && this.istFluss(x, y) && !freigeschaltet(this.stand, 'spuelbohrung')) return this.nein(this.flussGesperrt());
     if (istLeitung(t)) {
@@ -497,11 +551,13 @@ export class Spiel {
     // Alle vier 3×3-Flächen enthalten den bisherigen 2×2-Grundriss.
     let ausbauplatz: { x: number; y: number } | undefined;
     if (o.typ === 'hz' && o.stufe === 2) {
-      ausbauplatz = [
-        { x: o.x, y: o.y }, { x: o.x, y: o.y - 1 },
-        { x: o.x - 1, y: o.y }, { x: o.x - 1, y: o.y - 1 },
-      ].find(({ x, y }) => this.kannPlatzieren('hz', x, y, o.id, 3));
-      if (!ausbauplatz) return this.nein('Rund um die Heizzentrale ist keine freie 3×3-Fläche für den Ausbau');
+      ausbauplatz = this.hzAusbauFlaechen(o).find(({ x, y }) => this.kannPlatzieren('hz', x, y, o.id, 3));
+      if (!ausbauplatz) {
+        const namen = [...new Set(this.hzAusbauBlocker().map((blocker) => KATALOG[blocker.typ].name))];
+        return this.nein(namen.length
+          ? `Keine freie 3×3-Fläche. Räum die Ausbaureserve frei: ${namen.join(', ')}`
+          : 'Rund um die Heizzentrale ist keine freie 3×3-Fläche für den Ausbau');
+      }
     }
     if (!this.braucheMonteur()) return { ok: false };
     const c = { eur: (D.kosten_eur as number[])[o.stufe] };
@@ -759,10 +815,11 @@ export class Spiel {
   verschieben(id: number, x: number, y: number): Ergebnis {
     const o = this.objekt(id);
     if (!o) return { ok: false };
-    if (['gross', 'hindernis', 'haus'].includes(KATALOG[o.typ].kategorie) || o.bestand) return this.nein('Gebäude stehen fest und lassen sich nicht verschieben');
+    if ((brauchtFestenPlatz(o.typ) || o.bestand) && !this.istAusbauUmzug(o)) return this.nein('Gebäude stehen fest und lassen sich nicht verschieben');
     if (!this.kannPlatzieren(o.typ, x, y, id, groesse(o))) return this.nein('Hier ist kein Platz');
     o.x = x; o.y = y; o._pop = this.uhr();
     this.neuBerechnen();
+    this.erreichtAbgleichen();
     return ok();
   }
 
