@@ -5,7 +5,7 @@
   "lang": "de",
   "start_url": "./",
   "scope": "./",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "landscape",
   "background_color": "#3f7a2f",
   "theme_color": "#3f7a2f",

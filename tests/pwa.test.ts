@@ -10,13 +10,23 @@ describe('A16 – installierbar (PWA) und offline spielbar', () => {
     expect(m.name).toBeTruthy();
     expect(m.orientation).toBe('landscape');
     expect(m.start_url).toBeTruthy();
+    expect(m.display).toBe('standalone');
     const groessen = m.icons.map((i: { sizes: string }) => i.sizes);
     expect(groessen).toContain('192x192'); expect(groessen).toContain('512x512');
     for (const i of m.icons) expect(existsSync(new URL(`../public/${i.src}`, import.meta.url))).toBe(true);
   });
   it('A16: Die Seite verweist auf das Manifest und die Anwendung meldet den Service Worker an', () => {
     expect(lies('index.html')).toContain('manifest.webmanifest');
+    expect(lies('index.html')).toContain('apple-mobile-web-app-status-bar-style');
     expect(lies('src/main.ts')).toContain("serviceWorker.register('./sw.js')");
+  });
+  it('Handy: bietet Installation ohne Browserleiste an und nutzt die dynamische Bildschirmhöhe', () => {
+    const installation = lies('src/ui/installation.ts');
+    expect(installation).toContain('beforeinstallprompt');
+    expect(installation).toContain('(display-mode: standalone)');
+    expect(installation).toContain('Zum Home-Bildschirm');
+    expect(lies('src/main.ts')).toContain('installationStarten()');
+    expect(lies('src/ui/stil.css')).toContain('100dvh');
   });
   it('A16: Der Service Worker legt beim Einrichten die komplette Dateiliste des Builds ab (nicht erst beim zweiten Laden)', () => {
     const vorlage = lies('tools/sw-vorlage.js');

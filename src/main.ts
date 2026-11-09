@@ -19,8 +19,10 @@ import { vorspannZeigen } from './ui/vorspann';
 import { hinweisMitKnopf } from './ui/toast';
 import { beiEinstellungsAenderung, einstellungenLesen, type Einstellungen } from './ui/einstellungen';
 import { tempoSpeichern, uhr } from './tempo';
+import { installationStarten } from './ui/installation';
 
 tokensAnwenden();
+installationStarten();
 /** Nur lesen: Änderungen kommen über beiEinstellungsAenderung; geschrieben wird von der Oberfläche, nie von hier. */
 let einstellungen: Einstellungen = einstellungenLesen();
 vorspannZeigen(einstellungen.weniger_bewegung);

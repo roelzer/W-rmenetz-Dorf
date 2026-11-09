@@ -1,9 +1,9 @@
 /* Wärmenetz-Dorf – Oberfläche. Alle Farben, Maße und Zeiten kommen aus design/tokens.json (als Variablen, siehe tokens.ts). */
 *,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--farbe-karte-hintergrund);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;height:100dvh;background:var(--farbe-karte-hintergrund);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 body{font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-text);color:var(--farbe-ui-tinte);font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit;cursor:pointer}
-#app{position:fixed;inset:0}
+#app{position:fixed;inset:0;width:100%;height:100%;height:100dvh}
 #karte{display:block;width:100%;height:100%;touch-action:none}
 #hud,#ebene{position:absolute;inset:0;pointer-events:none;padding:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left))}
 #hud>*,#ebene>*{pointer-events:auto}
@@ -104,6 +104,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .banner{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92%,420px);display:flex;align-items:center;gap:var(--abstand-px-1);flex-wrap:wrap;padding:var(--abstand-px-1) var(--abstand-px-2);background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);box-shadow:var(--schatten-schild)}
 .banner .wer{flex:1 1 140px;font-family:var(--schrift-anzeige);font-weight:700}
 .banner .wer small{display:block;font-family:var(--schrift-text);font-weight:700;color:var(--farbe-ui-text-gedaempft)}
+
+/* Installationshilfe: Im Startbildschirm-Modus verschwindet die Browserleiste und die Karte gewinnt Höhe. */
+.install-hinweis{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:120;width:min(620px,calc(100% - max(24px,env(safe-area-inset-left)) - max(24px,env(safe-area-inset-right))));display:flex;align-items:center;gap:10px;padding:10px 42px 10px 12px;background:var(--menue-farbe-tafel);border:var(--kb) solid var(--k);border-radius:var(--menue-mass-px-radius-kasten);box-shadow:0 5px 0 var(--k),0 14px 36px rgba(20,10,4,.35);color:var(--menue-farbe-text)}
+.install-symbol{flex:none;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:var(--menue-chip-gruen-0);border:2px solid var(--k);font-size:24px;font-weight:800}
+.install-inhalt{flex:1;min-width:0}.install-inhalt strong{display:block;font-family:var(--menue-schrift-anzeige);font-size:18px}.install-text{margin:2px 0 0;font-size:13px;line-height:1.25;font-weight:600}
+.install-aktion{flex:none;white-space:nowrap}.install-schliessen{position:absolute;right:6px;top:4px;width:32px;height:32px;border:0;background:transparent;font-size:26px;font-weight:800;color:var(--k)}
+@media (orientation:landscape) and (max-height:480px){.install-hinweis{padding-block:7px}.install-symbol{display:none}.install-inhalt strong{font-size:16px}.install-text{font-size:12px}}
+@media (max-width:560px){.install-hinweis{align-items:stretch;flex-wrap:wrap}.install-inhalt{flex-basis:calc(100% - 52px)}.install-aktion{width:100%}}
 
 /* ---------- Eingabe ---------- */
 .feld{width:100%;padding:0 var(--abstand-px-2);font:inherit;-webkit-user-select:text;user-select:text}
@@ -454,3 +462,4 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 @media (prefers-reduced-motion:reduce){.spot-ring:not(.stupst-ruhig),.info-kapsel,#anleiter{animation:none}}
 /* Hochformat: das Tutorial ruht hinter dem Dreh-Hinweis (13.7) */
 @media (orientation:portrait) and (max-width:600px){#spotlight,#anleiter,.ersatz-ziel,.info-kapsel{display:none}}
+

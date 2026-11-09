@@ -5,6 +5,7 @@ import { h } from './dom';
 import { logoElement, schriftzug } from './vorspann';
 import { tempo, tempoSetzen, TEMPO_STUFEN } from '../tempo';
 import type { Ui } from './schnittstelle';
+import { installationsKasten } from './installation';
 
 const SCHLUESSEL = 'waermedorf-einstellungen-v1';
 
@@ -60,6 +61,7 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),
       h('p', { class: 'gedaempft' }, 'Für Vorführungen: Die Spielzeit läuft schneller. Normal ist das vorgesehene Tempo.'),
       h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'gewaehlt' : '', { klein: true })))),
+    installationsKasten(),
     sicherungKasten(ui),
     h('div', { class: 'knopfreihe' }, loeschen),
     h('div', { class: 'kasten' }, h('h3', {}, 'Hinweis'), h('p', {}, 'Alle Wärmenetze und Werte sind fiktiv. Das Spiel vereinfacht stark und ersetzt keine echte Planung.'),
