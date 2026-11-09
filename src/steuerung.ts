@@ -125,6 +125,7 @@ export class Steuerung implements Ui {
       besuchen: () => this.doerferOeffnen(),
       einstellungen: () => einstellungenOeffnen(this, this.einstellungen, (e) => { this.einstellungen = e; this.bewegungAnwenden(); }),
       auftrag: () => zieleOeffnen(this.spiel, () => this.kontext(this.spiel.hz.id)),
+      geldfluss: () => this.geldflussOeffnen(),
       kwUmschalten: () => this.kwUmschalten(),
       kwAn: () => this.einstellungen.kw_anzeigen,
     });
@@ -951,6 +952,22 @@ export class Steuerung implements Ui {
   private zielHerstellen(a: TutorialAnsicht): void {
     if (a.ziele.some((z) => BAUMENUE_ZIELE.has(z) && !document.querySelector(`[data-ziel="${z}"]`))) this.katalog('netz');
   }
+  private geldflussOeffnen(): void {
+    if (this.spiel.tutorialAktiv() || this.besuch) return;
+    const sp = this.spiel, monat = sp.monat(), a = sp.stand.letzte_abrechnung;
+    const { inhalt } = blattOeffnen({ titel: 'Geldfluss', art: 'popup' });
+    inhalt.append(
+      h('p', {}, `Kontostand: ${eur(sp.stand.geld_eur)}`),
+      h('p', {}, `Nächste Abrechnung: Ende ${sp.monatsname(monat.nr)}`),
+      a ? h('div', { class: 'kasten' },
+        h('h3', {}, `Letzte Abrechnung · ${sp.monatsname(a.monat)}`),
+        h('p', {}, `${a.kunden} Kunden · ${a.waerme_kwh.toLocaleString('de-DE')} kWh`),
+        h('p', {}, `Wärme ${eur(a.waerme_eur)} + Grundgebühr ${eur(a.grund_eur)} = ${eur(a.summe_eur)}`),
+        a.eingang_eur === undefined ? null : h('p', {}, `Eingegangen: ${eur(a.eingang_eur)}`))
+        : h('p', {}, 'Es gibt noch keine Monatsabrechnung.'),
+    );
+  }
+
   private hudJetzt(): void { this.hud.aktualisieren(this.auftrag); }
   private hinweiseZeigen(): void { this.ereignisse(); }
 

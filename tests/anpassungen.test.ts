@@ -1190,7 +1190,7 @@ describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
     expect(kunden.length).toBeGreaterThan(0);
     const soll_kwh = kunden.reduce((a, o) => a + s.jahresverbrauch_kwh(o), 0) * 0.170; // Januar 170 ‰
     const vorher = s.stand.geld_eur;
-    z.t = JAN + 10 * 60 * 1000; s.bis(z.t);
+    while (z.t < JAN + 10 * 60 * 1000) { z.t += 10_000; s.bis(z.t); }
     const a = s.stand.letzte_abrechnung!;
     expect(s.monatsname(a.monat)).toBe('Januar');
     expect(a.waerme_kwh).toBeCloseTo(soll_kwh, -1);
@@ -1198,7 +1198,8 @@ describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
     expect(a.waerme_eur).toBeCloseTo(soll_kwh * ct / 100, -1);
     expect(a.grund_eur).toBe(a.kunden * 32);
     expect(s.stand.geld_eur).toBeGreaterThan(vorher); // ohne Antippen
-    expect(s.ereignisse.some((e) => 'text' in e && e.text.startsWith('Abrechnung Januar'))).toBe(true);
+    expect(a.eingang_eur).toBeCloseTo(a.summe_eur, 0);
+    expect(s.ereignisse.some((e) => 'text' in e && e.text.startsWith('Abrechnung Januar'))).toBe(false);
   });
   it('A81: Im Juli wird viel weniger Wärme abgerechnet als im Januar', () => {
     const jan = spiel(), jul = spiel(JAN + 6 * 10 * 60 * 1000);
@@ -1391,3 +1392,4 @@ describe('A87 Keine Firmenhinweise in angezeigten Texten (Simon, Review-Chat NR6
     for (const t of texte) expect(t).not.toMatch(FIRMEN);
   });
 });
+

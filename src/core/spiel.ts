@@ -1356,6 +1356,7 @@ export class Spiel {
     s.geld_eur = Math.min(Math.max(s.geld_eur, grenze), s.geld_eur + summe_eur + rest_kasse);
     const eingang_eur = s.geld_eur - vorher;
     const a: Abrechnung = { monat: nr, kunden, waerme_kwh: Math.round(kwh), waerme_eur: Math.round(waerme_eur), grund_eur: Math.round(grund_eur), summe_eur: Math.round(summe_eur) };
+    a.eingang_eur = eingang_eur;
     s.letzte_abrechnung = a;
     if (kunden > 0) {
       s.erledigt.collect = true; // Auftrag „erste Monatsabrechnung“
@@ -1363,7 +1364,6 @@ export class Spiel {
       const text = `Abrechnung ${this.monatsname(nr)}: ${kunden} Kunden · ${Math.round(kwh).toLocaleString('de-DE')} kWh · +${eingang.toLocaleString('de-DE')} € eingegangen${eingang < Math.round(summe_eur) ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`;
       if (this.abwesend) this.offline_text = text;
       else {
-        this.hinweis(text);
         const hz = this.hz;
         this.ereignisse.push({ art: 'schwebtext', x: hz.x, y: hz.y, text: `+${eingang.toLocaleString('de-DE')} €`, farbe: '#ffd166' });
         if (eingang > 0) this.ereignisse.push({ art: 'muenzen', objekt_id: hz.id, betrag_eur: eingang });
@@ -1446,3 +1446,4 @@ export class Spiel {
     return Math.round(brutto - (alt ? alt.kosten_eur * KONSTANTEN.rueckkauf_anteil : 0));
   }
 }
+

@@ -187,4 +187,6 @@ export interface Abrechnung {
   waerme_eur: number;
   grund_eur: number;
   summe_eur: number;
+  eingang_eur?: number;
 }
+
