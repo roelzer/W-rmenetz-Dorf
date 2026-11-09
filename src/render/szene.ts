@@ -261,8 +261,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   zeichneGlitzern(m, k, s);
 
   zeichneLeitungen(m, k, s);
-  // NR13 K10: Spur über den eingezeichneten Leitungen, unter den Gebäuden – nie in der zwischengespeicherten Bodenebene
-  if (s.tutorial_spur?.length) zeichneSpur(m, k, s.tutorial_spur);
 
   // Auswahlring
   const sel = s.auswahl_id != null ? s.objekte.find((o) => o.id === s.auswahl_id) : undefined;
@@ -356,6 +354,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   }
   if (durchsicht) zeichneLeitungen(m, k, s);
   oben.forEach((f) => f());
+  // Die Feldmitten sind die tatsächlichen Tippziele. Auch ein Dach oder Schild darf sie nicht überdecken.
+  if (s.tutorial_spur?.length) zeichneSpur(m, k, s.tutorial_spur);
   effekte.zeichnen(m, dt_s, (x, y) => k.mitte(x, y));
 }
 
@@ -380,6 +380,10 @@ function zeichneSpur(m: Maler, k: Kamera, spur: ReadonlyArray<readonly [number, 
     }
   }
   X.setLineDash([]);
+  const [startX, startY] = k.mitte(...spur[0]);
+  X.beginPath(); X.arc(startX, startY, 9, 0, Math.PI * 2);
+  X.fillStyle = tokens.farbe.effekt.text_halo; X.fill();
+  X.strokeStyle = M.farbe.naht_vorlauf; X.lineWidth = 3; X.stroke();
   // Pfeilspitzen in Zugrichtung: gezählt in der vollen Spur ab dem Abgang, damit übrige Felder ihre Spitze behalten (K10)
   const voll = TUTORIAL_SPUR.map(([x, y]) => `${x},${y}`);
   spur.forEach(([x, y]) => {
@@ -582,3 +586,4 @@ function zeichneGlitzern(m: Maler, k: Kamera, s: Szene): void {
     if (glitzer > 0.6) { X.strokeStyle = 'rgba(255,255,255,.35)'; X.lineWidth = 1; X.beginPath(); X.moveTo(cx - tw * 0.12, cy); X.lineTo(cx + tw * 0.12, cy); X.stroke(); }
   }
 }
+
