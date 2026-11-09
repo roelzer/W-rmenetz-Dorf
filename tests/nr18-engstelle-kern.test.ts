@@ -313,6 +313,7 @@ describe('NR13/NR18 Spielstart verschoben und Vertrag', () => {
   // entfernt, Ids ab 4 um 6 kleiner, `station` der zwei Starthäuser → `ohne_station: true`, `innen` = ein Kessel Stufe 1,
   // `quelle_gewaehlt: true`, naechste_id − 6 – ergibt byte-gleich den neuen Start. Standardort 65 Objekte, naechste_id 70;
   // „xyz“ fällt auf den Standardort zurück, würfelt die Deko aber mit anderem Startwert (64 Objekte, naechste_id 69).
+  // Seit der Freigabe der Ausbaufläche fehlt in beiden Varianten das EFH (13|12), bei unveränderten Ids.
   const fnv = (t: string): number => { let h = 0x811c9dc5; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h; };
 
   it('test_nr13_start_verschoben: neuerSpielstand aus spiel und aus start ist dieselbe Funktion', () => {
@@ -325,21 +326,21 @@ describe('NR13/NR18 Spielstart verschoben und Vertrag', () => {
     // genau eine Stelle: spiel.ts liefert dieselbe Funktion und dasselbe Ergebnis
     expect(neuerSpielstand).toBe(start.neuerSpielstand);
     expect(JSON.stringify(neuerSpielstand(0))).toBe(JSON.stringify(s));
-    expect(s.objekte).toHaveLength(65);
+    expect(s.objekte).toHaveLength(64);
     expect(s.naechste_id).toBe(70);
     expect(Math.max(...s.objekte.map((o) => o.id))).toBeLessThan(s.naechste_id);
     const leitungen = s.objekte.filter((o) => o.typ === 'd40' || o.typ === 'd25').map((o) => `${o.typ}@${o.x}|${o.y}${o.vorsehung ? '+v' : ''}`);
     expect(leitungen).toEqual([]);
     expect(s.objekte.filter((o) => o.station).map((o) => `${o.x}|${o.y}`)).toEqual([]);
     const haeuser = s.objekte.filter((o) => o.bestand);
-    expect(haeuser).toHaveLength(42);
+    expect(haeuser).toHaveLength(41);
     expect(haeuser.every((o) => o.ohne_station === true)).toBe(true);
     expect(s.innen).toEqual([{ typ: 'kessel', stufe: 1, bau: null }]);
     expect(s.quelle_gewaehlt).toBe(true);
-    expect(fnv(JSON.stringify(s))).toBe(765611095);
+    expect(fnv(JSON.stringify(s))).toBe(1232509285);
     const xyz = start.neuerSpielstand(0, 'xyz');
-    expect([xyz.objekte.length, xyz.naechste_id]).toEqual([64, 69]);
-    expect(fnv(JSON.stringify(xyz))).toBe(3581396395);
+    expect([xyz.objekte.length, xyz.naechste_id]).toEqual([63, 69]);
+    expect(fnv(JSON.stringify(xyz))).toBe(600207081);
   });
 
   it('test_nr18_vertrag: Ereignisse engstelle/schritt, Schritt/Tipp, ersatz am Objekt, Kern-Methoden und Effekt vorhanden', () => {

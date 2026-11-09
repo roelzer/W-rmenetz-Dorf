@@ -1371,7 +1371,7 @@ describe('A86 Fiktiver Dorfname statt Hilpoltstein (Simon, Review-Chat NR5)', ()
     const r = ladenMitBefund(serialisieren(alt), 0);
     expect(r.befund).toBe('ok'); // Review A86: kein Start-Hinweis über Straßen/Fluss, nur weil der Name wechselt
     expect(r.stand.name).toBe('Wärmlingen');
-    expect(r.stand.objekte.length).toBe(alt.objekte.length);
+    expect(r.stand.objekte.length).toBe(alt.objekte.length - 1);
     const eigen = altesStartdorf(0); eigen.name = 'Simonsdorf';
     expect(ladenMitBefund(serialisieren(eigen), 0).stand.name).toBe('Simonsdorf');
   });

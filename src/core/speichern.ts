@@ -1,7 +1,7 @@
 import { KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
 import { belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
-import { ERSTE_HAEUSER, neuesSpielMitTutorial } from './start';
+import { ERSTE_HAEUSER, hzAusbauflaecheFreiraeumen, neuesSpielMitTutorial } from './start';
 import type { Spielstand } from './typen';
 
 export const SPEICHER_SCHLUESSEL = 'waermedorf-spielstand-v1';
@@ -160,6 +160,7 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
     if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
       nr18Aufraeumen(d as Spielstand);
       nr19Aufraeumen(d as Spielstand);
+      hzAusbauflaecheFreiraeumen(d as Spielstand);
       if (karteAnpassen(d as Spielstand)) migriert = true;
       // nach karteAnpassen, damit die Häuser an ihrem endgültigen Platz geprüft werden
       nr13Aufraeumen(d as Spielstand);

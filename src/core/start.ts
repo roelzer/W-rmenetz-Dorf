@@ -20,6 +20,11 @@ export function neuesSpielMitTutorial(jetzt_ms: number, ortId?: string): Spielst
   return { ...neuerSpielstand(jetzt_ms, ortId), tutorial: { kapitel: 1 } };
 }
 
+/** Entfernt das frühere Bestands-EFH auf der Ausbaufläche der Heizzentrale. */
+export function hzAusbauflaecheFreiraeumen(stand: Spielstand): void {
+  stand.objekte = stand.objekte.filter((o) => !(o.typ === 'efh' && o.bestand && o.x === 13 && o.y === 12));
+}
+
 export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT): Spielstand {
   const ort = ortHolen(ortId);
   const objekte: Objekt[] = [];
@@ -44,11 +49,13 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   for (const a of objekte) if (!behalten.some((b) => ueberlappt(a, b))) behalten.push(a);
   // NR13: Hackschnitzelkessel Stufe 1 ist vorgewählt (gratis, wie ersteQuelleWaehlen('kessel')), weil das Tutorial von Anfang an
   // mit ihm und seinen 60 kW rechnet; die Wahl der Wärmequelle kommt später.
-  return {
+  const stand: Spielstand = {
     version: 3, name: ort.name, ort: ort.id, namen_gefragt: false, geld_eur: KONSTANTEN.startgeld_eur, taler: KONSTANTEN.starttaler,
     objekte: behalten, naechste_id: id, innen: [{ typ: 'kessel', stufe: 1, bau: null }], preisstufe: START_PREISSTUFE, antraege: {},
     karte: 2, zuletzt_ms: jetzt_ms, erledigt: {}, gemocht: {}, quelle_gewaehlt: true, deko_anzahl: 0,
   };
+  hzAusbauflaecheFreiraeumen(stand);
+  return stand;
 }
 
 function ueberlappt(a: Objekt, b: Objekt): boolean {

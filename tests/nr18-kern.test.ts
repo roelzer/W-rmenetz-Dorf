@@ -3,7 +3,7 @@ import { Spiel, neuerSpielstand, type Ereignis } from '../src/core/spiel';
 import { KATALOG, KONSTANTEN, istLeitung, passendeStation, type TypId } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
 import { ENGPASS_ERSATZ, engstellenFinden } from '../src/core/engstelle';
-import { altesStartdorf } from './hilfen/altes-startdorf';
+import { altesStartdorf, frueheresAusbauHaus } from './hilfen/altes-startdorf';
 import { abschnittBauen, abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
 import type { Objekt } from '../src/core/typen';
 
@@ -267,6 +267,7 @@ describe('NR18-P2 Warnliste des Bauabschnitts (AE-NR18-5)', () => {
     expect(s.abschnittWiederOeffnen().ok).toBe(true);
     expect(s.abschnittWarnungen()).toEqual([]);
     // zweites Stück: eine 25er-Stichleitung mit Mehrfamilienhaus (30 kW) am Ende
+    s.stand.objekte.push(frueheresAusbauHaus(s.stand.naechste_id++));
     zeichne(s, 'd25', [[12, 12]]);
     const c = haus(s, 13, 12);
     c.aufgestockt = true; c.vollversorgung = true;

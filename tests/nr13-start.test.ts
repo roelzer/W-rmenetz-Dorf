@@ -6,7 +6,7 @@ import { laden, ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { Spiel } from '../src/core/spiel';
 import { ERSTE_HAEUSER, neuerSpielstand } from '../src/core/start';
 import type { Objekt, Spielstand } from '../src/core/typen';
-import { altesStartdorf } from './hilfen/altes-startdorf';
+import { altesStartdorf, frueheresAusbauHaus } from './hilfen/altes-startdorf';
 import { abschnittBauen, abschnittOeffnen, objektBei, type Uhr } from './hilfen/nr18';
 
 // Bauplan docs/bauplaene/NR18-ohne-autoanschluss.md, Fassung 3, Abschnitte 5.2/5.3 und „Bauplan P5“.
@@ -28,12 +28,27 @@ const leitungLegen = (st: Spielstand, typ: TypId, x: number, y: number): void =>
 };
 
 describe('NR13 neuer Spielstart (P5)', () => {
+  it('hält die Ausbaufläche für Stufe 3 in neuen und geladenen Spielständen frei', () => {
+    const stand = neuerSpielstand(T0);
+    const neu = new Spiel(stand, () => T0);
+    expect(neu.kannPlatzieren('hz', neu.hz.x, neu.hz.y, neu.hz.id, 3)).toBe(true);
+
+    const haus = frueheresAusbauHaus(6);
+    stand.objekte.push(haus);
+    expect(neu.kannPlatzieren('hz', neu.hz.x, neu.hz.y, neu.hz.id, 3)).toBe(false);
+    const geladen = new Spiel(laden(serialisieren(stand), T0), () => T0);
+    expect(geladen.kannPlatzieren('hz', geladen.hz.x, geladen.hz.y, geladen.hz.id, 3)).toBe(true);
+
+    haus.bestand = false;
+    expect(laden(serialisieren(stand), T0).objekte).toContainEqual(haus);
+  });
+
   it('test_nr13_start_ohne_leitung_und_station: keine Leitung, kein Haus mit Station, nichts warm, Geld/Taler/Preis wie vorher', () => {
     const st = neuerSpielstand(T0);
     expect(st.objekte.filter(istLeitung)).toEqual([]);
     expect(st.objekte.filter((o) => o.station !== undefined)).toEqual([]);
     const haeuser = st.objekte.filter(istHaus);
-    expect(haeuser.length).toBe(42);
+    expect(haeuser.length).toBe(41);
     expect(haeuser.every((h) => h.ohne_station === true)).toBe(true);
     expect(st.geld_eur).toBe(30_000);
     expect(st.taler).toBe(100);
@@ -55,17 +70,16 @@ describe('NR13 neuer Spielstart (P5)', () => {
     expect(s.netz.verfuegbar_kw).toBe(60);
   });
 
-  it('test_nr13_erste_haeuser: (9|13) und (12|14), beide EFH ohne Station; die Spur erreicht beide, (13|12) nicht', () => {
+  it('test_nr13_erste_haeuser: (9|13) und (12|14), beide EFH ohne Station; die Spur erreicht beide', () => {
     expect(ERSTE_HAEUSER).toEqual([[9, 13], [12, 14]]);
     const st = neuerSpielstand(T0);
     const [h1, h2] = ERSTE_HAEUSER.map(([x, y]) => hausBei(st, x, y));
-    const nah = hausBei(st, 13, 12);
     for (const h of [h1, h2]) { expect(h.typ).toBe('efh'); expect(h.ohne_station).toBe(true); expect(h.station).toBeUndefined(); }
     const ohne = berechneNetz(st.objekte, st.innen, st.preisstufe).anschluss;
-    expect([ohne.has(h1.id), ohne.has(h2.id), ohne.has(nah.id)]).toEqual([false, false, false]);
+    expect([ohne.has(h1.id), ohne.has(h2.id)]).toEqual([false, false]);
     for (const [x, y] of SPUR) leitungLegen(st, 'd25', x, y);
     const mit = berechneNetz(st.objekte, st.innen, st.preisstufe).anschluss;
-    expect([mit.has(h1.id), mit.has(h2.id), mit.has(nah.id)]).toEqual([true, true, false]);
+    expect([mit.has(h1.id), mit.has(h2.id)]).toEqual([true, true]);
   });
 
   it('test_nr13_alter_stand_behaelt_netz: altes Startdorf übersteht Speichern und Laden mit Leitungen, Vorsehung und Stationen', () => {
@@ -132,9 +146,9 @@ describe('NR13 neuer Spielstart – Randfälle (P5)', () => {
     ]);
   });
 
-  it('test_nr13_naechste_id: 6 Objekte weniger als vor P5 (71 → 65), naechste_id 76 → 70, Ids eindeutig und kleiner', () => {
+  it('test_nr13_naechste_id: 7 Objekte weniger als vor P5 (71 → 64), naechste_id 76 → 70, Ids eindeutig und kleiner', () => {
     const st = neuerSpielstand(0);
-    expect(st.objekte).toHaveLength(65);
+    expect(st.objekte).toHaveLength(64);
     expect(st.naechste_id).toBe(70);
     const ids = st.objekte.map((o) => o.id);
     expect(new Set(ids).size).toBe(ids.length);
