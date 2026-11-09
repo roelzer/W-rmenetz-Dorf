@@ -2,7 +2,7 @@ import {
   KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, trassenUebergang,
+  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
@@ -887,6 +887,40 @@ export class Spiel {
       const kosten = geplant ? 0 : [o, nachbar].filter((rohr) => this.brauchtAnbohrung(rohr)).length * KONSTANTEN.anbohrung_eur;
       return [{ nachbar, verbunden, kosten }];
     });
+  }
+
+  /** Findet den Übergang, der die fertige Leitung am Sägewerk mit dem bestehenden Netz verbinden kann. */
+  saegewerkTrasse(o: Objekt): {
+    rohr?: Objekt;
+    uebergang?: { von: Objekt; nach: Objekt; kosten: number };
+  } {
+    const rohre = new Map(this.stand.objekte.filter((rohr) => istLeitung(rohr.typ)).map((rohr) => [rohr.y * N + rohr.x, rohr]));
+    const amRand = (objekt: Objekt): Objekt[] => randFelder(objekt).flatMap(([x, y]) => {
+      const rohr = rohre.get(y * N + x);
+      return rohr ? [rohr] : [];
+    });
+    const amWerk = amRand(o);
+    const suche = amWerk.filter((rohr) => !rohr.geplant);
+    const rohr = suche[0] ?? amWerk[0];
+    const gesehen = new Set(suche.map((rohr) => rohr.id));
+    const phase = this.abschnitt?.phase;
+    if (phase && phase !== 'offen') return { rohr };
+
+    for (const von of suche) {
+      for (const nach of amRand(von)) {
+        if (nach.geplant || gesehen.has(nach.id)) continue;
+        if (trassenUebergang(von, nach) === false) {
+          if (this.netz.tiefe.has(nach.y * N + nach.x)) {
+            const uebergang = this.trassenNachbarn(von).find(({ nachbar }) => nachbar === nach);
+            if (uebergang) return { rohr, uebergang: { von, nach, kosten: uebergang.kosten } };
+          }
+        } else {
+          gesehen.add(nach.id);
+          suche.push(nach);
+        }
+      }
+    }
+    return { rohr };
   }
 
   /** Beim Zeichnen gilt nur das tatsächlich überstrichene Rohrpaar als gewählter Übergang. */

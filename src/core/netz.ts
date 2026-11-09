@@ -64,6 +64,13 @@ export function trassenUebergang(a: Objekt, b: Objekt): boolean | undefined {
   return a.trassenUebergaenge?.[b.id] ?? b.trassenUebergaenge?.[a.id];
 }
 
+export function randFelder(o: Objekt): Array<[number, number]> {
+  const s = groesse(o);
+  const r: Array<[number, number]> = [];
+  for (let i = 0; i < s; i++) r.push([o.x + i, o.y - 1], [o.x + i, o.y + s], [o.x - 1, o.y + i], [o.x + s, o.y + i]);
+  return r.filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < N);
+}
+
 const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 /** Zahl der Leitungsfelder rund um (x|y) – gemeinsame Grundlage für „Leitungsende“ (≤ 1) und „durchlaufend“ (≥ 2). */
@@ -92,12 +99,6 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     const o = nachId.get(belegung[k]);
     return o && istLeitung(o.typ) ? o : null;
   };
-  const rund = (o: Objekt): Array<[number, number]> => {
-    const s = groesse(o);
-    const r: Array<[number, number]> = [];
-    for (let i = 0; i < s; i++) r.push([o.x + i, o.y - 1], [o.x + i, o.y + s], [o.x - 1, o.y + i], [o.x + s, o.y + i]);
-    return r.filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < N);
-  };
 
   const verbunden = (a: number, b: number): boolean => {
     const nachbar = leitungAn(b);
@@ -108,7 +109,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const tiefe = new Map<number, number>();
   const eltern = new Map<number, number>();
   const reihenfolge: number[] = [];
-  for (const [x, y] of rund(hz)) {
+  for (const [x, y] of randFelder(hz)) {
     const k = y * N + x;
     if (leitungAn(k) && !tiefe.has(k)) { tiefe.set(k, 1); eltern.set(k, -1); reihenfolge.push(k); }
   }
@@ -140,7 +141,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     if (!(kat === 'haus' || kat === 'waerme' || kat === 'gross')) continue;
     let best: number | null = null, bd = 1e9, eigenesEnde = false;
     const felder: number[] = [];
-    for (const [x, y] of rund(o)) {
+    for (const [x, y] of randFelder(o)) {
       const k = y * N + x;
       if (hzFelder.has(k)) { best = -1; bd = 0; break; }
       const t = tiefe.get(k);

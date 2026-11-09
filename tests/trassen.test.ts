@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import { laden, serialisieren } from '../src/core/speichern';
 import { neuerSpielstand, Spiel } from '../src/core/spiel';
 import type { Objekt } from '../src/core/typen';
+import { echteSteuerung } from './hilfen/echte-steuerung';
 
 function vorbereiten() {
   let jetzt = 1_000_000;
@@ -52,4 +53,37 @@ it('speichert den geplanten Übergang, aktiviert ihn aber erst beim Bauende', ()
   expect(geladen.netz.anschluss.has(saegewerk.id)).toBe(false);
   bauen(geladen);
   expect(geladen.netz.anschluss.has(saegewerk.id)).toBe(true);
+});
+
+
+it('bietet im Sägewerk mit bereits unterschriebenem Vertrag den fehlenden Übergang an', async () => {
+  const { spiel, saegewerk, bauen, neuLaden } = vorbereiten();
+  bauen(spiel);
+  const geladen = neuLaden(spiel);
+
+  await echteSteuerung(geladen, ({ st, dom, knoepfe }) => {
+    st.kontext(saegewerk.id);
+    const text = () => dom.app.querySelector('.blatt .inhalt')!.textContent;
+    expect(text()).toContain('Vertrag läuft');
+    expect(text()).toContain('Übergang bei (14|10)');
+    expect(text()).not.toContain('Vertrag unterschreiben');
+    const verbinden = knoepfe().find((knopf) => knopf.textContent === 'Mit Wärmenetz verbinden');
+    expect(verbinden).toBeDefined();
+    verbinden!.click();
+
+    expect(geladen.netz.anschluss.has(saegewerk.id)).toBe(true);
+    expect(geladen.netz.verfuegbar_kw).toBe(120);
+    expect(geladen.objekt(saegewerk.id)?.zustand).toBe('vertrag');
+    expect(text()).toContain('Abwärme ins Netz');
+  });
+});
+
+it('unterscheidet ein geplantes Rohr an der Gebäudekante von einem Rohr, das nur diagonal danebenliegt', () => {
+  const { spiel, saegewerk } = vorbereiten();
+  const rohr = spiel.saegewerkTrasse(saegewerk).rohr!;
+  expect(rohr.geplant).toBe(true);
+  expect(spiel.saegewerkTrasse(saegewerk).uebergang).toBeUndefined();
+
+  rohr.y--;
+  expect(spiel.saegewerkTrasse(saegewerk)).toEqual({ rohr: undefined });
 });

@@ -397,9 +397,6 @@ export class Kontext {
 
   private gross(c: HTMLElement, o: Objekt): void {
     const sp = this.ui.spiel, D = KATALOG[o.typ], n = sp.netz;
-    if (o.typ === 'gewerbe' && !n.anschluss.has(o.id)) {
-      c.append(h('p', {}, 'Lege eine durchgehende Leitung bis direkt an die Gebäudekante. Prüfe bei benachbarten Trassen, ob der Übergang zur Heizzentrale verbunden ist.'));
-    }
     if (o.zustand !== 'vertrag') {
       const b = sp.vertragBedingungen(o);
       const kasten_ = kasten('Bedingungen für den Vertrag');
@@ -409,15 +406,52 @@ export class Kontext {
       // A88: kleinste freigeschaltete Leitung, die den Bedarf (beim Sägewerk die Abwärme) trägt – der Kern entscheidet
       const leitung = sp.passendeLeitung(Math.max(bedarfKw(o), D.abwaerme_kw ?? 0));
       // A92: Leitungen entstehen nur im offenen Bauabschnitt – ohne ihn gesperrt wie „Leitung selbst legen“ am Haus
-      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los', { sperre: abschnittSperre(sp, () => this.ui.jetzt_ms()) })) : '');
+      if (o.typ === 'gewerbe' && !n.anschluss.has(o.id)) c.append(this.saegewerkAnschluss(o));
+      else if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los', { sperre: abschnittSperre(sp, () => this.ui.jetzt_ms()) })) : '');
       c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { sperre: vertragSperre(b.fehlt, () => sp.vertragBedingungen(o).fehlt) })));
       return;
     }
     c.append(h('div', { class: 'chips' }, chip('Vertrag läuft', 'gruen'), chip(n.anschluss.has(o.id) ? (n.warm.has(o.id) || o.typ === 'gewerbe' ? 'angeschlossen' : 'kalt') : 'nicht angeschlossen', n.anschluss.has(o.id) ? '' : 'rot')));
+    if (o.typ === 'gewerbe' && !n.anschluss.has(o.id)) c.append(this.saegewerkAnschluss(o));
     if (D.bedarf_kw && (o.ohne_station || n.kalt.get(o.id) === 'station')) this.stationswahl(c, o);
     if (D.bedarf_kw) c.append(zeile('Jahresverbrauch', `${zahl(D.verbrauch_kwh_a ?? 0)} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW`));
     if (istKunde(o) && sp.netz.anschluss.has(o.id)) this.rechnungBereich(c, o);
     if (D.abwaerme_kw && n.anschluss.has(o.id)) c.append(zeile('Abwärme ins Netz', `bis ${D.abwaerme_kw} kW`));
+  }
+
+  private saegewerkAnschluss(o: Objekt): HTMLElement {
+    const sp = this.ui.spiel;
+    const { rohr, uebergang } = sp.saegewerkTrasse(o);
+    const k = kasten('Netzanschluss');
+    if (uebergang) {
+      const { von, nach, kosten } = uebergang;
+      k.append(h('p', {}, `Die Leitung liegt. Der Übergang bei (${von.x}|${von.y}) zum bestehenden Wärmenetz ist noch nicht verbunden.`),
+        knopf('Mit Wärmenetz verbinden', () => {
+          sp.trassenUmschalten(von.id, nach.id);
+          this.ui.geaendert();
+        }, 'los', { unter: kosten ? eur(kosten) : undefined, sperre: kosten ? geldSperre(sp, kosten) : null }));
+      return k;
+    }
+    if (rohr) {
+      k.append(h('p', {}, rohr.geplant
+        ? 'Ein Rohr ist bis ans Sägewerk eingezeichnet. Schließe den Bauabschnitt ab, bestelle Material und warte, bis die Leitung gebaut ist.'
+        : 'Ein Rohr liegt am Sägewerk. Folge der Trasse bis zur Heizzentrale und verbinde offene Übergänge im Rohrmenü. Fehlende Rohrfelder kannst du im Bauabschnitt ergänzen.'),
+        knopf('Leitung am Sägewerk anzeigen', () => this.ui.kontext(rohr.id)));
+      if (rohr.geplant) return k;
+    } else {
+      k.append(h('p', {}, 'Am Sägewerk fehlt ein Rohr direkt an der Gebäudekante. Zieh die Leitung bis an eine der vier Seiten.'));
+    }
+    const leitung = sp.passendeLeitung(KATALOG.gewerbe.abwaerme_kw!);
+    if (!sp.abschnitt) {
+      const preis = KONSTANTEN.abschnitt_planung_eur;
+      k.append(knopf(`${ABSCHNITT_HELFER.planung}: Bauabschnitt planen lassen`, () => {
+        sp.abschnittPlanen();
+        this.ui.geaendert();
+      }, 'geld', { unter: eur(preis), sperre: geldSperre(sp, preis) }));
+    }
+    if (leitung) k.append(knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los',
+      { sperre: abschnittSperre(sp, () => this.ui.jetzt_ms()) }));
+    return k;
   }
 
   private aussenquelle(c: HTMLElement, o: Objekt): void {
