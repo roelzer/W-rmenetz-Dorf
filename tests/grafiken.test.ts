@@ -33,3 +33,20 @@ describe('Moderne Dorf-Grafiken', () => {
     expect(g.grafikHoehe(neu('hz', 10, 10, { stufe: 3 }))).toBeGreaterThan(g.grafikHoehe(neu('hz', 10, 10))!);
   });
 });
+
+it('heftet die Bildfassade an dieselben Modellpunkte bei zwei Blickwinkeln', async () => {
+  vi.stubGlobal('Image', class { onload?: () => void; set src(_v: string) { this.onload?.(); } });
+  const g = await import('../src/render/grafiken');
+  await g.grafikenLaden();
+  const quelle: [number, number][] = [[315, 312], [558, 245], [315, 571]];
+  const x = { save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), closePath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), clip: vi.fn(), drawImage: vi.fn(), transform: vi.fn() };
+  for (const ziel of [[[10, 20], [50, 12], [10, 65]], [[28, 16], [52, 26], [28, 61]]] as [number, number][][]) {
+    expect(g.atlasFlaeche(x as unknown as CanvasRenderingContext2D, quelle, ziel, [...ziel, [52, 63]])).toBe(true);
+    const [a, b, c, d, e, f] = x.transform.mock.lastCall!;
+    quelle.forEach(([u, v], i) => {
+      expect(a * u + c * v + e).toBeCloseTo(ziel[i][0]);
+      expect(b * u + d * v + f).toBeCloseTo(ziel[i][1]);
+    });
+  }
+  expect(x.restore).toHaveBeenCalledTimes(2);
+});

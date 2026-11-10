@@ -1,6 +1,7 @@
 import type { Objekt } from '../core/typen';
 import { schatten } from './farben';
 import { type Maler, type Punkt } from './maler';
+import { atlasFlaeche } from './grafiken';
 
 /** Fassadendetails sitzen in lokalen Koordinaten auf der jeweiligen Hausseite. */
 function fassade(m: Maler, a: Punkt, b: Punkt, hp: number, mitte: Punkt, front: boolean, holz: boolean, etagen: number, balkon: boolean, warm: boolean, baeckerei: boolean): void {
@@ -53,15 +54,27 @@ function fassade(m: Maler, a: Punkt, b: Punkt, hp: number, mitte: Punkt, front: 
   }
 }
 
+/** Die zwei im Atlas fotografierten Seiten je Haustyp. Dach und PV liegen außerhalb der Ausschnitte. */
+const FASSADEN: Record<'haus' | 'mfh', Record<'eingang' | 'seite', [Punkt, Punkt, Punkt]>> = {
+  haus: {
+    eingang: [[315, 312], [558, 245], [315, 571]],
+    seite: [[77, 273], [298, 311], [77, 526]],
+  },
+  mfh: {
+    eingang: [[308, 821], [577, 753], [308, 1211]],
+    seite: [[68, 766], [288, 822], [68, 1140]],
+  },
+};
+
 /** Nach dem Dorf-Atlas modellierte Wohnhäuser mit Putz, Holz und Glas. */
 export function zeichneWohnhaus(m: Maler, o: Objekt, cx: number, cy: number, strassenseite: number, warm: boolean): void {
   const mfh = o.typ === 'mfh', reihe = o.typ === 'rh';
   const breite = mfh ? 1.5 : reihe ? 0.80 : 0.68 + 0.023 * o.stufe;
   const hp = m.tw * (mfh ? 0.78 : reihe ? 0.34 : 0.32) * (1 + 0.04 * (o.stufe - 1));
-  const dachhoehe = mfh ? 0 : m.tw * breite * 0.30;
+  const dachhoehe = mfh ? 0 : hp * 0.47;
   const quer = strassenseite % 2 === 1;
   const wand = ['#f1e5d0', '#e8dfce', '#eee8db'][o.id % 3];
-  const dach = ['#354653', '#4b5157', '#62554f'][o.id % 3];
+  const dach = '#374656';
 
   m.schatten(cx, cy, breite);
   m.kontaktSchatten(cx, cy, breite);
@@ -69,8 +82,17 @@ export function zeichneWohnhaus(m: Maler, o: Objekt, cx: number, cy: number, str
   m.quader(cx, cy, breite, hp, wand, false);
   const boden = m.ecken(cx, cy, breite);
   for (let i = 0; i < 4; i++) {
-    const front = i === strassenseite;
-    fassade(m, boden[i], boden[(i + 1) % 4], hp, [cx, cy], front, i === (strassenseite + 1) % 4 || (mfh && front),
+    const rechts = boden[i], links = boden[(i + 1) % 4];
+    if (links[0] >= rechts[0] - 0.01) continue;
+    const front = i === strassenseite, seite = i === (strassenseite + 1) % 4;
+    if (!front && !seite) continue;
+    const obenLinks: Punkt = [links[0], links[1] - hp], obenRechts: Punkt = [rechts[0], rechts[1] - hp];
+    if (o.typ !== 'baeck' && atlasFlaeche(m.X, FASSADEN[mfh ? 'mfh' : 'haus'][front ? 'eingang' : 'seite'],
+      [obenLinks, obenRechts, links], [obenLinks, obenRechts, rechts, links])) {
+      if (warm) m.flaeche([obenLinks, obenRechts, rechts, links], 'rgba(255,185,88,.10)', false);
+      continue;
+    }
+    fassade(m, rechts, links, hp, [cx, cy], front, seite || (mfh && front),
       mfh ? 3 : reihe || o.typ === 'baeck' ? 1 : 2, mfh, warm, o.typ === 'baeck');
   }
   const kranz = m.quader(cx, cy - hp, gesims, blende, dach, mfh);
@@ -79,6 +101,13 @@ export function zeichneWohnhaus(m: Maler, o: Objekt, cx: number, cy: number, str
     m.quader(cx, cy - hp - blende, 0.22, m.tw * 0.06, '#989e9e');
   } else {
     kranz.wandR = '#b88654';
-    m.dach(kranz, dachhoehe, dach, quer);
+    const first = m.dach(kranz, dachhoehe, dach, quer);
+    const seite = (strassenseite + 1) % 4, naechste = (seite + 1) % 4;
+    const rechts = boden[seite], links = boden[naechste];
+    if (o.typ !== 'baeck' && links[0] < rechts[0] - 0.01) {
+      const l: Punkt = [links[0], links[1] - hp], r: Punkt = [rechts[0], rechts[1] - hp];
+      const spitze = (seite + (quer ? 3 : 0)) % 4 === 1 ? first.P2 : first.P1;
+      atlasFlaeche(m.X, FASSADEN.haus.seite, [l, r, links], [l, r, spitze]);
+    }
   }
 }
