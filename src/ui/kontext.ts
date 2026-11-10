@@ -571,6 +571,7 @@ export class Kontext {
       ...(bb.ok || sperreBg ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
       h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), sperre: ersteSperre(stufenSperre(sp, 'baugebiet'), baugebietSperre(sp.versorgteHaeuser()), geldSperre(sp, KONSTANTEN.baugebiet_eur)) })));
     const hk = kasten('Helfer');
+    if (sp.freigeschaltet('ruecklauf_helfer')) hk.append(h('p', { class: 'gedaempft' }, 'Die zehnminütige Pause beginnt erst, wenn der hydraulische Abgleich fertig ist.'));
     const sperreHelfer = sp.sperrgrund('ruecklauf_helfer');
     // A88: gesperrt = eine Zeile mit Grund; laufende Aufträge aus einem alten Stand werden trotzdem gezeigt
     if (sperreHelfer && !HELFER.some((name) => sp.helferAuftrag(name))) hk.append(sperrHinweis(`${merkmalName('ruecklauf_helfer')} ${sperreHelfer}`));
@@ -603,7 +604,7 @@ export class Kontext {
         ['abgleich', 'Hydraulische Abgleiche'],
         ['verbessern', 'Alle Hausverbesserungen'],
       ] as const;
-      k.append(h('p', {}, 'Andi beauftragt freie Monteure nach der Monatsabrechnung. Ungenutztes Budget bleibt verfügbar.'),
+      k.append(h('p', {}, 'Bei jeder Monatsabrechnung erhält Andi 10 % seiner neuen Budgetzuteilung als Vergütung, auch wenn seine Aufträge pausieren. Die übrigen 90 % stehen für Aufträge bereit. Ungenutztes Budget bleibt verfügbar.'),
         zeile('Verfügbares Budget', h('span', { 'data-live': 'andi-budget' }, eur(andi.budget_eur))),
         zwischenueberschrift('Anteil am Zahlungseingang'),
         h('div', { class: 'knopfreihe' },

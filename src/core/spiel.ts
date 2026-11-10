@@ -291,7 +291,10 @@ export class Spiel {
   private andiBeauftragen(eingang_eur: number, zeit_ms: number): void {
     const andi = this.stand.andi;
     if (!andi || !this.freigeschaltet('andi')) return;
-    andi.budget_eur += Math.floor(Math.max(0, eingang_eur) * andi.anteil_pct / 100);
+    const zuteilung = Math.floor(Math.max(0, eingang_eur) * andi.anteil_pct / 100);
+    const verguetung = zuteilung * 0.10;
+    this.stand.geld_eur -= verguetung;
+    andi.budget_eur = Math.round((andi.budget_eur + zuteilung - verguetung) * 100) / 100;
     if (andi.aufgabe === 'pause' || andi.anteil_pct === 0) return;
     for (const o of this.stand.objekte) {
       const helfer = this.freierHelfer(zeit_ms);

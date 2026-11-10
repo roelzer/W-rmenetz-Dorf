@@ -17,15 +17,15 @@ it('Andi spart seinen Anteil und beauftragt nur bezahlbare hydraulische Abgleich
   haus.zaehler_eur = 10000;
   zeit += SPIELMONAT_MS;
   spiel.bis(zeit);
-  const erstesBudget = Math.floor(stand.letzte_abrechnung!.eingang_eur! * 0.1);
-  expect(stand.andi?.budget_eur).toBe(erstesBudget);
+  const erstesBudget = Math.floor(stand.letzte_abrechnung!.eingang_eur! * 0.1) * 0.9;
+  expect(stand.andi?.budget_eur).toBeCloseTo(erstesBudget);
   expect(haus.upgrade_auftrag).toBeUndefined();
 
   haus.zaehler_eur = 10000;
   zeit += SPIELMONAT_MS;
   spiel.bis(zeit);
   expect(haus.upgrade_auftrag?.ende_ms).toBeGreaterThan(zeit);
-  expect(stand.andi?.budget_eur).toBe(erstesBudget + Math.floor(stand.letzte_abrechnung!.eingang_eur! * 0.1) - UPGRADES[0].kosten_eur);
+  expect(stand.andi?.budget_eur).toBeCloseTo(erstesBudget + Math.floor(stand.letzte_abrechnung!.eingang_eur! * 0.1) * 0.9 - UPGRADES[0].kosten_eur);
   expect(laden(serialisieren(stand), zeit).andi).toEqual(stand.andi);
 });
 
@@ -57,8 +57,13 @@ it('sperrt den Techniker ab Ende eines Abgleichs genau zehn Spielminuten und spe
   const spiel = new Spiel(stand, () => zeit);
   expect(spiel.upgradeKaufen(haus.id, 'Sebastian').ok).toBe(true);
   const ende = haus.upgrade_auftrag!.ende_ms;
-  zeit = ende + 1000;
+  zeit = ende - 1;
   spiel.bis(zeit);
+  expect(haus.upgrade_auftrag).toBeDefined();
+  expect(spiel.helferPauseBis_ms('Sebastian')).toBe(0);
+  zeit = ende;
+  spiel.bis(zeit);
+  expect(spiel.helferPauseBis_ms('Sebastian') - zeit).toBe(600_000);
   expect(haus.upgrade).toBe(1);
   expect(spiel.helferFreiAb_ms('Sebastian')).toBe(ende + 600_000);
   expect(laden(serialisieren(stand), zeit).helfer_pause_bis_ms?.Sebastian).toBe(ende + 600_000);
@@ -79,4 +84,27 @@ it('rundet Andis alten und neu eingestellten Anteil auf 10-Prozentpunkt-Schritte
   expect(laden(serialisieren(stand), zeit).andi?.anteil_pct).toBe(20);
   spiel.andiKonfigurieren(26, 'abgleich');
   expect(stand.andi?.anteil_pct).toBe(30);
+});
+
+it('zieht Andis Vergütung nur von neu zugeteiltem Budget ab und bucht sie vom Konto', () => {
+  let zeit = 100 * SPIELMONAT_MS;
+  const stand = neuerSpielstand(zeit);
+  const haus = neu('efh', 14, 10);
+  stand.objekte = [neu('hz', 10, 10, { stufe: 3 }), haus];
+  stand.innen = [];
+  const spiel = new Spiel(stand, () => zeit);
+  spiel.andiEinstellen();
+  stand.andi!.budget_eur = 500;
+  haus.zaehler_eur = 1000;
+  const vorher = stand.geld_eur;
+  zeit += SPIELMONAT_MS;
+  spiel.bis(zeit);
+  expect(stand.letzte_abrechnung?.eingang_eur).toBe(1000);
+  expect(stand.geld_eur).toBe(vorher + 990);
+  expect(stand.andi?.budget_eur).toBe(590);
+
+  zeit += SPIELMONAT_MS;
+  spiel.bis(zeit);
+  expect(stand.geld_eur).toBe(vorher + 990);
+  expect(stand.andi?.budget_eur).toBe(590);
 });
