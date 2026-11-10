@@ -252,7 +252,7 @@ export class Spiel {
     return o ? { objekt: o, ende_ms: o.upgrade_auftrag!.ende_ms } : undefined;
   }
   /** Nächstes Hausupgrade beauftragen: Ein freier Helfer senkt den Rücklauf; das kostet Geld und Zeit (A33/A40). */
-  upgradeKaufen(id: number, helfer?: string): Ergebnis {
+  upgradeKaufen(id: number, helfer?: string, zeit_ms = this.uhr()): Ergebnis {
     const o = this.objekt(id), n = o?.upgrade ?? 0;
     if (!o || !(KATALOG[o.typ].kategorie === 'haus' || KATALOG[o.typ].kategorie === 'gross') || n >= UPGRADES.length) return { ok: false };
     const sperre = this.gesperrt('ruecklauf_helfer');
@@ -263,10 +263,39 @@ export class Spiel {
     if (!wer || !HELFER.includes(wer) || this.helferAuftrag(wer)) return this.nein('Alle Helfer sind beschäftigt');
     const b = this.bezahlen({ eur: UPGRADES[n].kosten_eur });
     if (!b.ok) return b;
-    o.upgrade_auftrag = { helfer: wer, ende_ms: this.uhr() + UPGRADES[n].dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
+    o.upgrade_auftrag = { helfer: wer, ende_ms: zeit_ms + UPGRADES[n].dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
     this.sagt(wer, `Alles klar, ${this.spielerName}, ich kümmere mich drum: ${UPGRADES[n].name}.`);
     return ok();
   }
+  andiEinstellen(): void {
+    if (this.freigeschaltet('andi') && !this.stand.andi) this.stand.andi = { anteil_pct: 10, budget_eur: 0, aufgabe: 'pause' };
+  }
+
+  andiKonfigurieren(anteil: number, aufgabe: NonNullable<Spielstand['andi']>['aufgabe']): void {
+    const andi = this.stand.andi;
+    if (!andi || !this.freigeschaltet('andi') || !Number.isFinite(anteil)) return;
+    andi.anteil_pct = Math.max(0, Math.min(100, Math.round(anteil)));
+    andi.aufgabe = aufgabe;
+  }
+
+  private andiBeauftragen(eingang_eur: number, zeit_ms: number): void {
+    const andi = this.stand.andi;
+    if (!andi || !this.freigeschaltet('andi')) return;
+    andi.budget_eur += Math.floor(Math.max(0, eingang_eur) * andi.anteil_pct / 100);
+    if (andi.aufgabe === 'pause' || andi.anteil_pct === 0) return;
+    for (const o of this.stand.objekte) {
+      const helfer = this.freierHelfer();
+      if (!helfer) break;
+      if (KATALOG[o.typ].kategorie !== 'haus' || o.bau || o.ohne_station || o.upgrade_auftrag || !this.netz.anschluss.has(o.id)) continue;
+      const stufe = o.upgrade ?? 0;
+      if (andi.aufgabe === 'abgleich' && stufe > 0) continue;
+      const upgrade = UPGRADES[stufe];
+      if (!upgrade || upgrade.kosten_eur > Math.min(andi.budget_eur, this.stand.geld_eur)) continue;
+      if (!this.upgradeKaufen(o.id, helfer, zeit_ms).ok) continue;
+      andi.budget_eur -= upgrade.kosten_eur;
+    }
+  }
+
   /** Spreizung des Netzes (Vorlauf minus Rücklauf): Grundwert plus Upgrades, nach Bedarf gewichtet; der Rücklauf fällt nie unter 40 °C (A73), bei niedrigem Vorlauf schrumpft sie also. */
   spreizung_k(): number { return mittlereSpreizung_k(this.stand.objekte, this.netz.warm, this.vorlauf_c); }
   /** Bedingungen für die nächste Heizzentralen-Stufe (A39). */
@@ -1369,6 +1398,7 @@ export class Spiel {
         if (eingang > 0) this.ereignisse.push({ art: 'muenzen', objekt_id: hz.id, betrag_eur: eingang });
       }
     }
+    this.andiBeauftragen(eingang_eur, s.zuletzt_ms);
     return { ...a, eingang_eur };
   }
   private einnahmen(dt_s: number): void {

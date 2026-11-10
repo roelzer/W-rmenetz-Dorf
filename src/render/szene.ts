@@ -10,7 +10,6 @@ import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
-import { grafikHoehe } from './grafiken';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 import { bodenSchluessel } from './szene-schluessel';
@@ -19,6 +18,29 @@ import { bodenSchluessel } from './szene-schluessel';
 export { blase };
 
 const N = KONSTANTEN.feldanzahl;
+
+/** Nächste Straßenseite pro Grundstück. Bei Ecklagen gewinnt die erste gleich nahe Seite. */
+const strassenseiten = new WeakMap<NonNullable<Szene['strassen']>, Map<string, number>>();
+function strassenseite(o: Objekt, strassen: Szene['strassen']): number | undefined {
+  if (!strassen?.length || KATALOG[o.typ].kategorie !== 'haus') return undefined;
+  let cache = strassenseiten.get(strassen);
+  if (!cache) { cache = new Map(); strassenseiten.set(strassen, cache); }
+  const k = groesse(o), key = `${o.x},${o.y},${k}`;
+  const bekannt = cache.get(key);
+  if (bekannt !== undefined) return bekannt;
+  const x = o.x + (k - 1) / 2, y = o.y + (k - 1) / 2;
+  let seite = 0, abstand = Infinity;
+  const seiten = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  for (let i = 0; i < seiten.length; i++) {
+    const [dx, dy] = seiten[i];
+    for (const [sx, sy] of strassen) {
+      const d = (sx - x - dx * k / 2) ** 2 + (sy - y - dy * k / 2) ** 2;
+      if (d < abstand) { abstand = d; seite = i; }
+    }
+  }
+  cache.set(key, seite);
+  return seite;
+}
 
 /** Alles, was die Szene zum Zeichnen braucht. `spiel` fehlt beim Besuch im Nachbardorf (keine Blasen, keine Kasse). */
 export interface Szene {
@@ -353,6 +375,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     const [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
     const angeschlossen = s.netz.anschluss.has(o.id);
     const st = {
+      strassenseite: strassenseite(o, s.strassen),
       warm: s.netz.warm.has(o.id), laeuft: s.netz.genutzt_kw > 0, innen: s.innen,
       oel: (kat === 'haus' && (!angeschlossen || !!o.gekuendigt)) || (kat === 'gross' && o.zustand !== 'vertrag' && o.typ !== 'gewerbe'),
     };
@@ -366,7 +389,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     if (durch) X.globalAlpha = 0.5;
     zeichneObjekt(m, o, cx, cy, st, s.jetzt_ms);
     if (durch) X.globalAlpha = 1;
-    const topY = cy - tw * Math.max((grafikHoehe(o) ?? 0) + 0.12, kante >= 2 ? (o.typ === 'klinik' ? 1.15 : 0.95) : 0.72);
+    const topY = cy - tw * (kante >= 2 ? (o.typ === 'klinik' ? 1.15 : 0.95) : 0.72);
     if (o.bau) {
       const hp = tw * 0.55 * kante, bau = o.bau;
       zeichneGeruest(m, cx, cy, kante * 0.8, hp);
@@ -414,7 +437,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     const vorlage: Objekt = bewegt ? { ...bewegt, x: g.x, y: g.y, bau: null, _pop: 0 }
       : { id: 0, typ: g.typ, x: g.x, y: g.y, stufe: 1, bau: null, kasse_eur: 0 };
     X.globalAlpha = 0.9;
-    zeichneObjekt(m, vorlage, cx, cy, { warm: true, laeuft: false, innen: s.innen, oel: false }, s.jetzt_ms);
+    zeichneObjekt(m, vorlage, cx, cy, { warm: true, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(vorlage, s.strassen) }, s.jetzt_ms);
     X.globalAlpha = 1;
     oben.push(() => m.symbol('pfeil', cx, cy - tw * (g.kante > 1 ? 1.1 : 0.8) + Math.sin(m.zeit_s * 4) * 3, tw * 0.15, g.ok ? '#9be36a' : '#ff6a5a'));
   }
@@ -569,7 +592,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       X.beginPath(); X.arc(ex, ey, Math.max(1.5, w * 0.55), 0, Math.PI * 2); X.fillStyle = '#2d2a26'; X.fill();
       X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1; X.stroke();
     }
-    if (netz.engpass.has(key) || netz.reduzierung.has(key) || netz.aufteilung.has(key)) {
+    if (an && netz.kapazitaet_ok.get(key) === false) {
       m.bahn([[cx, cy - tw * 0.32], [cx + tw * 0.13, cy - tw * 0.07], [cx - tw * 0.13, cy - tw * 0.07]]);
       X.fillStyle = '#d8392f'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2; X.fill(); X.stroke();
       m.symbol('ausruf', cx, cy - tw * 0.14, tw * 0.07);

@@ -8,7 +8,7 @@ import type { Spielstand } from './typen';
  */
 export type Funktion =
   | 'stationstypen' | 'express' | 'gestattung' | 'spuelbohrung'
-  | 'vorlauf' | 'ruecklauf_helfer' | 'vorsehung' | 'dach_pv' | 'baugebiet';
+  | 'andi' | 'vorlauf' | 'ruecklauf_helfer' | 'vorsehung' | 'dach_pv' | 'baugebiet';
 export type Merkmal = TypId | Funktion;
 
 /** Merkmal → ab Heizzentralen-Stufe; fehlt = 1. Spielwerte, Simon kann jede Zeile ändern (Bauplan Abschnitt 4). */
@@ -25,6 +25,7 @@ export const FREISCHALTUNGEN: Readonly<Partial<Record<Merkmal, number>>> = {
   solar: 2,
   bad: 2, gewerbe: 2,
   brunnen: 2,
+  andi: 3,
   vorlauf: 3,
   ruecklauf_helfer: 3,
   pellet: 3, gas: 3,
@@ -42,6 +43,7 @@ export const FUNKTION_NAME: Readonly<Record<Funktion, string>> = {
   express: 'Expresslieferung',
   gestattung: 'Gestattung',
   spuelbohrung: 'Spülbohrung',
+  andi: 'Andi · Zweiter Vorstand',
   vorlauf: 'Vorlauf-Regler',
   ruecklauf_helfer: 'Rücklauf-Helfer',
   vorsehung: 'T-Stück mit Vorsehung',
@@ -71,3 +73,4 @@ export function sperrgrund(stand: Spielstand, m: Merkmal): string | null {
 export function neuBeiStufe(stufe: number): Merkmal[] {
   return (Object.keys(FREISCHALTUNGEN) as Merkmal[]).filter((m) => abStufe(m) === stufe);
 }
+

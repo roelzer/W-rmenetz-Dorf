@@ -158,6 +158,10 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
       d.version = SPEICHER_VERSION; migriert = true;
     }
     if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
+      const andi = d.andi;
+      if (andi && (!Number.isInteger(andi.anteil_pct) || andi.anteil_pct < 0 || andi.anteil_pct > 100
+        || !Number.isFinite(andi.budget_eur) || andi.budget_eur < 0
+        || !['pause', 'abgleich', 'verbessern'].includes(andi.aufgabe))) delete d.andi;
       nr18Aufraeumen(d as Spielstand);
       nr19Aufraeumen(d as Spielstand);
       hzAusbauflaecheFreiraeumen(d as Spielstand);
@@ -209,3 +213,4 @@ export function sicherungEinspielen(speicher: Pick<Storage, 'setItem'>, text: st
   geloescht = true;
   return { ok: true, stand };
 }
+

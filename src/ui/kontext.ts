@@ -482,15 +482,12 @@ export class Kontext {
       return ex >= k.x - 1 && ex <= k.x + g && ey >= k.y - 1 && ey <= k.y + g && !(ex >= k.x && ex < k.x + g && ey >= k.y && ey < k.y + g);
     });
     const anHaus = !verzweigt && haeuser.length === 1;
-    c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser, deshalb dick. Dünner werden darf sie nur an einem Abzweig (T-Stück).'));
+    c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser. Entscheidend ist, ob ihre Kapazität für die benötigte Wärme ausreicht.'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     // Fachprüfung A73: Unter 1 liegt der Faktor, wenn der Vorlauf so niedrig ist, dass bis 40 °C Rücklauf wenig Spreizung bleibt.
     if (n.spreizung_faktor > 1.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
     else if (n.spreizung_faktor < 0.99) c.append(h('p', { class: 'gedaempft' }, `Der Vorlauf ist so niedrig, dass bis zum Rücklauf (mindestens ${MIN_RUECKLAUF_C} °C) wenig Spreizung bleibt – die Leitung schafft ${Math.round((1 - n.spreizung_faktor) * 100)} % weniger als nominal.`));
-    if (n.engpass.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.')));
-    else if (n.aufteilung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier teilt sich die Leitung in zwei Abgänge, die beide so dick sind wie die Zuleitung. So plant das niemand: Nimm eine dickere Zuleitung (z. B. eine 90er aus der Heizzentrale), führe zwei eigene Abgänge aus der Heizzentrale oder lass mindestens einen Abgang dünner weiterlaufen.')));
-    else if (n.reduzierung.has(key)) c.append(kasten('Planungsfehler', h('p', {}, 'Hier wird die Leitung mitten auf der Strecke dünner. Wie in echt wechselt der Durchmesser nur an einem Abzweig (T-Stück). Tausche den dünneren Abschnitt auf die Größe davor oder lass die Leitung erst am Abzweig dünner werden.')));
-    else if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
+    if (n.tiefe.has(key) && n.kapazitaet_ok.get(key) === false) c.append(kasten('Überlastet', h('p', {}, 'Durch diese Stelle soll mehr Wärme fließen, als die Leitung schafft. Tausche sie gegen eine dickere.')));
     else if (o.geplant) c.append(h('p', {}, `Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung${sp.freigeschaltet('gestattung') ? ' (abseits der Straße samt Gestattung)' : ''}. Zählt noch nicht fürs Netz.`));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
     // A69: T-Stück mit Vorsehung (verschlossener Abgang für einen späteren Anschluss)
@@ -581,9 +578,35 @@ export class Kontext {
       const a = sp.helferAuftrag(name);
       hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
     }
-    c.append(ausbauZieleKasten(sp), k, vl, this.preisKasten(), pvk, hk, bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
+    c.append(ausbauZieleKasten(sp), k, vl, this.preisKasten(), pvk, hk, this.andiKasten(), bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
     void groesse;
+  }
+
+  private andiKasten(): HTMLElement {
+    const sp = this.ui.spiel, andi = sp.stand.andi;
+    const k = kasten('Andi · Zweiter Vorstand');
+    if (!sp.freigeschaltet('andi')) {
+      k.append(sperrHinweis(`Ab Heizzentralenstufe ${abStufe('andi')} verfügbar`));
+    } else if (!andi) {
+      k.append(knopf('Andi einstellen', () => { sp.andiEinstellen(); this.ui.geaendert(); }, 'los'));
+    } else {
+      const budget = h('input', { type: 'number', min: '0', max: '100', step: '1', value: String(andi.anteil_pct), 'aria-label': 'Budgetanteil in Prozent' }) as HTMLInputElement;
+      const aufgabe = h('select', { 'aria-label': 'Andis Aufgabe' },
+        h('option', { value: 'pause' }, 'Pausiert'),
+        h('option', { value: 'abgleich' }, 'Hydraulische Abgleiche'),
+        h('option', { value: 'verbessern' }, 'Alle Hausverbesserungen')) as HTMLSelectElement;
+      aufgabe.value = andi.aufgabe;
+      k.append(h('p', {}, 'Andi beauftragt freie Monteure nach der Monatsabrechnung. Ungenutztes Budget bleibt verfügbar.'),
+        zeile('Verfügbares Budget', eur(andi.budget_eur)),
+        zeile('Anteil am Zahlungseingang (%)', budget), zeile('Aufgabe', aufgabe),
+        knopf('Auftrag speichern', () => {
+          const wahl = aufgabe.value;
+          if (wahl === 'pause' || wahl === 'abgleich' || wahl === 'verbessern') sp.andiKonfigurieren(budget.valueAsNumber, wahl);
+          this.ui.geaendert();
+        }, 'los'));
+    }
+    return k;
   }
 
   /** Wärmepreis einstellen (A52): gehört zur Heizzentrale, nicht ins Büro. */
@@ -628,3 +651,4 @@ export class Kontext {
     this.ausbauKnopf(c, o);
   }
 }
+

@@ -4,7 +4,6 @@ import type { Bau, InnenQuelle, Objekt } from '../core/typen';
 import { dachfarbe, KONTUR, schatten } from './farben';
 import tokens from '../../design/tokens.json';
 import { WARM_FENSTER, type Maler } from './maler';
-import { grafikZeichnen, objektGrafik } from './grafiken';
 
 const ALLES = Math.PI * 2;
 /** Dauer des kurzen Federns (DESIGN.md Abschnitt 3: Platzieren; 13.2: „Erreicht“-Zeichen) */
@@ -16,6 +15,7 @@ export interface Zustand {
   laeuft: boolean;
   innen: InnenQuelle[];
   oel: boolean;
+  strassenseite?: number;
 }
 
 export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand, jetzt_ms: number): void {
@@ -26,20 +26,7 @@ export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Z
   if (pop > 0) { X.save(); X.translate(cx, cy); const k = 1 + Math.sin(pop * Math.PI) * 0.18; X.scale(k, Math.max(0.8, 2 - k)); X.translate(-cx, -cy); }
   const alpha = X.globalAlpha;
   if (geist) X.globalAlpha *= 0.5;
-  const grafik = objektGrafik(o);
-  if (grafik && grafikZeichnen(X, grafik.art, cx, cy, tw * grafik.breite)) {
-    // Stufe und Versorgungszustand bleiben auch bei vorberechneten Fassaden sichtbar.
-    const by = cy + tw * grafik.breite * 0.18;
-    if (t !== 'hz') m.kreis(cx, by, tw * 0.026, st.warm ? '#ffb847' : '#91aec0');
-    if (lv > 1) {
-      X.fillStyle = '#ffc747'; X.strokeStyle = '#73511c'; X.lineWidth = Math.max(0.5, tw * 0.008);
-      for (let i = 0; i < Math.min(lv, 5); i++) m.stern(cx + (i - (Math.min(lv, 5) - 1) / 2) * tw * 0.075, by + tw * 0.055, tw * 0.025);
-    }
-    if (t === 'hz' && st.laeuft && !m.reduziert && st.innen.some(q => q.typ === 'kessel' || q.typ === 'pellet' || q.typ === 'gas')) {
-      X.save(); heizRauch(m, cx + tw * grafik.breite * 0.17, cy - tw * grafik.breite * 0.64, m.zeit_s, tw * 0.04); X.restore();
-    }
-  }
-  else if (t === 'hz') heizzentrale(m, o, cx, cy, st);
+  if (t === 'hz') heizzentrale(m, o, cx, cy, st);
   else if (t === 'pv' || t === 'solar') {
     m.schatten(cx, cy, 1.6); m.raute(cx, cy, 1.75); X.fillStyle = t === 'pv' ? '#c9c4b2' : '#b9b29a'; X.fill(); X.strokeStyle = KONTUR; X.stroke();
     const n = Math.min(4, lv + 1), col = t === 'pv' ? '#2c5aa0' : '#283848';
@@ -150,6 +137,15 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
     X.strokeStyle = 'rgba(255,255,255,.25)'; X.lineWidth = 1;
     for (let i = 1; i < 5; i++) { const d = (hp * 0.55 * i) / 5; X.beginPath(); X.moveTo(a[0], a[1] - d); X.lineTo(b[0], b[1] - d); X.stroke(); }
   }
+  if (o.dach_pv) {
+    const [a, b, c, d] = tp.welt;
+    const lerp = (p: [number, number], q: [number, number], t: number): [number, number] => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+    for (let i = 0; i < 3; i++) {
+      const l = lerp(a, b, 0.12 + i * 0.26), r = lerp(a, b, 0.33 + i * 0.26);
+      const vl = lerp(d, c, 0.12 + i * 0.26), vr = lerp(d, c, 0.33 + i * 0.26);
+      m.flaeche([lerp(l, vl, 0.18), lerp(r, vr, 0.18), lerp(r, vr, 0.72), lerp(l, vl, 0.72)], '#234d78');
+    }
+  }
   for (const fr of [0.25, 0.5, 0.75]) m.fenster(tp.bL, tp.bB, fr, hp, -hp * 0.42, '#bfe0f5', false);
   for (let i = 0; i < nw; i++) {
     const x = cx + tw * 0.05 + i * tw * 0.18, y = cy - hp - th * 0.05 + i * th * 0.1;
@@ -181,12 +177,19 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
     m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.32, licht, false, true); if (zwei) m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.72, licht, false, true);
     m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.32, licht, true, true); if (zwei) m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.72, licht, true, true);
   }
-  { // Tür auf der rechten sichtbaren Wand (A75: entlang der Wand, passt in jedem Drehwinkel)
-    const auf = (f: number): [number, number] => [tp.bB[0] + (tp.bR[0] - tp.bB[0]) * f, tp.bB[1] + (tp.bR[1] - tp.bB[1]) * f];
-    const a = auf(0.4 - 0.08 / s), b = auf(0.4 + 0.08 / s);
-    if (Math.abs(b[0] - a[0]) > tw * 0.02) m.flaeche([a, b, [b[0], b[1] - hp * 0.45], [a[0], a[1] - hp * 0.45]], '#7a4e2c'); }
+  // Die Fassade bleibt in Weltkoordinaten fest. Beim Drehen kann der Eingang hinter dem Haus liegen.
+  const seite = st.strassenseite ?? 1;
+  const a = tp.welt[seite], b = tp.welt[(seite + 1) % 4];
+  if (b[0] < a[0] - tw * 0.02) {
+    const punkt = (f: number, z: number): [number, number] =>
+      [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f + hp * (1 - z)];
+    const f = zwei ? 0.38 : 0.23;
+    m.flaeche([punkt(f - 0.1, 0), punkt(f + 0.1, 0), punkt(f + 0.1, 0.57), punkt(f - 0.1, 0.57)], '#3c403f');
+    m.flaeche([punkt(f - 0.075, 0), punkt(f + 0.075, 0), punkt(f + 0.075, 0.52), punkt(f - 0.075, 0.52)], '#a97149', false);
+  }
   if (t === 'baeck') m.flaeche([[tp.bL[0], tp.bL[1] - hp * 0.55], [tp.bB[0], tp.bB[1] - hp * 0.55], [tp.bB[0] - tw * 0.04, tp.bB[1] - hp * 0.3], [tp.bL[0] - tw * 0.04, tp.bL[1] - hp * 0.3]], '#e2582b');
-  const r = m.dach(tp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, dachfarbe(o.id));
+  if (seite % 2) tp.welt.push(tp.welt.shift()!);
+  const r = m.dach(tp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, o.id % 3 ? '#394b59' : dachfarbe(o.id));
   const chx = r.P1[0] + (r.P2[0] - r.P1[0]) * 0.3, chy = r.P1[1] + (r.P2[1] - r.P1[1]) * 0.3;
   m.quader(chx, chy + tw * 0.02, 0.12, tw * 0.1, '#9c5a3c');
   // A60: kein Rauch aus den Hauskaminen (spart Rechenleistung; Simon 2026-11-05)
@@ -195,7 +198,7 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
     X.moveTo(tp.bL[0] - tw * 0.05, tp.bL[1] + th * 0.05); X.lineTo(tp.bB[0], tp.bB[1] + th * 0.3); X.stroke();
     for (let i = 0; i < 5; i++) { const f = i / 4, x = tp.bL[0] - tw * 0.05 + (tp.bB[0] - tp.bL[0] + tw * 0.05) * f, y = tp.bL[1] + th * 0.05 + (tp.bB[1] - tp.bL[1] + th * 0.25) * f; X.beginPath(); X.moveTo(x, y); X.lineTo(x, y - tw * 0.06); X.stroke(); }
   }
-  if (lv >= 4) { const a = [r.P1[0] + (r.P2[0] - r.P1[0]) * 0.55, r.P1[1] + (r.P2[1] - r.P1[1]) * 0.55]; m.flaeche([[a[0], a[1] + tw * 0.03], [a[0] + tw * 0.12, a[1] + tw * 0.09], [a[0] + tw * 0.05, a[1] + tw * 0.15], [a[0] - tw * 0.07, a[1] + tw * 0.09]], '#2c5aa0'); }
+
 }
 
 function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {

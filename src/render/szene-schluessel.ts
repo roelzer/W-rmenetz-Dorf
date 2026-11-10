@@ -40,7 +40,7 @@ export function szenenSchluessel(s: Szene): string {
     teile.push([
       o.id, o.typ, o.x, o.y, o.stufe, ja(!!o.bau), ja(o.geplant), ja(o.gekuendigt), ja(o.interessent), o.anfrage ?? '',
       ja(o.ohne_station), o.station ?? '', o.zustand ?? '', ja(o.vorsehung), o.upgrade ?? 0, ja(o.hauspuffer),
-      ja(o.vollversorgung), ja(o.aufgestockt), ja((o.zufriedenheit_pct ?? 80) < 40), ja(ploppAktiv(o, s.jetzt_ms)),
+      ja(o.vollversorgung), ja(o.aufgestockt), ja(o.dach_pv), ja((o.zufriedenheit_pct ?? 80) < 40), ja(ploppAktiv(o, s.jetzt_ms)),
       JSON.stringify(o.trassenUebergaenge ?? {}),
       o.ersatz?.typ ?? '', // NR18: geplanter Ersatz zeigt die Planraute
     ].join(','));
@@ -95,3 +95,4 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   for (const ok of netz.kapazitaet_ok.values()) if (!ok) return 'langsam'; // Überlast blinkt 4/s (szene.ts:374)
   return 'keine';
 }
+
