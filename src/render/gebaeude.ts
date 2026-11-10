@@ -169,7 +169,10 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   const hp = tw * (zwei ? 0.6 : t === 'rh' ? 0.3 : 0.24) * (1 + 0.06 * (lv - 1));
   const wand = t === 'baeck' ? '#f3d9a6' : t === 'rh' ? '#e8d2c6' : zwei ? '#e3e6e9' : '#f2e8d6';
   m.schatten(cx, cy, s); m.kontaktSchatten(cx, cy, s);
-  m.quaderUmriss(cx, cy, s, hp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7); // O1: Umriss um Wände und Dach
+  const seite = st.strassenseite ?? 1;
+  const firstQuer = seite % 2 === 1;
+  const dachhoehe = tw * (zwei ? 0.36 : 0.24) * s / 0.7;
+  m.quaderUmriss(cx, cy, s, hp, dachhoehe, firstQuer);
   const tp = m.quader(cx, cy, s, hp, wand, false); tp.wandR = schatten(wand, -0.28);
   const licht = st.warm ? WARM_FENSTER : '#93b4d0', nw = zwei ? 3 : t === 'rh' ? 2 : 1;
   for (let i = 0; i < nw; i++) {
@@ -178,7 +181,6 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
     m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.32, licht, true, true); if (zwei) m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.72, licht, true, true);
   }
   // Die Fassade bleibt in Weltkoordinaten fest. Beim Drehen kann der Eingang hinter dem Haus liegen.
-  const seite = st.strassenseite ?? 1;
   const a = tp.welt[seite], b = tp.welt[(seite + 1) % 4];
   if (b[0] < a[0] - tw * 0.02) {
     const punkt = (f: number, z: number): [number, number] =>
@@ -188,8 +190,7 @@ function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
     m.flaeche([punkt(f - 0.075, 0), punkt(f + 0.075, 0), punkt(f + 0.075, 0.52), punkt(f - 0.075, 0.52)], '#a97149', false);
   }
   if (t === 'baeck') m.flaeche([[tp.bL[0], tp.bL[1] - hp * 0.55], [tp.bB[0], tp.bB[1] - hp * 0.55], [tp.bB[0] - tw * 0.04, tp.bB[1] - hp * 0.3], [tp.bL[0] - tw * 0.04, tp.bL[1] - hp * 0.3]], '#e2582b');
-  if (seite % 2) tp.welt.push(tp.welt.shift()!);
-  const r = m.dach(tp, ((tw * (zwei ? 0.36 : 0.24)) * s) / 0.7, o.id % 3 ? '#394b59' : dachfarbe(o.id));
+  const r = m.dach(tp, dachhoehe, o.id % 3 ? '#394b59' : dachfarbe(o.id), firstQuer);
   const chx = r.P1[0] + (r.P2[0] - r.P1[0]) * 0.3, chy = r.P1[1] + (r.P2[1] - r.P1[1]) * 0.3;
   m.quader(chx, chy + tw * 0.02, 0.12, tw * 0.1, '#9c5a3c');
   // A60: kein Rauch aus den Hauskaminen (spart Rechenleistung; Simon 2026-11-05)

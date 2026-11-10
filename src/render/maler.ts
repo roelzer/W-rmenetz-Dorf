@@ -73,10 +73,13 @@ export class Maler {
     X.restore();
   }
   /** O1: Umriss eines Quaders (optional mit Satteldach der Höhe rh; First entlang der Welt-x-Achse wie in `dach`). */
-  quaderUmriss(cx: number, cy: number, s: number, hp: number, rh = 0): void {
+  quaderUmriss(cx: number, cy: number, s: number, hp: number, rh = 0, firstQuer = false): void {
     const g = this.ecken(cx, cy, s), u = (p: Punkt): Punkt => [p[0], p[1] - hp];
     const pkt: Punkt[] = [...g, ...g.map(u)];
-    if (rh) pkt.push([(g[0][0] + g[3][0]) / 2, (g[0][1] + g[3][1]) / 2 - hp - rh], [(g[1][0] + g[2][0]) / 2, (g[1][1] + g[2][1]) / 2 - hp - rh]);
+    if (rh) {
+      const [p1, p2] = dachfirst(g.map(u), rh, firstQuer);
+      pkt.push(p1, p2);
+    }
     this.silhouette(pkt);
   }
   kreis(x: number, y: number, r: number, fuell: string | CanvasGradient, rand = false): void {
@@ -124,34 +127,40 @@ export class Maler {
   }
 
   /** Satteldach auf einem Quader; der First läuft entlang der Welt-x-Achse und dreht mit der Karte. */
-  dach(t: ReturnType<Maler['quader']>, rh: number, farbe: string): { P1: Punkt; P2: Punkt } {
-    const X = this.X, tw = this.tw, [c0, c1, c2, c3] = t.welt;
-    const mitte = (a: Punkt, b: Punkt): Punkt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    const P1 = mitte(c0, c3), P2 = mitte(c1, c2);
-    P1[1] -= rh; P2[1] -= rh;
+  dach(t: ReturnType<Maler['quader']>, rh: number, farbe: string, firstQuer = false): { P1: Punkt; P2: Punkt } {
+    const X = this.X, tw = this.tw;
+    const [c0, c1, c2, c3] = dachEcken(t.welt, firstQuer);
+    const [P1, P2] = dachfirst(t.welt, rh, firstQuer);
     const giebel = t.wandR || schatten('#e8dcc4', -0.16);
-    // Flächen von hinten nach vorn (Tiefe = Bildhöhe der Traufkante)
-    const hinten = mitte(c0, c1)[1], vorn = mitte(c3, c2)[1];
-    const flaechen: Array<[number, Punkt[], string]> = [
-      [hinten, [c0, c1, P2, P1], schatten(farbe, hinten < vorn ? -0.18 : 0.06)],
-      [vorn, [c3, c2, P2, P1], schatten(farbe, vorn <= hinten ? -0.18 : 0.06)],
-      [mitte(c1, c2)[1], [c1, c2, P2], giebel],
-      [mitte(c0, c3)[1], [c0, c3, P1], giebel],
-    ];
-    flaechen.sort((a, b) => a[0] - b[0]);
-    for (const [, p, f] of flaechen) this.flaeche(p, f);
-    const [ka, kb] = vorn >= hinten ? [c3, c2] : [c0, c1];
-    X.strokeStyle = 'rgba(53,31,24,.22)'; X.lineWidth = Math.max(0.75, tw * 0.008);
-    const reihen = tw >= 42 ? 6 : 3;
-    X.beginPath();
-    for (let i = 1; i < reihen; i++) {
-      const f = i / reihen;
-      X.moveTo(ka[0] + (P1[0] - ka[0]) * f, ka[1] + (P1[1] - ka[1]) * f);
-      X.lineTo(kb[0] + (P2[0] - kb[0]) * f, kb[1] + (P2[1] - kb[1]) * f);
+    const hinten = c0[1] + c1[1], vorn = c2[1] + c3[1];
+
+    // Im Uhrzeigersinn projizierte Flächen zeigen zum Betrachter. Bei einem
+    // konvexen Dach überdecken die sichtbaren Flächen einander dadurch nicht.
+    const sichtbar = ([a, b, c]: Punkt[]): boolean =>
+      (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) > 1e-6;
+    for (const form of [[c1, c2, P2], [c3, c0, P1]]) {
+      if (sichtbar(form)) this.flaeche(form, giebel);
     }
-    X.stroke();
-    X.strokeStyle = 'rgba(54,35,26,.44)'; X.lineWidth = Math.max(1, tw * 0.015);
-    X.beginPath(); X.moveTo(...ka); X.lineTo(...kb); X.stroke();
+
+    const reihen = tw >= 42 ? 6 : 3;
+    for (const [a, b, f1, f2, hell] of [
+      [c0, c1, P1, P2, hinten >= vorn],
+      [c2, c3, P2, P1, vorn > hinten],
+    ] as const) {
+      const form = [a, b, f2, f1];
+      if (!sichtbar(form)) continue;
+      this.flaeche(form, schatten(farbe, hell ? 0.06 : -0.18));
+      X.strokeStyle = 'rgba(53,31,24,.22)'; X.lineWidth = Math.max(0.75, tw * 0.008);
+      X.beginPath();
+      for (let i = 1; i < reihen; i++) {
+        const f = i / reihen;
+        X.moveTo(a[0] + (f1[0] - a[0]) * f, a[1] + (f1[1] - a[1]) * f);
+        X.lineTo(b[0] + (f2[0] - b[0]) * f, b[1] + (f2[1] - b[1]) * f);
+      }
+      X.stroke();
+      X.strokeStyle = 'rgba(54,35,26,.44)'; X.lineWidth = Math.max(1, tw * 0.015);
+      X.beginPath(); X.moveTo(...a); X.lineTo(...b); X.stroke();
+    }
     X.strokeStyle = 'rgba(255,255,255,.55)'; X.lineWidth = Math.max(1.2, tw * 0.025);
     X.beginPath(); X.moveTo(P1[0], P1[1]); X.lineTo(P2[0], P2[1]); X.stroke();
     return { P1, P2 };
@@ -255,4 +264,16 @@ export function huelle(punkte: Punkt[]): Punkt[] {
   for (const q of p) { while (unten.length >= 2 && kreuz(unten[unten.length - 2], unten[unten.length - 1], q) <= 0) unten.pop(); unten.push(q); }
   for (const q of [...p].reverse()) { while (oben.length >= 2 && kreuz(oben[oben.length - 2], oben[oben.length - 1], q) <= 0) oben.pop(); oben.push(q); }
   return [...unten.slice(0, -1), ...oben.slice(0, -1)];
+}
+
+function dachEcken(ecken: Punkt[], quer: boolean): Punkt[] {
+  return quer ? [ecken[1], ecken[2], ecken[3], ecken[0]] : ecken;
+}
+
+function dachfirst(ecken: Punkt[], hoehe: number, quer: boolean): [Punkt, Punkt] {
+  const [a, b, c, d] = dachEcken(ecken, quer);
+  return [
+    [(a[0] + d[0]) / 2, (a[1] + d[1]) / 2 - hoehe],
+    [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2 - hoehe],
+  ];
 }
