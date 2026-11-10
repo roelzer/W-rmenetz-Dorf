@@ -249,37 +249,36 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
     }
   }
   const parzellen = gartenplan(s).parzellen;
-  for (const o of s.objekte) {
-    const g = parzellen.get(o.id);
-    if (g && g.breite * g.tiefe > 1) zeichneGarten(m, k, g, o);
-  }
-  // Hausanschlussweg und Garten (A53): Plattenweg vom Haus zur nächsten Straße, abgesetzter Garten mit Zaun
-  if (s.strassen?.length || parzellen.size) {
+  // Hausanschlussweg und Garten liegen mit den Straßen in derselben zwischengespeicherten Ebene.
+  {
     const feld = new Set((s.strassen ?? []).map(([sx, sy]) => sy * N + sx));
+    const anStrasse = (x: number, y: number): boolean => x >= 0 && x < N && y >= 0 && y < hoehe && feld.has(y * N + x);
     for (const o of s.objekte) {
       const kat = KATALOG[o.typ].kategorie;
       if (kat !== 'haus' || o.bau) continue;
       const kk = groesse(o);
       let weg: [number, number, number, number] | null = null;
       for (let i = 0; i < kk && !weg; i++) {
-        if (feld.has((o.y - 1) * N + o.x + i)) weg = [o.x + i, o.y, 0, -1];
-        else if (feld.has((o.y + kk) * N + o.x + i)) weg = [o.x + i, o.y + kk - 1, 0, 1];
-        else if (feld.has((o.y + i) * N + o.x - 1)) weg = [o.x, o.y + i, -1, 0];
-        else if (feld.has((o.y + i) * N + o.x + kk)) weg = [o.x + kk - 1, o.y + i, 1, 0];
+        if (anStrasse(o.x + i, o.y - 1)) weg = [o.x + i, o.y, 0, -1];
+        else if (anStrasse(o.x + i, o.y + kk)) weg = [o.x + i, o.y + kk - 1, 0, 1];
+        else if (anStrasse(o.x - 1, o.y + i)) weg = [o.x, o.y + i, -1, 0];
+        else if (anStrasse(o.x + kk, o.y + i)) weg = [o.x + kk - 1, o.y + i, 1, 0];
       }
       const [gcx, gcy] = k.mitte(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2);
-      if (gcx < -tw || gcx > W + tw || gcy < -th || gcy > H + tw) continue;
+      if (gcx < -tw * 2 || gcx > W + tw * 2 || gcy < -tw * 2 || gcy > H + tw * 2) continue;
       const efh = o.typ === 'efh', variante = (o.x * 7 + o.y * 11) % 3;
-      const grundstueck = efh ? [0.86, 0.92, 0.98][variante] : kk * 0.86;
-      const g = parzellen.get(o.id);
-      if (!g || g.breite * g.tiefe === 1) {
-        m.raute(gcx, gcy + th * 0.045, grundstueck);
+      const g = parzellen.get(o.id) ?? { x: o.x, y: o.y, breite: kk, tiefe: kk };
+      const erweitert = g.breite * g.tiefe > kk * kk;
+      if (erweitert) zeichneGarten(m, k, g, o);
+      else {
+        const grundstueck = efh ? [0.86, 0.92, 0.98][variante] : kk - .14;
+        m.raute(gcx, gcy + th * .045, grundstueck);
         X.fillStyle = 'rgba(43,65,36,.22)'; X.fill();
         m.raute(gcx, gcy, grundstueck);
-        X.fillStyle = efh || winter ? farben.rand : '#b9af8d'; X.fill();
-        m.raute(gcx, gcy, grundstueck - 0.08);
-        X.fillStyle = winter ? farben.garten : efh
-          ? (saison === 'sommer' ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : farben.garten) : '#d8ccb0'; X.fill();
+        X.fillStyle = farben.rand; X.fill();
+        m.raute(gcx, gcy, grundstueck - .08);
+        X.fillStyle = saison === 'sommer' ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : farben.garten;
+        X.fill();
       }
       if (tw >= 24) {
         // Gärten sitzen auf den eigenen Grundstücken und drehen sich mit der Karte.
@@ -299,23 +298,23 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
           if (!winter && !herbst) m.kreis(bx + r * 0.34, by - r * 0.58, r * 0.27, (o.x + o.y) % 2 ? '#ff779e' : '#ffe176');
         }
       }
-      if (weg) {
-        const [wx, wy, dx, dy] = weg, hw = 0.12;
-        const pts: Array<[number, number]> = dx === 0
-          ? [[-hw, 0], [hw, 0], [hw, 0.55 * dy], [-hw, 0.55 * dy]]
-          : [[0, -hw], [0, hw], [0.55 * dx, hw], [0.55 * dx, -hw]];
-        X.beginPath(); pts.forEach(([gx, gy], i) => { const [px, py] = k.mitte(wx + gx, wy + gy); if (i) X.lineTo(px, py); else X.moveTo(px, py); }); X.closePath();
-        X.fillStyle = KARTE.gehweg; X.fill(); X.strokeStyle = KARTE.bordstein; X.lineWidth = 1; X.stroke();
-        if (tw >= 42) {
-          X.beginPath();
-          for (const f of [0.3, 0.44]) {
-            const a = k.mitte(wx + dx * f - dy * hw, wy + dy * f + dx * hw);
-            const b = k.mitte(wx + dx * f + dy * hw, wy + dy * f - dx * hw);
-            X.moveTo(...a); X.lineTo(...b);
-          }
-          X.strokeStyle = 'rgba(86,79,60,.32)'; X.stroke();
+      const zugang: [number, number, number, number] = weg ?? (o.y === g.y
+        ? [o.x, o.y, 0, -1] : [o.x, o.y + kk - 1, 0, 1]);
+      const [wx, wy, dx, dy] = zugang, hw = .12, laenge = weg ? .55 : .46;
+      const pts: Punkt[] = dx === 0
+        ? [[-hw, 0], [hw, 0], [hw, laenge * dy], [-hw, laenge * dy]]
+        : [[0, -hw], [0, hw], [laenge * dx, hw], [laenge * dx, -hw]];
+      m.flaeche(pts.map(([gx, gy]) => k.mitte(wx + gx, wy + gy)), KARTE.gehweg, false);
+      if (tw >= 42) {
+        X.beginPath();
+        for (const f of [.30, .42]) {
+          const a = k.mitte(wx + dx * f - dy * hw, wy + dy * f - dx * hw);
+          const b = k.mitte(wx + dx * f + dy * hw, wy + dy * f + dx * hw);
+          X.moveTo(...a); X.lineTo(...b);
         }
+        X.strokeStyle = 'rgba(86,79,60,.32)'; X.lineWidth = 1; X.stroke();
       }
+      zeichneGartenzaun(m, k, g, zugang);
     }
   }
   wolkenrand(m, k, hoehe);
@@ -326,6 +325,37 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       X.beginPath(); if (i <= N) { X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); } X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
     }
   }
+}
+
+/** Niedriger Holzzaun entlang der Grundstücksgrenze mit einer Öffnung am Weg. */
+function zeichneGartenzaun(m: Maler, k: Kamera, g: Garten, zugang: [number, number, number, number]): void {
+  const { X } = m, tw = k.tw;
+  const [wx, wy, dx, dy] = zugang;
+  const l = g.x - .43, r = g.x + g.breite - .57, o = g.y - .43, u = g.y + g.tiefe - .57;
+  const hoehe = Math.max(1.8, tw * .065);
+  const waag = (a: number, b: number, y: number): void => latte(a, b, y, true);
+  const senk = (a: number, b: number, x: number): void => latte(a, b, x, false);
+  function latte(a: number, b: number, fest: number, horizontal: boolean): void {
+    const punkt = (p: number): Punkt => horizontal ? k.mitte(p, fest) : k.mitte(fest, p);
+    const [x1, y1] = punkt(a), [x2, y2] = punkt(b);
+    X.moveTo(x1, y1 - hoehe * .74); X.lineTo(x2, y2 - hoehe * .74);
+    if (tw >= 32) { X.moveTo(x1, y1 - hoehe * .34); X.lineTo(x2, y2 - hoehe * .34); }
+    const n = Math.max(1, Math.ceil((b - a) * (tw >= 32 ? 4 : 2)));
+    for (let i = 0; i <= n; i++) {
+      const [x, y] = punkt(a + (b - a) * i / n);
+      X.moveTo(x, y); X.lineTo(x, y - hoehe);
+    }
+  }
+  const halb = .17;
+  X.save(); X.beginPath();
+  if (dy < 0) { waag(l, wx - halb, o); waag(wx + halb, r, o); } else waag(l, r, o);
+  if (dy > 0) { waag(l, wx - halb, u); waag(wx + halb, r, u); } else waag(l, r, u);
+  if (dx < 0) { senk(o, wy - halb, l); senk(wy + halb, u, l); } else senk(o, u, l);
+  if (dx > 0) { senk(o, wy - halb, r); senk(wy + halb, u, r); } else senk(o, u, r);
+  X.lineCap = 'round';
+  X.strokeStyle = '#5e4a35'; X.lineWidth = Math.max(1.25, tw * .024); X.stroke();
+  if (tw >= 28) { X.strokeStyle = '#bd9c71'; X.lineWidth *= .54; X.stroke(); }
+  X.restore();
 }
 
 function zeichneGarten(m: Maler, k: Kamera, g: Garten, haus: Objekt): void {

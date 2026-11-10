@@ -1,25 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="nacht" cx="46%" cy="34%" r="78%">
-      <stop stop-color="#284e72"/><stop offset="1" stop-color="#101c34"/>
+    <radialGradient id="grund" cx=".38" cy=".25" r=".92">
+      <stop stop-color="#176a74"/>
+      <stop offset="1" stop-color="#082635"/>
     </radialGradient>
-    <linearGradient id="dach" x2="0" y2="100%">
-      <stop stop-color="#5a7794"/><stop offset="1" stop-color="#294464"/>
-    </linearGradient>
-    <linearGradient id="licht" x2="0" y2="100%">
-      <stop stop-color="#fff0b9"/><stop offset="1" stop-color="#ffc266"/>
+    <linearGradient id="waerme" x2="0" y2="1">
+      <stop stop-color="#ffe099"/>
+      <stop offset=".52" stop-color="#ffae54"/>
+      <stop offset="1" stop-color="#f67b3a"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" fill="url(#nacht)"/>
-  <ellipse cx="260" cy="341" rx="152" ry="48" fill="#111d31" opacity=".7"/>
-  <path d="M142 235l111-96 89 75v92l-74 42-126-38z" fill="#f6e6ce"/>
-  <path d="M268 250l74-42v98l-74 42z" fill="#a3b3bd"/>
-  <path d="M126 234l104-91 77-40 78 84-76 44-79-77-90 92z" fill="#7394ab"/>
-  <path d="M230 143l77-40 78 84-76 44z" fill="url(#dach)"/>
-  <path d="M140 247l90-82 78 76 77-46v-8l-76 44-79-77-104 80z" fill="#1a304d"/>
-  <path d="M179 249l62 10v51l-62-12z" fill="#9d654b"/>
-  <path d="M185 253l51 9v42l-51-10z" fill="url(#licht)"/>
-  <path d="M210 258v41m-25-26 51 9" fill="none" stroke="#b8784c" stroke-width="4"/>
-  <path d="M153 328l93 27q17 5 32-3l49-27" fill="none" stroke="#f59352" stroke-width="15" stroke-linecap="round"/>
-  <path d="M154 350l93 27q18 5 33-3l48-27" fill="none" stroke="#69c3f1" stroke-width="15" stroke-linecap="round"/>
+  <rect width="512" height="512" fill="url(#grund)"/>
+  <path d="M128 226 256 117l128 109" transform="translate(0 6)" fill="none"
+        stroke="#072631" stroke-opacity=".52" stroke-width="35" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M128 226 256 117l128 109" fill="none"
+        stroke="#fff5df" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M256 179c4 29 20 40 36 56 11 12 17 25 17 41 0 30-23 53-53 53s-53-23-53-53c0-19 11-36 25-48-2 13 2 23 9 29 11-23 2-45 19-78Z"
+        fill="url(#waerme)"/>
+  <path d="M257 265c10 15 22 25 22 39a23 23 0 0 1-46 0c0-10 6-17 12-23 0 6 2 10 6 13 5-9 6-18 6-29Z"
+        fill="#fff3cb"/>
+  <path d="M151 282v53a40 40 0 0 0 40 40h51" fill="none"
+        stroke="#f59352" stroke-width="24" stroke-linecap="round"/>
+  <path d="M361 282v53a40 40 0 0 1-40 40h-41" fill="none"
+        stroke="#69c3f1" stroke-width="24" stroke-linecap="round"/>
 </svg>

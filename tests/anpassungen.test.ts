@@ -781,7 +781,7 @@ describe('A62 Expresslieferung', () => {
 });
 
 describe('A63 Logo', () => {
-  it('A63: Das Logo zeigt ein beleuchtetes Haus mit Vor- und Rücklauf und ist auch App-Symbol', async () => {
+  it('A63: Das Logo zeigt Dach, Flamme, Vor- und Rücklauf und ist auch App-Symbol', async () => {
     const { readFileSync } = await import('node:fs');
     const logo = readFileSync(new URL('../src/ui/logo.svg', import.meta.url), 'utf8');
     expect(logo).toContain('#f59352'); expect(logo).toContain('#69c3f1');
