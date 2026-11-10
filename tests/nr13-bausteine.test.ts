@@ -41,7 +41,7 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', matchMedia);
   vi.stubGlobal('window', fenster);
   vi.stubGlobal('requestAnimationFrame', (f: () => void) => { f(); return 1; });
-  // Fotos der Figuren gibt es hier nicht: das Bild lädt nie, die gezeichnete Figur bleibt
+  // Die Attrappe lädt keine Fotos. Auch ohne Ladeereignis darf keine Ersatzzeichnung erscheinen.
   vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; });
   animiert.length = 0;
   // Die Attrappe merkt sich keine Keyframes – hier werden sie mitgeschrieben, damit der Test die Fingerbewegung lesen kann.
@@ -172,30 +172,24 @@ describe('NR13 Anleiter-Karte', () => {
     expect(text.kinder.filter((k) => k instanceof TextKnoten).map((k) => k.textContent)).toEqual(['Das ist ein ', ' mit <b>x</b> und **offen']);
   });
 
-  it('test_nr13_simon_figur_platzhalter', async () => {
+  it('verwendet bei Simon und Philipp von Anfang an nur das Foto', async () => {
     vi.useFakeTimers();
     const { sprecherZeigen, sprecherAktiv } = await import('../src/ui/sprecher');
     expect(sprecherAktiv()).toBe(false);
     sprecherZeigen('Simon', 'Hallo!');
     expect(sprecherAktiv()).toBe(true);
-    const svg = a.doc.querySelector('#sprecher .sprecher-bild svg')!;
-    const quelle = svg.getAttribute('quelle')!;
-    expect(quelle).toContain('#ff8a1f'); // Jacke Heat-Orange (naht_vorlauf)
-    expect(quelle).toContain('#3a92ea'); // Kragen ville-Blau (naht_ruecklauf)
-    expect(quelle).toContain('stroke-width="6"'); // 6-px-Kragen
-    expect(quelle).not.toContain('#f3c623'); // kein Helm
-    // Philipp bleibt blau ohne Kragen
+    expect(a.doc.querySelector('#sprecher .sprecher-bild.foto img')?.getAttribute('src')).toBe('figuren/simon.webp');
+    expect(a.doc.querySelector('#sprecher .sprecher-bild svg')).toBeNull();
     sprecherZeigen('Philipp', 'Ich plane.');
     vi.advanceTimersByTime(3800 + 6 * 20 + 350);
-    const philipp = a.doc.querySelector('#sprecher .sprecher-bild svg')!.getAttribute('quelle')!;
-    expect(philipp).toContain('#3f6fa8');
-    expect(philipp).not.toContain('#3a92ea');
+    expect(a.doc.querySelector('#sprecher .sprecher-bild.foto img')?.getAttribute('src')).toBe('figuren/philipp.webp');
+    expect(a.doc.querySelector('#sprecher .sprecher-bild svg')).toBeNull();
     vi.advanceTimersByTime(3800 + 10 * 20 + 350);
     expect(sprecherAktiv()).toBe(false);
-    // Die Anleiter-Karte zeigt dieselbe Simon-Figur
     const { anleiterZeigen } = await anleiter();
     anleiterZeigen(ansicht(), PLATZ, { weiter() {} }, 0);
-    expect(karte().querySelector('.sprecher-bild svg')!.getAttribute('quelle')).toContain('#ff8a1f');
+    expect(karte().querySelector('.sprecher-bild.foto img')?.getAttribute('src')).toBe('figuren/simon.webp');
+    expect(karte().querySelector('.sprecher-bild svg')).toBeNull();
   });
 });
 

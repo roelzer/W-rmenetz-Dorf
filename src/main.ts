@@ -16,6 +16,7 @@ import { animationAus, bildAbschluss, sparHinweisSchritt } from './render/schlei
 import { aufloesungGeaendert, zeichenAufloesung, type Aufloesung } from './render/aufloesung';
 import { Steuerung } from './steuerung';
 import { tokensAnwenden } from './ui/tokens';
+import { sprecherFotosVorladen } from './ui/sprecher';
 import { vorspannZeigen } from './ui/vorspann';
 import { hinweisMitKnopf } from './ui/toast';
 import { beiEinstellungsAenderung, einstellungenLesen, type Einstellungen } from './ui/einstellungen';
@@ -26,6 +27,7 @@ tokensAnwenden();
 /** Nur lesen: Änderungen kommen über beiEinstellungsAenderung; geschrieben wird von der Oberfläche, nie von hier. */
 let einstellungen: Einstellungen = einstellungenLesen();
 vorspannZeigen(einstellungen.weniger_bewegung);
+sprecherFotosVorladen();
 
 const lesen = (): string | null => { try { return localStorage.getItem(SPEICHER_SCHLUESSEL); } catch { return null; } };
 /** Einen unbrauchbaren Spielstand sichern, bevor er vom neuen Spiel überschrieben wird. */
