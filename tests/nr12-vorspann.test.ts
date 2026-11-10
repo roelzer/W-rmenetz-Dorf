@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 
-// A90 / NR12 P2 (Entscheidung E1 b): Der Startbildschirm ist ganz ruhig – nur das Logo blendet einmal ein,
-// der Ladebalken läuft über transform. Bewegte SVG-Teile lassen in WebKit sonst in jedem Bild das ganze Dorf neu malen.
+import { nachtdorfSvg, waermeSvg } from '../src/ui/vorspann-dorf';
+
 const vorspann = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
 const css = readFileSync(new URL('../src/ui/stil.css', import.meta.url), 'utf8');
 
@@ -22,25 +22,22 @@ function regel(text: string, selektor: string): string {
   return m![1];
 }
 
-describe('A90 / NR12 P2: Startbildschirm ganz ruhig', () => {
-  it('NR12 P2: Vorspann ohne bewegte SVG-Teile', () => {
-    for (const klasse of ['vs-wolke', 'vs-dampf', 'vs-fluss', 'vs-rotor', 'vs-freude', 'vs-blatt', 'vs-strahlen', 'vs-bewegt']) {
-      // Wortgrenze: das stehende Blatt-Zeichen der Unterzeile (vs-blattzeichen) ist kein bewegtes Teil
-      expect(vorspann, klasse).not.toMatch(new RegExp(`${klasse}(?![\\w-])`));
-    }
-    expect(vorspann).not.toContain('bewegteEbene');
-    expect(vorspann).not.toMatch(/animation-(delay|duration)/);
+describe('Vorspann mit ruhender Dorfkulisse und getrennter Animation', () => {
+  it('Die Kulisse bleibt statisch und die Wärmeeffekte liegen in einer eigenen SVG-Ebene', () => {
+    expect(nachtdorfSvg()).not.toMatch(/<animate|vs-impuls|vs-licht/);
+    expect(waermeSvg(true).match(/class="vs-impuls"/g)).toHaveLength(6);
+    expect(waermeSvg(true).match(/class="vs-licht"/g)).toHaveLength(5);
+    const ohneBewegung = waermeSvg(false);
+    expect(ohneBewegung).not.toMatch(/vs-impuls|vs-licht/);
+    expect(ohneBewegung).toContain('#ffce7c');
+    expect(vorspann).toContain("window.matchMedia('(prefers-reduced-motion: reduce)')");
   });
 
-  it('NR12 P2: im Vorspann-CSS nur die Animationen vs-plopp und vs-laden', () => {
+  it('Animiert nur Titel, Ladebalken, Wärmeimpuls und Fensterlicht', () => {
     const abschnitt = vorspannAbschnitt();
-    const werte = [...abschnitt.matchAll(/animation:([^;}]+)/g)].map((m) => m[1].trim());
-    const benannt = werte.filter((w) => w !== 'none!important');
-    expect(benannt).toHaveLength(2);
-    expect(benannt.map((w) => w.split(/\s+/)[0]).sort()).toEqual(['vs-laden', 'vs-plopp']);
-    expect([...abschnitt.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]).sort()).toEqual(['vs-laden', 'vs-plopp']);
-    // Auch außerhalb des Abschnitts keine Reste der alten Bewegungen
-    expect(css).not.toMatch(/vs-(wolke|dampf|fluss|rotor|freude|blatt|strahlen|bewegt|drehen|wippen)(?![\w-])/);
+    const namen = [...abschnitt.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]);
+    expect(namen.sort()).toEqual(['vs-impuls', 'vs-laden', 'vs-licht', 'vs-plopp']);
+    expect(abschnitt).toContain('#vorspann.still *{animation:none!important}');
   });
 
   it('NR12 P2: Vorspann-CSS ohne filter', () => {
