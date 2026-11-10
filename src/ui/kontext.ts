@@ -591,20 +591,29 @@ export class Kontext {
     } else if (!andi) {
       k.append(knopf('Andi einstellen', () => { sp.andiEinstellen(); this.ui.geaendert(); }, 'los'));
     } else {
-      const budget = h('input', { type: 'number', min: '0', max: '100', step: '1', value: String(andi.anteil_pct), 'aria-label': 'Budgetanteil in Prozent' }) as HTMLInputElement;
-      const aufgabe = h('select', { 'aria-label': 'Andis Aufgabe' },
-        h('option', { value: 'pause' }, 'Pausiert'),
-        h('option', { value: 'abgleich' }, 'Hydraulische Abgleiche'),
-        h('option', { value: 'verbessern' }, 'Alle Hausverbesserungen')) as HTMLSelectElement;
-      aufgabe.value = andi.aufgabe;
+      const setzen = (anteil: number, aufgabe: typeof andi.aufgabe): void => {
+        sp.andiKonfigurieren(anteil, aufgabe);
+        this.ui.geaendert();
+      };
+      const aufgaben = [
+        ['pause', 'Pausieren'],
+        ['abgleich', 'Hydraulische Abgleiche'],
+        ['verbessern', 'Alle Hausverbesserungen'],
+      ] as const;
       k.append(h('p', {}, 'Andi beauftragt freie Monteure nach der Monatsabrechnung. Ungenutztes Budget bleibt verfügbar.'),
-        zeile('Verfügbares Budget', eur(andi.budget_eur)),
-        zeile('Anteil am Zahlungseingang (%)', budget), zeile('Aufgabe', aufgabe),
-        knopf('Auftrag speichern', () => {
-          const wahl = aufgabe.value;
-          if (wahl === 'pause' || wahl === 'abgleich' || wahl === 'verbessern') sp.andiKonfigurieren(budget.valueAsNumber, wahl);
-          this.ui.geaendert();
-        }, 'los'));
+        zeile('Verfügbares Budget', h('span', { 'data-live': 'andi-budget' }, eur(andi.budget_eur))),
+        zwischenueberschrift('Anteil am Zahlungseingang'),
+        h('div', { class: 'knopfreihe' },
+          stepper('minus', 'Andis Budgetanteil senken', () => setzen(andi.anteil_pct - 1, andi.aufgabe), andi.anteil_pct <= 0),
+          h('span', { class: 'preiswert' }, `${andi.anteil_pct} %`),
+          stepper('plus', 'Andis Budgetanteil erhöhen', () => setzen(andi.anteil_pct + 1, andi.aufgabe), andi.anteil_pct >= 100)),
+        zwischenueberschrift('Aufgabe'),
+        h('div', { class: 'knopfreihe', role: 'group', 'aria-label': 'Andis Aufgabe' }, ...aufgaben.map(([wahl, titel]) => {
+          const aktiv = wahl === andi.aufgabe;
+          const taste = knopf(titel, () => { if (andi.aufgabe !== wahl) setzen(andi.anteil_pct, wahl); }, aktiv ? 'los' : '', { klein: true });
+          taste.setAttribute('aria-pressed', String(aktiv));
+          return taste;
+        })));
     }
     return k;
   }

@@ -45,8 +45,8 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
   it('A84: Heizzentrale – Plus/Minus sind Stufenknöpfe statt Text, nicht ausbaubare Quelle als deaktivierter Knopf', () => {
     const q = lies('src/ui/kontext.ts');
     expect(q).not.toMatch(/knopf\('[−+]'/);
-    expect((q.match(/stepper\('minus'/g) ?? []).length).toBe(3);
-    expect((q.match(/stepper\('plus'/g) ?? []).length).toBe(3);
+    expect((q.match(/stepper\('minus'/g) ?? []).length).toBe(4);
+    expect((q.match(/stepper\('plus'/g) ?? []).length).toBe(4);
     expect(q).not.toContain("h('span', { class: 'gedaempft' }, q.stufe >= KONSTANTEN.hoechststufe ? 'Höchste Stufe' : 'Heizzentrale ausbauen')");
     // DESIGN.md 12.20 S2: Zeile 2 klein geschrieben wie die übrigen Gründe; Verhalten (Schloss, Hinweis) prüft tests/a92-sperrtexte.test.ts
     expect(q).not.toContain('Erst Heizzentrale ausbauen');

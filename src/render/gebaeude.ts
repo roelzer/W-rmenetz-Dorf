@@ -1,9 +1,10 @@
 import { KATALOG } from '../core/katalog';
 import { groesse } from '../core/netz';
 import type { Bau, InnenQuelle, Objekt } from '../core/typen';
-import { dachfarbe, KONTUR, schatten } from './farben';
+import { KONTUR, schatten } from './farben';
 import tokens from '../../design/tokens.json';
-import { WARM_FENSTER, type Maler } from './maler';
+import type { Maler } from './maler';
+import { zeichneWohnhaus } from './wohnhaus';
 
 const ALLES = Math.PI * 2;
 /** Dauer des kurzen Federns (DESIGN.md Abschnitt 3: Platzieren; 13.2: „Erreicht“-Zeichen) */
@@ -60,7 +61,7 @@ export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Z
   } else if (t === 'huette') {
     m.schatten(cx, cy, 0.7); const hp = tw * 0.2; m.quaderUmriss(cx, cy, 0.62, hp, tw * 0.2); const tp = m.quader(cx, cy, 0.62, hp, '#c98f52', false);
     tp.wandR = schatten('#c98f52', -0.3); m.dach(tp, tw * 0.2, '#e2582b');
-  } else if (D.kategorie === 'haus') haus(m, o, cx, cy, st);
+  } else if (D.kategorie === 'haus') zeichneWohnhaus(m, o, cx, cy, st.strassenseite ?? 1, st.warm);
   else if (D.kategorie === 'gross') gross(m, o, cx, cy, st);
   else deko(m, o, cx, cy);
   X.globalAlpha = alpha;
@@ -161,45 +162,6 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
   for (let i = 0; i < lv; i++) m.stern(tp.L[0] + tw * 0.2 + i * tw * 0.1, tp.L[1] + hp * 0.55 + i * th * 0.1, tw * 0.035);
   if (st.laeuft && nk) for (let i = 0; i < nk; i++) heizRauch(m, cx - tw * 0.45 + i * tw * 0.17, cy - hp - tw * 0.62, m.zeit_s + i * 0.37, tw * 0.055);
   m.tw = tw0; m.th = th0;
-}
-
-function haus(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
-  const { X } = m, tw = m.tw, th = m.th, t = o.typ, lv = o.stufe, zwei = t === 'mfh';
-  const s = zwei ? 1.5 : t === 'rh' ? 0.8 : 0.62 + 0.03 * lv;
-  const hp = tw * (zwei ? 0.6 : t === 'rh' ? 0.3 : 0.24) * (1 + 0.06 * (lv - 1));
-  const wand = t === 'baeck' ? '#f3d9a6' : t === 'rh' ? '#e8d2c6' : zwei ? '#e3e6e9' : '#f2e8d6';
-  m.schatten(cx, cy, s); m.kontaktSchatten(cx, cy, s);
-  const seite = st.strassenseite ?? 1;
-  const firstQuer = seite % 2 === 1;
-  const dachhoehe = tw * (zwei ? 0.36 : 0.24) * s / 0.7;
-  m.quaderUmriss(cx, cy, s, hp, dachhoehe, firstQuer);
-  const tp = m.quader(cx, cy, s, hp, wand, false); tp.wandR = schatten(wand, -0.28);
-  const licht = st.warm ? WARM_FENSTER : '#93b4d0', nw = zwei ? 3 : t === 'rh' ? 2 : 1;
-  for (let i = 0; i < nw; i++) {
-    const f = (i + 1) / (nw + 1);
-    m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.32, licht, false, true); if (zwei) m.fenster(tp.bL, tp.bB, f, hp, -hp * 0.72, licht, false, true);
-    m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.32, licht, true, true); if (zwei) m.fenster(tp.bB, tp.bR, f, hp, -hp * 0.72, licht, true, true);
-  }
-  // Die Fassade bleibt in Weltkoordinaten fest. Beim Drehen kann der Eingang hinter dem Haus liegen.
-  const a = tp.welt[seite], b = tp.welt[(seite + 1) % 4];
-  if (b[0] < a[0] - tw * 0.02) {
-    const punkt = (f: number, z: number): [number, number] =>
-      [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f + hp * (1 - z)];
-    const f = zwei ? 0.38 : 0.23;
-    m.flaeche([punkt(f - 0.1, 0), punkt(f + 0.1, 0), punkt(f + 0.1, 0.57), punkt(f - 0.1, 0.57)], '#3c403f');
-    m.flaeche([punkt(f - 0.075, 0), punkt(f + 0.075, 0), punkt(f + 0.075, 0.52), punkt(f - 0.075, 0.52)], '#a97149', false);
-  }
-  if (t === 'baeck') m.flaeche([[tp.bL[0], tp.bL[1] - hp * 0.55], [tp.bB[0], tp.bB[1] - hp * 0.55], [tp.bB[0] - tw * 0.04, tp.bB[1] - hp * 0.3], [tp.bL[0] - tw * 0.04, tp.bL[1] - hp * 0.3]], '#e2582b');
-  const r = m.dach(tp, dachhoehe, o.id % 3 ? '#394b59' : dachfarbe(o.id), firstQuer);
-  const chx = r.P1[0] + (r.P2[0] - r.P1[0]) * 0.3, chy = r.P1[1] + (r.P2[1] - r.P1[1]) * 0.3;
-  m.quader(chx, chy + tw * 0.02, 0.12, tw * 0.1, '#9c5a3c');
-  // A60: kein Rauch aus den Hauskaminen (spart Rechenleistung; Simon 2026-11-05)
-  if (lv >= 2 && !zwei) {
-    X.strokeStyle = '#fff'; X.lineWidth = Math.max(1, tw * 0.02); X.beginPath();
-    X.moveTo(tp.bL[0] - tw * 0.05, tp.bL[1] + th * 0.05); X.lineTo(tp.bB[0], tp.bB[1] + th * 0.3); X.stroke();
-    for (let i = 0; i < 5; i++) { const f = i / 4, x = tp.bL[0] - tw * 0.05 + (tp.bB[0] - tp.bL[0] + tw * 0.05) * f, y = tp.bL[1] + th * 0.05 + (tp.bB[1] - tp.bL[1] + th * 0.25) * f; X.beginPath(); X.moveTo(x, y); X.lineTo(x, y - tw * 0.06); X.stroke(); }
-  }
-
 }
 
 function gross(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
