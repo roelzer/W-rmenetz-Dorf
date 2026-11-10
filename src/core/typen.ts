@@ -99,6 +99,8 @@ export interface Spielstand {
   /** gewählter Ort (A21); fehlt bei alten Spielständen */
   ort?: string;
   geld_eur: number;
+  entwickler_kasse_gefuellt?: true;
+  entwickler_unbegrenzt?: true;
   taler: number;
   objekte: Objekt[];
   naechste_id: number;

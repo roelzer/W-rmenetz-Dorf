@@ -111,16 +111,17 @@ export class Hud {
     }
     // A81: Keine Münzen mehr an den Häusern – der Balken zeigt, wie voll das Konto im Verhältnis zum Kassenspeicher ist
     const grenze = sp.kassengrenze_eur(), voll = s.geld_eur >= grenze - 0.5;
-    this.setze(this.geld, `${zahl(s.geld_eur)} €`, s.geld_eur / grenze, `Geld ${zahl(s.geld_eur)} Euro von höchstens ${zahl(grenze)} Euro im Kassenspeicher${voll ? ' – Kasse voll' : ''}. Die Kunden zahlen am Monatsende automatisch`);
+    if (sp.testwaehrungUnbegrenzt) this.setze(this.geld, '∞ €', 1, 'Unbegrenzt Euro');
+    else this.setze(this.geld, `${zahl(s.geld_eur)} €`, s.geld_eur / grenze, `Geld ${zahl(s.geld_eur)} Euro von höchstens ${zahl(grenze)} Euro im Kassenspeicher${voll ? ' – Kasse voll' : ''}. Die Kunden zahlen am Monatsende automatisch`);
     this.geld.wurzel.classList.toggle('mangel', voll);
-    if (this.geld.wurzel.tagName === 'BUTTON') this.geld.wurzel.setAttribute('aria-label', `Geldfluss öffnen. Kontostand: ${zahl(s.geld_eur)} Euro`);
+    if (this.geld.wurzel.tagName === 'BUTTON') this.geld.wurzel.setAttribute('aria-label', `Geldfluss öffnen. Kontostand: ${sp.testwaehrungUnbegrenzt ? 'unbegrenzt' : zahl(s.geld_eur)} Euro`);
     const da = n.verfuegbar_kw, gebraucht = n.genutzt_kw;
     this.setze(this.waerme, `${zahl(gebraucht)}/${zahl(da)} kW`, da > 0 ? gebraucht / da : 0, `Wärme: ${zahl(gebraucht)} von ${zahl(da)} Kilowatt genutzt. Bedarf ${zahl(n.bedarf_kw)} Kilowatt`);
     this.waerme.wurzel.classList.toggle('mangel', n.bedarf_kw > da + 0.01);
     const ruf = sp.ruf_pct();
     this.setze(this.ruf, `${zahl(ruf)} %`, ruf / 100, `Ruf ${zahl(ruf)} Prozent`);
     this.ruf.wurzel.classList.toggle('schlecht', ruf < 45);
-    this.setze(this.taler, zahl(s.taler), 0, `${zahl(s.taler)} Dorftaler`);
+    this.setze(this.taler, zahl(sp.verfuegbareTaler), 0, sp.testwaehrungUnbegrenzt ? 'Unbegrenzt Dorftaler' : `${zahl(s.taler)} Dorftaler`);
     const frei = Math.max(0, sp.monteure() - sp.beschaeftigt());
     const kurz = typeof matchMedia === 'function' && matchMedia('(max-width:699px)').matches;
     this.setze(this.monteure, monteurText(frei, sp.monteure(), kurz), sp.monteure() ? (sp.monteure() - frei) / sp.monteure() : 0, `Monteure: ${frei} von ${sp.monteure()} frei`);

@@ -133,7 +133,7 @@ export class Katalog {
     const voll = !innen && !gesperrt && gesamtLeitungen >= grenze;
     const c = sp.kosten(t, 1);
     const kostetText = c.taler != null ? `${c.taler} Taler` : eur(c.eur ?? 0);
-    const zuTeuer = c.taler != null ? s.taler < c.taler : s.geld_eur < (c.eur ?? 0);
+    const zuTeuer = c.taler != null ? sp.verfuegbareTaler < c.taler : sp.verfuegbareEuro < (c.eur ?? 0);
     const antrag = s.antraege[t];
     // NR13: erst die normale Aktion (Zeichenleiste öffnet), dann die Meldung – so ist die Leiste offen, wenn das Tutorial weiterzählt
     const leitung = istLeitung(t);
@@ -149,14 +149,14 @@ export class Katalog {
   }
 
   private waehlen(t: TypId): void {
-    const { spiel: sp } = this.ui, D = KATALOG[t], s = sp.stand;
+    const { spiel: sp } = this.ui, D = KATALOG[t];
     const grund = sp.sperrgrund(t);
     // DESIGN.md 12.20 (Katalogkarten): derselbe Wortlaut wie an den gesperrten Knöpfen (Regel 5/6)
     if (grund) { this.ui.toast(`${D.name} ${grund}. Baue die Heizzentrale aus.`); return; }
     const c = sp.kosten(t, 1);
-    const fehltGeld = c.eur != null && !istLeitung(t) ? geldHinweis(c.eur - s.geld_eur) : null;
+    const fehltGeld = c.eur != null && !istLeitung(t) ? geldHinweis(c.eur - sp.verfuegbareEuro) : null;
     if (fehltGeld) { this.ui.toast(fehltGeld); return; }
-    const fehltTaler = c.taler != null ? talerHinweis(c.taler - s.taler) : null;
+    const fehltTaler = c.taler != null ? talerHinweis(c.taler - sp.verfuegbareTaler) : null;
     if (fehltTaler) { this.ui.toast(fehltTaler); return; }
     if (D.kategorie === 'innen') {
       const r = sp.innenEinbauen(t);

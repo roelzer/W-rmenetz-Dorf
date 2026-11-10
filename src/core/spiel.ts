@@ -127,7 +127,7 @@ export class Spiel {
       if (!st) throw new Error(`NR13: keine Puffer-Station für ${KATALOG[h.typ].name}`);
       return summe + this.stationspreis_eur(h, st);
     }, 0);
-    return Math.max(0, this.abschnittKosten_eur() + stationen_eur - this.stand.geld_eur);
+    return Math.max(0, this.abschnittKosten_eur() + stationen_eur - this.verfuegbareEuro);
   }
   /** NR13: zuletzt begonnenes Kapitel merken (Wiedereinstieg); nur im laufenden Tutorial und nur Kapitel 1–6. */
   tutorialKapitelSetzen(kapitel: number): void {
@@ -304,7 +304,7 @@ export class Spiel {
       const stufe = o.upgrade ?? 0;
       if (andi.aufgabe === 'abgleich' && stufe > 0) continue;
       const upgrade = UPGRADES[stufe];
-      if (!upgrade || upgrade.kosten_eur > Math.min(andi.budget_eur, this.stand.geld_eur)) continue;
+      if (!upgrade || upgrade.kosten_eur > Math.min(andi.budget_eur, this.verfuegbareEuro)) continue;
       if (!this.upgradeKaufen(o.id, helfer, zeit_ms).ok) continue;
       andi.budget_eur -= upgrade.kosten_eur;
     }
@@ -490,7 +490,24 @@ export class Spiel {
     return { eur: k[Math.min(stufe - 1, k.length - 1)] };
   }
 
+  get testwaehrungUnbegrenzt(): boolean { return this.stand.entwickler_unbegrenzt === true; }
+  get verfuegbareEuro(): number { return this.testwaehrungUnbegrenzt ? Infinity : this.stand.geld_eur; }
+  get verfuegbareTaler(): number { return this.testwaehrungUnbegrenzt ? Infinity : this.stand.taler; }
+
+  entwicklerhilfeAnwenden(art: 'kasse' | 'unbegrenzt'): Ergebnis {
+    if (art === 'unbegrenzt') {
+      this.stand.entwickler_unbegrenzt = true;
+      return { ok: true, hinweis: 'Unbegrenzte Euro und Dorftaler sind aktiv.' };
+    }
+    if (this.stand.entwickler_kasse_gefuellt === true)
+      return { ok: false, hinweis: 'Die einmalige Kassenfüllung wurde in diesem Spielstand schon verwendet.' };
+    this.stand.geld_eur = Math.max(this.stand.geld_eur, this.kassengrenze_eur());
+    this.stand.entwickler_kasse_gefuellt = true;
+    return { ok: true, hinweis: 'Der Geldspeicher ist voll.' };
+  }
+
   private bezahlen(c: { taler?: number; eur?: number }): Ergebnis {
+    if (this.testwaehrungUnbegrenzt) return ok();
     if (c.taler != null) {
       if (this.stand.taler < c.taler) return this.nein('Zu wenig Dorftaler');
       this.stand.taler -= c.taler;
@@ -678,8 +695,8 @@ export class Spiel {
   beschleunigen(bau: Bau | null | undefined): Ergebnis {
     if (!bau) return { ok: false };
     const c = this.beschleunigungskosten_taler(bau);
-    if (this.stand.taler < c) return this.nein('Zu wenig Dorftaler');
-    this.stand.taler -= c;
+    const b = this.bezahlen({ taler: c });
+    if (!b.ok) return b;
     bau.ende_ms = this.uhr();
     this.bis(this.uhr());
     return ok();

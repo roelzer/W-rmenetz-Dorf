@@ -971,7 +971,7 @@ export class Steuerung implements Ui {
     const sp = this.spiel, monat = sp.monat(), a = sp.stand.letzte_abrechnung;
     const { inhalt } = blattOeffnen({ titel: 'Geldfluss', art: 'popup' });
     inhalt.append(
-      h('p', {}, `Kontostand: ${eur(sp.stand.geld_eur)}`),
+      h('p', {}, `Kontostand: ${eur(sp.verfuegbareEuro)}`),
       h('p', {}, `Nächste Abrechnung: Ende ${sp.monatsname(monat.nr)}`),
       a ? h('div', { class: 'kasten' },
         h('h3', {}, `Letzte Abrechnung · ${sp.monatsname(a.monat)}`),
