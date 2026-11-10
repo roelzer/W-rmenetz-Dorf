@@ -110,6 +110,7 @@ export interface Spielstand {
   abschnitt?: Abschnitt;
   /** A43: Baugebiet bereits erschlossen */
   baugebiet?: boolean;
+  neubaugebiet?: boolean;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
   gestattungen?: number[];
   /** Version des Kartenlayouts (Straßen, Fluss); ältere Spielstände werden beim Laden angepasst (A46) */

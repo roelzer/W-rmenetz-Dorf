@@ -73,10 +73,10 @@ export interface Definition {
 export const KATALOG: Record<TypId, Definition> = {
   hz: {
     name: 'Heizzentrale', groesse: 2, kategorie: 'dorf' /* wird speziell behandelt */,
-    grenze: [1, 1, 1, 1, 1],
-    kosten_eur: [0, 200, 3500, 9000, 20000],
-    bauzeit_s: [0, 30, 90, 240, 480],
-    plaetze: [2, 3, 4, 5, 6],
+    grenze: [1, 1, 1, 1, 1, 1],
+    kosten_eur: [0, 200, 3500, 9000, 20000, 25000],
+    bauzeit_s: [0, 30, 90, 240, 480, 600],
+    plaetze: [2, 3, 4, 5, 6, 8],
     beschreibung:
       'Dein Heizhaus. Drinnen stehen die Wärmequellen; die Stufe bestimmt, wie viele hineinpassen und wie groß sie sein dürfen. Ab Stufe 3 wird es auf 3×3 Felder vergrößert.',
   },
@@ -337,6 +337,8 @@ export const GRUNDGEBUEHR = { min_eur: 25, max_eur: 40, start_eur: 32, neutral_e
 export const KONSTANTEN = {
   /** Karte N×N Felder */
   feldanzahl: 24,
+  neubau_hoehe: 32,
+  heizzentrale_hoechststufe: 6,
   /** Grundkapazität der Kasse in € (ohne Abrechnungsbüro) */
   grundkasse_eur: 150000,
   /** Anteil der Baukosten, der bei bewilligter Förderung zurückfließt */
@@ -479,10 +481,11 @@ export const HZ_ZIELE: ReadonlyArray<{ stufe: number; anschluesse: number; absat
   { stufe: 3, anschluesse: 5, absatz_kw: 80, spreizung_k: 0 },
   { stufe: 4, anschluesse: 8, absatz_kw: 140, spreizung_k: 25 },
   { stufe: 5, anschluesse: 11, absatz_kw: 200, spreizung_k: 30 },
+  { stufe: 6, anschluesse: 15, absatz_kw: 270, spreizung_k: 30 },
 ];
 
 /** PV auf dem Dach der Heizzentrale (A36, Simon: PV gehört an die Heizzentrale, nicht an einzelne Häuser): Leistung in kWp je Heizzentralen-Stufe und Preis je kWp in € (Spielwerte). */
-export const DACH_PV = { kw_je_stufe: [10, 15, 25, 40, 60] as ReadonlyArray<number>, eur_je_kw: 1100 };
+export const DACH_PV = { kw_je_stufe: [10, 15, 25, 40, 60, 75] as ReadonlyArray<number>, eur_je_kw: 1100 };
 
 export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110', 'd125', 'd140', 'd160'];
 export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);

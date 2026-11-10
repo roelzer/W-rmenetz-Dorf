@@ -56,6 +56,7 @@ export interface Szene {
   stempel: { x: number; y: number; ok: boolean } | null;
   jetzt_ms: number;
   /** Straßenfelder des Ortes (nur Optik) */
+  kartenHoehe?: number;
   strassen?: ReadonlyArray<readonly [number, number]>;
   fluss?: ReadonlyArray<readonly [number, number]>;
   /** Verbrauchsschilder (kW) der Häuser anzeigen; Standard: ja */
@@ -69,7 +70,7 @@ export interface Szene {
 interface Gras { n: Punkt[]; blume: number; hell: number }
 const GRAS: Gras[] = (() => {
   const r = zufall(3), a: Gras[] = [];
-  for (let i = 0; i < N * N; i++) {
+  for (let i = 0; i < N * KONSTANTEN.neubau_hoehe; i++) {
     const n: Punkt[] = [];
     for (let j = 0; j < 3; j++) n.push([r() - 0.5, r() - 0.5]);
     a.push({ n, blume: r() < 0.07 ? Math.floor(r() * 3) : -1, hell: r() });
@@ -87,11 +88,12 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   X.clearRect(0, 0, W, H);
 
   // Boden
-  for (let y = -3; y < N + 3; y++) {
+  const hoehe = s.kartenHoehe ?? N;
+  for (let y = -3; y < hoehe + 3; y++) {
     for (let x = -3; x < N + 3; x++) {
       const [cx, cy] = k.mitte(x, y);
       if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
-      const innen = x >= 0 && y >= 0 && x < N && y < N;
+      const innen = x >= 0 && y >= 0 && x < N && y < hoehe;
       m.raute(cx, cy, 1.02);
       if (innen) {
         const g = GRAS[y * N + x];
@@ -111,7 +113,7 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
           }
         }
       } else {
-        const abstand = Math.max(-x, x - N + 1, -y, y - N + 1);
+        const abstand = Math.max(-x, x - N + 1, -y, y - hoehe + 1);
         X.fillStyle = abstand === 3 ? '#599949' : (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b;
         X.fill();
       }
@@ -284,9 +286,10 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
     }
   }
   // Der gestaffelte Waldrand gehört zur Bodenebene und bleibt beim Schwenken im Gelände verankert.
-  for (let i = -3; i < N + 3; i++) {
-    for (const [x, y] of [[i, -3], [-3, i], [i, -2], [-2, i], [i, N + 1], [N + 1, i]]) {
-      if ((x >= N || y >= N) && i % 3 === 0) continue;
+  for (let i = -3; i < hoehe + 3; i++) {
+    for (const [x, y] of [[i, -3], [-3, i], [i, -2], [-2, i], [i, hoehe + 1], [N + 1, i]]) {
+      if (i >= N + 3 && y !== i) continue;
+      if ((x >= N || y >= hoehe) && i % 3 === 0) continue;
       const [cx, cy] = k.mitte(x + ((i * 7) % 3) * 0.17, y + ((i * 5) % 4) * 0.08);
       if (cx < -tw || cx > W + tw || cy < -tw || cy > H + tw) continue;
       const groesse = 0.88 + (Math.abs(i * 13 + x * 5 + y * 7) % 7) * 0.085;
@@ -298,14 +301,14 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
     }
   }
   // Zaun um das Dorf
-  { const a = k.mitte(-0.5, -0.5), b = k.mitte(N - 0.5, -0.5), c = k.mitte(N - 0.5, N - 0.5), d = k.mitte(-0.5, N - 0.5);
+  { const a = k.mitte(-0.5, -0.5), b = k.mitte(N - 0.5, -0.5), c = k.mitte(N - 0.5, hoehe - 0.5), d = k.mitte(-0.5, hoehe - 0.5);
     X.strokeStyle = '#c9a76a'; X.lineWidth = Math.max(2, tw * 0.06); X.beginPath();
     X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); X.lineTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.closePath(); X.stroke(); }
   if (s.modus !== 'normal') {
     X.strokeStyle = 'rgba(255,255,255,.25)'; X.lineWidth = 1;
-    for (let i = 0; i <= N; i++) {
-      const a = k.mitte(i - 0.5, -0.5), b = k.mitte(i - 0.5, N - 0.5), c = k.mitte(-0.5, i - 0.5), d = k.mitte(N - 0.5, i - 0.5);
-      X.beginPath(); X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
+    for (let i = 0; i <= hoehe; i++) {
+      const a = k.mitte(i - 0.5, -0.5), b = k.mitte(i - 0.5, hoehe - 0.5), c = k.mitte(-0.5, i - 0.5), d = k.mitte(N - 0.5, i - 0.5);
+      X.beginPath(); if (i <= N) { X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); } X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
     }
   }
 }
@@ -517,7 +520,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
     for (const [dx, dy] of NACHBARN) {
       const nx = o.x + dx, ny = o.y + dy;
-      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= (s.kartenHoehe ?? N)) continue;
       const n = nachFeld.get(ny * N + nx);
       if (!n) continue;
       const c = KATALOG[n.typ].kategorie;

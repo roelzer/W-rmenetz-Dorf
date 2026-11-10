@@ -5,7 +5,7 @@ import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
-import { ortHolen } from './orte';
+import { neubaugebietAnlegen, spielOrt } from './neubaugebiet';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import type { Schritt, TutorialWerte } from './tutorial-vertrag';
 import { ERSTE_HAEUSER } from './start';
@@ -75,6 +75,7 @@ export class Spiel {
   private erreicht: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
     this.stand = stand;
+    if (this.hzStufe >= KONSTANTEN.heizzentrale_hoechststufe) neubaugebietAnlegen(stand, stand.zuletzt_ms);
     this.anfragenPruefen();
     this.neuBerechnen();
     // Beim Laden nur merken, nichts melden: sonst kündigt jedes Laden alle erreichten Häuser neu an.
@@ -393,17 +394,21 @@ export class Spiel {
     return stuecke;
   }
   get hz(): Objekt { return heizzentrale(this.stand.objekte); }
+  get kartenHoehe(): number { return this.stand.neubaugebiet ? KONSTANTEN.neubau_hoehe : N; }
   get hzStufe(): number { return this.hz.stufe; }
   anzahl(t: TypId): number {
     return KATALOG[t].kategorie === 'innen'
       ? this.stand.innen.filter((k) => k.typ === t).length
       : this.stand.objekte.filter((o) => o.typ === t && !o.landschaft && !o.bestand).length;
   }
-  grenze(t: TypId): number { return KATALOG[t].grenze ? KATALOG[t].grenze![this.hzStufe - 1] : 0; }
+  grenze(t: TypId): number { return KATALOG[t].grenze ? KATALOG[t].grenze![Math.min(this.hzStufe, KATALOG[t].grenze!.length) - 1] : 0; }
   leitungsanzahl(): number { return this.stand.objekte.filter((o) => istLeitung(o.typ)).length; }
   monteure(): number { return this.anzahl('huette'); }
+  istNeubau(o: Objekt): boolean {
+    return !!o.bestand && o.y >= N && KATALOG[o.typ].kategorie === 'haus';
+  }
   beschaeftigt(): number {
-    return this.stand.objekte.filter((o) => o.bau).length + this.stand.innen.filter((k) => k.bau).length;
+    return this.stand.objekte.filter((o) => o.bau && !this.istNeubau(o)).length + this.stand.innen.filter((k) => k.bau).length;
   }
   kassengrenze_eur(): number {
     return KONSTANTEN.grundkasse_eur + this.stand.objekte
@@ -460,7 +465,7 @@ export class Spiel {
 
   kannPlatzieren(t: TypId, x: number, y: number, ohneId = 0, kante?: number): boolean {
     const s = kante ?? KATALOG[t].groesse ?? 1;
-    if (x < 0 || y < 0 || x + s > N || y + s > N) return false;
+    if (x < 0 || y < 0 || x + s > N || y + s > this.kartenHoehe) return false;
     const alt = this.objekt(ohneId);
     if (t === 'hz' && alt && s === 2 && (x !== alt.x || y !== alt.y)) {
       const reserve = this.hzAusbauReserve({ ...alt, x, y });
@@ -584,7 +589,7 @@ export class Spiel {
     return { ok: true };
   }
 
-  maxStufe(o: Objekt): number { return o.typ === 'hz' ? KONSTANTEN.hoechststufe : Math.min(KONSTANTEN.hoechststufe, this.hzStufe); }
+  maxStufe(o: Objekt): number { return o.typ === 'hz' ? KONSTANTEN.heizzentrale_hoechststufe : Math.min(KONSTANTEN.hoechststufe, this.hzStufe); }
 
   ausbauen(id: number): Ergebnis {
     const o = this.objekt(id);
@@ -871,11 +876,11 @@ export class Spiel {
   get abschnitt() { return this.stand.abschnitt; }
   /** Liegt das Feld auf der öffentlichen Straße des Ortes? */
   istStrasse(x: number, y: number): boolean {
-    this.strassenSet ??= new Set(ortHolen(this.stand.ort).strassen.map(([sx, sy]) => sy * N + sx));
+    this.strassenSet ??= new Set(spielOrt(this.stand).strassen.map(([sx, sy]) => sy * N + sx));
     return this.strassenSet.has(y * N + x);
   }
   istFluss(x: number, y: number): boolean {
-    this.flussSet ??= new Set(ortHolen(this.stand.ort).fluss.map(([sx, sy]) => sy * N + sx));
+    this.flussSet ??= new Set(spielOrt(this.stand).fluss.map(([sx, sy]) => sy * N + sx));
     return this.flussSet.has(y * N + x);
   }
   /** A45: Geplante Leitungen abseits der Straße, für die noch keine Gestattung geklärt ist (Flussfelder zählen zur Spülbohrung). */
@@ -1039,7 +1044,7 @@ export class Spiel {
       if (!g.geplant) continue;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = g.x + dx, ny = g.y + dy;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= this.kartenHoehe) continue;
         const o = this.objekt(bel[ny * N + nx]);
         if (o && trassenUebergang(g, o) !== false && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
       }
@@ -1347,7 +1352,15 @@ export class Spiel {
         this.hinweis(`${name} fertig · Förderung ausgezahlt: +${zurueck.toLocaleString('de-DE')} €`);
         delete e.foerderung_eur; s.erledigt.funded = true;
       } else this.hinweis(`${name}${hatStufen(e.typ) ? ' Stufe ' + e.stufe : ''} fertig!`);
-      if (istObjekt && e.typ === 'hz') this.neuFreigeschaltetMelden(e.stufe);
+      if (istObjekt && e.typ === 'hz') {
+        if (e.stufe >= KONSTANTEN.heizzentrale_hoechststufe && !s.neubaugebiet) {
+          neubaugebietAnlegen(s, t);
+          this.strassenSet = undefined;
+          this.flussSet = undefined;
+          this.hinweis('Neubaugebiet Süd erschlossen · Folge der Hauptstraße nach Süden');
+        }
+        this.neuFreigeschaltetMelden(e.stufe);
+      }
       const ziel = istObjekt ? (e as Objekt) : this.hz;
       ziel._pop = t;
       this.ereignisse.push({ art: 'funken', objekt_id: istObjekt ? (e as Objekt).id : 'heizzentrale' });

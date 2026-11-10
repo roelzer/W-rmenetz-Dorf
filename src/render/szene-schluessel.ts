@@ -1,4 +1,4 @@
-import { istLeitung, KATALOG } from '../core/katalog';
+import { istLeitung, KATALOG, KONSTANTEN } from '../core/katalog';
 import type { Netz, Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
 import { blase } from './blase';
@@ -65,7 +65,7 @@ export function bodenSchluessel(s: Szene, k: Kamera): string {
     .map((o) => `${o.x},${o.y},${o.typ},${o.stufe},${ja(!!o.bau)}`).join(';');
   return [
     runde(k.tw), runde(k.winkel_rad), runde(k.breite), runde(k.hoehe), runde(k.pixelverhaeltnis),
-    koordinaten(s.strassen), koordinaten(s.fluss), haeuser, ja(s.modus !== 'normal'),
+    s.kartenHoehe ?? KONSTANTEN.feldanzahl, koordinaten(s.strassen), koordinaten(s.fluss), haeuser, ja(s.modus !== 'normal'),
   ].join('|');
 }
 

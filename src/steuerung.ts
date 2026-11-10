@@ -23,7 +23,7 @@ import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, sp
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
 import { zieleOeffnen } from './ui/ziele';
-import { ortHolen } from './core/orte';
+import { spielOrt } from './core/neubaugebiet';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
 import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
@@ -118,6 +118,7 @@ export class Steuerung implements Ui {
   /** Läuft gerade eine Geste auf der Karte (Finger oder gedrückte Mitteltaste)? Die Bildschleife reicht es an die Bodenebene weiter. */
   fingerAufKarte(): boolean { return this.zeiger.size > 0 || this.mitteDreh !== null; }
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
+    this.kamera.kartenHoehe = spiel.kartenHoehe;
     this.katalogUi = new Katalog(this);
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });
     this.hud = new Hud(() => this.spiel, {
@@ -261,6 +262,13 @@ export class Steuerung implements Ui {
       const k = this.kamera;
       k.zentrierenBei(o.x, o.y, groesse(o), (k.breite - blattBreite_px()) / 2, k.hoehe * (this.anleitung ? T.menue.faktor.anleiter_ziel_hoehe : 0.58));
     }
+  }
+
+  neubaugebietZeigen(): void {
+    if (!this.spiel.stand.neubaugebiet) return;
+    this.kontextUi.schliessen();
+    this.kamera.kartenHoehe = this.spiel.kartenHoehe;
+    this.kamera.zentrieren(10, (N + this.spiel.kartenHoehe - 1) / 2, 1);
   }
 
   platzieren(typ: TypId): void {
@@ -549,13 +557,13 @@ export class Steuerung implements Ui {
   private geistSetzen(mx: number, my: number): void {
     const g = this.geist!, [fx, fy] = this.kamera.feldGenau(mx, my);
     g.x = Math.max(0, Math.min(N - g.kante, Math.round(fx - (g.kante - 1) / 2)));
-    g.y = Math.max(0, Math.min(N - g.kante, Math.round(fy - (g.kante - 1) / 2)));
+    g.y = Math.max(0, Math.min(this.spiel.kartenHoehe - g.kante, Math.round(fy - (g.kante - 1) / 2)));
   }
   /** `gesteStart`: erstes Feld einer Geste (Finger aufgesetzt) – nur dort meldet ein abgelehnter Ersatz etwas. */
   private stempelnBei(mx: number, my: number, gesteStart = false): void {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
-    if (x < 0 || y < 0 || x >= N || y >= N) return;
+    if (x < 0 || y < 0 || x >= N || y >= this.spiel.kartenHoehe) return;
     if (this.radieren) { if (this.spiel.geplanteLeitungEntfernen(x, y).ok) this.geaendert(); return; }
     if (this.vorsehen) {
       if (this.stempelLetzte) return; // nur beim Antippen umschalten, nicht beim Wischen über weitere Felder
@@ -669,7 +677,7 @@ export class Steuerung implements Ui {
       objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
-      strassen: ortHolen(this.spiel.stand.ort).strassen, fluss: ortHolen(this.spiel.stand.ort).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
+      kartenHoehe: this.spiel.kartenHoehe, strassen: spielOrt(this.spiel.stand).strassen, fluss: spielOrt(this.spiel.stand).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
       ...this.szeneTutorial,
     };
   }
@@ -679,6 +687,7 @@ export class Steuerung implements Ui {
     // Fahrt nach der Bildzeit, nicht nach der Spieluhr – im Vorführ-Tempo wäre sie sonst sofort vorbei (Entscheidung PL)
     this.fahrtJetzt = this.kamera.fahrtLaeuft(this.bildzeit());
     this.spiel.bis(jetzt_ms);
+    this.kamera.kartenHoehe = this.spiel.kartenHoehe;
     this.ereignisse();
     if (oberflaeche_ms - this.letzterAuftragMs > 1000) { this.letzterAuftragMs = oberflaeche_ms; this.auftrag = pruefeAuftraege(this.spiel); this.ereignisse(); }
     if (oberflaeche_ms - this.letzteHudMs > 250) { this.letzteHudMs = oberflaeche_ms; this.hudJetzt(); this.kontextUi.aktualisieren(); }

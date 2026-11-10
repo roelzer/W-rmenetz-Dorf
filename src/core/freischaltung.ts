@@ -8,7 +8,7 @@ import type { Spielstand } from './typen';
  */
 export type Funktion =
   | 'stationstypen' | 'express' | 'gestattung' | 'spuelbohrung'
-  | 'andi' | 'vorlauf' | 'ruecklauf_helfer' | 'vorsehung' | 'dach_pv' | 'baugebiet';
+  | 'andi' | 'vorlauf' | 'ruecklauf_helfer' | 'vorsehung' | 'dach_pv' | 'baugebiet' | 'neubaugebiet';
 export type Merkmal = TypId | Funktion;
 
 /** Merkmal → ab Heizzentralen-Stufe; fehlt = 1. Spielwerte, Simon kann jede Zeile ändern (Bauplan Abschnitt 4). */
@@ -35,6 +35,7 @@ export const FREISCHALTUNGEN: Readonly<Partial<Record<Merkmal, number>>> = {
   ptk: 4,
   pv: 4, dach_pv: 4,
   baugebiet: 4,
+  neubaugebiet: 6,
 };
 
 /** Anzeigename der Funktionen, die kein Katalogeintrag sind. */
@@ -49,6 +50,7 @@ export const FUNKTION_NAME: Readonly<Record<Funktion, string>> = {
   vorsehung: 'T-Stück mit Vorsehung',
   dach_pv: 'PV auf dem Heizhaus-Dach',
   baugebiet: 'Baugebiet',
+  neubaugebiet: 'Neubaugebiet Süd',
 };
 
 export function merkmalName(m: Merkmal): string {

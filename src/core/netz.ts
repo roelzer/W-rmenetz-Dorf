@@ -20,7 +20,7 @@ export function mittlereSpreizung_k(objekte: Objekt[], auswahl?: ReadonlySet<num
   return gew ? summe / gew : Math.min(SPREIZUNG_BASIS_K, vorlauf_c - MIN_RUECKLAUF_C);
 }
 
-const N = KONSTANTEN.feldanzahl;
+const N = KONSTANTEN.feldanzahl, MAX_Y = KONSTANTEN.neubau_hoehe;
 
 /** Kantenlänge des Objekts in Feldern. Die Heizzentrale wächst ab Stufe 3 (oder im Ausbau auf 3) auf 3×3. */
 export function groesse(o: Pick<Objekt, 'typ' | 'stufe' | 'bau'>): number {
@@ -37,14 +37,14 @@ export const heizzentrale = (objekte: Objekt[]): Objekt =>
 
 /** Belegung: Feld → Objekt-ID (0 = frei). */
 export function belegungskarte(objekte: Objekt[], ohne?: Objekt): Int32Array {
-  const m = new Int32Array(N * N);
+  const m = new Int32Array(N * MAX_Y);
   for (const o of objekte) {
     if (o === ohne) continue;
     const s = groesse(o);
     for (let dy = 0; dy < s; dy++) {
       for (let dx = 0; dx < s; dx++) {
         const x = o.x + dx, y = o.y + dy;
-        if (x >= 0 && y >= 0 && x < N && y < N) m[y * N + x] = o.id;
+        if (x >= 0 && y >= 0 && x < N && y < MAX_Y) m[y * N + x] = o.id;
       }
     }
   }
@@ -68,7 +68,7 @@ export function randFelder(o: Objekt): Array<[number, number]> {
   const s = groesse(o);
   const r: Array<[number, number]> = [];
   for (let i = 0; i < s; i++) r.push([o.x + i, o.y - 1], [o.x + i, o.y + s], [o.x - 1, o.y + i], [o.x + s, o.y + i]);
-  return r.filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < N);
+  return r.filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < MAX_Y);
 }
 
 const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -76,7 +76,7 @@ const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0,
 /** Zahl der Leitungsfelder rund um (x|y) – gemeinsame Grundlage für „Leitungsende“ (≤ 1) und „durchlaufend“ (≥ 2). */
 export function leitungsNachbarn(x: number, y: number, istLeitungsfeld: (feld: number) => boolean): number {
   let z = 0;
-  for (const [dx, dy] of NACHBARN) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < N && istLeitungsfeld(ny * N + nx)) z++; }
+  for (const [dx, dy] of NACHBARN) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < MAX_Y && istLeitungsfeld(ny * N + nx)) z++; }
   return z;
 }
 
@@ -117,7 +117,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     const k = reihenfolge[i], x = k % N, y = (k - x) / N;
     for (const [dx, dy] of NACHBARN) {
       const nx = x + dx, ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= MAX_Y) continue;
       const nk = ny * N + nx;
       if (verbunden(k, nk) && !tiefe.has(nk)) {
         tiefe.set(nk, (tiefe.get(k) as number) + 1);
@@ -292,7 +292,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       let neu = -1, beste = -Infinity;
       for (const [dx, dy] of NACHBARN) {
         const nx = x + dx, ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= MAX_Y) continue;
         const q = ny * N + nx;
         if (q === p || tiefe.get(q) !== tk - 1 || rang(q) < rang(k)) continue;
         const kinderQ = baum.kinder.get(q) ?? [];
@@ -523,3 +523,4 @@ function baumKennzahlen(eltern: ReadonlyMap<number, number>, anschluss: Readonly
 }
 
 export type { TypId };
+

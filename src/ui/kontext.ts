@@ -194,13 +194,17 @@ export class Kontext {
   }
 
   private baustelle(c: HTMLElement, o: Objekt): void {
-    const b = o.bau!, sp = this.ui.spiel, jetzt = Date.now();
+    const b = o.bau!, sp = this.ui.spiel, jetzt = this.ui.jetzt_ms();
     const f = Math.max(0, Math.min(1, (jetzt - b.start_ms) / (b.ende_ms - b.start_ms)));
     const bal = balken(f), i = bal.querySelector('i') as HTMLElement;
     i.dataset.live = 'bar';
     const rest = h('span', { 'data-live': 'rest' }, zeitText((b.ende_ms - jetzt) / 1000));
     c.append(chip(b.art === 'neu' ? 'wird gebaut' : `wird ausgebaut auf Stufe ${o.stufe + 1}`, 'blau'), bal,
       h('p', {}, 'Noch ', rest));
+    if (sp.istNeubau(o)) {
+      c.append(h('p', {}, 'Dieses Haus entsteht von selbst. Lege in der Haupttrasse schon eine Vorsehung für den späteren Anschluss.'));
+      return;
+    }
     const kosten = h('span', { 'data-live': 'taler' }, String(sp.beschleunigungskosten_taler(b)));
     c.append(h('div', { class: 'knopfreihe' }, knopf(h('span', {}, 'Beschleunigen · ', kosten, ' Taler'), () => { sp.beschleunigen(o.bau); this.ui.geaendert(); }, 'taler')));
   }
@@ -570,6 +574,12 @@ export class Kontext {
     else bg.append(h('p', { class: 'gedaempft' }, 'Ein zweiter Strang in die Gegenrichtung mit neuen Grundstücken. Der Wärmeerzeuger muss dafür mitwachsen.'),
       ...(bb.ok || sperreBg ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
       h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), sperre: ersteSperre(stufenSperre(sp, 'baugebiet'), baugebietSperre(sp.versorgteHaeuser()), geldSperre(sp, KONSTANTEN.baugebiet_eur)) })));
+    if (sp.stand.neubaugebiet) {
+      const neu = kasten('Neubaugebiet Süd');
+      neu.append(h('p', {}, 'Verlängere die Haupttrasse über den alten Kartenrand. Setze Vorsehungen für die Häuser, die noch gebaut werden.'),
+        knopf('Zum Neubaugebiet', () => this.ui.neubaugebietZeigen?.(), 'los', { klein: true }));
+      bg.append(neu);
+    }
     const hk = kasten('Helfer');
     if (sp.freigeschaltet('ruecklauf_helfer')) hk.append(h('p', { class: 'gedaempft' }, 'Die zehnminütige Pause beginnt erst, wenn der hydraulische Abgleich fertig ist.'));
     const sperreHelfer = sp.sperrgrund('ruecklauf_helfer');
