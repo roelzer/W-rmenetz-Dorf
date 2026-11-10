@@ -109,7 +109,7 @@ export class Katalog {
       if (warnungen.length) k.append(h('div', { class: 'warnstreifen', role: 'note' }, h('h3', {}, 'Nach dem Bau zu dünn'), ...warnungen.map((w) => h('p', {}, w))));
       k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${dauerText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}`),
         h('div', { class: 'knopfreihe' },
-          ziel(knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }), 'laura'),
+          ziel(knopf('Material bei Laura bestellen', () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }), 'laura'),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('weiter_einzeichnen') }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('verwerfen') })));
     } else {

@@ -389,7 +389,7 @@ describe('A92 / 12.21 Punkt 2 – H7 Helfer-Knopf mit Geld-Sperre', () => {
     // (a) alle drei Gründe → H3
     const uhr = { t: T0 }, s = neu(3, uhr), o = hausMitStation(s);
     o.ohne_station = true; delete o.station; s.stand.geld_eur = 0; s.neuBerechnen();
-    HELFER.forEach((h, i) => { andereHaeuser(s, o)[i].upgrade_auftrag = { helfer: h, ende_ms: T0 + 120_000 + i * 60_000 }; });
+    HELFER.forEach((h, i) => { const haus = andereHaeuser(s, o)[i]; haus.upgrade = 1; haus.upgrade_auftrag = { helfer: h, ende_ms: T0 + 120_000 + i * 60_000 }; });
     await echteSteuerung(s, (u) => {
       u.st.kontext(o.id);
       const k = helferKnopf(u);
@@ -415,7 +415,7 @@ describe('A92 / 12.21 Punkt 3 – beim Tippen alle Gründe neu prüfen, der näc
   it('a92 Punkt 3: Helfer wird frei, Haus ohne Station – Tippen zeigt H4 (nicht Kerntext), Blatt baut neu auf mit „erst Station wählen“, kein Auftrag, kein Geld weg', async () => {
     const uhr = { t: T0 }, s = neu(3, uhr), o = hausMitStation(s);
     o.ohne_station = true; delete o.station; s.neuBerechnen();
-    HELFER.forEach((h, i) => { andereHaeuser(s, o)[i].upgrade_auftrag = { helfer: h, ende_ms: T0 + 60_000 + i * 60_000 }; });
+    HELFER.forEach((h, i) => { const haus = andereHaeuser(s, o)[i]; haus.upgrade = 1; haus.upgrade_auftrag = { helfer: h, ende_ms: T0 + 60_000 + i * 60_000 }; });
     await echteSteuerung(s, (u) => {
       u.st.kontext(o.id);
       const alt = helferKnopf(u);

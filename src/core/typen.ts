@@ -134,6 +134,7 @@ export interface Spielstand {
   abrechnung_monat?: number;
   /** A81: Ergebnis der letzten Monatsabrechnung */
   letzte_abrechnung?: Abrechnung;
+  helfer_pause_bis_ms?: Record<string, number>;
   andi?: { anteil_pct: number; budget_eur: number; aufgabe: 'pause' | 'abgleich' | 'verbessern' };
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;

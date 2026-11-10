@@ -318,9 +318,9 @@ describe('NR18-P3 Baumenü – Warnliste „Nach dem Bau zu dünn“', () => {
       expect(titel).toHaveLength(1);
       const kasten = titel[0].parentNode!;
       expect(kasten.querySelectorAll('p').map((p) => norm(p.textContent))).toEqual(W);
-      // Reihenfolge im Dokument: Warnliste vor „Laura: Material bestellen“
+      // Reihenfolge im Dokument: Warnliste vor „Material bei Laura bestellen“
       const folge = u.dom.html.querySelectorAll('h3,button').filter((e) => e.isConnected).map((e) => norm(e.textContent));
-      const iWarn = folge.indexOf('Nach dem Bau zu dünn'), iBest = folge.findIndex((t) => t.startsWith('Laura: Material bestellen'));
+      const iWarn = folge.indexOf('Nach dem Bau zu dünn'), iBest = folge.findIndex((t) => t.startsWith('Material bei Laura bestellen'));
       expect(iWarn).toBeGreaterThanOrEqual(0);
       expect(iBest).toBeGreaterThan(iWarn);
     });
@@ -354,3 +354,4 @@ describe('NR18-P3 Ereignis „engstelle“ markiert die Felder', () => {
     });
   }
 });
+

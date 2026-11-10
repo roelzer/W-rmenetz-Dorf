@@ -1,5 +1,5 @@
 import { ausbauZieleKasten } from './ziele';
-import { ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
+import { ANDI_BUDGET_SCHRITT, ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
 import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, pufferStationReicht, spreizungHaus_k, stationReicht } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import { WANDSTATION_TUTORIAL, type Spiel } from '../core/spiel';
@@ -322,7 +322,7 @@ export class Kontext {
   private naechsterHelferFrei_ms(): number | null {
     const sp = this.ui.spiel;
     if (sp.freierHelfer()) return null;
-    return Math.min(...HELFER.map((name) => sp.helferAuftrag(name)?.ende_ms ?? Infinity));
+    return Math.min(...HELFER.map((name) => sp.helferFreiAb_ms(name)));
   }
 
   /** A32/NR19: Auswahl der Übergabestation – Reihe „Mit Pufferspeicher“ (nur Häuser, nur beim Anschluss) und die Wandstationen wie bisher;
@@ -576,7 +576,10 @@ export class Kontext {
     if (sperreHelfer && !HELFER.some((name) => sp.helferAuftrag(name))) hk.append(sperrHinweis(`${merkmalName('ruecklauf_helfer')} ${sperreHelfer}`));
     else for (const name of HELFER) {
       const a = sp.helferAuftrag(name);
-      hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
+      const pause = sp.helferPauseBis_ms(name) - this.ui.jetzt_ms();
+      const status = a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}`
+        : pause > 0 ? `Pause · noch ${zeitText(Math.ceil(pause / 1000))}` : 'frei';
+      hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft', 'data-live': `helfer-${name}` }, status)));
     }
     c.append(ausbauZieleKasten(sp), k, vl, this.preisKasten(), pvk, hk, this.andiKasten(), bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
@@ -604,9 +607,9 @@ export class Kontext {
         zeile('Verfügbares Budget', h('span', { 'data-live': 'andi-budget' }, eur(andi.budget_eur))),
         zwischenueberschrift('Anteil am Zahlungseingang'),
         h('div', { class: 'knopfreihe' },
-          stepper('minus', 'Andis Budgetanteil senken', () => setzen(andi.anteil_pct - 1, andi.aufgabe), andi.anteil_pct <= 0),
+          stepper('minus', 'Andis Budgetanteil senken', () => setzen(andi.anteil_pct - ANDI_BUDGET_SCHRITT, andi.aufgabe), andi.anteil_pct <= 0),
           h('span', { class: 'preiswert' }, `${andi.anteil_pct} %`),
-          stepper('plus', 'Andis Budgetanteil erhöhen', () => setzen(andi.anteil_pct + 1, andi.aufgabe), andi.anteil_pct >= 100)),
+          stepper('plus', 'Andis Budgetanteil erhöhen', () => setzen(andi.anteil_pct + ANDI_BUDGET_SCHRITT, andi.aufgabe), andi.anteil_pct >= 100)),
         zwischenueberschrift('Aufgabe'),
         h('div', { class: 'knopfreihe', role: 'group', 'aria-label': 'Andis Aufgabe' }, ...aufgaben.map(([wahl, titel]) => {
           const aktiv = wahl === andi.aufgabe;

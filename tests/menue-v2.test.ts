@@ -59,7 +59,7 @@ describe('A84 – Menü-Stil v2 (DESIGN.md Abschnitt 12)', () => {
       expect(knopfZeile(k, a), a).toMatch(/'geld'/);
     }
     const kat = lies('src/ui/katalog.ts');
-    for (const a of ['`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`', '`${ABSCHNITT_HELFER.material}: Material bestellen`', '`${ABSCHNITT_HELFER.material}: Expresslieferung`']) {
+    for (const a of ['`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`', "'Material bei Laura bestellen'", '`${ABSCHNITT_HELFER.material}: Expresslieferung`']) {
       expect(knopfZeile(kat, a), a).toMatch(/'geld'/);
     }
   });

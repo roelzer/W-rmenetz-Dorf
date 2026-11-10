@@ -1,5 +1,5 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
+  ABGLEICH_PAUSE_MS, ANDI_BUDGET_SCHRITT, KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
@@ -241,16 +241,26 @@ export class Spiel {
     return ok();
   }
 
-  /** Helfer, der gerade keinen Auftrag hat (A40). */
-  freierHelfer(): string | undefined {
+  /** Helfer ohne Auftrag oder laufende Pause (A40). */
+  freierHelfer(zeit_ms = this.uhr()): string | undefined {
     const belegt = new Set(this.stand.objekte.filter((o) => o.upgrade_auftrag).map((o) => o.upgrade_auftrag!.helfer));
-    return HELFER.find((h) => !belegt.has(h));
+    return HELFER.find((h) => !belegt.has(h) && this.helferPauseBis_ms(h) <= zeit_ms);
   }
   /** Was der Helfer gerade tut (für die Anzeige). */
   helferAuftrag(name: string): { objekt: Objekt; ende_ms: number } | undefined {
     const o = this.stand.objekte.find((x) => x.upgrade_auftrag?.helfer === name);
     return o ? { objekt: o, ende_ms: o.upgrade_auftrag!.ende_ms } : undefined;
   }
+  helferPauseBis_ms(name: string): number {
+    return this.stand.helfer_pause_bis_ms?.[name] ?? 0;
+  }
+
+  helferFreiAb_ms(name: string): number {
+    const a = this.helferAuftrag(name);
+    if (!a) return this.helferPauseBis_ms(name);
+    return a.ende_ms + ((a.objekt.upgrade ?? 0) === 0 ? ABGLEICH_PAUSE_MS : 0);
+  }
+
   /** Nächstes Hausupgrade beauftragen: Ein freier Helfer senkt den Rücklauf; das kostet Geld und Zeit (A33/A40). */
   upgradeKaufen(id: number, helfer?: string, zeit_ms = this.uhr()): Ergebnis {
     const o = this.objekt(id), n = o?.upgrade ?? 0;
@@ -259,8 +269,8 @@ export class Spiel {
     if (sperre) return sperre;
     if (o.ohne_station) return this.nein('Erst eine Übergabestation einbauen');
     if (o.upgrade_auftrag) return this.nein('Hier arbeitet schon ein Helfer');
-    const wer = helfer ?? this.freierHelfer();
-    if (!wer || !HELFER.includes(wer) || this.helferAuftrag(wer)) return this.nein('Alle Helfer sind beschäftigt');
+    const wer = helfer ?? this.freierHelfer(zeit_ms);
+    if (!wer || !HELFER.includes(wer) || this.helferAuftrag(wer) || this.helferPauseBis_ms(wer) > zeit_ms) return this.nein('Alle Helfer sind beschäftigt');
     const b = this.bezahlen({ eur: UPGRADES[n].kosten_eur });
     if (!b.ok) return b;
     o.upgrade_auftrag = { helfer: wer, ende_ms: zeit_ms + UPGRADES[n].dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
@@ -274,7 +284,7 @@ export class Spiel {
   andiKonfigurieren(anteil: number, aufgabe: NonNullable<Spielstand['andi']>['aufgabe']): void {
     const andi = this.stand.andi;
     if (!andi || !this.freigeschaltet('andi') || !Number.isFinite(anteil)) return;
-    andi.anteil_pct = Math.max(0, Math.min(100, Math.round(anteil)));
+    andi.anteil_pct = Math.max(0, Math.min(100, Math.round(anteil / ANDI_BUDGET_SCHRITT) * ANDI_BUDGET_SCHRITT));
     andi.aufgabe = aufgabe;
   }
 
@@ -284,7 +294,7 @@ export class Spiel {
     andi.budget_eur += Math.floor(Math.max(0, eingang_eur) * andi.anteil_pct / 100);
     if (andi.aufgabe === 'pause' || andi.anteil_pct === 0) return;
     for (const o of this.stand.objekte) {
-      const helfer = this.freierHelfer();
+      const helfer = this.freierHelfer(zeit_ms);
       if (!helfer) break;
       if (KATALOG[o.typ].kategorie !== 'haus' || o.bau || o.ohne_station || o.upgrade_auftrag || !this.netz.anschluss.has(o.id)) continue;
       const stufe = o.upgrade ?? 0;
@@ -1357,6 +1367,9 @@ export class Spiel {
     }
     for (const o of s.objekte) if (o.upgrade_auftrag && o.upgrade_auftrag.ende_ms <= t) {
       const u = UPGRADES[o.upgrade ?? 0], vorher_k = spreizungHaus_k(o, this.vorlauf_c);
+      if ((o.upgrade ?? 0) === 0) {
+        (s.helfer_pause_bis_ms ??= {})[o.upgrade_auftrag.helfer] = o.upgrade_auftrag.ende_ms + ABGLEICH_PAUSE_MS;
+      }
       o.upgrade = (o.upgrade ?? 0) + 1;
       // A73 + Fachprüfung: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
       const gewinn_k = Math.round(spreizungHaus_k(o, this.vorlauf_c) - vorher_k);

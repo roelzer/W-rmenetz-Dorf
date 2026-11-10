@@ -174,7 +174,7 @@ describe('A92 Antwort 7 – Sperre fällt bei offenem Blatt weg → Tippen führ
     const andere = s.stand.objekte.filter((x) => KATALOG[x.typ].kategorie === 'haus' && x !== o);
     expect(andere.length).toBeGreaterThanOrEqual(HELFER.length);
     // erster Helfer wird nach 3 Minuten frei, die anderen später
-    HELFER.forEach((h, i) => { andere[i].upgrade_auftrag = { helfer: h, ende_ms: T0 + 180_000 + i * 60_000 }; });
+    HELFER.forEach((h, i) => { const haus = andere[i]; haus.upgrade = 1; haus.upgrade_auftrag = { helfer: h, ende_ms: T0 + 180_000 + i * 60_000 }; });
     let geld = 0;
     await karte(s, o, uhr, (b) => {
       const k = b.einer('Alle Helfer beschäftigt');

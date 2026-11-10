@@ -471,6 +471,8 @@ export const MIN_RUECKLAUF_C = 40;
 export const ABSCHNITT_HELFER = { planung: 'Philipp', material: 'Laura' } as const;
 /** Die drei Helfer (A40): Sie senken auf Auftrag den Rücklauf eines Hauses. */
 export const HELFER: ReadonlyArray<string> = ['Sebastian', 'Christian', 'Manfred'];
+export const ABGLEICH_PAUSE_MS = 10 * 60 * 1000;
+export const ANDI_BUDGET_SCHRITT = 10;
 /** Bedingungen für den Ausbau der Heizzentrale (A39, „Rathaus“-Prinzip): Anschlüsse, Wärmeabsatz, Spreizung (Vorlauf minus mittlerer Rücklauf). Spielwerte. */
 export const HZ_ZIELE: ReadonlyArray<{ stufe: number; anschluesse: number; absatz_kw: number; spreizung_k: number }> = [
   { stufe: 2, anschluesse: 3, absatz_kw: 0, spreizung_k: 0 },

@@ -372,7 +372,7 @@ describe('A92 / 12.20 B6, B8–B10 – Baumenü und Geld', () => {
     expect(kost).toBeGreaterThan(1);
     s.stand.geld_eur = kost - 0.25;
     await baumenue(s, 'netz', uhr, (b) => {
-      pruefeZeile(b, b.einer('Laura: Material bestellen'), { schloss: false, hinweis: GELD_HINWEIS('1 €') }, 'B8 Material');
+      pruefeZeile(b, b.einer('Material bei Laura bestellen'), { schloss: false, hinweis: GELD_HINWEIS('1 €') }, 'B8 Material');
     });
     expect(s.abschnitt?.phase).toBe('bestellen');
   });
@@ -490,7 +490,7 @@ describe('A92 / 12.20 H1–H5 – Haus und Großabnehmer', () => {
     const uhr = { t: T0 }, s = neu(3, uhr);
     const andere = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o !== haus(s));
     expect(andere.length).toBeGreaterThanOrEqual(HELFER.length);
-    HELFER.forEach((h, i) => { andere[i].upgrade_auftrag = { helfer: h, ende_ms: T0 + 120_000 + i * 60_000 }; });
+    HELFER.forEach((h, i) => { const haus = andere[i]; haus.upgrade = 1; haus.upgrade_auftrag = { helfer: h, ende_ms: T0 + 120_000 + i * 60_000 }; });
     await karte(s, haus(s), uhr, (b) => {
       const k = b.einer('Alle Helfer beschäftigt');
       expect(norm(zeile2(b.a, k) ?? '')).toBe('nächster frei in 2m');

@@ -48,3 +48,35 @@ it('speichert die Aufgabe über eine sichtbare Taste und markiert danach die Aus
   const nachher = await kontextKarte(spiel, hz, zeit);
   expect(nachher.a.alle(nachher.c).find(el => el.tag === 'button' && nachher.a.text(el) === 'Hydraulische Abgleiche')?.attrs['aria-pressed']).toBe('true');
 });
+
+it('sperrt den Techniker ab Ende eines Abgleichs genau zehn Spielminuten und speichert die Pause', () => {
+  let zeit = 100 * SPIELMONAT_MS;
+  const stand = neuerSpielstand(zeit);
+  const haus = neu('efh', 14, 10), zweites = neu('efh', 14, 11);
+  stand.objekte = [neu('hz', 10, 10, { stufe: 3 }), haus, zweites];
+  const spiel = new Spiel(stand, () => zeit);
+  expect(spiel.upgradeKaufen(haus.id, 'Sebastian').ok).toBe(true);
+  const ende = haus.upgrade_auftrag!.ende_ms;
+  zeit = ende + 1000;
+  spiel.bis(zeit);
+  expect(haus.upgrade).toBe(1);
+  expect(spiel.helferFreiAb_ms('Sebastian')).toBe(ende + 600_000);
+  expect(laden(serialisieren(stand), zeit).helfer_pause_bis_ms?.Sebastian).toBe(ende + 600_000);
+  expect(spiel.freierHelfer()).toBe('Christian');
+  zeit = ende + 599_999;
+  expect(spiel.upgradeKaufen(zweites.id, 'Sebastian').ok).toBe(false);
+  zeit++;
+  expect(spiel.upgradeKaufen(zweites.id, 'Sebastian').ok).toBe(true);
+});
+
+it('rundet Andis alten und neu eingestellten Anteil auf 10-Prozentpunkt-Schritte', () => {
+  const zeit = 100 * SPIELMONAT_MS;
+  const stand = neuerSpielstand(zeit);
+  stand.objekte = [neu('hz', 10, 10, { stufe: 3 })];
+  const spiel = new Spiel(stand, () => zeit);
+  spiel.andiEinstellen();
+  stand.andi!.anteil_pct = 24;
+  expect(laden(serialisieren(stand), zeit).andi?.anteil_pct).toBe(20);
+  spiel.andiKonfigurieren(26, 'abgleich');
+  expect(stand.andi?.anteil_pct).toBe(30);
+});
