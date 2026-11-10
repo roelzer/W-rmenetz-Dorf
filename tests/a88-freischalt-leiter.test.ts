@@ -43,7 +43,7 @@ describe('A88 Freischalt-Leiter – Tabelle', () => {
     const soll: Record<number, Merkmal[]> = {
       1: ['d25', 'd32', 'd40', 'kessel', 'buero', 'huette', 'baum', 'blumen', 'hecke', 'bank', 'laterne', 'efh'],
       2: ['d50', 'd63', 'stationstypen', 'express', 'gestattung', 'spuelbohrung', 'wpg', 'puffer', 'solar', 'bad', 'gewerbe', 'brunnen'],
-      3: ['d75', 'd90', 'd110', 'vorlauf', 'ruecklauf_helfer', 'pellet', 'gas', 'sonde', 'klinik'],
+      3: ['d75', 'd90', 'd110', 'vorlauf', 'ruecklauf_helfer', 'sonde', 'klinik'],
       4: ['d125', 'd140', 'vorsehung', 'bhkw', 'ptk', 'pv', 'dach_pv', 'baugebiet'],
       5: ['d160'],
     };
@@ -71,7 +71,7 @@ describe('A88 Freischalt-Leiter – je Stufe, was baubar ist (T2)', () => {
   const welt: Merkmal[] = [...(Object.keys(KATALOG) as TypId[]).filter((t) => t !== 'hz' && (BAU_KATEGORIEN.some(([k]) => k === KATALOG[t].kategorie) || KATALOG[t].kategorie === 'gross')), ...FUNKTIONEN];
   const s1: Merkmal[] = ['kessel', 'd25', 'd32', 'd40', 'buero', 'huette', 'baum', 'blumen', 'hecke', 'bank', 'laterne'];
   const s2: Merkmal[] = [...s1, 'wpg', 'puffer', 'solar', 'd50', 'd63', 'bad', 'gewerbe', 'brunnen', 'stationstypen', 'express', 'gestattung', 'spuelbohrung'];
-  const s3: Merkmal[] = [...s2, 'pellet', 'gas', 'sonde', 'd75', 'd90', 'd110', 'klinik', 'vorlauf', 'ruecklauf_helfer'];
+  const s3: Merkmal[] = [...s2, 'sonde', 'd75', 'd90', 'd110', 'klinik', 'vorlauf', 'ruecklauf_helfer'];
   const s4: Merkmal[] = [...s3, 'd125', 'd140', 'bhkw', 'ptk', 'pv', 'vorsehung', 'dach_pv', 'baugebiet'];
   for (const [n, soll] of [[1, s1], [2, s2], [3, s3], [4, s4], [5, [...s4, 'd160']]] as Array<[number, Merkmal[]]>) {
     it(`A88: test_a88_stufe_${n}_baubar`, () => {
@@ -97,6 +97,18 @@ describe('A88 Freischalt-Leiter – neues Spiel und Durchsetzung im Kern (T3, T4
     expect(r.hinweis).toBe('50er-Leitung ab Heizzentrale Stufe 2');
     expect(s.innenEinbauen('pellet').ok).toBe(false);
     expect(s.innenEinbauen('kessel').ok).toBe(true);
+  });
+  it('Pellet- und Gaskessel bleiben im Bestand, sind aber auch auf Stufe 6 nicht mehr baubar', () => {
+    const { s } = neu(6);
+    s.stand.innen = [{ typ: 'pellet', stufe: 1, bau: null }, { typ: 'gas', stufe: 1, bau: null }];
+    const bestand = [...s.stand.innen];
+    for (const t of ['pellet', 'gas'] as const) {
+      expect(s.innenEinbauen(t).ok).toBe(false);
+      expect(s.innenEinbauen(t, true).ok).toBe(false);
+      expect(s.ersteQuelleWaehlen(t).ok).toBe(false);
+      expect(s.foerderungBeantragen(t).ok).toBe(false);
+    }
+    expect(s.stand.innen).toEqual(bestand);
   });
   it('A88: test_a88_kern_setzt_durch_ersatz – Stufe 1: Ersatz auf eine 50er abgelehnt', () => {
     // NR18-P0 (4.19): Sofort-Tausch entfällt – der Ersatz auf eine 50er wird auch im offenen Bauabschnitt abgelehnt (rot bis NR18-P2).
@@ -127,7 +139,7 @@ describe('A88 Freischalt-Leiter – neues Spiel und Durchsetzung im Kern (T3, T4
     expect(v.hinweis).toContain('ab Heizzentrale Stufe 3');
     expect(s.vorlauf_c).toBe(75);
     expect(s.dachPvKaufen().ok).toBe(false);
-    expect(s.foerderungBeantragen('pellet').ok).toBe(false);
+    expect(s.foerderungBeantragen('sonde').ok).toBe(false);
     expect(s.foerderungBeantragen('kessel').ok).toBe(true);
     const fluss = s.platzieren('d25', 19, 3);
     expect(fluss.ok).toBe(false);
@@ -462,6 +474,18 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
   });
   const mit = (k: Knopf[], anfang: string) => k.filter((x) => x.text.startsWith(anfang));
 
+  it('Der Baukatalog zeigt auf Stufe 6 keine Pellet- oder Gaskessel', async () => {
+    await mitAttrappe(async (a, blatt) => {
+      const { Katalog } = await import('../src/ui/katalog');
+      const ui = { ...UI_LEERLAUF, spiel: neu(6).s, jetzt_ms: () => T0 };
+      new Katalog(ui as unknown as ConstructorParameters<typeof Katalog>[0]).oeffnen('innen');
+      const namen = a.alle(blatt.inhalt).filter((e) => e.tag === 'h3').map(a.text);
+      expect(namen).toContain(KATALOG.kessel.name);
+      expect(namen).not.toContain(KATALOG.pellet.name);
+      expect(namen).not.toContain(KATALOG.gas.name);
+    });
+  });
+
   it('A88: leitungsKnoepfe – nur freigeschaltete Durchmesser und ein deaktivierter Knopf „Dickere“ mit Grund', async () => {
     await mitAttrappe(async (a) => {
       const { leitungsKnoepfe } = await import('../src/ui/kontext');
@@ -687,7 +711,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     type El = { tag: string; className: string; attrs: Record<string, string>; kinder: unknown[]; on: Record<string, () => void> };
     const buero = (s: Spiel) => s.stand.objekte.find((o) => o.typ === 'buero') ?? lege(s, 'buero', 3, 3);
     // Stufen der Quellen von Hand aus der Tabelle Bauplan A88 Abschnitt 4 (siehe test_a88_tabelle_stufen)
-    const QUELLEN_JE_STUFE: Record<number, TypId[]> = { 1: ['kessel'], 2: ['wpg', 'puffer', 'solar'], 3: ['pellet', 'gas', 'sonde'], 4: ['bhkw', 'ptk', 'pv'] };
+    const QUELLEN_JE_STUFE: Record<number, TypId[]> = { 1: ['kessel'], 2: ['wpg', 'puffer', 'solar'], 3: ['sonde'], 4: ['bhkw', 'ptk', 'pv'] };
     const name = (t: TypId) => KATALOG[t].name;
     const klassen = (e: El) => e.className.split(/\s+/);
     const zeilen = async (s: Spiel) => {
@@ -712,7 +736,7 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     const sortiert = (namen: string[]) => [...namen].sort();
     /** Prüft eine Stufe: freie Quellen mit Knopf vorne, gesperrte mit Chip dahinter nach Stufe aufsteigend. */
     const pruefeStufe = (stufe: number, z: Zeile[]) => {
-      expect(z.length, `Stufe ${stufe}: zehn Quellen`).toBe(10);
+      expect(z.length, `Stufe ${stufe}: acht Quellen`).toBe(8);
       let pos = 0;
       for (let st = 1; st <= 4; st++) {
         const gruppe = z.slice(pos, pos + QUELLEN_JE_STUFE[st].length);
@@ -733,13 +757,13 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
       }
     };
 
-    it('A88: Büro Stufe 1 – nur Holzkessel mit „Antrag stellen“, neun Chips „ab Stufe 2/3/4“ mit Schloss, frei zuerst', async () => {
+    it('A88: Büro Stufe 1 – nur Holzkessel mit „Antrag stellen“, sieben Chips „ab Stufe 2/3/4“ mit Schloss, frei zuerst', async () => {
       pruefeStufe(1, await zeilen(neu(1).s));
     });
     it('A88: Büro Stufe 2 – vier freie Quellen mit Knopf, danach Chips „ab Stufe 3“ und „ab Stufe 4“', async () => {
       pruefeStufe(2, await zeilen(neu(2).s));
     });
-    it('A88: Büro Stufe 4 – alle zehn Quellen mit tippbarem „Antrag stellen“, kein Chip', async () => {
+    it('A88: Büro Stufe 4 – alle acht Quellen mit tippbarem „Antrag stellen“, kein Chip', async () => {
       const z = await zeilen(neu(4).s);
       pruefeStufe(4, z);
       expect(z.every((x) => x.sperr.length === 0)).toBe(true);
@@ -757,12 +781,12 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
       const s = neu(1).s;
       s.stand.antraege.pellet = { stand: 'wartet', bewilligt_ms: T0 + 1000 };
       const z = await zeilen(s);
-      expect(z.length).toBe(10);
+      expect(z.length).toBe(9);
       const pellet = z.find((x) => x.name === name('pellet'))!;
       expect(pellet.chips).toEqual(['in Prüfung']);
       expect(pellet.sperr).toEqual([]);
       expect(pellet.knoepfe).toEqual([]);
-      expect(z.filter((x) => x.sperr.length > 0).map((x) => x.name).length).toBe(8);
+      expect(z.filter((x) => x.sperr.length > 0).map((x) => x.name).length).toBe(7);
       expect(z.filter((x) => x.knoepfe.length > 0).map((x) => x.name)).toEqual([name('kessel')]);
       expect(z[0].name).toBe(name('kessel'));
     });

@@ -1,4 +1,4 @@
-import { KATALOG, VORLAUF, type TypId } from './katalog';
+import { istAltanlage, KATALOG, VORLAUF, type TypId } from './katalog';
 import type { Spielstand } from './typen';
 
 /**
@@ -28,7 +28,6 @@ export const FREISCHALTUNGEN: Readonly<Partial<Record<Merkmal, number>>> = {
   andi: 3,
   vorlauf: 3,
   ruecklauf_helfer: 3,
-  pellet: 3, gas: 3,
   sonde: 3, klinik: 3,
   vorsehung: 4,
   bhkw: 4,
@@ -63,12 +62,14 @@ export function abStufe(m: Merkmal): number { return FREISCHALTUNGEN[m] ?? 1; }
 const hzStufe = (stand: Spielstand): number => stand.objekte.find((o) => o.typ === 'hz')?.stufe ?? 1;
 
 export function freigeschaltet(stand: Spielstand, m: Merkmal): boolean {
+  if (istAltanlage(m)) return false;
   // Bestandsschutz (Bauplan Abschnitt 5): Wer den Vorlauf schon verstellt hat, behält den Regler, bis er wieder auf Start steht.
   if (m === 'vorlauf' && stand.vorlauf_c != null && stand.vorlauf_c !== VORLAUF.start_c) return true;
   return hzStufe(stand) >= abStufe(m);
 }
 
 export function sperrgrund(stand: Spielstand, m: Merkmal): string | null {
+  if (istAltanlage(m)) return 'nicht mehr im Bauprogramm';
   return freigeschaltet(stand, m) ? null : `ab Heizzentrale Stufe ${abStufe(m)}`;
 }
 

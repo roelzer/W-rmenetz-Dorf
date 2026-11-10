@@ -719,10 +719,10 @@ describe('A58 Heizhaus ausbauen', () => {
     const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;
     expect(KATALOG.hz.plaetze![0]).toBe(2);
-    expect(s.innenEinbauen('pellet').ok).toBe(true);
+    expect(s.innenEinbauen('kessel').ok).toBe(true);
     expect(s.stand.innen).toHaveLength(2);
   });
-  it('A58: Gaskessel, Pelletkessel und BHKW gibt es; das BHKW erst ab Heizzentrale Stufe 2', () => {
+  it('A58: Alte Kessel bleiben im Katalogdatenbestand, das BHKW ist auf Stufe 1 noch gesperrt', () => {
     for (const t of ['pellet', 'gas', 'bhkw'] as const) expect(KATALOG[t].kategorie).toBe('innen');
     const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;

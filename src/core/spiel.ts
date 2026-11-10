@@ -1,5 +1,5 @@
 import {
-  ABGLEICH_PAUSE_MS, ANDI_BUDGET_SCHRITT, KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
+  ABGLEICH_PAUSE_MS, ANDI_BUDGET_SCHRITT, KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istAltanlage, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
@@ -640,7 +640,7 @@ export class Spiel {
   }
 
   erzeugerSperrgrund(t: TypId, modell: number): string | null {
-    if (modell === 1) return this.sperrgrund(t);
+    if (modell === 1 || istAltanlage(t)) return this.sperrgrund(t);
     const ab = erzeugerAbStufe(t, modell);
     return this.hzStufe < ab ? `ab Heizzentrale Stufe ${ab}` : null;
   }
@@ -652,7 +652,7 @@ export class Spiel {
     const preis = D.kosten_eur![modell - 1];
     if (this.stand.innen.length >= (KATALOG.hz.plaetze as number[])[this.hzStufe - 1])
       return this.nein('Kein Platz mehr im Heizhaus – erst die Heizzentrale ausbauen');
-    if (!gratis || modell > 1) {
+    if (!gratis || modell > 1 || istAltanlage(t)) {
       const grund = this.erzeugerSperrgrund(t, modell);
       if (grund) return this.nein(`Dieses Modell gibt es ${grund}`);
     }
@@ -670,6 +670,10 @@ export class Spiel {
   }
 
   ersteQuelleWaehlen(t: TypId): Ergebnis {
+    if (istAltanlage(t)) {
+      const sperre = this.gesperrt(t);
+      if (sperre) return sperre;
+    }
     this.stand.innen = [];
     const r = this.innenEinbauen(t, true);
     if (!r.ok) return r;

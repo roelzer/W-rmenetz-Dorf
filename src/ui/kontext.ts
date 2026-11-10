@@ -1,5 +1,5 @@
 import { ausbauZieleKasten } from './ziele';
-import { ANDI_BUDGET_SCHRITT, ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
+import { ANDI_BUDGET_SCHRITT, ABSCHNITT_HELFER, istAltanlage, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
 import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, pufferStationReicht, spreizungHaus_k, stationReicht } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import { WANDSTATION_TUTORIAL, type Spiel } from '../core/spiel';
@@ -659,7 +659,7 @@ export class Kontext {
     f.append(h('p', { class: 'gedaempft' }, `Bewilligte Förderung: ${Math.round(KONSTANTEN.foerderquote * 100)} % der Baukosten fließen zurück – nur, wenn du erst nach dem Bescheid baust.`));
     // DESIGN.md 12.15: frei zuerst, dann gesperrte nach Freischalt-Stufe (sort ist stabil, gleiche Stufe behält die Katalogreihenfolge).
     const rang = (t: TypId): number => (sp.freigeschaltet(t) ? 0 : abStufe(t));
-    for (const t of [...QUELLEN].sort((x, y) => rang(x) - rang(y))) {
+    for (const t of QUELLEN.filter((t) => !istAltanlage(t) || s.antraege[t]).sort((x, y) => rang(x) - rang(y))) {
       const a = s.antraege[t];
       // Gesperrte Quelle = nicht tippbarer Chip statt Knopf (viele gesperrte Zeilen); ein gestellter Antrag bleibt sichtbar.
       const rechts = a ? chip(a.stand === 'wartet' ? 'in Prüfung' : 'bewilligt', a.stand === 'wartet' ? 'blau' : 'gruen')

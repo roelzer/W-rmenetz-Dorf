@@ -488,6 +488,8 @@ export const HZ_ZIELE: ReadonlyArray<{ stufe: number; anschluesse: number; absat
 export const DACH_PV = { kw_je_stufe: [10, 15, 25, 40, 60, 75] as ReadonlyArray<number>, eur_je_kw: 1100 };
 
 export const LEITUNGEN: ReadonlyArray<TypId> = ['d25', 'd32', 'd40', 'd50', 'd63', 'd75', 'd90', 'd110', 'd125', 'd140', 'd160'];
+// Bereits installierte Kessel bleiben in alten Spielständen nutzbar.
+export const istAltanlage = (t: string): boolean => t === 'pellet' || t === 'gas';
 export const istLeitung = (t: TypId): boolean => LEITUNGEN.includes(t);
 export const istQuelle = (t: TypId): boolean =>
   KATALOG[t].kategorie === 'innen' || KATALOG[t].kategorie === 'waerme';

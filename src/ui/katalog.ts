@@ -1,4 +1,4 @@
-import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
+import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istAltanlage, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
 import { erzeugerAbStufe } from '../core/freischaltung';
 import { chip, knopf, symbol } from './bausteine';
 import { NICHTS_GEZEICHNET, ersteSperre, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
@@ -68,7 +68,7 @@ export class Katalog {
       h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === this.kategorie), 'aria-label': name, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, 'data-ziel': k === 'netz' ? 'reiter_leitungen' : null, onclick: () => { this.kategorie = k; this.aufbauen(); if (k === 'netz') this.ui.tutorialMelden({ art: 'tipp', tipp: 'reiter_leitungen' }); } },
         symbol(REITER[k]?.symbol ?? 'bauen', 'sym reiter-sym'), h('span', { class: 'wort lang' }, name), h('span', { class: 'wort kurz' }, REITER[k]?.kurz ?? name))));
     const raster = h('div', { class: this.kategorie === 'innen' ? 'erzeugerliste' : 'raster' });
-    const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz');
+    const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz' && !istAltanlage(t));
     if (this.kategorie === 'innen') {
       raster.append(h('p', { class: 'gedaempft' }, 'Wähle eine feste Leistungsklasse. Für ein größeres Modell kannst du eine alte Anlage im Heizhaus verkaufen.'));
       for (const t of typen.sort((a, b) => erzeugerAbStufe(a, 1) - erzeugerAbStufe(b, 1))) raster.append(this.erzeuger(t));
