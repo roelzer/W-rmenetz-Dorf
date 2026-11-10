@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+  <defs>
+    <radialGradient id="licht">
+      <stop stop-color="#f8fbfc" stop-opacity=".96"/>
+      <stop offset=".46" stop-color="#edf3f5" stop-opacity=".86"/>
+      <stop offset="1" stop-color="#e5eef1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="schatten">
+      <stop stop-color="#9caeb6" stop-opacity=".52"/>
+      <stop offset="1" stop-color="#b4c3ca" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="decke" width="720" height="480" patternUnits="userSpaceOnUse">
+      <rect width="720" height="480" fill="#cfdadf"/>
+      <g fill="url(#schatten)">
+        <ellipse cx="138" cy="196" rx="184" ry="100"/><ellipse cx="858" cy="196" rx="184" ry="100"/>
+        <ellipse cx="435" cy="306" rx="210" ry="118"/><ellipse cx="636" cy="32" rx="155" ry="90"/>
+        <ellipse cx="-84" cy="32" rx="155" ry="90"/><ellipse cx="636" cy="512" rx="155" ry="90"/><ellipse cx="-84" cy="512" rx="155" ry="90"/>
+      </g>
+      <g fill="url(#licht)">
+        <ellipse cx="84" cy="55" rx="205" ry="105"/><ellipse cx="804" cy="55" rx="205" ry="105"/>
+        <ellipse cx="84" cy="535" rx="205" ry="105"/><ellipse cx="804" cy="535" rx="205" ry="105"/>
+        <ellipse cx="265" cy="111" rx="160" ry="99"/><ellipse cx="393" cy="154" rx="186" ry="104"/>
+        <ellipse cx="587" cy="185" rx="215" ry="113"/><ellipse cx="-133" cy="185" rx="215" ry="113"/>
+        <ellipse cx="64" cy="317" rx="151" ry="102"/><ellipse cx="784" cy="317" rx="151" ry="102"/>
+        <ellipse cx="212" cy="371" rx="184" ry="105"/><ellipse cx="450" cy="441" rx="163" ry="103"/>
+        <ellipse cx="450" cy="-39" rx="163" ry="103"/><ellipse cx="654" cy="374" rx="167" ry="100"/>
+        <ellipse cx="-66" cy="374" rx="167" ry="100"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="720" height="480" fill="url(#decke)"/>
+</svg>

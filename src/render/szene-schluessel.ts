@@ -1,6 +1,7 @@
 import { istLeitung, KATALOG, KONSTANTEN } from '../core/katalog';
 import type { Netz, Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
+import { istHerbst } from './jahreszeiten';
 import { blase } from './blase';
 import type { Szene } from './szene';
 
@@ -49,7 +50,7 @@ export function szenenSchluessel(s: Szene): string {
   for (const q of s.innen) teile.push(`${q.typ},${q.stufe},${ja(!!q.bau)}`);
   const g = s.geist, st = s.stempel;
   teile.push(
-    `netz,${netzNummer(s.netz)}`, s.modus, `${s.auswahl_id ?? ''}`, `${s.verschiebe_id ?? ''}`,
+    `netz,${netzNummer(s.netz)}`, s.saison ?? 'sommer', `${s.kartenHoehe ?? ''}`, s.modus, `${s.auswahl_id ?? ''}`, `${s.verschiebe_id ?? ''}`,
     g ? `${g.typ},${g.x},${g.y},${g.kante},${ja(g.ok)}` : '', st ? `${st.x},${st.y},${ja(st.ok)}` : '',
     `${s.kw_anzeigen ?? ''}`, s.spiel?.abschnitt?.phase ?? '', `${s.strassen?.length ?? 0}`, `${s.fluss?.length ?? 0}`,
     // NR13: Spurfelder und „Erreicht“-Zeichen sind sichtbar und ändern sich ohne Objektänderung
@@ -65,7 +66,7 @@ export function bodenSchluessel(s: Szene, k: Kamera): string {
     .map((o) => `${o.x},${o.y},${o.typ},${o.stufe},${ja(!!o.bau)}`).join(';');
   return [
     runde(k.tw), runde(k.winkel_rad), runde(k.breite), runde(k.hoehe), runde(k.pixelverhaeltnis),
-    s.kartenHoehe ?? KONSTANTEN.feldanzahl, koordinaten(s.strassen), koordinaten(s.fluss), haeuser, ja(s.modus !== 'normal'),
+    s.kartenHoehe ?? KONSTANTEN.feldanzahl, s.saison ?? 'sommer', koordinaten(s.strassen), koordinaten(s.fluss), haeuser, ja(s.modus !== 'normal'),
   ].join('|');
 }
 
@@ -77,6 +78,7 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   for (const last of netz.last_kw.values()) if (last > 0) return 'fluessig'; // Wärmepunkte (szene.ts:427)
   if (s.modus === 'platzieren' || s.modus === 'verschieben') return 'fluessig'; // Pfeil der Vorschau (szene.ts:292)
   if (s.auswahl_id != null) return 'fluessig'; // laufender Auswahlring (szene.ts:218)
+  if (s.saison === 'winter' || (s.saison && istHerbst(s.saison) && s.objekte.some((o) => o.typ === 'baum' || o.typ === 'efh'))) return 'fluessig';
   if (s.fluss?.length) return 'fluessig'; // Wasserglitzern (szene.ts:83)
   if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
   if (s.innen.some((q) => q.typ === 'wpg')) return 'fluessig'; // Rotor der Großwärmepumpe (gebaeude.ts:135)

@@ -10,6 +10,7 @@ import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
+import { blatt, istHerbst, LANDSCHAFT, LAUB, schneefall, type Jahreszeit } from './jahreszeiten';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 import { bodenSchluessel } from './szene-schluessel';
@@ -44,6 +45,7 @@ function strassenseite(o: Objekt, strassen: Szene['strassen']): number | undefin
 
 /** Alles, was die Szene zum Zeichnen braucht. `spiel` fehlt beim Besuch im Nachbardorf (keine Blasen, keine Kasse). */
 export interface Szene {
+  saison?: Jahreszeit;
   objekte: Objekt[];
   innen: InnenQuelle[];
   netz: Netz;
@@ -87,35 +89,40 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   X.setTransform(k.pixelverhaeltnis, 0, 0, k.pixelverhaeltnis, 0, 0);
   X.clearRect(0, 0, W, H);
 
-  // Boden
   const hoehe = s.kartenHoehe ?? N;
-  for (let y = -3; y < hoehe + 3; y++) {
-    for (let x = -3; x < N + 3; x++) {
+  const saison = s.saison ?? 'sommer', farben = LANDSCHAFT[saison];
+  const winter = saison === 'winter', herbst = istHerbst(saison);
+  for (let y = 0; y < hoehe; y++) {
+    for (let x = 0; x < N; x++) {
       const [cx, cy] = k.mitte(x, y);
       if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
-      const innen = x >= 0 && y >= 0 && x < N && y < hoehe;
+      const g = GRAS[y * N + x];
       m.raute(cx, cy, 1.02);
-      if (innen) {
-        const g = GRAS[y * N + x];
-        X.fillStyle = (x + y) % 2 ? KARTE.wiese_a : KARTE.wiese_b; X.fill();
-        if (g.hell > 0.8) { X.fillStyle = 'rgba(255,255,255,.05)'; X.fill(); }
-        if (tw > (tokens as unknown as { karte: { grashalme_ab_kachelbreite: number } }).karte.grashalme_ab_kachelbreite) {
-          X.strokeStyle = KARTE.halm; X.lineWidth = 1; X.beginPath();
-          for (const [a, b] of g.n) { const px = cx + a * tw * 0.6, py = cy + b * th * 0.6; X.moveTo(px, py); X.lineTo(px - 1.5, py - tw * 0.05); X.moveTo(px, py); X.lineTo(px + 1.5, py - tw * 0.045); }
-          X.stroke();
-          if (g.blume >= 0) {
-            const bx = cx + g.n[0][0] * tw * 0.4, by = cy + g.n[0][1] * th * 0.4;
-            const r = Math.max(1.2, tw * 0.022);
-            m.kreis(bx + r, by + r, r * 1.4, 'rgba(52,76,30,.20)');
-            m.kreis(bx - r, by, r, KARTE.blumen[g.blume]);
-            m.kreis(bx + r, by - r, r * 0.8, KARTE.blumen[g.blume]);
-            m.kreis(bx, by - r * 0.4, r * 0.45, '#fff0a0');
-          }
+      X.fillStyle = farben.wiese[(x + y) % 2]; X.fill();
+      if (g.hell > 0.8) { X.fillStyle = 'rgba(255,255,255,.08)'; X.fill(); }
+      if (winter) {
+        if (tw >= 25 && g.hell > 0.66) {
+          const [a, b] = g.n[0];
+          m.kreis(cx + a * tw * .55, cy + b * th * .6, Math.max(1.2, tw * .044), '#f7fbfd');
         }
-      } else {
-        const abstand = Math.max(-x, x - N + 1, -y, y - hoehe + 1);
-        X.fillStyle = abstand === 3 ? '#599949' : (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b;
-        X.fill();
+        continue;
+      }
+      const details = tw > tokens.karte.grashalme_ab_kachelbreite;
+      if (details) {
+        X.strokeStyle = farben.halm; X.lineWidth = 1; X.beginPath();
+        for (const [a, b] of g.n) { const px = cx + a * tw * 0.6, py = cy + b * th * 0.6; X.moveTo(px, py); X.lineTo(px - 1.5, py - tw * 0.05); X.moveTo(px, py); X.lineTo(px + 1.5, py - tw * 0.045); }
+        X.stroke();
+      }
+      if (!details && (tw < 28 || saison === 'sommer')) continue;
+      const bx = cx + g.n[0][0] * tw * 0.4, by = cy + g.n[0][1] * th * 0.4;
+      if (herbst) {
+        if (g.hell > .74) blatt(m, bx, by, Math.max(1.3, tw * .03), LAUB[(x + y) % LAUB.length], .35);
+      } else if (g.blume >= 0 || (saison === 'fruehling' && g.hell > .91)) {
+        const r = Math.max(1.2, tw * 0.022);
+        m.kreis(bx + r, by + r, r * 1.4, 'rgba(52,76,30,.20)');
+        m.kreis(bx - r, by, r, KARTE.blumen[Math.max(0, g.blume)]);
+        m.kreis(bx + r, by - r, r * 0.8, KARTE.blumen[Math.max(0, g.blume)]);
+        m.kreis(bx, by - r * 0.4, r * 0.45, '#fff0a0');
       }
     }
   }
@@ -256,22 +263,27 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       m.raute(gcx, gcy + th * 0.045, grundstueck);
       X.fillStyle = 'rgba(43,65,36,.22)'; X.fill();
       m.raute(gcx, gcy, grundstueck);
-      X.fillStyle = efh ? '#52763f' : '#b9af8d'; X.fill();
+      X.fillStyle = efh || winter ? farben.rand : '#b9af8d'; X.fill();
       m.raute(gcx, gcy, grundstueck - 0.08);
-      X.fillStyle = efh ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : '#d8ccb0'; X.fill();
+      X.fillStyle = winter ? farben.garten : efh
+        ? (saison === 'sommer' ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : farben.garten) : '#d8ccb0'; X.fill();
       if (tw >= 24) {
         // Gärten sitzen auf den eigenen Grundstücken und drehen sich mit der Karte.
         const [bx, by] = k.mitte(o.x - 0.37, o.y + kk - 0.65);
         const r = tw * (efh ? 0.046 + variante * 0.009 : 0.064);
-        if (efh && variante > 0) {
+        if (efh && variante > 0 && !winter) {
           const [fx, fy] = k.mitte(o.x + 0.36, o.y + 0.30);
-          m.kreis(fx, fy, r * 0.78, '#477c40');
-          m.kreis(fx + r * 0.35, fy - r * 0.33, r * 0.32, '#f6dd8d');
+          m.kreis(fx, fy, r * 0.78, herbst ? '#8e723e' : '#477c40');
+          m.kreis(fx + r * 0.35, fy - r * 0.33, r * 0.32, herbst ? '#dba44e' : '#f6dd8d');
         }
-        m.kreis(bx + r * 0.4, by + r * 0.3, r * 1.17, 'rgba(35,85,39,.30)');
-        m.kreis(bx, by - r * 0.4, r, '#398d43');
-        m.kreis(bx - r * 0.25, by - r * 0.7, r * 0.58, '#9ed44d');
-        m.kreis(bx + r * 0.34, by - r * 0.58, r * 0.27, (o.x + o.y) % 2 ? '#ff779e' : '#ffe176');
+        if (efh && variante === 0) {
+          m.baum(bx, by, .36, o.x + o.y);
+        } else {
+          m.kreis(bx + r * 0.4, by + r * 0.3, r * 1.17, 'rgba(35,85,39,.25)');
+          m.kreis(bx, by - r * 0.4, r, winter ? '#779b9d' : herbst ? '#a3693d' : '#398d43');
+          m.kreis(bx - r * 0.25, by - r * 0.7, r * 0.58, winter ? '#f4f8fa' : herbst ? '#e5ae52' : '#9ed44d');
+          if (!winter && !herbst) m.kreis(bx + r * 0.34, by - r * 0.58, r * 0.27, (o.x + o.y) % 2 ? '#ff779e' : '#ffe176');
+        }
       }
       if (weg) {
         const [wx, wy, dx, dy] = weg, hw = 0.12;
@@ -292,31 +304,36 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       }
     }
   }
-  // Der gestaffelte Waldrand gehört zur Bodenebene und bleibt beim Schwenken im Gelände verankert.
-  for (let i = -3; i < hoehe + 3; i++) {
-    for (const [x, y] of [[i, -3], [-3, i], [i, -2], [-2, i], [i, hoehe + 1], [N + 1, i]]) {
-      if (i >= N + 3 && y !== i) continue;
-      if ((x >= N || y >= hoehe) && i % 3 === 0) continue;
-      const [cx, cy] = k.mitte(x + ((i * 7) % 3) * 0.17, y + ((i * 5) % 4) * 0.08);
-      if (cx < -tw || cx > W + tw || cy < -tw || cy > H + tw) continue;
-      const groesse = 0.88 + (Math.abs(i * 13 + x * 5 + y * 7) % 7) * 0.085;
-      m.baum(cx, cy, groesse, i);
-      if (i % 4 === 0 && tw >= 24) {
-        m.kreis(cx + tw * 0.23, cy + th * 0.03, tw * 0.064, '#4d903d');
-        m.kreis(cx + tw * 0.21, cy - th * 0.02, tw * 0.045, '#a5d961');
-      }
-    }
-  }
-  // Zaun um das Dorf
-  { const a = k.mitte(-0.5, -0.5), b = k.mitte(N - 0.5, -0.5), c = k.mitte(N - 0.5, hoehe - 0.5), d = k.mitte(-0.5, hoehe - 0.5);
-    X.strokeStyle = '#c9a76a'; X.lineWidth = Math.max(2, tw * 0.06); X.beginPath();
-    X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); X.lineTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.closePath(); X.stroke(); }
+  wolkenrand(m, k, hoehe);
   if (s.modus !== 'normal') {
     X.strokeStyle = 'rgba(255,255,255,.25)'; X.lineWidth = 1;
     for (let i = 0; i <= hoehe; i++) {
       const a = k.mitte(i - 0.5, -0.5), b = k.mitte(i - 0.5, hoehe - 0.5), c = k.mitte(-0.5, i - 0.5), d = k.mitte(N - 0.5, i - 0.5);
       X.beginPath(); if (i <= N) { X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); } X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
     }
+  }
+}
+
+/** Wolken liegen um die freigeschalteten Felder. Die gekachelte Decke dahinter reicht über den Bildschirm hinaus. */
+function wolkenrand(m: Maler, k: Kamera, hoehe: number): void {
+  const { X } = m, tw = k.tw;
+  const bausch = (x: number, y: number, i: number): void => {
+    const [cx, cy] = k.mitte(x, y);
+    const r = tw * (.59 + ((i * 17) % 7) * .038);
+    if (cx < -r || cx > k.breite + r || cy < -r || cy > k.hoehe + r) return;
+    const g = X.createRadialGradient(cx, cy, r * .22, cx, cy, r);
+    g.addColorStop(0, 'rgba(245,249,251,.96)');
+    g.addColorStop(.56, 'rgba(233,240,243,.75)');
+    g.addColorStop(1, 'rgba(221,232,237,0)');
+    m.kreis(cx, cy, r, g);
+  };
+  for (let x = 0; x < N; x++) {
+    bausch(x, -1.16, x);
+    bausch(x + .25, hoehe + .10, x + 3);
+  }
+  for (let y = 0; y < hoehe; y++) {
+    bausch(-1.14, y, y + 2);
+    bausch(N + .10, y + .2, y + 6);
   }
 }
 
@@ -357,6 +374,7 @@ export function bodenEbeneVerwerfen(): void {
 /** `finger_auf_karte`: liegt gerade ein Finger (oder die gedrückte Mitteltaste) auf der Karte – liefert die Steuerung. */
 export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt_s: number, finger_auf_karte = false): void {
   const { X } = m;
+  m.jahreszeit = s.saison ?? 'sommer';
   m.tw = k.tw; m.th = k.th; m.dreh_cos = Math.cos(k.winkel_rad); m.dreh_sin = Math.sin(k.winkel_rad);
   const tw = k.tw, th = k.th;
   bodenAuflegen(m, k, s, dt_s, finger_auf_karte);
@@ -456,6 +474,18 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     m.raute(cx, cy, 1); X.strokeStyle = s.stempel.ok ? '#fff' : '#d8392f'; X.lineWidth = 2.5; X.stroke();
   }
   if (durchsicht) zeichneLeitungen(m, k, s);
+  if (!m.reduziert && !durchsicht) {
+    if (m.jahreszeit === 'winter') schneefall(m, k, N, s.kartenHoehe ?? N);
+    else if (istHerbst(m.jahreszeit)) {
+      for (const o of sortiert) {
+        if (o.bau) continue;
+        const garten = o.typ === 'efh' && (o.x * 7 + o.y * 11) % 3 === 0 && tw >= 24;
+        if (o.typ !== 'baum' && !garten) continue;
+        const [x, y] = garten ? k.mitte(o.x - .37, o.y + .35) : k.mitte(o.x, o.y);
+        if (x >= -tw && x <= k.breite + tw && y >= -tw && y <= k.hoehe + tw) m.blattfall(x, y, garten ? .36 : 1, o.id);
+      }
+    }
+  }
   oben.forEach((f) => f());
   // Die Feldmitten sind die tatsächlichen Tippziele. Auch ein Dach oder Schild darf sie nicht überdecken.
   if (s.tutorial_spur?.length) zeichneSpur(m, k, s.tutorial_spur);

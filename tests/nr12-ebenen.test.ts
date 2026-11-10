@@ -7,6 +7,7 @@ import { Spiel } from '../src/core/spiel';
 import { altesStartdorf } from './hilfen/altes-startdorf';
 import { Effekte } from '../src/render/effekte';
 import { BodenEbene, type Flaeche, type FlaechenFabrik } from '../src/render/ebenen';
+import { jahreszeit } from '../src/render/jahreszeiten';
 import { Kamera } from '../src/render/kamera';
 import { Maler } from '../src/render/maler';
 import { bodenEbeneEinrichten, bodenEbeneVerwerfen, zeichneSzene, type Szene } from '../src/render/szene';
@@ -108,8 +109,8 @@ describe('NR12 P3a Bodenebene (A90)', () => {
       if (b[i] === 'strokeStyle=rgba(255,255,255,.35)') { glitzer.push(...b.slice(i, i + 6)); i += 5; } else rest.push(b[i]);
     }
     // Moderne Straßen: Pflasterfugen, Bordsteinkanten, Asphaltkörnung und Schachtdeckel.
-    expect(rest.length).toBe(25479);
-    expect(fnv(rest.join('\n'))).toBe('d8fc16e3');
+    expect(rest.length).toBe(23092);
+    expect(fnv(rest.join('\n'))).toBe('6593ba68');
     expect(glitzer.length).toBe(36);
     expect(fnv(glitzer.join('\n'))).toBe('aae3e7a5');
   });
@@ -489,19 +490,20 @@ describe('NR12 P0 Nachtrag aus dem P0-Review (K1/K2)', () => {
 });
 
 describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
-  const zaunStart = (b: string[]): [number, number] => {
-    const i = b.indexOf('strokeStyle=#c9a76a');
-    const m = b.slice(i).find((x) => x.startsWith('moveTo('))!;
-    const [x, y] = m.slice(7, -1).split(',').map(Number);
+  const wolkeStart = (b: string[]): [number, number] => {
+    const i = b.indexOf('addColorStop(0,rgba(245,249,251,.96))');
+    expect(i).toBeGreaterThan(0);
+    const [x, y] = b[i - 1].slice('createRadialGradient('.length, -1).split(',').map(Number);
     return [x, y];
   };
-  it('NR12 P3a: zwischengespeicherter Boden liegt genau an der Stelle des direkt gezeichneten (Zaun-Startpunkt, Auflegen bei −Rand)', () => {
+  it('Die Wolkenkante liegt im Cache genau an derselben Stelle wie beim direkten Zeichnen', () => {
     const { sp } = mitUhr();
     const k = kamera(), s = spielSzene(sp, T0);
-    const direkt = zaunStart(bild(k, s).befehle);
+    k.zentrieren(2, 2, 1);
+    const direkt = wolkeStart(bild(k, s).befehle);
     const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
     const a = bild(k, s);
-    const [x, y] = zaunStart(f.flaechen[0].a.befehle);
+    const [x, y] = wolkeStart(f.flaechen[0].a.befehle);
     // Rand in CSS-px: 422 / 2 = 211 und 195 / 2 = 97,5
     expect(x - RAND_X / 2).toBeCloseTo(direkt[0], 6);
     expect(y - RAND_Y / 2).toBeCloseTo(direkt[1], 6);
@@ -534,5 +536,31 @@ describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
     expect([f.flaechen[0].width, f.flaechen[0].height]).toEqual([2533, 1171]);
     const b = f.flaechen[0].a.befehle;
     expect(b.slice(0, 2)).toEqual(['setTransform(1,0,0,1,0,0)', 'clearRect(0,0,2533,1171)']);
+  });
+});
+
+
+describe('Wetter und Jahreszeiten', () => {
+  it('wechselt mit den Spielmonaten bis zum nächsten Jahr', () => {
+    expect([0, 2, 5, 8, 10, 11, 12, 20].map(jahreszeit))
+      .toEqual(['winter', 'fruehling', 'sommer', 'herbst', 'spaetherbst', 'winter', 'winter', 'herbst']);
+  });
+
+  it('erneuert den Boden beim Saisonwechsel und zeichnet bewegten Schnee in der Hauptleinwand', () => {
+    const { sp } = mitUhr();
+    const k = kamera(), s = spielSzene(sp, T0, { saison: 'herbst' });
+    const herbstSchluessel = szenenSchluessel(s);
+    const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
+    bild(k, s);
+    const herbstBefehle = f.befehle();
+    s.saison = 'winter';
+    const winter = bild(k, s);
+    expect(szenenSchluessel(s)).not.toBe(herbstSchluessel);
+    expect(f.befehle()).toBeGreaterThan(herbstBefehle);
+    expect(f.flaechen[0].a.befehle).toContain('fillStyle=#dfe9ed');
+    expect(winter.befehle).toContain('fillStyle=rgba(255,255,255,.82)');
+    const winterBefehle = f.befehle();
+    bild(k, s, .016, 2.7);
+    expect(f.befehle()).toBe(winterBefehle);
   });
 });

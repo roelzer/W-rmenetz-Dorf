@@ -9,6 +9,7 @@ import type { Bedienung, TippMeldung, TutorialAnsicht, TutorialSperre, ZielName 
 import type { Objekt } from './core/typen';
 import { Effekte } from './render/effekte';
 import { FEDERN_MS } from './render/gebaeude';
+import { jahreszeit } from './render/jahreszeiten';
 import { Kamera } from './render/kamera';
 import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
@@ -671,10 +672,10 @@ export class Steuerung implements Ui {
 
   // ---------- je Bild ----------
   szene(): Szene {
-    const g = this.geist, v = this.besuch;
-    if (v) return { objekte: v.objekte, innen: v.innen, netz: v.netz, spiel: null, auswahl_id: null, modus: 'normal', verschiebe_id: null, jetzt_ms: this.uhr(), geist: null, stempel: null };
+    const g = this.geist, v = this.besuch, saison = jahreszeit(this.spiel.monat().nr);
+    if (v) return { saison, objekte: v.objekte, innen: v.innen, netz: v.netz, spiel: null, auswahl_id: null, modus: 'normal', verschiebe_id: null, jetzt_ms: this.uhr(), geist: null, stempel: null };
     return {
-      objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
+      saison, objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
       kartenHoehe: this.spiel.kartenHoehe, strassen: spielOrt(this.spiel.stand).strassen, fluss: spielOrt(this.spiel.stand).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,

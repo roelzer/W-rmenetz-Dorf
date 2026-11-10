@@ -1,6 +1,7 @@
 import { KATALOG } from '../core/katalog';
 import { groesse } from '../core/netz';
 import type { Bau, InnenQuelle, Objekt } from '../core/typen';
+import { SCHNEE } from './jahreszeiten';
 import { KONTUR, schatten } from './farben';
 import tokens from '../../design/tokens.json';
 import type { Maler } from './maler';
@@ -128,6 +129,7 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
   }
   m.kontaktSchatten(cx, cy, 1.78); m.quaderUmriss(cx, cy, 1.78, hp);
   const tp = m.quader(cx, cy, 1.78, hp, '#e4e7e9', true);
+  if (m.jahreszeit === 'winter') m.flaeche(tp.welt, SCHNEE, false);
   m.flaeche([[tp.bL[0], tp.bL[1]], [tp.bB[0], tp.bB[1]], [tp.bB[0], tp.bB[1] - hp * 0.22], [tp.bL[0], tp.bL[1] - hp * 0.22]], '#a8553c');
   m.flaeche([[tp.bB[0], tp.bB[1]], [tp.bR[0], tp.bR[1]], [tp.bR[0], tp.bR[1] - hp * 0.22], [tp.bB[0], tp.bB[1] - hp * 0.22]], '#86412e');
   m.flaeche([[tp.L[0], tp.L[1] + hp * 0.12], [tp.B[0], tp.B[1] + hp * 0.12], [tp.B[0], tp.B[1] + hp * 0.24], [tp.L[0], tp.L[1] + hp * 0.24]], '#3d9b4f');

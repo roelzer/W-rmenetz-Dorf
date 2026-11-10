@@ -1,5 +1,6 @@
 import { KONTUR, schatten } from './farben';
 import { grafikZeichnen } from './grafiken';
+import { blatt, istHerbst, LAUB, SCHNEE, type Jahreszeit } from './jahreszeiten';
 
 export type Punkt = [number, number];
 const ALLES = Math.PI * 2;
@@ -17,6 +18,7 @@ export class Maler {
   zeit_s = 0;
   /** „Weniger Bewegung“: Animationen stehen still, Überlast bleibt dauerhaft rot */
   reduziert = false;
+  jahreszeit: Jahreszeit = 'sommer';
   constructor(public X: CanvasRenderingContext2D) {}
 
   /** Bildvektoren für einen Feldschritt in x- und y-Richtung (gedreht, isometrisch). */
@@ -149,7 +151,7 @@ export class Maler {
     ] as const) {
       const form = [a, b, f2, f1];
       if (!sichtbar(form)) continue;
-      this.flaeche(form, schatten(farbe, hell ? 0.06 : -0.18));
+      this.flaeche(form, schatten(this.jahreszeit === 'winter' ? SCHNEE : farbe, hell ? 0.06 : -0.18));
       X.strokeStyle = 'rgba(53,31,24,.22)'; X.lineWidth = Math.max(0.75, tw * 0.008);
       X.beginPath();
       for (let i = 1; i < reihen; i++) {
@@ -192,17 +194,49 @@ export class Maler {
   }
 
   baum(cx: number, cy: number, k: number, variante = 0): void {
-    const X = this.X, tw = this.tw;
+    const X = this.X, skala = this.tw * k;
     this.schatten(cx, cy, 0.5 * k);
-    if (grafikZeichnen(X, 'baum', cx, cy, tw * 0.72 * k)) return;
-    X.fillStyle = '#6b4b30'; X.fillRect(cx - tw * 0.03 * k, cy - tw * 0.16 * k, tw * 0.06 * k, tw * 0.16 * k);
-    const cs = variante % 2 ? ['#2f7a35', '#3f9a43', '#6cc35a'] : ['#2b6e3a', '#3a8f4a', '#62b85f'];
-    for (const [dx, dy, r] of [[-0.1, -0.3, 0.15], [0.1, -0.3, 0.15], [0, -0.42, 0.17]]) {
-      const x = cx + tw * dx * k, y = cy + tw * dy * k, rr = tw * r * k;
-      const g = X.createRadialGradient(x - rr * 0.3, y - rr * 0.4, rr * 0.1, x, y, rr);
-      g.addColorStop(0, cs[2]); g.addColorStop(0.5, cs[1]); g.addColorStop(1, cs[0]);
-      X.fillStyle = g; X.beginPath(); X.arc(x, y, rr, 0, ALLES); X.fill();
-      X.strokeStyle = KONTUR; X.lineWidth = Math.max(1, tw * 0.016); X.stroke();
+    const saison = this.jahreszeit, herbst = istHerbst(saison);
+    if (saison === 'sommer' && grafikZeichnen(X, 'baum', cx, cy, skala * .72)) return;
+    const kahl = saison === 'winter' || saison === 'spaetherbst';
+    const punkt = (x: number, y: number): Punkt => [cx + x * skala, cy + y * skala];
+    this.flaeche([punkt(-.035, 0), punkt(.035, 0), punkt(.015, -.45), punkt(-.02, -.46)], '#765039', false);
+    if (kahl) {
+      X.strokeStyle = '#6b503e'; X.lineWidth = Math.max(.85, skala * .024);
+      X.beginPath();
+      for (const [x, y, dx, dy] of [[-.01, -.22, -.19, -.36], [-.01, -.29, .17, -.43], [-.08, -.27, -.13, -.43], [.08, -.36, .1, -.49], [0, -.4, -.048, -.53]]) {
+        X.moveTo(...punkt(x, y)); X.lineTo(...punkt(dx, dy));
+      }
+      X.stroke();
+      if (saison === 'winter') {
+        const [x, y] = punkt(-.10, -.35);
+        this.kreis(x, y, skala * .037, SCHNEE);
+        return;
+      }
+    }
+    const cs = herbst
+      ? variante % 2 ? ['#a95127', '#dc7d2d', '#ffbd54'] : ['#a34529', '#cb622d', '#f59a41']
+      : saison === 'fruehling' ? ['#43883b', '#75b94a', '#bcdf74']
+        : ['#2b6e3a', '#3a8f4a', '#62b85f'];
+    for (const [dx, dy, r] of [[-.1, -.30, .15], [.1, -.33, .15], [0, -.42, .17]]) {
+      const [x, y] = punkt(dx, dy), rr = skala * r * (kahl ? .46 : 1);
+      const g = X.createRadialGradient(x - rr * .3, y - rr * .4, rr * .1, x, y, rr);
+      g.addColorStop(0, cs[2]); g.addColorStop(.52, cs[1]); g.addColorStop(1, cs[0]);
+      this.kreis(x, y, rr, g);
+    }
+    if (saison === 'fruehling' && variante % 2 === 0) {
+      for (const [x, y] of [[-.11, -.34], [.05, -.46], [.14, -.32]]) this.kreis(...punkt(x, y), skala * .025, '#ffe1da');
+    }
+  }
+
+  /** Leichte, wiederkehrende Fallbewegung einzelner Blätter, ohne die Bodenebene neu zu zeichnen. */
+  blattfall(cx: number, cy: number, k: number, variante: number): void {
+    const skala = this.tw * k;
+    for (let i = 0; i < (k < .5 ? 1 : 3); i++) {
+      const f = (this.zeit_s * (.25 + i * .035) + variante * .173 + i * .34) % 1;
+      const welle = Math.sin(f * 8 + i);
+      blatt(this, cx + skala * (f * .3 + welle * .12), cy - skala * (.43 - f * .46),
+        Math.max(1.2, skala * .029), LAUB[(variante + i) % LAUB.length], welle * .75);
     }
   }
 

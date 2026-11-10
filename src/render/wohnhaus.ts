@@ -1,4 +1,5 @@
 import type { Objekt } from '../core/typen';
+import { SCHNEE } from './jahreszeiten';
 import { schatten } from './farben';
 import { type Maler, type Punkt } from './maler';
 import { atlasFlaeche } from './grafiken';
@@ -97,7 +98,7 @@ export function zeichneWohnhaus(m: Maler, o: Objekt, cx: number, cy: number, str
   }
   const kranz = m.quader(cx, cy - hp, gesims, blende, dach, mfh);
   if (mfh) {
-    m.flaeche(m.ecken(cx, cy - hp - blende, breite * 0.93), '#696d6c', false);
+    m.flaeche(m.ecken(cx, cy - hp - blende, breite * 0.93), m.jahreszeit === 'winter' ? SCHNEE : '#696d6c', false);
     m.quader(cx, cy - hp - blende, 0.22, m.tw * 0.06, '#989e9e');
   } else {
     kranz.wandR = '#b88654';
