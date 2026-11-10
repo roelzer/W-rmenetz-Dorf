@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Plugin } from 'vite';
 
 /** Dateien aus public/, die nicht im Bündel stehen, aber offline da sein müssen. */
-export const FESTE_DATEIEN = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'art/heatville-modern-v1.webp'];
+export const FESTE_DATEIEN = ['./', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'art/heatville-modern-v1.webp', 'figuren/simon.png'];
 
 /** Setzt Version und Dateiliste in die Vorlage ein. Rein und testbar. */
 export function erzeugeServiceWorker(vorlage: string, dateien: string[], version: string): string {

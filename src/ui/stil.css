@@ -464,6 +464,8 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .anleiter-figur{flex:none;width:var(--menue-mass-px-anleiter-figur);height:var(--menue-mass-px-anleiter-figur)}
 #anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein)}
 .anleiter-figur .sprecher-bild{width:100%;height:100%}
+.anleiter-figur .sprecher-bild.foto{width:100%;height:100%;border-radius:50%;overflow:hidden;border:2px solid var(--farbe-ui-pergament-rand);margin:0}
+.anleiter-figur .sprecher-bild.foto img{width:100%;height:100%;object-fit:cover;filter:none}
 .anleiter-blase{flex:1;min-width:0;background:var(--menue-farbe-tafel);border:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-kontur);border-radius:var(--menue-mass-px-radius-kasten) var(--menue-mass-px-radius-kasten) var(--menue-mass-px-radius-kasten) 4px;box-shadow:0 3px 0 var(--menue-farbe-kontur);padding:8px 12px}
 .anleiter-kopf{display:flex;align-items:center;justify-content:space-between;height:18px}
 .anleiter-name{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-abzeichen);color:var(--menue-farbe-kontur)}
