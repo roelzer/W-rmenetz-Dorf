@@ -194,6 +194,12 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       }
       const [gcx, gcy] = k.mitte(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2);
       if (gcx < -tw || gcx > W + tw || gcy < -th || gcy > H + tw) continue;
+      m.raute(gcx, gcy + th * 0.045, kk * 0.86);
+      X.fillStyle = 'rgba(43,65,36,.22)'; X.fill();
+      m.raute(gcx, gcy, kk * 0.86);
+      X.fillStyle = '#b9af8d'; X.fill();
+      m.raute(gcx, gcy, kk * 0.78);
+      X.fillStyle = '#d8ccb0'; X.fill();
       if (weg) {
         const [wx, wy, dx, dy] = weg, hw = 0.12;
         const pts: Array<[number, number]> = dx === 0
@@ -201,6 +207,15 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
           : [[0, -hw], [0, hw], [0.55 * dx, hw], [0.55 * dx, -hw]];
         X.beginPath(); pts.forEach(([gx, gy], i) => { const [px, py] = k.mitte(wx + gx, wy + gy); if (i) X.lineTo(px, py); else X.moveTo(px, py); }); X.closePath();
         X.fillStyle = KARTE.gehweg; X.fill(); X.strokeStyle = KARTE.bordstein; X.lineWidth = 1; X.stroke();
+        if (tw >= 42) {
+          X.beginPath();
+          for (const f of [0.3, 0.44]) {
+            const a = k.mitte(wx + dx * f - dy * hw, wy + dy * f + dx * hw);
+            const b = k.mitte(wx + dx * f + dy * hw, wy + dy * f - dx * hw);
+            X.moveTo(...a); X.lineTo(...b);
+          }
+          X.strokeStyle = 'rgba(86,79,60,.32)'; X.stroke();
+        }
       }
     }
   }
@@ -267,7 +282,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   bodenAuflegen(m, k, s, dt_s, finger_auf_karte);
   zeichneGlitzern(m, k, s);
 
-  zeichneLeitungen(m, k, s);
+  const durchsicht = istDurchsichtig(s.modus, s.spiel?.abschnitt?.phase);
+  if (!durchsicht) zeichneLeitungen(m, k, s);
 
   // Auswahlring
   const sel = s.auswahl_id != null ? s.objekte.find((o) => o.id === s.auswahl_id) : undefined;
@@ -278,7 +294,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
 
   // Gebäude von hinten nach vorn
   // A37: Beim Planen (Leitungen einzeichnen) werden Gebäude durchsichtig, die Leitungen dahinter bleiben sichtbar.
-  const durchsicht = istDurchsichtig(s.modus, s.spiel?.abschnitt?.phase);
   // Zeichenreihenfolge von hinten nach vorn in der gedrehten Ansicht (Mittelpunkt, nach Größe gewichtet)
   const tiefe = (o: Objekt): number => { const kk = groesse(o), [rx, ry] = k.dreheFeld(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2); return rx + ry + kk; };
   const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
@@ -414,6 +429,7 @@ export function istDurchsichtig(modus: string, abschnittPhase?: string): boolean
 
 function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m, tw = k.tw, netz = s.netz;
+  const rohrbreite = (typ: TypId): number => Math.max(1.5, tw * (KATALOG[typ].breite ?? 0.06) * 0.62);
   const nachFeld = new Map<number, Objekt>();
   for (const o of s.objekte) { const kante = groesse(o); for (let dy = 0; dy < kante; dy++) for (let dx = 0; dx < kante; dx++) nachFeld.set((o.y + dy) * N + o.x + dx, o); }
   const verbunden = (o: Objekt, n: Objekt | undefined): boolean =>
@@ -424,7 +440,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
   const planRaute = (cx: number, cy: number, farbe = '#2a6fb0'): void => {
-    X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = farbe; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
+    X.setLineDash([tw * 0.07, tw * 0.05]); X.strokeStyle = farbe; X.lineWidth = 1; m.raute(cx, cy, 0.48); X.stroke(); X.setLineDash([]);
   };
   for (const o of rohre) {
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
@@ -463,19 +479,20 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     }
     const plan = !!o.geplant;
     if (plan) { X.save(); X.globalAlpha = 0.6; }
-    const D = KATALOG[o.typ], w = Math.max(2, tw * (D.breite ?? 0.1)), ueber = an && netz.kapazitaet_ok.get(key) === false;
-    m.raute(cx, cy, 0.55); X.fillStyle = 'rgba(140,100,55,.35)'; X.fill();
+    const D = KATALOG[o.typ], w = rohrbreite(o.typ), ueber = an && netz.kapazitaet_ok.get(key) === false;
     X.lineCap = 'round';
     const rohr = plan ? (D.farbe ?? '#e2582b') : ueber ? (Math.floor(m.zeit_s * 4) % 2 ? '#ff4a3a' : '#b8221a') : an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
-    for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, rohr]] as const) {
+    for (const [lw, c] of [[w + 1.25, 'rgba(35,40,35,.42)'], [w, rohr]] as const) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy); X.lineTo(mx, my); }
       if (!seg.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
       X.stroke();
     }
-    X.strokeStyle = 'rgba(255,255,255,.45)'; X.lineWidth = Math.max(1, w * 0.3); X.beginPath();
-    for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
-    X.stroke();
+    if (w >= 3 && seg.length) {
+      X.strokeStyle = 'rgba(255,255,255,.32)'; X.lineWidth = w * 0.19; X.beginPath();
+      for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
+      X.stroke();
+    }
     // A69: T-Stück mit Vorsehung: kurzer Abgang quer zur Leitung mit dunkler Verschlusskappe
     if (o.vorsehung) {
       const quer = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !verbunden(o, n); });
@@ -487,8 +504,8 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       const frei = (r: readonly [number, number]): boolean => !nachFeld.has((o.y + r[1]) * N + o.x + r[0]);
       const [rx, ry] = geradeaus[0] ?? senkrecht.find(frei) ?? senkrecht[0] ?? quer[0] ?? [0, 1];
       const [ax, ay] = k.mitte(o.x + rx, o.y + ry), ex = cx + (ax - cx) * 0.32, ey = cy + (ay - cy) * 0.32;
-      for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, rohr]] as const) { X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(cx, cy); X.lineTo(ex, ey); X.stroke(); }
-      X.beginPath(); X.arc(ex, ey, Math.max(2.5, w * 0.75), 0, Math.PI * 2); X.fillStyle = '#2d2a26'; X.fill();
+      for (const [lw, c] of [[w + 1.25, 'rgba(35,40,35,.42)'], [w, rohr]] as const) { X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(cx, cy); X.lineTo(ex, ey); X.stroke(); }
+      X.beginPath(); X.arc(ex, ey, Math.max(1.5, w * 0.55), 0, Math.PI * 2); X.fillStyle = '#2d2a26'; X.fill();
       X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1; X.stroke();
     }
     if (netz.engpass.has(key) || netz.reduzierung.has(key) || netz.aufteilung.has(key)) {
@@ -510,13 +527,14 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   // A65: eigene dünne Hausanschlüsse von der Hauptleitung bis ans Haus (beginnen am Rand der Hauptleitung)
   X.lineCap = 'round';
   for (const st of stummel) {
-    const D = KATALOG[st.typ], w = Math.max(2, tw * (D.breite ?? 0.06));
+    const D = KATALOG[st.typ], w = rohrbreite(st.typ);
     const v: Punkt = [st.von[0] + (st.bis[0] - st.von[0]) * 0.3, st.von[1] + (st.bis[1] - st.von[1]) * 0.3];
-    for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, st.an ? (D.farbe ?? '#d8392f') : '#9aa4ab']] as const) {
+    for (const [lw, c] of [[w + 1.25, 'rgba(35,40,35,.42)'], [w, st.an ? (D.farbe ?? '#d8392f') : '#9aa4ab']] as const) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(v[0], v[1]); X.lineTo(st.bis[0], st.bis[1]); X.stroke();
     }
   }
   // Wärmepunkte fließen vom Heizhaus zum Kunden
+  if (m.reduziert) return;
   const hz = heizzentrale(s.objekte);
   X.fillStyle = '#fff';
   for (const [key] of netz.tiefe) {
@@ -526,7 +544,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     if (p === -1 || p === undefined) { const kante = groesse(hz); a = k.mitte(hz.x + (kante - 1) / 2, hz.y + (kante - 1) / 2); }
     else a = k.mitte(p % N, (p - (p % N)) / N);
     const b = k.mitte(x, y), f = (m.zeit_s * 0.6 + key * 0.37) % 1;
-    X.globalAlpha = 0.9; X.beginPath(); X.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, Math.max(1.5, tw * 0.028), 0, Math.PI * 2); X.fill();
+    X.globalAlpha = 0.8; X.beginPath(); X.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, Math.max(0.8, tw * 0.013), 0, Math.PI * 2); X.fill();
   }
   X.globalAlpha = 1;
 }

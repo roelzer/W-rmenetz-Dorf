@@ -140,14 +140,17 @@ export class Maler {
     flaechen.sort((a, b) => a[0] - b[0]);
     for (const [, p, f] of flaechen) this.flaeche(p, f);
     const [ka, kb] = vorn >= hinten ? [c3, c2] : [c0, c1];
-    X.strokeStyle = 'rgba(0,0,0,.07)'; X.lineWidth = Math.max(0.75, tw * 0.008);
-    for (let i = 1; i < 4; i++) {
-      const f = i / 4;
-      X.beginPath();
+    X.strokeStyle = 'rgba(53,31,24,.22)'; X.lineWidth = Math.max(0.75, tw * 0.008);
+    const reihen = tw >= 42 ? 6 : 3;
+    X.beginPath();
+    for (let i = 1; i < reihen; i++) {
+      const f = i / reihen;
       X.moveTo(ka[0] + (P1[0] - ka[0]) * f, ka[1] + (P1[1] - ka[1]) * f);
       X.lineTo(kb[0] + (P2[0] - kb[0]) * f, kb[1] + (P2[1] - kb[1]) * f);
-      X.stroke();
     }
+    X.stroke();
+    X.strokeStyle = 'rgba(54,35,26,.44)'; X.lineWidth = Math.max(1, tw * 0.015);
+    X.beginPath(); X.moveTo(...ka); X.lineTo(...kb); X.stroke();
     X.strokeStyle = 'rgba(255,255,255,.55)'; X.lineWidth = Math.max(1.2, tw * 0.025);
     X.beginPath(); X.moveTo(P1[0], P1[1]); X.lineTo(P2[0], P2[1]); X.stroke();
     return { P1, P2 };

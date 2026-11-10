@@ -109,8 +109,8 @@ describe('NR12 P3a Bodenebene (A90)', () => {
     for (let i = 0; i < b.length; i++) {
       if (b[i] === 'strokeStyle=rgba(255,255,255,.35)') { glitzer.push(...b.slice(i, i + 6)); i += 5; } else rest.push(b[i]);
     }
-    expect(rest.length).toBe(16641);
-    expect(fnv(rest.join('\n'))).toBe('3bd40a67');
+    expect(rest.length).toBe(16638);
+    expect(fnv(rest.join('\n'))).toBe('ae418223');
     expect(glitzer.length).toBe(36);
     expect(fnv(glitzer.join('\n'))).toBe('aae3e7a5');
   });
