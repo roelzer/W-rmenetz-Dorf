@@ -4,6 +4,7 @@ import type { Bau, InnenQuelle, Objekt } from '../core/typen';
 import { dachfarbe, KONTUR, schatten } from './farben';
 import tokens from '../../design/tokens.json';
 import { WARM_FENSTER, type Maler } from './maler';
+import { grafikZeichnen, objektGrafik } from './grafiken';
 
 const ALLES = Math.PI * 2;
 /** Dauer des kurzen Federns (DESIGN.md Abschnitt 3: Platzieren; 13.2: „Erreicht“-Zeichen) */
@@ -23,8 +24,22 @@ export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Z
   const geist = o.bau?.art === 'neu';
   const pop = o._pop ? Math.max(0, 1 - (jetzt_ms - o._pop) / FEDERN_MS) : 0;
   if (pop > 0) { X.save(); X.translate(cx, cy); const k = 1 + Math.sin(pop * Math.PI) * 0.18; X.scale(k, Math.max(0.8, 2 - k)); X.translate(-cx, -cy); }
-  if (geist) X.globalAlpha = 0.5;
-  if (t === 'hz') heizzentrale(m, o, cx, cy, st);
+  const alpha = X.globalAlpha;
+  if (geist) X.globalAlpha *= 0.5;
+  const grafik = objektGrafik(o);
+  if (grafik && grafikZeichnen(X, grafik.art, cx, cy, tw * grafik.breite)) {
+    // Stufe und Versorgungszustand bleiben auch bei vorberechneten Fassaden sichtbar.
+    const by = cy + tw * grafik.breite * 0.18;
+    if (t !== 'hz') m.kreis(cx, by, tw * 0.026, st.warm ? '#ffb847' : '#91aec0');
+    if (lv > 1) {
+      X.fillStyle = '#ffc747'; X.strokeStyle = '#73511c'; X.lineWidth = Math.max(0.5, tw * 0.008);
+      for (let i = 0; i < Math.min(lv, 5); i++) m.stern(cx + (i - (Math.min(lv, 5) - 1) / 2) * tw * 0.075, by + tw * 0.055, tw * 0.025);
+    }
+    if (t === 'hz' && st.laeuft && !m.reduziert && st.innen.some(q => q.typ === 'kessel' || q.typ === 'pellet' || q.typ === 'gas')) {
+      X.save(); heizRauch(m, cx + tw * grafik.breite * 0.17, cy - tw * grafik.breite * 0.64, m.zeit_s, tw * 0.04); X.restore();
+    }
+  }
+  else if (t === 'hz') heizzentrale(m, o, cx, cy, st);
   else if (t === 'pv' || t === 'solar') {
     m.schatten(cx, cy, 1.6); m.raute(cx, cy, 1.75); X.fillStyle = t === 'pv' ? '#c9c4b2' : '#b9b29a'; X.fill(); X.strokeStyle = KONTUR; X.stroke();
     const n = Math.min(4, lv + 1), col = t === 'pv' ? '#2c5aa0' : '#283848';
@@ -61,7 +76,7 @@ export function zeichneObjekt(m: Maler, o: Objekt, cx: number, cy: number, st: Z
   } else if (D.kategorie === 'haus') haus(m, o, cx, cy, st);
   else if (D.kategorie === 'gross') gross(m, o, cx, cy, st);
   else deko(m, o, cx, cy);
-  X.globalAlpha = 1;
+  X.globalAlpha = alpha;
   if (pop > 0) X.restore();
 }
 
@@ -106,6 +121,10 @@ function deko(m: Maler, o: Objekt, cx: number, cy: number): void {
   }
 }
 
+function heizRauch(m: Maler, x: number, y: number, zeit: number, radius: number): void {
+  if (!m.reduziert) m.wolke(x, y, zeit, radius);
+}
+
 function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand): void {
   const { X } = m;
   const gross3 = groesse(o) === 3, f = gross3 ? 1.5 : 1, tw0 = m.tw, th0 = m.th;
@@ -144,7 +163,7 @@ function heizzentrale(m: Maler, o: Objekt, cx: number, cy: number, st: Zustand):
   for (let i = 0; i < np; i++) { const x = cx - tw * 0.2 + i * tw * 0.16, y = cy - hp + th * 0.15; m.quader(x, y, 0.25, tw * 0.1, '#f2c94c'); m.symbol('blitz', x, y - tw * 0.1, tw * 0.05, 'rgba(40,34,26,.4)'); }
   X.fillStyle = '#f6c22c'; X.strokeStyle = KONTUR; X.lineWidth = 1;
   for (let i = 0; i < lv; i++) m.stern(tp.L[0] + tw * 0.2 + i * tw * 0.1, tp.L[1] + hp * 0.55 + i * th * 0.1, tw * 0.035);
-  if (st.laeuft && nk) for (let i = 0; i < nk; i++) m.wolke(cx - tw * 0.45 + i * tw * 0.17, cy - hp - tw * 0.62, m.zeit_s + i * 0.37, tw * 0.055);
+  if (st.laeuft && nk) for (let i = 0; i < nk; i++) heizRauch(m, cx - tw * 0.45 + i * tw * 0.17, cy - hp - tw * 0.62, m.zeit_s + i * 0.37, tw * 0.055);
   m.tw = tw0; m.th = th0;
 }
 

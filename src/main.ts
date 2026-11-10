@@ -8,6 +8,7 @@ import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL, speichernErlaubt } 
 import { Spiel } from './core/spiel';
 import { neuesSpielMitTutorial } from './core/start';
 import { Maler } from './render/maler';
+import { grafikenLaden } from './render/grafiken';
 import { bodenEbeneEinrichten, bodenEbeneVerwerfen, zeichneSzene } from './render/szene';
 import { animationBedarf, szenenSchluessel } from './render/szene-schluessel';
 import { neuerTakt, sollZeichnen, type BildProbe } from './render/takt';
@@ -103,6 +104,7 @@ beiEinstellungsAenderung((e) => {
 });
 /** Rückkehr in die App oder Leinwand-Verlust: der zwischengespeicherte Boden kann leer sein – freigeben und sofort neu zeichnen. */
 const neuAufbauen = (): void => { bodenEbeneVerwerfen(); erzwingen = true; };
+void grafikenLaden().then(neuAufbauen);
 // Zweitleinwand für den ruhenden Boden; sie kann ihren Inhalt wie die Karte verlieren (Speicherdruck auf dem Handy).
 bodenEbeneEinrichten((b, h) => {
   const c = document.createElement('canvas');

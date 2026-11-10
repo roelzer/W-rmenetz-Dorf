@@ -2,6 +2,7 @@ import { KATALOG, istLeitung } from '../core/katalog';
 import { groesse } from '../core/netz';
 import type { Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
+import { grafikHoehe } from './grafiken';
 
 type P = [number, number];
 
@@ -19,6 +20,8 @@ function innen(p: P, ecken: P[]): boolean {
 
 /** Gezeichnete Höhe eines Objekts in Feldbreiten (grob, eher großzügig – Dach und Kamin zählen mit). */
 function hoehe_tw(o: Objekt): number {
+  const grafik = grafikHoehe(o);
+  if (grafik !== undefined) return grafik;
   const kat = KATALOG[o.typ].kategorie;
   if (istLeitung(o.typ)) return 0;
   if (kat === 'deko' || kat === 'hindernis') return 0.35;

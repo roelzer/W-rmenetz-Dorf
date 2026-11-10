@@ -1,4 +1,5 @@
 import { KONTUR, schatten } from './farben';
+import { grafikZeichnen } from './grafiken';
 
 export type Punkt = [number, number];
 const ALLES = Math.PI * 2;
@@ -184,6 +185,7 @@ export class Maler {
   baum(cx: number, cy: number, k: number, variante = 0): void {
     const X = this.X, tw = this.tw;
     this.schatten(cx, cy, 0.5 * k);
+    if (grafikZeichnen(X, 'baum', cx, cy, tw * 0.72 * k)) return;
     X.fillStyle = '#6b4b30'; X.fillRect(cx - tw * 0.03 * k, cy - tw * 0.16 * k, tw * 0.06 * k, tw * 0.16 * k);
     const cs = variante % 2 ? ['#2f7a35', '#3f9a43', '#6cc35a'] : ['#2b6e3a', '#3a8f4a', '#62b85f'];
     for (const [dx, dy, r] of [[-0.1, -0.3, 0.15], [0.1, -0.3, 0.15], [0, -0.42, 0.17]]) {

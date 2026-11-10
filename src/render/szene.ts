@@ -10,6 +10,7 @@ import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
+import { grafikHoehe } from './grafiken';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 import { bodenSchluessel } from './szene-schluessel';
@@ -131,6 +132,18 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       const [cx, cy] = k.mitte(sx, sy);
       if (!sichtbar(cx, cy)) continue;
       m.raute(cx, cy, 1.03); X.fillStyle = KARTE.gehweg; X.fill();
+      // Pflasterfugen liegen unter dem Asphalt; dadurch bleiben Kreuzungen frei.
+      if (tw >= 28) {
+        X.strokeStyle = 'rgba(78,72,58,.22)'; X.lineWidth = Math.max(0.55, tw * 0.008); X.beginPath();
+        for (let i = -2; i <= 2; i++) {
+          const f = i / 4;
+          for (const [a, b] of [
+            [k.mitte(sx + f, sy - 0.5), k.mitte(sx + f, sy + 0.5)],
+            [k.mitte(sx - 0.5, sy + f), k.mitte(sx + 0.5, sy + f)],
+          ]) { X.moveTo(...a); X.lineTo(...b); }
+        }
+        X.stroke();
+      }
     }
     // 2. Asphalt: Mitte plus Arme zu Nachbarstraßen; Bordsteinlinie als etwas hellerer Rand
     const asphalt = (breite: number, farbe: string): void => {
@@ -149,7 +162,23 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       }
     };
     asphalt(BR + 0.035, KARTE.bordstein);
+    asphalt(BR + 0.012, '#7b817c');
     asphalt(BR, KARTE.strasse);
+    // Statische Asphaltkörnung und gelegentliche eingelassene Schachtdeckel.
+    // Im Boden-Cache, ohne zusätzliche Animation oder Zufallswerte pro Bild.
+    if (tw >= 32) for (const [sx, sy] of s.strassen) {
+      const [cx, cy] = k.mitte(sx, sy);
+      if (!sichtbar(cx, cy)) continue;
+      X.fillStyle = 'rgba(215,222,216,.14)';
+      for (let i = 0; i < 7; i++) {
+        const [px, py] = k.mitte(sx + (hash(sx + i * 3, sy) - 0.5) * 0.55, sy + (hash(sy + i * 7, sx) - 0.5) * 0.55);
+        X.fillRect(px, py, Math.max(0.65, tw * 0.011), Math.max(0.45, tw * 0.006));
+      }
+      if (hash(sx, sy) < 0.07 && arme(sx, sy) === 2) {
+        X.beginPath(); X.ellipse(cx + tw * 0.12, cy, tw * 0.055, th * 0.055, 0, 0, Math.PI * 2);
+        X.fillStyle = '#555c5d'; X.fill(); X.strokeStyle = '#929b97'; X.lineWidth = Math.max(0.6, tw * 0.008); X.stroke();
+      }
+    }
     // 3. Markierungen, Zebrastreifen, Risse
     for (const [sx, sy] of s.strassen) {
       const [cx, cy] = k.mitte(sx, sy);
@@ -337,7 +366,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     if (durch) X.globalAlpha = 0.5;
     zeichneObjekt(m, o, cx, cy, st, s.jetzt_ms);
     if (durch) X.globalAlpha = 1;
-    const topY = cy - tw * (kante >= 2 ? (o.typ === 'klinik' ? 1.15 : 0.95) : 0.72);
+    const topY = cy - tw * Math.max((grafikHoehe(o) ?? 0) + 0.12, kante >= 2 ? (o.typ === 'klinik' ? 1.15 : 0.95) : 0.72);
     if (o.bau) {
       const hp = tw * 0.55 * kante, bau = o.bau;
       zeichneGeruest(m, cx, cy, kante * 0.8, hp);
@@ -511,6 +540,19 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       X.strokeStyle = 'rgba(255,255,255,.32)'; X.lineWidth = w * 0.19; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
       X.stroke();
+    }
+    // Dezente Muffen auf den tatsächlich gezeichneten Rohrarmen. Freie Nachbartrassen
+    // erhalten keine optische Verbindung. Bei kleinem Zoom entfallen die Details.
+    if (!plan && tw >= 36 && w >= 2) {
+      for (const [mx, my] of seg) {
+        const dx = mx - cx, dy = my - cy, len = Math.hypot(dx, dy);
+        if (len < w * 3) continue;
+        const x = cx + dx * 0.65, y = cy + dy * 0.65, nx = -dy / len, ny = dx / len;
+        X.strokeStyle = 'rgba(37,46,49,.75)'; X.lineWidth = Math.max(1, w * 0.3);
+        X.beginPath(); X.moveTo(x - nx * w * 0.55, y - ny * w * 0.55); X.lineTo(x + nx * w * 0.55, y + ny * w * 0.55); X.stroke();
+        X.strokeStyle = 'rgba(230,239,232,.65)'; X.lineWidth = Math.max(0.55, w * 0.12);
+        X.beginPath(); X.moveTo(x - nx * w * 0.4, y - ny * w * 0.4 - w * 0.12); X.lineTo(x + nx * w * 0.4, y + ny * w * 0.4 - w * 0.12); X.stroke();
+      }
     }
     // A69: T-Stück mit Vorsehung: kurzer Abgang quer zur Leitung mit dunkler Verschlusskappe
     if (o.vorsehung) {
