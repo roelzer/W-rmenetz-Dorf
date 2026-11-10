@@ -243,8 +243,7 @@ describe('A88 Freischalt-Leiter – alte Stände und Bestand (T8, F3)', () => {
     z.t += 3600_000; s.bis(z.t);
     expect(h2.upgrade).toBe(1);
     expect(s.stand.objekte.some((o) => o.typ === 'puffer')).toBe(true);
-    const r = s.innenAusbauen(s.stand.innen.findIndex((k) => k.typ === 'pellet'));
-    expect(r.hinweis ?? '').not.toContain('ab Heizzentrale Stufe');
+    expect(s.stand.innen.find((k) => k.typ === 'pellet')?.stufe).toBe(1);
     // Die gebaute 50er bleibt eine 50er, auch auf Stufe 1; Entfernen geht weiter.
     // Der Ersatz-Teil (4.19) steht in test_a88_gebautes_bleibt_ersatz (rot bis NR18-P2).
     offenerAbschnitt(s);
@@ -769,3 +768,4 @@ describe('A88 Oberfläche P2 – Karten fragen nur den Kern ab (Bauplan 7a, ohne
     });
   });
 });
+

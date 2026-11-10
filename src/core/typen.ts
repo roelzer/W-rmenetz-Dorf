@@ -72,6 +72,8 @@ export interface Objekt {
 
 /** Wärmequelle im Heizhaus. */
 export interface InnenQuelle {
+  /** Kaufpreis eines festen Modells. Altanlagen behalten ihren bisherigen Rückkaufswert. */
+  kaufpreis_eur?: number;
   typ: TypId;
   stufe: number;
   bau: Bau | null;
@@ -113,6 +115,7 @@ export interface Spielstand {
   /** A43: Baugebiet bereits erschlossen */
   baugebiet?: boolean;
   neubaugebiet?: boolean;
+  neubaugebiet_layout?: 2;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
   gestattungen?: number[];
   /** Version des Kartenlayouts (Straßen, Fluss); ältere Spielstände werden beim Laden angepasst (A46) */

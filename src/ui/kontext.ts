@@ -543,15 +543,12 @@ export class Kontext {
     s.innen.forEach((q, i) => {
       const D = KATALOG[q.typ];
       const leistung = D.leistung_kw![q.stufe - 1];
-      const rechts = q.bau ? h('span', {}, 'wird gebaut …') :
-        q.stufe >= KONSTANTEN.hoechststufe ? h('span', { class: 'gedaempft' }, 'Höchste Stufe') :
-          // Grauer Text an Knopfstelle sah aus wie ein Knopf ohne Rahmen (DESIGN.md 12.12): deshalb ein deaktivierter Knopf mit Grund
-          q.stufe >= sp.hzStufe ? knopf(`Stufe ${q.stufe + 1}`, () => undefined, '', { klein: true, sperre: hzStufeSperre(q.stufe + 1, true) }) :
-            knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(D.kosten_eur![q.stufe]), sperre: geldSperre(sp, D.kosten_eur![q.stufe]) });
-      const verkauf = s.innen.length > 1 && !q.bau ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(q.typ, q.stufe))}` }) : null;
-      k.append(zeile(h('span', {}, `${D.name} · Stufe ${q.stufe}`, h('br'), h('small', { class: 'gedaempft' }, `${leistung} kW`)), h('span', { class: 'rechts' }, rechts, verkauf)));
+      const verkauf = !q.bau && (!s.tutorial || s.innen.length > 1)
+        ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.innenRueckkauf_eur(q))}` }) : null;
+      k.append(zeile(`${D.name} · ${leistung} kW`, q.bau ? 'wird eingebaut …' : verkauf ?? ''));
     });
-    if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Quelle einbauen', () => this.ui.katalog('innen'), 'los')));
+    if (s.innen.length === 1 && !s.tutorial) k.append(h('p', { class: 'gedaempft' }, 'Beim Verkauf der letzten Anlage fällt ihre Wärmeleistung weg, bis Ersatz läuft.'));
+    if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Wärmeerzeuger kaufen', () => this.ui.katalog('innen'), 'los')));
     else k.append(h('p', { class: 'gedaempft' }, 'Kein Platz mehr im Heizhaus – baue erst die Heizzentrale aus.'));
     const sperreVorlauf = sp.sperrgrund('vorlauf'); // A88: gesperrt = Stepper deaktiviert, Grund darunter
     // DESIGN.md 12.20 R1/R2: Die Stufe geht vor dem Rand des Reglers (Regel 4)
@@ -576,7 +573,7 @@ export class Kontext {
       h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), sperre: ersteSperre(stufenSperre(sp, 'baugebiet'), baugebietSperre(sp.versorgteHaeuser()), geldSperre(sp, KONSTANTEN.baugebiet_eur)) })));
     if (sp.stand.neubaugebiet) {
       const neu = kasten('Neubaugebiet Süd');
-      neu.append(h('p', {}, 'Verlängere die Haupttrasse über den alten Kartenrand. Setze Vorsehungen für die Häuser, die noch gebaut werden.'),
+      neu.append(h('p', {}, 'Vier Straßen erschließen die Häuserblöcke. Führe die Haupttrasse nach Süden und zweige an den Querstraßen ab. Setze Vorsehungen für die laufenden Baustellen.'),
         knopf('Zum Neubaugebiet', () => this.ui.neubaugebietZeigen?.(), 'los', { klein: true }));
       bg.append(neu);
     }

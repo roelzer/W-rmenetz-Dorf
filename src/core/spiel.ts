@@ -6,7 +6,7 @@ import {
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { neubaugebietAnlegen, spielOrt } from './neubaugebiet';
-import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
+import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import type { Schritt, TutorialWerte } from './tutorial-vertrag';
 import { ERSTE_HAEUSER } from './start';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
@@ -639,19 +639,31 @@ export class Spiel {
     return ok();
   }
 
+  erzeugerSperrgrund(t: TypId, modell: number): string | null {
+    if (modell === 1) return this.sperrgrund(t);
+    const ab = erzeugerAbStufe(t, modell);
+    return this.hzStufe < ab ? `ab Heizzentrale Stufe ${ab}` : null;
+  }
+
   /** Quelle ins Heizhaus einbauen. gratis = Startquelle. */
-  innenEinbauen(t: TypId, gratis = false): Ergebnis {
+  innenEinbauen(t: TypId, gratis = false, modell = 1): Ergebnis {
     const D = KATALOG[t];
+    if (D.kategorie !== 'innen' || !Number.isInteger(modell) || modell < 1 || modell > (D.kosten_eur?.length ?? 0)) return { ok: false };
+    const preis = D.kosten_eur![modell - 1];
     if (this.stand.innen.length >= (KATALOG.hz.plaetze as number[])[this.hzStufe - 1])
       return this.nein('Kein Platz mehr im Heizhaus – erst die Heizzentrale ausbauen');
-    if (!gratis) { const sperre = this.gesperrt(t); if (sperre) return sperre; }
+    if (!gratis || modell > 1) {
+      const grund = this.erzeugerSperrgrund(t, modell);
+      if (grund) return this.nein(`Dieses Modell gibt es ${grund}`);
+    }
     if (!gratis) {
       if (!this.braucheMonteur()) return { ok: false };
-      const b = this.bezahlen({ eur: (D.kosten_eur as number[])[0] });
+      const b = this.bezahlen({ eur: preis });
       if (!b.ok) return b;
     }
-    const k: InnenQuelle = { typ: t, stufe: 1, bau: gratis ? null : this.neuerBau('neu', (D.bauzeit_s as number[])[0]) };
-    if (!gratis && this.foerderungNutzen(t)) k.foerderung_eur = (D.kosten_eur as number[])[0];
+    const k: InnenQuelle = { typ: t, stufe: modell, bau: gratis ? null : this.neuerBau('neu', D.bauzeit_s![modell - 1]) };
+    if (!gratis) k.kaufpreis_eur = preis;
+    if (!gratis && this.foerderungNutzen(t)) k.foerderung_eur = preis;
     this.stand.innen.push(k);
     this.neuBerechnen();
     return ok();
@@ -668,28 +680,15 @@ export class Spiel {
     return ok();
   }
 
-  innenAusbauen(i: number): Ergebnis {
-    const k = this.stand.innen[i];
-    if (!k || k.bau || k.stufe >= KONSTANTEN.hoechststufe) return { ok: false };
-    const D = KATALOG[k.typ];
-    if (k.stufe >= this.hzStufe) return this.nein(`Stufe ${k.stufe + 1} passt erst in die Heizzentrale Stufe ${k.stufe + 1}`);
-    if (!this.braucheMonteur()) return { ok: false };
-    const b = this.bezahlen({ eur: (D.kosten_eur as number[])[k.stufe] });
-    if (!b.ok) return b;
-    if (this.foerderungNutzen(k.typ)) k.foerderung_eur = (D.kosten_eur as number[])[k.stufe];
-    k.bau = this.neuerBau('ausbau', (D.bauzeit_s as number[])[k.stufe]);
-    this.neuBerechnen();
-    return ok();
-  }
-
-  beschleunigungskosten_taler(bau: Bau): number {
-    return Math.max(1, Math.ceil((bau.ende_ms - this.uhr()) / 1000 / KONSTANTEN.beschleunigen_s_je_taler));
-  }
   /** „Gefällt mir“ für ein Nachbardorf – ändert nur den eigenen Spielstand, einmal je Dorf. */
   moegen(name: string): boolean {
     if (this.stand.gemocht[name]) return false;
     this.stand.gemocht[name] = true;
     return true;
+  }
+
+  beschleunigungskosten_taler(bau: Bau): number {
+    return Math.max(1, Math.ceil((bau.ende_ms - this.uhr()) / 1000 / KONSTANTEN.beschleunigen_s_je_taler));
   }
 
   beschleunigen(bau: Bau | null | undefined): Ergebnis {
@@ -866,11 +865,17 @@ export class Spiel {
     return ok();
   }
 
-  /** Quelle im Heizhaus (z. B. zweiten Kessel) verkaufen: 50 % des Einkaufspreises; die letzte Quelle bleibt. */
+  innenRueckkauf_eur(k: InnenQuelle): number {
+    return Number.isFinite(k.kaufpreis_eur) && k.kaufpreis_eur! >= 0
+      ? Math.round(k.kaufpreis_eur! * KONSTANTEN.rueckkauf_anteil) : this.rueckkauf_eur(k.typ, k.stufe);
+  }
+
+  /** Fertige Heizhaus-Quelle verkaufen. Während des Tutorials bleibt die Startversorgung gesichert. */
   innenVerkaufen(i: number): Ergebnis {
     const k = this.stand.innen[i];
-    if (!k || k.bau || this.stand.innen.length <= 1) return this.nein('Die letzte Wärmequelle kann nicht verkauft werden');
-    const betrag = this.rueckkauf_eur(k.typ, k.stufe);
+    if (!k || k.bau) return { ok: false };
+    if (this.stand.tutorial && this.stand.innen.length <= 1) return this.nein('Im Tutorial bleibt die letzte Wärmequelle im Heizhaus');
+    const betrag = this.innenRueckkauf_eur(k);
     this.stand.geld_eur += betrag;
     this.stand.innen.splice(i, 1);
     this.hinweis(`${KATALOG[k.typ].name} verkauft: +${betrag.toLocaleString('de-DE')} €`);
@@ -1368,7 +1373,7 @@ export class Spiel {
         s.geld_eur += zurueck;
         this.hinweis(`${name} fertig · Förderung ausgezahlt: +${zurueck.toLocaleString('de-DE')} €`);
         delete e.foerderung_eur; s.erledigt.funded = true;
-      } else this.hinweis(`${name}${hatStufen(e.typ) ? ' Stufe ' + e.stufe : ''} fertig!`);
+      } else this.hinweis(`${name}${KATALOG[e.typ].kategorie === 'innen' ? ' · ' + KATALOG[e.typ].leistung_kw![e.stufe - 1] + ' kW' : hatStufen(e.typ) ? ' Stufe ' + e.stufe : ''} fertig!`);
       if (istObjekt && e.typ === 'hz') {
         if (e.stufe >= KONSTANTEN.heizzentrale_hoechststufe && !s.neubaugebiet) {
           neubaugebietAnlegen(s, t);

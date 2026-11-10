@@ -1,4 +1,5 @@
 import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
+import { erzeugerAbStufe } from '../core/freischaltung';
 import { chip, knopf, symbol } from './bausteine';
 import { NICHTS_GEZEICHNET, ersteSperre, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -66,9 +67,12 @@ export class Katalog {
     const reiter = h('div', { class: 'reiter', role: 'tablist' }, ...BAU_KATEGORIEN.map(([k, name]) =>
       h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === this.kategorie), 'aria-label': name, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, 'data-ziel': k === 'netz' ? 'reiter_leitungen' : null, onclick: () => { this.kategorie = k; this.aufbauen(); if (k === 'netz') this.ui.tutorialMelden({ art: 'tipp', tipp: 'reiter_leitungen' }); } },
         symbol(REITER[k]?.symbol ?? 'bauen', 'sym reiter-sym'), h('span', { class: 'wort lang' }, name), h('span', { class: 'wort kurz' }, REITER[k]?.kurz ?? name))));
-    const raster = h('div', { class: 'raster' });
+    const raster = h('div', { class: this.kategorie === 'innen' ? 'erzeugerliste' : 'raster' });
     const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz');
-    for (const t of typen) raster.append(this.karte(t));
+    if (this.kategorie === 'innen') {
+      raster.append(h('p', { class: 'gedaempft' }, 'Wähle eine feste Leistungsklasse. Für ein größeres Modell kannst du eine alte Anlage im Heizhaus verkaufen.'));
+      for (const t of typen.sort((a, b) => erzeugerAbStufe(a, 1) - erzeugerAbStufe(b, 1))) raster.append(this.erzeuger(t));
+    } else for (const t of typen) raster.append(this.karte(t));
     if (!typen.length) raster.append(h('p', {}, 'In dieser Kategorie gibt es noch nichts zu bauen.'));
     this.blatt.inhalt.replaceChildren(reiter, h('div', { style: 'height:8px' }), ...(this.kategorie === 'netz' ? [this.abschnittKasten(), h('div', { style: 'height:8px' })] : []), raster);
     void s;
@@ -120,6 +124,28 @@ export class Katalog {
           // A88: gesperrt = deaktiviert mit Grund statt Preis; fehlt nur Geld, bleibt der Preis (DESIGN.md 12.20 Regel 4/5)
           a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(this.ui.tutorialSperreKnopf('express'), stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
           knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: ersteSperre(this.ui.tutorialSperreKnopf('sofort'), a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null) })));
+    }
+    return k;
+  }
+
+  private erzeuger(t: TypId): HTMLElement {
+    const { spiel: sp } = this.ui, d = KATALOG[t];
+    const k = h('div', { class: 'kasten' }, h('h3', {}, d.name), h('p', {}, d.beschreibung));
+    if (d.vorteil || d.nachteil) k.append(h('p', { class: 'gedaempft' }, [d.vorteil, d.nachteil].filter(Boolean).join(' · ')));
+    for (const [i, kw] of d.leistung_kw!.entries()) {
+      const modell = i + 1, preis = d.kosten_eur![i], grund = sp.erzeugerSperrgrund(t, modell);
+      const daten = [`${kw} kW Wärme`];
+      if (d.strom_je_waerme) daten.push(`${Math.round(kw * d.strom_je_waerme)} kW Strom`);
+      if (d.elektrisch) daten.push('braucht Strom');
+      daten.push(`ab Heizhausstufe ${erzeugerAbStufe(t, modell)}`, dauerText(d.bauzeit_s![i] * KONSTANTEN.bauzeit_faktor) + ' Bauzeit');
+      const kaufen = knopf(`${kw} kW kaufen`, () => {
+        if (sp.innenEinbauen(t, false, modell).ok) this.schliessen();
+        this.ui.geaendert();
+      }, 'geld', {
+        klein: true, unter: eur(preis),
+        sperre: grund ? { grund, schloss: true, hinweis: `Dieses Modell gibt es ${grund}.` } : geldSperre(sp, preis),
+      });
+      k.append(h('div', { class: 'knopfreihe' }, kaufen), h('p', { class: 'gedaempft' }, daten.join(' · ')));
     }
     return k;
   }

@@ -30,10 +30,13 @@ it('erweitert erst nach dem Ausbau auf Stufe 6, hält die Straße frei und ermö
   expect(spiel.kartenHoehe).toBe(KONSTANTEN.neubau_hoehe);
   expect(spiel.istStrasse(10, 24)).toBe(true);
   expect(spiel.kannPlatzieren('d160', 10, 24)).toBe(true);
-  expect(spiel.kannPlatzieren('d160', 10, 32)).toBe(false);
+  expect(spiel.kannPlatzieren('d160', 10, 40)).toBe(false);
   const haeuser = stand.objekte.filter(o => spiel.istNeubau(o));
-  expect(haeuser).toHaveLength(16);
-  expect(haeuser.filter(o => o.bau)).toHaveLength(8);
+  expect(haeuser).toHaveLength(40);
+  expect(haeuser.filter(o => o.bau).length).toBeGreaterThan(8);
+  expect(spiel.istStrasse(5, 35)).toBe(true);
+  expect(spiel.istStrasse(15, 32)).toBe(true);
+  expect(spiel.istStrasse(15, 37)).toBe(true);
   expect(spiel.beschaeftigt()).toBe(0);
   const haus = haeuser.find(o => o.x === 12 && o.y === 24)!;
   expect(spiel.stationKaufen(haus.id, passendeStation(bedarfKw(haus)).id).ok).toBe(false);
@@ -66,6 +69,23 @@ it('erweitert erst nach dem Ausbau auf Stufe 6, hält die Straße frei und ermö
   expect(spiel.netz.warm.has(haus.id)).toBe(true);
 
   const geladen = new Spiel(laden(serialisieren(stand), jetzt), () => jetzt);
-  expect(geladen.stand.objekte.filter(o => geladen.istNeubau(o))).toHaveLength(16);
+  expect(geladen.stand.objekte.filter(o => geladen.istNeubau(o))).toHaveLength(40);
   expect(geladen.netz.warm.has(haus.id)).toBe(true);
+});
+
+it('ergänzt das neue Straßenviertel in bereits erschlossenen Spielständen genau einmal', () => {
+  const jetzt = 1_000_000;
+  const stand = neuerSpielstand(jetzt);
+  const alt = neu('efh', 8, 30, { bestand: true, ohne_station: true });
+  const leitung = neu('d160', 10, 31, { vorsehung: true });
+  stand.objekte = [neu('hz', 10, 10, { stufe: 6 }), alt, leitung];
+  stand.naechste_id = Math.max(...stand.objekte.map(o => o.id)) + 1;
+  stand.neubaugebiet = true;
+  const spiel = new Spiel(stand, () => jetzt);
+  expect(spiel.objekt(alt.id)).toEqual(alt);
+  expect(spiel.objekt(leitung.id)).toEqual(leitung);
+  expect(spiel.istStrasse(10, 32)).toBe(true);
+  expect(stand.objekte.filter(o => o.y >= 32)).toHaveLength(24);
+  const erneut = new Spiel(laden(serialisieren(stand), jetzt), () => jetzt);
+  expect(erneut.stand.objekte.filter(o => o.y >= 32)).toHaveLength(24);
 });

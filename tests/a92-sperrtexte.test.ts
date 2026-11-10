@@ -200,15 +200,14 @@ describe('A92 / 12.20 S1–S3 – Ausbau-Knöpfe', () => {
     });
   });
 
-  it('A92 S2: Heizhaus, Kessel Stufe 2 bei Heizzentrale Stufe 2 – „Stufe 3“ mit Schloss, Hinweis verweist auf den Ausbau unten im Blatt', async () => {
+  it('Heizhaus zeigt die feste Leistung des Kessels und den Verkauf an', async () => {
     const uhr = { t: T0 }, s = neu(2, uhr);
     s.stand.innen[0].stufe = 2; s.neuBerechnen();
     await karte(s, hz(s), uhr, (b) => {
-      const k = b.mit('Stufe 3').filter((e) => norm(zeile2(b.a, e) ?? '').toLowerCase() === 'erst heizzentrale ausbauen');
-      expect(k, 'genau ein gesperrter Knopf „Stufe 3“ im Heizhaus').toHaveLength(1);
-      pruefeZeile(b, k[0], { zeile2: 'erst Heizzentrale ausbauen', schloss: true, hinweis: 'Stufe 3 gibt es, sobald die Heizzentrale Stufe 3 hat. Der Ausbau steht unten im Blatt.' }, 'S2');
+      expect(b.a.alle(b.c).some(e => b.a.text(e) === 'Hackschnitzelkessel · 90 kW')).toBe(true);
+      expect(b.mit('Verkaufen')).toHaveLength(1);
+      expect(b.mit('Stufe 3').filter(e => b.a.text(e).startsWith('Stufe 3'))).toHaveLength(0);
     });
-    expect(s.stand.innen[0].stufe).toBe(2);
   });
 
   it('A92 S3: Heizzentrale mit offenen Zielen – „Ziele noch offen“, Schloss, Hinweis auf die Ziele oben im Blatt', async () => {

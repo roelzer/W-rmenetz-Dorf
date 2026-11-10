@@ -17,7 +17,6 @@ import { UI_LEERLAUF } from './hilfen/ui-leerlauf';
 
 const T0 = 1_000_000_000_000;
 // DESIGN.md 12.20 S2: Heizhaus-Quelle „Stufe {n+1}“, Hinweis nennt die nötige Stufe und wo der Ausbau steht.
-const HZ_HINWEIS = 'Stufe 2 gibt es, sobald die Heizzentrale Stufe 2 hat. Der Ausbau steht unten im Blatt.';
 
 const neu = (stufe = 1) => {
   const s = new Spiel(neuerSpielstand(T0), () => T0);
@@ -183,34 +182,31 @@ describe('A92 / 12.19 – Schloss in Zeile 2 bei gesperrten Knöpfen', () => {
   });
 });
 
-describe('A92 / 12.19 – „Stufe X“ im Heizhaus erklärt sich beim Antippen', () => {
-  it('A92: Kessel Stufe 1 bei Heizzentrale Stufe 1 – Tippen auf „Stufe 2“ zeigt den Hinweis und baut nicht aus', async () => {
-    const s = neu(1);
-    const hz = s.stand.objekte.find((o) => o.typ === 'hz')!;
-    const geld = s.stand.geld_eur;
-    const { toasts, a, c } = await karte(s, hz, (a, c) => {
-      const k = knopfStufe2(a, c);
-      expect(k, 'genau ein gesperrter Knopf „Stufe 2“ im Heizhaus').toHaveLength(1);
-      tippe(k[0]);
+describe('Wärmeerzeuger-Katalog', () => {
+  it('zeigt die Freischaltstufe am gesperrten 90-kW-Kessel und kauft auf Stufe 1 nichts', async () => {
+    const s = neu(1), vorher = s.stand.innen.length;
+    await echteSteuerung(s, (u) => {
+      u.st.katalog('innen');
+      const k = u.knoepfe().find(e => e.textContent.startsWith('90 kW kaufen'))!;
+      expect(k.attrs['aria-disabled']).toBe('true');
+      echtTippe(k);
+      expect(u.meldung()).toContain('ab Heizzentrale Stufe 2');
+      expect(s.stand.innen).toHaveLength(vorher);
     });
-    expect(gesperrtMitHinweis(knopfStufe2(a, c)[0])).toBe(true);
-    expect(toasts).toEqual([HZ_HINWEIS]);
-    expect(s.stand.innen[0].stufe).toBe(1);
-    expect(s.stand.geld_eur).toBe(geld);
   });
 
-  it('A92: Heizzentrale Stufe 2 – Kessel „Stufe 2“ ist frei, Tippen zeigt keinen Hinweis', async () => {
+  it('baut auf Stufe 2 einen eigenen 90-kW-Kessel neben dem 60-kW-Kessel ein', async () => {
     const s = neu(2);
-    const hz = s.stand.objekte.find((o) => o.typ === 'hz')!;
-    const { toasts } = await karte(s, hz, (a, c) => {
-      const k = mit(a, c, 'Stufe 2').filter((e) => !a.text(e).includes('erst Heizzentrale ausbauen'));
-      expect(k.length).toBeGreaterThan(0);
-      for (const x of k) expect('aria-disabled' in x.attrs).toBe(false);
+    s.stand.geld_eur = 100_000;
+    await echteSteuerung(s, (u) => {
+      u.st.katalog('innen');
+      const k = u.knoepfe().find(e => e.textContent.startsWith('90 kW kaufen'))!;
+      expect(k.attrs['aria-disabled']).toBeUndefined();
+      echtTippe(k);
+      expect(s.stand.innen.map(o => o.stufe)).toEqual([1, 2]);
     });
-    expect(toasts).toEqual([]);
   });
 });
-const knopfStufe2 = (a: Attrappe, c: AttrappenElement) => mit(a, c, 'Stufe 2').filter((e) => a.text(e) === 'Stufe 2erst Heizzentrale ausbauen');
 
 describe('A92 / K-b – „Gefällt mir“ beim Dorfbesuch', () => {
   it('A92: zweimal tippen → einmal mögen, eine Meldung, Knopf danach gesperrt mit „Gefällt dir“', async () => {

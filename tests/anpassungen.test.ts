@@ -92,7 +92,8 @@ describe('A31 Verkaufen zu 50 %', () => {
     const v2 = s.stand.geld_eur;
     expect(s.innenVerkaufen(1).ok).toBe(true);
     expect(s.stand.geld_eur - v2).toBe(Math.round(KATALOG.wpg.kosten_eur![0] * 0.5));
-    expect(s.innenVerkaufen(0).ok).toBe(false);
+    expect(s.innenVerkaufen(0).ok).toBe(true);
+    expect(s.stand.innen).toHaveLength(0);
   });
   it('A30: entfernte Leitung bringt 50 % zurück', () => {
     const s = neuesSpiel();

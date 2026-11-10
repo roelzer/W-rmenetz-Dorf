@@ -251,16 +251,23 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       }
       const [gcx, gcy] = k.mitte(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2);
       if (gcx < -tw || gcx > W + tw || gcy < -th || gcy > H + tw) continue;
-      m.raute(gcx, gcy + th * 0.045, kk * 0.86);
+      const efh = o.typ === 'efh', variante = (o.x * 7 + o.y * 11) % 3;
+      const grundstueck = efh ? [0.86, 0.92, 0.98][variante] : kk * 0.86;
+      m.raute(gcx, gcy + th * 0.045, grundstueck);
       X.fillStyle = 'rgba(43,65,36,.22)'; X.fill();
-      m.raute(gcx, gcy, kk * 0.86);
-      X.fillStyle = '#b9af8d'; X.fill();
-      m.raute(gcx, gcy, kk * 0.78);
-      X.fillStyle = '#d8ccb0'; X.fill();
+      m.raute(gcx, gcy, grundstueck);
+      X.fillStyle = efh ? '#52763f' : '#b9af8d'; X.fill();
+      m.raute(gcx, gcy, grundstueck - 0.08);
+      X.fillStyle = efh ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : '#d8ccb0'; X.fill();
       if (tw >= 24) {
         // Gärten sitzen auf den eigenen Grundstücken und drehen sich mit der Karte.
         const [bx, by] = k.mitte(o.x - 0.37, o.y + kk - 0.65);
-        const r = tw * 0.064;
+        const r = tw * (efh ? 0.046 + variante * 0.009 : 0.064);
+        if (efh && variante > 0) {
+          const [fx, fy] = k.mitte(o.x + 0.36, o.y + 0.30);
+          m.kreis(fx, fy, r * 0.78, '#477c40');
+          m.kreis(fx + r * 0.35, fy - r * 0.33, r * 0.32, '#f6dd8d');
+        }
         m.kreis(bx + r * 0.4, by + r * 0.3, r * 1.17, 'rgba(35,85,39,.30)');
         m.kreis(bx, by - r * 0.4, r, '#398d43');
         m.kreis(bx - r * 0.25, by - r * 0.7, r * 0.58, '#9ed44d');

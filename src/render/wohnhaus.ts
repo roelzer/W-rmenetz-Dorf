@@ -69,7 +69,7 @@ const FASSADEN: Record<'haus' | 'mfh', Record<'eingang' | 'seite', [Punkt, Punkt
 /** Nach dem Dorf-Atlas modellierte Wohnhäuser mit Putz, Holz und Glas. */
 export function zeichneWohnhaus(m: Maler, o: Objekt, cx: number, cy: number, strassenseite: number, warm: boolean): void {
   const mfh = o.typ === 'mfh', reihe = o.typ === 'rh';
-  const breite = mfh ? 1.5 : reihe ? 0.80 : 0.68 + 0.023 * o.stufe;
+  const breite = mfh ? 1.5 : reihe ? 0.80 : (o.typ === 'efh' ? 0.69 - ((o.x * 7 + o.y * 11) % 3) * 0.035 : 0.68) + 0.023 * o.stufe;
   const hp = m.tw * (mfh ? 0.78 : reihe ? 0.34 : 0.32) * (1 + 0.04 * (o.stufe - 1));
   const dachhoehe = mfh ? 0 : hp * 0.47;
   const quer = strassenseite % 2 === 1;

@@ -76,3 +76,11 @@ export function neuBeiStufe(stufe: number): Merkmal[] {
   return (Object.keys(FREISCHALTUNGEN) as Merkmal[]).filter((m) => abStufe(m) === stufe);
 }
 
+
+/** Jede Technologie startet auf ihrer Freischaltstufe. Größere Modelle folgen bis Stufe 6. */
+export function erzeugerAbStufe(t: TypId, modell: number): number {
+  const start = abStufe(t);
+  const anzahl = KATALOG[t].leistung_kw?.length ?? 1;
+  if (anzahl <= 1) return start;
+  return start + Math.floor((modell - 1) * (6 - start) / (anzahl - 1));
+}
