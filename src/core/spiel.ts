@@ -4,12 +4,11 @@ import {
 import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
-import { gartenplan, istGartenhaus } from './gartenplan';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { neubaugebietAnlegen, spielOrt } from './neubaugebiet';
 import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import type { Schritt, TutorialWerte } from './tutorial-vertrag';
-import { ERSTE_HAEUSER } from './start';
+import { ERSTE_HAEUSER, ursprungskarte } from './start';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
@@ -888,39 +887,49 @@ export class Spiel {
     return ok();
   }
 
-  /** Einmaliger Umbau nach dem Tutorial. Nur unerschlossene Häuser ohne laufende Arbeiten kommen infrage. */
-  gaertenEinrichten(): number {
+  /** Der Gartenumbau speicherte keine Ursprungskoordinaten. Feste Ortspläne liefern die alten Positionen. */
+  gartenumbauRueckgaengig(): void {
     const s = this.stand;
-    if (s.garten_layout === 1 || s.tutorial || s.abschnitt) return 0;
-    const { strassen, fluss } = spielOrt(s);
-    const eingabe = { objekte: s.objekte, strassen, fluss, kartenHoehe: this.kartenHoehe };
-    let plan = gartenplan(eingabe);
-    const netzFelder = new Set(s.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
-    const hz = this.hz;
-    for (let y = hz.y; y < hz.y + groesse(hz); y++) for (let x = hz.x; x < hz.x + groesse(hz); x++) netzFelder.add(y * N + x);
-    const amNetz = (o: Objekt): boolean => randFelder(o).some(([x, y]) => netzFelder.has(y * N + x));
-    const anStrasse = (o: Objekt): boolean => randFelder(o).some(([x, y]) => this.istStrasse(x, y));
-    let umgezogen = 0;
-    for (const o of s.objekte) {
-      if (!istGartenhaus(o) || plan.parzellen.has(o.id) || !o.ohne_station || o.station || o.bau || o.upgrade_auftrag
-        || o.anfrage || o.interessent || this.netz.anschluss.has(o.id) || amNetz(o)
-        || ERSTE_HAEUSER.some(([x, y]) => o.x === x && o.y === y)) continue;
-      const { x, y } = o, strassennah = anStrasse(o);
-      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1], [0, -2], [2, 0], [0, 2], [-2, 0]]) {
-        const ziel = { ...o, x: x + dx, y: y + dy };
-        if (!this.kannPlatzieren(o.typ, ziel.x, ziel.y, o.id, groesse(o)) || amNetz(ziel) || (strassennah && !anStrasse(ziel))) continue;
-        const vorschlag = gartenplan({ ...eingabe, objekte: s.objekte.map((a) => a === o ? ziel : a) });
-        if (!vorschlag.parzellen.has(o.id) || [...plan.parzellen.keys()].some((id) => !vorschlag.parzellen.has(id))) continue;
-        o.x = ziel.x;
-        o.y = ziel.y;
-        plan = vorschlag;
-        umgezogen++;
-        break;
+    if (s.garten_layout !== 1 || s.tutorial) return;
+    const ursprung = ursprungskarte(s.ort);
+    const original = new Map(ursprung.objekte.map((o) => [o.id, o]));
+    if (s.neubaugebiet) {
+      const komplett: Spielstand = { ...s, objekte: [], naechste_id: 1, neubaugebiet: false, neubaugebiet_layout: undefined };
+      neubaugebietAnlegen(komplett, 0);
+      const nachtrag: Spielstand = { ...komplett, objekte: [], naechste_id: 1, neubaugebiet: true, neubaugebiet_layout: undefined };
+      neubaugebietAnlegen(nachtrag, 0);
+      const alt = komplett.objekte.slice(0, komplett.objekte.length - nachtrag.objekte.length);
+      const nachId = new Map(s.objekte.map((o) => [o.id, o]));
+      for (const reihe of [alt, nachtrag.objekte]) {
+        const anfaenge = s.objekte.filter((o) => o.bestand && o.y >= N - 2 && o.id > ursprung.naechste_id - 1
+          && reihe.every((platz, i) => {
+            const haus = nachId.get(o.id + i);
+            return haus?.bestand && haus.typ === platz.typ && Math.abs(haus.x - platz.x) + Math.abs(haus.y - platz.y) <= 2;
+          }));
+        if (anfaenge.length === 1) reihe.forEach((platz, i) => original.set(anfaenge[0].id + i, platz));
       }
     }
-    s.garten_layout = 1;
+    const leitungen = new Set(s.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
+    const beruehrt = (o: Objekt): number[] => randFelder(o).map(([x, y]) => y * N + x).filter((f) => leitungen.has(f)).sort((a, b) => a - b);
+    const anschluesse = this.probeNetz().anschluss;
+    let umgezogen = false;
+    for (const o of s.objekte) {
+      const alt = original.get(o.id);
+      if (!alt?.bestand || !o.bestand || alt.typ !== o.typ || KATALOG[o.typ].kategorie !== 'haus') continue;
+      if (ERSTE_HAEUSER.some(([x, y]) => alt.x === x && alt.y === y)) continue;
+      const abstand = Math.abs(alt.x - o.x) + Math.abs(alt.y - o.y);
+      if (!abstand || abstand > 2 || o.bau || o.upgrade_auftrag || !this.kannPlatzieren(o.typ, alt.x, alt.y, o.id, groesse(o))) continue;
+      const ziel = { ...o, x: alt.x, y: alt.y };
+      if (beruehrt(o).join(',') !== beruehrt(ziel).join(',')) continue;
+      const vorher = anschluesse.get(o.id);
+      const nachher = this.probeNetz((a) => a === o ? ziel : a).anschluss.get(o.id);
+      if (vorher?.feld !== nachher?.feld) continue;
+      o.x = alt.x;
+      o.y = alt.y;
+      umgezogen = true;
+    }
+    delete s.garten_layout;
     if (umgezogen) { this.neuBerechnen(); this.erreichtAbgleichen(); }
-    return umgezogen;
   }
 
   verschieben(id: number, x: number, y: number): Ergebnis {

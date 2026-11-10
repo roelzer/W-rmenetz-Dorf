@@ -540,17 +540,6 @@ describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
 });
 
 
-describe('Gärten mit Zaun', () => {
-  it('zeichnet für Einzel-, Reihen- und Mehrfamilienhäuser jeweils Rasen und einen eigenen Zaun', () => {
-    const { sp } = mitUhr();
-    const objekte = [sp.hz, neu('efh', 9, 9, { id: 90 }), neu('rh', 12, 9, { id: 91 }), neu('mfh', 13, 12, { id: 92 })];
-    const s = spielSzene(sp, T0, { strassen: [], fluss: [], objekte, netz: berechneNetz(objekte, [], 2) });
-    const befehle = bild(kamera(), s).befehle;
-    expect(befehle.filter((b) => b === 'strokeStyle=#344044')).toHaveLength(3);
-    expect(befehle.filter((b) => b === 'fillStyle=#9bbd70')).toHaveLength(3);
-  });
-});
-
 describe('Wetter und Jahreszeiten', () => {
   it('wechselt mit den Spielmonaten bis zum nächsten Jahr', () => {
     expect([0, 2, 5, 8, 10, 11, 12, 20].map(jahreszeit))

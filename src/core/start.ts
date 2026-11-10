@@ -58,6 +58,12 @@ export function neuerSpielstand(jetzt_ms: number, ortId: string = STANDARD_ORT):
   return stand;
 }
 
+/** Referenz für Migrationen, die nur die ursprüngliche Karte und ihre IDs benötigen. */
+export function ursprungskarte(ortId?: string): Pick<Spielstand, 'objekte' | 'naechste_id'> {
+  const { objekte, naechste_id } = neuerSpielstand(0, ortId);
+  return { objekte, naechste_id };
+}
+
 function ueberlappt(a: Objekt, b: Objekt): boolean {
   const sa = groesse(a), sb = groesse(b);
   return a.x < b.x + sb && b.x < a.x + sa && a.y < b.y + sb && b.y < a.y + sa;

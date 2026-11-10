@@ -17,12 +17,12 @@ export const istHerbst = (saison: Jahreszeit): boolean => saison === 'herbst' ||
 
 const KARTE = tokens.farbe.karte;
 export const LANDSCHAFT = {
-  fruehling: { wiese: ['#a6ca75', '#add27d'], halm: '#719c51', garten: '#a8cd72', rand: '#5b8342' },
-  sommer: { wiese: [KARTE.wiese_b, KARTE.wiese_a], halm: KARTE.halm, garten: '#9bbd70', rand: '#52763f' },
-  herbst: { wiese: ['#a6ac65', '#b0b56c'], halm: '#898446', garten: '#b7ad6d', rand: '#837545' },
-  spaetherbst: { wiese: ['#a2a574', '#a9a87a'], halm: '#8d8057', garten: '#aea47b', rand: '#827153' },
-  winter: { wiese: ['#dfe9ed', '#e9f0f3'], halm: '#b9ccd5', garten: '#f0f5f6', rand: '#aebfc5' },
-} satisfies Record<Jahreszeit, { wiese: string[]; halm: string; garten: string; rand: string }>;
+  fruehling: { wiese: ['#a6ca75', '#add27d'], halm: '#719c51' },
+  sommer: { wiese: [KARTE.wiese_b, KARTE.wiese_a], halm: KARTE.halm },
+  herbst: { wiese: ['#a6ac65', '#b0b56c'], halm: '#898446' },
+  spaetherbst: { wiese: ['#a2a574', '#a9a87a'], halm: '#8d8057' },
+  winter: { wiese: ['#dfe9ed', '#e9f0f3'], halm: '#b9ccd5' },
+} satisfies Record<Jahreszeit, { wiese: string[]; halm: string }>;
 
 export const LAUB = ['#bf652b', '#db8739', '#efb750', '#ad5730'] as const;
 export const SCHNEE = '#eaf3f7';
