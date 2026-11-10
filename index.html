@@ -13,10 +13,29 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>Heatville</title>
+<style>
+#drehen[hidden],#startstatus[hidden]{display:none!important}
+#startstatus{position:fixed;inset:0;z-index:90;display:grid;place-content:center;text-align:center;padding:24px;background:#101c34;color:#e5efff;font:16px system-ui,sans-serif}
+#startstatus strong{color:#ffd28d;font-size:clamp(28px,8vw,44px)}
+#startstatus button{justify-self:center;padding:10px 18px;border:0;border-radius:10px;background:#ffd28d;color:#101c34;font:inherit;font-weight:700}
+</style>
 </head>
 <body>
 <div id="app">
-<div id="drehen" role="alert"><p>Bitte drehe dein Handy ins Querformat.</p></div><canvas id="karte" role="img" aria-label="Dorfkarte mit Heizzentrale, Häusern und Wärmeleitungen"></canvas></div>
+<div id="drehen" hidden role="alert"><p>Bitte drehe dein Handy ins Querformat.</p></div><canvas id="karte" role="img" aria-label="Dorfkarte mit Heizzentrale, Häusern und Wärmeleitungen"></canvas></div>
+<section id="startstatus" aria-label="Heatville startet">
+<strong>Heatville</strong>
+<p id="startmeldung" role="status">Spiel wird geladen …</p>
+<button id="start-neuladen" type="button" hidden>Neu laden</button>
+</section>
+<script>
+  setTimeout(() => {
+    if (document.getElementById('startstatus').hidden) return;
+    document.getElementById('startmeldung').textContent = 'Heatville konnte nicht starten. Prüfe die Internetverbindung und lade das Spiel neu.';
+    document.getElementById('start-neuladen').hidden = false;
+  }, 6000);
+  document.getElementById('start-neuladen').addEventListener('click', () => location.reload());
+</script>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

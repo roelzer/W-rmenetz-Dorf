@@ -217,3 +217,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 }
 // A83: Den Browser bitten, den Spielstand dauerhaft zu behalten (vor allem iPhone/Safari räumen sonst auf).
 void navigator.storage?.persist?.().catch((f: unknown) => console.warn('Dauerhafter Speicher abgelehnt', f));
+
+// Der Startstatus funktioniert auch ohne Spielskript. Erst nach erfolgreichem Start übernimmt die Oberfläche.
+document.getElementById('startstatus')?.setAttribute('hidden', '');
+document.getElementById('drehen')?.removeAttribute('hidden');

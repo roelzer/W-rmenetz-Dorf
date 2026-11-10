@@ -12,13 +12,16 @@ export function erzeugeServiceWorker(vorlage: string, dateien: string[], version
 
 /** Vite-Plugin: schreibt beim Build `sw.js` mit allen erzeugten Dateien. */
 export function serviceWorker(): Plugin {
+  const version = Date.now().toString(36);
   return {
     name: 'waermedorf-service-worker',
     apply: 'build',
+    transformIndexHtml() {
+      return [{ tag: 'meta', attrs: { name: 'heatville-build', content: version }, injectTo: 'head' }];
+    },
     generateBundle(_o, bundle) {
       const vorlage = readFileSync(new URL('./sw-vorlage.js', import.meta.url), 'utf8');
       const dateien = Object.keys(bundle).filter((n) => !n.endsWith('.map'));
-      const version = Date.now().toString(36);
       this.emitFile({ type: 'asset', fileName: 'sw.js', source: erzeugeServiceWorker(vorlage, dateien, version) });
     },
   };
