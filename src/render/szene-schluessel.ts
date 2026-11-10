@@ -1,7 +1,7 @@
 import { istLeitung, KATALOG, KONSTANTEN } from '../core/katalog';
 import type { Netz, Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
-import { gartenplan } from './gartenplan';
+import { gartenplan } from '../core/gartenplan';
 import { istHerbst } from './jahreszeiten';
 import { blase } from './blase';
 import type { Szene } from './szene';

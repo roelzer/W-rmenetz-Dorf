@@ -116,6 +116,7 @@ export interface Spielstand {
   baugebiet?: boolean;
   neubaugebiet?: boolean;
   neubaugebiet_layout?: 2;
+  garten_layout?: 1;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
   gestattungen?: number[];
   /** Version des Kartenlayouts (Straßen, Fluss); ältere Spielstände werden beim Laden angepasst (A46) */

@@ -60,6 +60,9 @@ const steuerung = new Steuerung(spiel, leinwand, maler, uhr);
 // Der Installationshinweis darf das Tutorial und dessen Ziele nie verdecken. Bei bestehenden Dörfern startet er sofort,
 // bei neuen Spielern erst nach dem vollständigen Tutorial.
 steuerung.nachTutorial(() => installationStarten());
+steuerung.nachTutorial(() => {
+  if (spiel.gaertenEinrichten()) steuerung.geaendert();
+});
 const kamera = steuerung.kamera;
 let ersteMeldung = startHinweis;
 // K6 (DESIGN 13.15): Im Tutorial entfällt „Willkommen zurück“ ganz und wird nicht nachgeholt.

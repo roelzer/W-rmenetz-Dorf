@@ -4,6 +4,7 @@ import {
 import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
+import { gartenplan, istGartenhaus } from './gartenplan';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { neubaugebietAnlegen, spielOrt } from './neubaugebiet';
 import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
@@ -885,6 +886,41 @@ export class Spiel {
     this.hinweis(`${KATALOG[k.typ].name} verkauft: +${betrag.toLocaleString('de-DE')} €`);
     this.neuBerechnen();
     return ok();
+  }
+
+  /** Einmaliger Umbau nach dem Tutorial. Nur unerschlossene Häuser ohne laufende Arbeiten kommen infrage. */
+  gaertenEinrichten(): number {
+    const s = this.stand;
+    if (s.garten_layout === 1 || s.tutorial || s.abschnitt) return 0;
+    const { strassen, fluss } = spielOrt(s);
+    const eingabe = { objekte: s.objekte, strassen, fluss, kartenHoehe: this.kartenHoehe };
+    let plan = gartenplan(eingabe);
+    const netzFelder = new Set(s.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
+    const hz = this.hz;
+    for (let y = hz.y; y < hz.y + groesse(hz); y++) for (let x = hz.x; x < hz.x + groesse(hz); x++) netzFelder.add(y * N + x);
+    const amNetz = (o: Objekt): boolean => randFelder(o).some(([x, y]) => netzFelder.has(y * N + x));
+    const anStrasse = (o: Objekt): boolean => randFelder(o).some(([x, y]) => this.istStrasse(x, y));
+    let umgezogen = 0;
+    for (const o of s.objekte) {
+      if (!istGartenhaus(o) || plan.parzellen.has(o.id) || !o.ohne_station || o.station || o.bau || o.upgrade_auftrag
+        || o.anfrage || o.interessent || this.netz.anschluss.has(o.id) || amNetz(o)
+        || ERSTE_HAEUSER.some(([x, y]) => o.x === x && o.y === y)) continue;
+      const { x, y } = o, strassennah = anStrasse(o);
+      for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0], [1, -1], [1, 1], [-1, 1], [-1, -1], [0, -2], [2, 0], [0, 2], [-2, 0]]) {
+        const ziel = { ...o, x: x + dx, y: y + dy };
+        if (!this.kannPlatzieren(o.typ, ziel.x, ziel.y, o.id, groesse(o)) || amNetz(ziel) || (strassennah && !anStrasse(ziel))) continue;
+        const vorschlag = gartenplan({ ...eingabe, objekte: s.objekte.map((a) => a === o ? ziel : a) });
+        if (!vorschlag.parzellen.has(o.id) || [...plan.parzellen.keys()].some((id) => !vorschlag.parzellen.has(id))) continue;
+        o.x = ziel.x;
+        o.y = ziel.y;
+        plan = vorschlag;
+        umgezogen++;
+        break;
+      }
+    }
+    s.garten_layout = 1;
+    if (umgezogen) { this.neuBerechnen(); this.erreichtAbgleichen(); }
+    return umgezogen;
   }
 
   verschieben(id: number, x: number, y: number): Ergebnis {

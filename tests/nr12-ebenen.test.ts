@@ -546,8 +546,8 @@ describe('Gärten mit Zaun', () => {
     const objekte = [sp.hz, neu('efh', 9, 9, { id: 90 }), neu('rh', 12, 9, { id: 91 }), neu('mfh', 13, 12, { id: 92 })];
     const s = spielSzene(sp, T0, { strassen: [], fluss: [], objekte, netz: berechneNetz(objekte, [], 2) });
     const befehle = bild(kamera(), s).befehle;
-    expect(befehle.filter((b) => b === 'strokeStyle=#5e4a35')).toHaveLength(3);
-    expect(befehle.filter((b) => /^fillStyle=#(8faf62|9bbd70|a6c979)$/.test(b))).toHaveLength(3);
+    expect(befehle.filter((b) => b === 'strokeStyle=#344044')).toHaveLength(3);
+    expect(befehle.filter((b) => b === 'fillStyle=#9bbd70')).toHaveLength(3);
   });
 });
 

@@ -9,7 +9,7 @@ import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
-import { gartenplan, type Garten } from './gartenplan';
+import { gartenplan, type Garten } from '../core/gartenplan';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, schneefall, type Jahreszeit } from './jahreszeiten';
 import { Kamera } from './kamera';
@@ -249,73 +249,28 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
     }
   }
   const parzellen = gartenplan(s).parzellen;
-  // Hausanschlussweg und Garten liegen mit den Straßen in derselben zwischengespeicherten Ebene.
-  {
-    const feld = new Set((s.strassen ?? []).map(([sx, sy]) => sy * N + sx));
-    const anStrasse = (x: number, y: number): boolean => x >= 0 && x < N && y >= 0 && y < hoehe && feld.has(y * N + x);
-    for (const o of s.objekte) {
-      const kat = KATALOG[o.typ].kategorie;
-      if (kat !== 'haus' || o.bau) continue;
-      const kk = groesse(o);
-      let weg: [number, number, number, number] | null = null;
-      for (let i = 0; i < kk && !weg; i++) {
-        if (anStrasse(o.x + i, o.y - 1)) weg = [o.x + i, o.y, 0, -1];
-        else if (anStrasse(o.x + i, o.y + kk)) weg = [o.x + i, o.y + kk - 1, 0, 1];
-        else if (anStrasse(o.x - 1, o.y + i)) weg = [o.x, o.y + i, -1, 0];
-        else if (anStrasse(o.x + kk, o.y + i)) weg = [o.x + kk - 1, o.y + i, 1, 0];
-      }
-      const [gcx, gcy] = k.mitte(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2);
-      if (gcx < -tw * 2 || gcx > W + tw * 2 || gcy < -tw * 2 || gcy > H + tw * 2) continue;
-      const efh = o.typ === 'efh', variante = (o.x * 7 + o.y * 11) % 3;
-      const g = parzellen.get(o.id) ?? { x: o.x, y: o.y, breite: kk, tiefe: kk };
-      const erweitert = g.breite * g.tiefe > kk * kk;
-      if (erweitert) zeichneGarten(m, k, g, o);
-      else {
-        const grundstueck = efh ? [0.86, 0.92, 0.98][variante] : kk - .14;
-        m.raute(gcx, gcy + th * .045, grundstueck);
-        X.fillStyle = 'rgba(43,65,36,.22)'; X.fill();
-        m.raute(gcx, gcy, grundstueck);
-        X.fillStyle = farben.rand; X.fill();
-        m.raute(gcx, gcy, grundstueck - .08);
-        X.fillStyle = saison === 'sommer' ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : farben.garten;
-        X.fill();
-      }
-      if (tw >= 24) {
-        // Gärten sitzen auf den eigenen Grundstücken und drehen sich mit der Karte.
-        const [bx, by] = k.mitte(o.x - 0.37, o.y + kk - 0.65);
-        const r = tw * (efh ? 0.046 + variante * 0.009 : 0.064);
-        if (efh && variante > 0 && !winter) {
-          const [fx, fy] = k.mitte(o.x + 0.36, o.y + 0.30);
-          m.kreis(fx, fy, r * 0.78, herbst ? '#8e723e' : '#477c40');
-          m.kreis(fx + r * 0.35, fy - r * 0.33, r * 0.32, herbst ? '#dba44e' : '#f6dd8d');
-        }
-        if (efh && variante === 0) {
-          m.baum(bx, by, .36, o.x + o.y);
-        } else {
-          m.kreis(bx + r * 0.4, by + r * 0.3, r * 1.17, 'rgba(35,85,39,.25)');
-          m.kreis(bx, by - r * 0.4, r, winter ? '#779b9d' : herbst ? '#a3693d' : '#398d43');
-          m.kreis(bx - r * 0.25, by - r * 0.7, r * 0.58, winter ? '#f4f8fa' : herbst ? '#e5ae52' : '#9ed44d');
-          if (!winter && !herbst) m.kreis(bx + r * 0.34, by - r * 0.58, r * 0.27, (o.x + o.y) % 2 ? '#ff779e' : '#ffe176');
-        }
-      }
-      const zugang: [number, number, number, number] = weg ?? (o.y === g.y
-        ? [o.x, o.y, 0, -1] : [o.x, o.y + kk - 1, 0, 1]);
-      const [wx, wy, dx, dy] = zugang, hw = .12, laenge = weg ? .55 : .46;
-      const pts: Punkt[] = dx === 0
-        ? [[-hw, 0], [hw, 0], [hw, laenge * dy], [-hw, laenge * dy]]
-        : [[0, -hw], [0, hw], [laenge * dx, hw], [laenge * dx, -hw]];
-      m.flaeche(pts.map(([gx, gy]) => k.mitte(wx + gx, wy + gy)), KARTE.gehweg, false);
-      if (tw >= 42) {
-        X.beginPath();
-        for (const f of [.30, .42]) {
-          const a = k.mitte(wx + dx * f - dy * hw, wy + dy * f - dx * hw);
-          const b = k.mitte(wx + dx * f + dy * hw, wy + dy * f + dx * hw);
-          X.moveTo(...a); X.lineTo(...b);
-        }
-        X.strokeStyle = 'rgba(86,79,60,.32)'; X.lineWidth = 1; X.stroke();
-      }
-      zeichneGartenzaun(m, k, g, zugang);
+  const feld = new Set((s.strassen ?? []).map(([x, y]) => y * N + x));
+  const anStrasse = (x: number, y: number): boolean => x >= 0 && x < N && y >= 0 && y < hoehe && feld.has(y * N + x);
+  for (const haus of s.objekte) {
+    if (KATALOG[haus.typ].kategorie !== 'haus') continue;
+    const g = parzellen.get(haus.id);
+    if (g) zeichneGarten(m, k, g, haus);
+    const { x, y } = haus, kk = groesse(haus);
+    const [cx, cy] = k.mitte(x, y);
+    if (cx < -tw * 2 || cx > W + tw * 2 || cy < -tw * 2 || cy > H + tw * 2) continue;
+    let weg: [number, number, number, number] | undefined;
+    for (let i = 0; i < kk && !weg; i++) {
+      if (anStrasse(x + i, y - 1)) weg = [x + i, y, 0, -1];
+      else if (anStrasse(x + i, y + kk)) weg = [x + i, y + kk - 1, 0, 1];
+      else if (anStrasse(x - 1, y + i)) weg = [x, y + i, -1, 0];
+      else if (anStrasse(x + kk, y + i)) weg = [x + kk - 1, y + i, 1, 0];
     }
+    if (!weg) continue;
+    const [wx, wy, dx, dy] = weg, hw = .12;
+    const pts: Punkt[] = dx === 0
+      ? [[-hw, 0], [hw, 0], [hw, .55 * dy], [-hw, .55 * dy]]
+      : [[0, -hw], [0, hw], [.55 * dx, hw], [.55 * dx, -hw]];
+    m.flaeche(pts.map(([gx, gy]) => k.mitte(wx + gx, wy + gy)), KARTE.gehweg, false);
   }
   wolkenrand(m, k, hoehe);
   if (s.modus !== 'normal') {
@@ -327,62 +282,76 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   }
 }
 
-/** Niedriger Holzzaun entlang der Grundstücksgrenze mit einer Öffnung am Weg. */
-function zeichneGartenzaun(m: Maler, k: Kamera, g: Garten, zugang: [number, number, number, number]): void {
+/** Anthrazitfarbene Stäbe mit Steinpfosten an den Ecken und am Gartentor. */
+function zeichneGartenzaun(m: Maler, k: Kamera, g: Garten, tor: number): void {
   const { X } = m, tw = k.tw;
-  const [wx, wy, dx, dy] = zugang;
-  const l = g.x - .43, r = g.x + g.breite - .57, o = g.y - .43, u = g.y + g.tiefe - .57;
-  const hoehe = Math.max(1.8, tw * .065);
-  const waag = (a: number, b: number, y: number): void => latte(a, b, y, true);
-  const senk = (a: number, b: number, x: number): void => latte(a, b, x, false);
-  function latte(a: number, b: number, fest: number, horizontal: boolean): void {
-    const punkt = (p: number): Punkt => horizontal ? k.mitte(p, fest) : k.mitte(fest, p);
-    const [x1, y1] = punkt(a), [x2, y2] = punkt(b);
-    X.moveTo(x1, y1 - hoehe * .74); X.lineTo(x2, y2 - hoehe * .74);
-    if (tw >= 32) { X.moveTo(x1, y1 - hoehe * .34); X.lineTo(x2, y2 - hoehe * .34); }
-    const n = Math.max(1, Math.ceil((b - a) * (tw >= 32 ? 4 : 2)));
-    for (let i = 0; i <= n; i++) {
-      const [x, y] = punkt(a + (b - a) * i / n);
-      X.moveTo(x, y); X.lineTo(x, y - hoehe);
-    }
-  }
-  const halb = .17;
+  const l = g.x - .48, r = g.x + g.breite - .52, o = g.y - .48, u = g.y + g.tiefe - .52;
+  const h = Math.max(2.3, tw * .095);
+  const seiten = [[l, r, o], [o, u, r], [l, r, u], [o, u, l]];
+  const torseite = (g.seite + 2) % 4;
+  const pfosten: Punkt[] = [k.mitte(l, o), k.mitte(r, o), k.mitte(r, u), k.mitte(l, u)];
   X.save(); X.beginPath();
-  if (dy < 0) { waag(l, wx - halb, o); waag(wx + halb, r, o); } else waag(l, r, o);
-  if (dy > 0) { waag(l, wx - halb, u); waag(wx + halb, r, u); } else waag(l, r, u);
-  if (dx < 0) { senk(o, wy - halb, l); senk(wy + halb, u, l); } else senk(o, u, l);
-  if (dx > 0) { senk(o, wy - halb, r); senk(wy + halb, u, r); } else senk(o, u, r);
-  X.lineCap = 'round';
-  X.strokeStyle = '#5e4a35'; X.lineWidth = Math.max(1.25, tw * .024); X.stroke();
-  if (tw >= 28) { X.strokeStyle = '#bd9c71'; X.lineWidth *= .54; X.stroke(); }
+  seiten.forEach(([a, b, fest], seite) => {
+    const punkt = (p: number): Punkt => seite % 2 === 0 ? k.mitte(p, fest) : k.mitte(fest, p);
+    const stueck = (anfang: number, ende: number): void => {
+      const [x1, y1] = punkt(anfang), [x2, y2] = punkt(ende);
+      X.moveTo(x1, y1 - h * .25); X.lineTo(x2, y2 - h * .25);
+      const n = Math.ceil((ende - anfang) * (tw >= 28 ? 8 : 5));
+      for (let i = 1; i < n; i++) {
+        const [x, y] = punkt(anfang + (ende - anfang) * i / n);
+        X.moveTo(x, y - h * .17); X.lineTo(x, y - h);
+      }
+    };
+    if (seite === torseite) {
+      stueck(a, tor - .16); stueck(tor + .16, b);
+      pfosten.push(punkt(tor - .16), punkt(tor + .16));
+    } else stueck(a, b);
+  });
+  X.strokeStyle = '#344044'; X.lineWidth = Math.max(.9, tw * .016); X.stroke();
+  for (const [x, y] of pfosten) {
+    const b = Math.max(1.6, tw * .038);
+    X.fillStyle = '#c2bbaa'; X.fillRect(x - b / 2, y - h * 1.15, b, h * 1.15);
+    X.fillStyle = '#eee5d1'; X.fillRect(x - b / 2, y - h * 1.15, b, Math.max(1, h * .18));
+  }
   X.restore();
 }
 
 function zeichneGarten(m: Maler, k: Kamera, g: Garten, haus: Objekt): void {
-  const { x, y, breite, tiefe } = g, tw = k.tw;
+  const { x, y, breite, tiefe, seite } = g, tw = k.tw;
   const [cx, cy] = k.mitte(x + (breite - 1) / 2, y + (tiefe - 1) / 2);
   if (cx < -tw * 2 || cx > k.breite + tw * 2 || cy < -tw * 2 || cy > k.hoehe + tw * 2) return;
-  const farben = LANDSCHAFT[m.jahreszeit];
+  const farben = LANDSCHAFT[m.jahreszeit], winter = m.jahreszeit === 'winter';
   const rechteck = (l: number, o: number, r: number, u: number, farbe: string): void =>
     m.flaeche([k.mitte(l, o), k.mitte(r, o), k.mitte(r, u), k.mitte(l, u)], farbe, false);
-  const l = x - .43, o = y - .43, r = x + breite - .57, u = y + tiefe - .57;
-  rechteck(l, o, r, u, farben.rand);
-  rechteck(l + .035, o + .035, r - .035, u - .035, farben.garten);
-  if (tw < 24) return;
-
-  // Terrasse neben dem Haus, bei größeren Grundstücken Platz für Beet und Obstbaum.
-  const [fx, fy] = x !== haus.x ? [haus.x - 1, haus.y]
-    : breite > 1 ? [haus.x + 1, haus.y] : y !== haus.y ? [haus.x, haus.y - 1] : [haus.x, haus.y + 1];
-  rechteck(fx - .28, fy - .23, fx + .24, fy + .19, m.jahreszeit === 'winter' ? '#d2dee3' : '#c9bb9a');
-  if (breite * tiefe < 3) return;
-  for (const [bx, by] of [[x, y], [x + breite - 1, y + tiefe - 1]]) {
-    if ((bx === haus.x && by === haus.y) || (bx === fx && by === fy)) continue;
-    if (m.jahreszeit !== 'winter') {
-      for (const offset of [-.19, .02, .23]) rechteck(bx - .3, by + offset - .065, bx + .3, by + offset + .065, '#a68758');
+  const l = x - .48, o = y - .48, r = x + breite - .52, u = y + tiefe - .52;
+  rechteck(l, o, r, u, farben.garten);
+  const quer = seite % 2 === 0;
+  const achse = quer ? haus.x : haus.y;
+  const min = quer ? l : o, max = quer ? r : u;
+  const tor = Math.max(min + .27, Math.min(max - .27, achse + (groesse(haus) - 1) / 2));
+  const pflaster = winter ? '#d2dee3' : '#c9bb9a';
+  if (seite === 0) rechteck(tor - .10, u - .25, tor + .10, u, pflaster);
+  else if (seite === 2) rechteck(tor - .10, o, tor + .10, o + .25, pflaster);
+  else if (seite === 1) rechteck(l, tor - .10, l + .25, tor + .10, pflaster);
+  else rechteck(r - .25, tor - .10, r, tor + .10, pflaster);
+  if (tw >= 24) {
+    if (!winter) {
+      const bz = m.jahreszeit === 'fruehling' ? '#eec3c2' : istHerbst(m.jahreszeit) ? '#cf963f' : '#8db452';
+      for (const offset of [.17, .31, .45]) {
+        const [bx, by] = k.mitte(l + offset, o + .14);
+        m.kreis(bx, by, tw * .041, bz);
+      }
     }
-    if (breite * tiefe >= 4) m.baum(...k.mitte(bx + .19, by - .2), .47, bx + by);
-    break;
+    if (breite * tiefe >= 2) {
+      const [bx, by] = gartenbaum(k, g);
+      m.baum(bx, by, .54, x + y);
+    }
   }
+  zeichneGartenzaun(m, k, g, tor);
+}
+
+function gartenbaum(k: Kamera, g: Garten): Punkt {
+  return k.mitte(g.x + g.breite - 1.24, g.y + g.tiefe - 1.20);
 }
 
 /** Wolken liegen um die freigeschalteten Felder. Die gekachelte Decke dahinter reicht über den Bildschirm hinaus. */
@@ -549,12 +518,13 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   if (!m.reduziert && !durchsicht) {
     if (m.jahreszeit === 'winter') schneefall(m, k, N, s.kartenHoehe ?? N);
     else if (istHerbst(m.jahreszeit)) {
+      const gaerten = gartenplan(s).parzellen;
       for (const o of sortiert) {
-        if (o.bau) continue;
-        const garten = o.typ === 'efh' && (o.x * 7 + o.y * 11) % 3 === 0 && tw >= 24;
+        const g = gaerten.get(o.id);
+        const garten = g && g.breite * g.tiefe >= 2 && tw >= 24;
         if (o.typ !== 'baum' && !garten) continue;
-        const [x, y] = garten ? k.mitte(o.x - .37, o.y + .35) : k.mitte(o.x, o.y);
-        if (x >= -tw && x <= k.breite + tw && y >= -tw && y <= k.hoehe + tw) m.blattfall(x, y, garten ? .36 : 1, o.id);
+        const [x, y] = garten ? gartenbaum(k, g) : k.mitte(o.x, o.y);
+        if (x >= -tw && x <= k.breite + tw && y >= -tw && y <= k.hoehe + tw) m.blattfall(x, y, garten ? .54 : 1, o.id);
       }
     }
   }
