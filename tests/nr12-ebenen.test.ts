@@ -108,9 +108,9 @@ describe('NR12 P3a Bodenebene (A90)', () => {
     for (let i = 0; i < b.length; i++) {
       if (b[i] === 'strokeStyle=rgba(255,255,255,.35)') { glitzer.push(...b.slice(i, i + 6)); i += 5; } else rest.push(b[i]);
     }
-    // Moderne Straßen: Pflasterfugen, Bordsteinkanten, Asphaltkörnung und Schachtdeckel.
-    expect(rest.length).toBe(23092);
-    expect(fnv(rest.join('\n'))).toBe('6593ba68');
+    // Straßen, Fluss und der breitere Wiesenrand ohne Gebäude.
+    expect(rest.length).toBe(23420);
+    expect(fnv(rest.join('\n'))).toBe('3bf1a6dd');
     expect(glitzer.length).toBe(36);
     expect(fnv(glitzer.join('\n'))).toBe('aae3e7a5');
   });

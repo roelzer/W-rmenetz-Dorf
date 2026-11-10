@@ -9,6 +9,7 @@ import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
+import { gartenplan, type Garten } from './gartenplan';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, schneefall, type Jahreszeit } from './jahreszeiten';
 import { Kamera } from './kamera';
@@ -81,6 +82,7 @@ const GRAS: Gras[] = (() => {
 })();
 
 const KARTE = tokens.farbe.karte;
+const WIESENRAND = 2;
 const NACHBARN: Punkt[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
@@ -92,12 +94,16 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   const hoehe = s.kartenHoehe ?? N;
   const saison = s.saison ?? 'sommer', farben = LANDSCHAFT[saison];
   const winter = saison === 'winter', herbst = istHerbst(saison);
-  for (let y = 0; y < hoehe; y++) {
-    for (let x = 0; x < N; x++) {
+  for (let y = -WIESENRAND; y < hoehe + WIESENRAND; y++) {
+    for (let x = -WIESENRAND; x < N + WIESENRAND; x++) {
       const [cx, cy] = k.mitte(x, y);
       if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
-      const g = GRAS[y * N + x];
       m.raute(cx, cy, 1.02);
+      if (x < 0 || y < 0 || x >= N || y >= hoehe) {
+        X.fillStyle = farben.wiese[0]; X.fill();
+        continue;
+      }
+      const g = GRAS[y * N + x];
       X.fillStyle = farben.wiese[(x + y) % 2]; X.fill();
       if (g.hell > 0.8) { X.fillStyle = 'rgba(255,255,255,.08)'; X.fill(); }
       if (winter) {
@@ -242,9 +248,14 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       } // A66: keine Autos mehr (Simon 2026-11-05)
     }
   }
+  const parzellen = gartenplan(s).parzellen;
+  for (const o of s.objekte) {
+    const g = parzellen.get(o.id);
+    if (g && g.breite * g.tiefe > 1) zeichneGarten(m, k, g, o);
+  }
   // Hausanschlussweg und Garten (A53): Plattenweg vom Haus zur nächsten Straße, abgesetzter Garten mit Zaun
-  if (s.strassen?.length) {
-    const feld = new Set(s.strassen.map(([sx, sy]) => sy * N + sx));
+  if (s.strassen?.length || parzellen.size) {
+    const feld = new Set((s.strassen ?? []).map(([sx, sy]) => sy * N + sx));
     for (const o of s.objekte) {
       const kat = KATALOG[o.typ].kategorie;
       if (kat !== 'haus' || o.bau) continue;
@@ -260,13 +271,16 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       if (gcx < -tw || gcx > W + tw || gcy < -th || gcy > H + tw) continue;
       const efh = o.typ === 'efh', variante = (o.x * 7 + o.y * 11) % 3;
       const grundstueck = efh ? [0.86, 0.92, 0.98][variante] : kk * 0.86;
-      m.raute(gcx, gcy + th * 0.045, grundstueck);
-      X.fillStyle = 'rgba(43,65,36,.22)'; X.fill();
-      m.raute(gcx, gcy, grundstueck);
-      X.fillStyle = efh || winter ? farben.rand : '#b9af8d'; X.fill();
-      m.raute(gcx, gcy, grundstueck - 0.08);
-      X.fillStyle = winter ? farben.garten : efh
-        ? (saison === 'sommer' ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : farben.garten) : '#d8ccb0'; X.fill();
+      const g = parzellen.get(o.id);
+      if (!g || g.breite * g.tiefe === 1) {
+        m.raute(gcx, gcy + th * 0.045, grundstueck);
+        X.fillStyle = 'rgba(43,65,36,.22)'; X.fill();
+        m.raute(gcx, gcy, grundstueck);
+        X.fillStyle = efh || winter ? farben.rand : '#b9af8d'; X.fill();
+        m.raute(gcx, gcy, grundstueck - 0.08);
+        X.fillStyle = winter ? farben.garten : efh
+          ? (saison === 'sommer' ? ['#8faf62', '#9bbd70', '#a6c979'][variante] : farben.garten) : '#d8ccb0'; X.fill();
+      }
       if (tw >= 24) {
         // Gärten sitzen auf den eigenen Grundstücken und drehen sich mit der Karte.
         const [bx, by] = k.mitte(o.x - 0.37, o.y + kk - 0.65);
@@ -314,6 +328,33 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   }
 }
 
+function zeichneGarten(m: Maler, k: Kamera, g: Garten, haus: Objekt): void {
+  const { x, y, breite, tiefe } = g, tw = k.tw;
+  const [cx, cy] = k.mitte(x + (breite - 1) / 2, y + (tiefe - 1) / 2);
+  if (cx < -tw * 2 || cx > k.breite + tw * 2 || cy < -tw * 2 || cy > k.hoehe + tw * 2) return;
+  const farben = LANDSCHAFT[m.jahreszeit];
+  const rechteck = (l: number, o: number, r: number, u: number, farbe: string): void =>
+    m.flaeche([k.mitte(l, o), k.mitte(r, o), k.mitte(r, u), k.mitte(l, u)], farbe, false);
+  const l = x - .43, o = y - .43, r = x + breite - .57, u = y + tiefe - .57;
+  rechteck(l, o, r, u, farben.rand);
+  rechteck(l + .035, o + .035, r - .035, u - .035, farben.garten);
+  if (tw < 24) return;
+
+  // Terrasse neben dem Haus, bei größeren Grundstücken Platz für Beet und Obstbaum.
+  const [fx, fy] = x !== haus.x ? [haus.x - 1, haus.y]
+    : breite > 1 ? [haus.x + 1, haus.y] : y !== haus.y ? [haus.x, haus.y - 1] : [haus.x, haus.y + 1];
+  rechteck(fx - .28, fy - .23, fx + .24, fy + .19, m.jahreszeit === 'winter' ? '#d2dee3' : '#c9bb9a');
+  if (breite * tiefe < 3) return;
+  for (const [bx, by] of [[x, y], [x + breite - 1, y + tiefe - 1]]) {
+    if ((bx === haus.x && by === haus.y) || (bx === fx && by === fy)) continue;
+    if (m.jahreszeit !== 'winter') {
+      for (const offset of [-.19, .02, .23]) rechteck(bx - .3, by + offset - .065, bx + .3, by + offset + .065, '#a68758');
+    }
+    if (breite * tiefe >= 4) m.baum(...k.mitte(bx + .19, by - .2), .47, bx + by);
+    break;
+  }
+}
+
 /** Wolken liegen um die freigeschalteten Felder. Die gekachelte Decke dahinter reicht über den Bildschirm hinaus. */
 function wolkenrand(m: Maler, k: Kamera, hoehe: number): void {
   const { X } = m, tw = k.tw;
@@ -327,13 +368,14 @@ function wolkenrand(m: Maler, k: Kamera, hoehe: number): void {
     g.addColorStop(1, 'rgba(221,232,237,0)');
     m.kreis(cx, cy, r, g);
   };
-  for (let x = 0; x < N; x++) {
-    bausch(x, -1.16, x);
-    bausch(x + .25, hoehe + .10, x + 3);
+  const abstand = WIESENRAND + .85;
+  for (let x = -WIESENRAND; x < N + WIESENRAND; x++) {
+    bausch(x, -abstand, x + WIESENRAND);
+    bausch(x + .25, hoehe - 1 + abstand, x + WIESENRAND + 3);
   }
-  for (let y = 0; y < hoehe; y++) {
-    bausch(-1.14, y, y + 2);
-    bausch(N + .10, y + .2, y + 6);
+  for (let y = -WIESENRAND; y < hoehe + WIESENRAND; y++) {
+    bausch(-abstand, y, y + WIESENRAND + 2);
+    bausch(N - 1 + abstand, y + .2, y + WIESENRAND + 6);
   }
 }
 
