@@ -3,7 +3,15 @@
 html,body{margin:0;height:100%;background:var(--farbe-karte-hintergrund);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 body{font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-text);color:var(--farbe-ui-tinte);font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit;cursor:pointer}
-#app{position:fixed;inset:0}
+#app{position:fixed;inset:0;background:
+  radial-gradient(ellipse 7% 5% at 15% 12%,#fff 91%,transparent 100%),
+  radial-gradient(ellipse 10% 4% at 20% 15%,#f2fbff 91%,transparent 100%),
+  radial-gradient(ellipse 8% 5% at 80% 10%,#fff 91%,transparent 100%),
+  radial-gradient(ellipse 12% 4% at 85% 14%,#effaff 91%,transparent 100%),
+  radial-gradient(ellipse 52% 58% at 17% 105%,#72b986 99%,transparent 100%),
+  radial-gradient(ellipse 54% 57% at 88% 103%,#81c99d 99%,transparent 100%),
+  radial-gradient(ellipse 64% 54% at 48% 101%,#a2dac4 99%,transparent 100%),
+  linear-gradient(180deg,#48adf6 0%,#91dcff 44%,#e4faff 73%,#bee5d1 100%)}
 #karte{display:block;width:100%;height:100%;touch-action:none}
 #hud,#ebene{position:absolute;inset:0;pointer-events:none;padding:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left))}
 #hud>*,#ebene>*{pointer-events:auto}

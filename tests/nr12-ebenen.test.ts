@@ -95,9 +95,7 @@ afterEach(() => bodenEbeneEinrichten(null));
 describe('NR12 P3a Bodenebene (A90)', () => {
   it('NR12 P3a: ohne Fabrik ist die Befehlsfolge wie heute (Glitzern eingerechnet)', () => {
     // Nur Boden, Fluss, Straßen, Gitter (keine Gebäude): so hängt der Vergleich nur am Bodenteil.
-    // Referenz aufgenommen mit dem Stand vor P3a (Commit 44463cc): 16 689 Einträge, davon 8 Glitzerblöcke à 6 Einträge;
-    // 2 davon liegen auf Brückenfeldern (Straße über dem Fluss) und waren dort schon immer verdeckt – sie entfallen.
-    // Ohne Glitzer: 16 641 Einträge, Prüfsumme 3bd40a67; die 6 übrigen Glitzerblöcke: Prüfsumme aae3e7a5.
+    // Der Boden bleibt ohne Cache vollständig. Die sechs Glitzerblöcke werden separat geprüft.
     const ort = ortHolen(STANDARD_ORT);
     const s: Szene = {
       objekte: [], innen: [], netz: berechneNetz([neu('hz', 11, 10)], [], 2), spiel: null, auswahl_id: null, modus: 'stempel',
@@ -109,8 +107,8 @@ describe('NR12 P3a Bodenebene (A90)', () => {
     for (let i = 0; i < b.length; i++) {
       if (b[i] === 'strokeStyle=rgba(255,255,255,.35)') { glitzer.push(...b.slice(i, i + 6)); i += 5; } else rest.push(b[i]);
     }
-    expect(rest.length).toBe(16638);
-    expect(fnv(rest.join('\n'))).toBe('ae418223');
+    expect(rest.length).toBe(16893);
+    expect(fnv(rest.join('\n'))).toBe('40443898');
     expect(glitzer.length).toBe(36);
     expect(fnv(glitzer.join('\n'))).toBe('aae3e7a5');
   });
@@ -465,7 +463,7 @@ describe('NR12 P3a BodenEbene (Einheit)', () => {
     const ziel = aufnahme();
     e.auflegen(ziel.X, 12.5, 9.4);
     // 12,5 − 10 = 2,5 → Math.round 3; 9,4 − 10 = −0,6 → −1
-    expect(ziel.befehle).toEqual(['save()', 'setTransform(1,0,0,1,0,0)', 'globalAlpha=1', 'drawImage(flaeche1,-22,-14)', 'restore()']);
+    expect(ziel.befehle).toEqual(['save()', 'setTransform(1,0,0,1,0,0)', 'globalAlpha=1', 'globalCompositeOperation=copy', 'drawImage(flaeche1,-22,-14)', 'restore()']);
   });
 });
 
@@ -526,7 +524,7 @@ describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
     bodenEbeneEinrichten(null);
     expect([f2.flaechen[0].width, f2.flaechen[0].height]).toEqual([0, 0]);
   });
-  it('NR12 P3a: Hintergrund deckt die ganze Fläche, auch den aufgerundeten letzten Pixelstreifen', () => {
+  it('NR12 P3a: löscht auch den aufgerundeten letzten Pixelstreifen für den Himmel', () => {
     const { sp } = mitUhr();
     const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
     const k = new Kamera(); k.groesseSetzen(844.3, 390.2, 2); k.zentrieren(11, 10, 2);
@@ -534,6 +532,6 @@ describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
     // 844,3 · 2 = 1688,6 → 1689 + 2 · round(422,15) = 1689 + 844 = 2533; 390,2 · 2 = 780,4 → 781 + 2 · round(195,1) = 781 + 390 = 1171
     expect([f.flaechen[0].width, f.flaechen[0].height]).toEqual([2533, 1171]);
     const b = f.flaechen[0].a.befehle;
-    expect(b.slice(0, 3)).toEqual(['setTransform(1,0,0,1,0,0)', 'fillStyle=#b9c8ad', 'fillRect(0,0,2533,1171)']);
+    expect(b.slice(0, 2)).toEqual(['setTransform(1,0,0,1,0,0)', 'clearRect(0,0,2533,1171)']);
   });
 });

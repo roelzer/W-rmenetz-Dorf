@@ -61,7 +61,7 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m;
   const tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
   X.setTransform(k.pixelverhaeltnis, 0, 0, k.pixelverhaeltnis, 0, 0);
-  X.fillStyle = KARTE.hintergrund_rand; X.fillRect(0, 0, W, H);
+  X.clearRect(0, 0, W, H);
 
   // Boden
   for (let y = -3; y < N + 3; y++) {
@@ -87,7 +87,11 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
             m.kreis(bx, by - r * 0.4, r * 0.45, '#fff0a0');
           }
         }
-      } else { X.fillStyle = (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b; X.fill(); }
+      } else {
+        const abstand = Math.max(-x, x - N + 1, -y, y - N + 1);
+        X.fillStyle = abstand === 3 ? '#599949' : (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b;
+        X.fill();
+      }
     }
   }
   // Fluss (A46): Wasserfelder mit Uferlinie; Brücken entstehen, wo eine Straße darüber liegt
@@ -200,6 +204,15 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       X.fillStyle = '#b9af8d'; X.fill();
       m.raute(gcx, gcy, kk * 0.78);
       X.fillStyle = '#d8ccb0'; X.fill();
+      if (tw >= 24) {
+        // Gärten sitzen auf den eigenen Grundstücken und drehen sich mit der Karte.
+        const [bx, by] = k.mitte(o.x - 0.37, o.y + kk - 0.65);
+        const r = tw * 0.064;
+        m.kreis(bx + r * 0.4, by + r * 0.3, r * 1.17, 'rgba(35,85,39,.30)');
+        m.kreis(bx, by - r * 0.4, r, '#398d43');
+        m.kreis(bx - r * 0.25, by - r * 0.7, r * 0.58, '#9ed44d');
+        m.kreis(bx + r * 0.34, by - r * 0.58, r * 0.27, (o.x + o.y) % 2 ? '#ff779e' : '#ffe176');
+      }
       if (weg) {
         const [wx, wy, dx, dy] = weg, hw = 0.12;
         const pts: Array<[number, number]> = dx === 0
@@ -219,12 +232,18 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       }
     }
   }
-  // Waldrand
+  // Der gestaffelte Waldrand gehört zur Bodenebene und bleibt beim Schwenken im Gelände verankert.
   for (let i = -3; i < N + 3; i++) {
-    for (const [x, y] of [[i, -2], [-2, i], [i, -3], [-3, i]]) {
-      const [cx, cy] = k.mitte(x + ((i * 7) % 3) * 0.2, y);
+    for (const [x, y] of [[i, -3], [-3, i], [i, -2], [-2, i], [i, N + 1], [N + 1, i]]) {
+      if ((x >= N || y >= N) && i % 3 === 0) continue;
+      const [cx, cy] = k.mitte(x + ((i * 7) % 3) * 0.17, y + ((i * 5) % 4) * 0.08);
       if (cx < -tw || cx > W + tw || cy < -tw || cy > H + tw) continue;
-      m.baum(cx, cy, 1.25, i);
+      const groesse = 0.88 + (Math.abs(i * 13 + x * 5 + y * 7) % 7) * 0.085;
+      m.baum(cx, cy, groesse, i);
+      if (i % 4 === 0 && tw >= 24) {
+        m.kreis(cx + tw * 0.23, cy + th * 0.03, tw * 0.064, '#4d903d');
+        m.kreis(cx + tw * 0.21, cy - th * 0.02, tw * 0.045, '#a5d961');
+      }
     }
   }
   // Zaun um das Dorf
@@ -579,11 +598,10 @@ function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number, finger_auf_k
       // Kamera vorübergehend um den Rand vergrößern (Felder direkt, nicht groesseSetzen – das würde tw ändern):
       // der Ursprung rückt genau um den Rand, und die Sichtbarkeitsprüfungen behalten den Randstreifen.
       const X = m.X, breite = k.breite, hoehe = k.hoehe;
-      // Erst die ganze Fläche in Gerätepixeln füllen: bei gebrochener CSS-Größe deckt die Hintergrundfläche von zeichneBoden
-      // den aufgerundeten letzten Pixelstreifen nur teilweise, er bliebe sonst halb durchsichtig.
+      // Auch den aufgerundeten letzten Pixelstreifen der wiederverwendeten Fläche löschen.
       const flaeche = flaechenGroesse(breite_px, hoehe_px, rand_x_px, rand_y_px);
-      FX.setTransform(1, 0, 0, 1, 0, 0); FX.fillStyle = KARTE.hintergrund_rand;
-      FX.fillRect(0, 0, flaeche.breite_px, flaeche.hoehe_px);
+      FX.setTransform(1, 0, 0, 1, 0, 0);
+      FX.clearRect(0, 0, flaeche.breite_px, flaeche.hoehe_px);
       m.X = FX; k.breite += (2 * rand_x_px) / pv; k.hoehe += (2 * rand_y_px) / pv;
       try { zeichneBoden(m, k, s); } finally { m.X = X; k.breite = breite; k.hoehe = hoehe; }
     });
