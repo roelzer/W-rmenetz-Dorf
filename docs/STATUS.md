@@ -124,3 +124,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 Merge cf28180 auf nr20-main-merge: 65 NR20–22-Tests rot wegen neuer main-Regeln → Tester passt an.
 - 2026-11-11 main inzwischen a4c56ef (Tutorial-Fix der Cloudflare-Sitzung in steuerung.ts, neuer Test nr13-einbindung). Nach dem Tester muss a4c56ef zusätzlich in nr20-mm gemergt werden. Cloudflare-Sitzung gebeten, steuerung/tutorial/szene/kontext auf main bis zu unserem Merge ruhen zu lassen.
 - 2026-11-11 Tester Teil 1 cce9059 (1868 grün, 4 rot). Teil 2 an frischen Tester: Darstellungstests, Saum = Kantenbreite, Karte hell T13.
+- 2026-11-11 Designer-Entwurf NR23 fertig (docs/bauplaene/NR23-neubaugebiet-entwurf.md): Grundstücke 2×3, 1 Feld Abstand, drei Wohnstraßen, Karte 40→46 hoch, Leitungen +39 %. Bau nach NR20–22-Veröffentlichung.
