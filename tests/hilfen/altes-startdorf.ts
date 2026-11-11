@@ -35,8 +35,13 @@ function belegt(objekte: ReadonlyArray<Objekt>, x: number, y: number): boolean {
   return objekte.some((o) => { const k = kante(o); return x >= o.x && x < o.x + k && y >= o.y && y < o.y + k; });
 }
 
+export function frueheresAusbauHaus(id: number): Objekt {
+  return { id, typ: 'efh', x: 13, y: 12, stufe: 1, bau: null, kasse_eur: 0, zufriedenheit_pct: 80, bestand: true, ohne_station: true };
+}
+
 export function altesStartdorf(jetzt_ms: number, ortId?: string): Spielstand {
   const st = ortId === undefined ? neuerSpielstand(jetzt_ms) : neuerSpielstand(jetzt_ms, ortId);
+  st.objekte.splice(5, 0, frueheresAusbauHaus(6));
   const fehlend = STARTNETZ.filter((l) => !belegt(st.objekte, l.x, l.y));
   if (fehlend.length > 0) {
     // Einfügen nach der Monteurhütte (bzw. nach dem letzten Gebäude des Starts), Ids wie früher vergeben.

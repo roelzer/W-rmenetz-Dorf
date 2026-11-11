@@ -163,9 +163,9 @@ describe('NR18-P3 Leitungskarte – Ersetzen nur im offenen Bauabschnitt', () =>
         expect(norm(u.meldung()), p.name).toBe(p.hinweis);
       }, { uhr: () => uhr.t });
     }
-    // Nichts ist dicker als die 110er: kein Knopf
+    // Nichts ist dicker als die 160er: kein Knopf
     const s = neu(3);
-    const dick = lege(s, 'd110', 3, 20);
+    const dick = lege(s, 'd160', 3, 20);
     await echteSteuerung(s, (u) => {
       u.st.kontext(dick.id);
       expect(namen(u, 'Dickere Leitung')).toEqual([]);
@@ -210,6 +210,23 @@ describe('NR18-P3 Leitungskarte – Ersetzen nur im offenen Bauabschnitt', () =>
 });
 
 describe('NR18-P3 Zeichnen über vorhandene Leitungen', () => {
+  it('verbindet beim Ziehen über die Naht nur den gewählten Übergang zum Bestand', async () => {
+    const s = offen(neu(2));
+    await echteSteuerung(s, (u) => {
+      u.st.stempeln('d40'); hilfeZu(u);
+      wische(u, [[9, 11], [9, 12]]);
+      const neuOben = bei(s, 9, 11), altOben = bei(s, 10, 11);
+      const neuUnten = bei(s, 9, 12), altUnten = bei(s, 10, 12);
+      expect(s.trassenNachbarn(neuOben)).toContainEqual(expect.objectContaining({ nachbar: altOben, verbunden: false }));
+      expect(s.trassenNachbarn(neuUnten)).toContainEqual(expect.objectContaining({ nachbar: altUnten, verbunden: false }));
+
+      wische(u, [[10, 11], [9, 11]]);
+      wische(u, [[9, 11], [10, 11]]);
+      expect(s.trassenNachbarn(neuOben)).toContainEqual(expect.objectContaining({ nachbar: altOben, verbunden: true }));
+      expect(s.trassenNachbarn(neuUnten)).toContainEqual(expect.objectContaining({ nachbar: altUnten, verbunden: false }));
+    });
+  });
+
   it('test_nr18_ueberzeichnen: dicker über gebaut → Ersatz je Feld; dünner oder gleich → nichts, keine Meldung', async () => {
     const s = offen(neu(2));
     const ersatz = vi.spyOn(s, 'ersatzPlanen').mockReturnValue({ ok: true });
@@ -301,9 +318,9 @@ describe('NR18-P3 Baumenü – Warnliste „Nach dem Bau zu dünn“', () => {
       expect(titel).toHaveLength(1);
       const kasten = titel[0].parentNode!;
       expect(kasten.querySelectorAll('p').map((p) => norm(p.textContent))).toEqual(W);
-      // Reihenfolge im Dokument: Warnliste vor „Laura: Material bestellen“
+      // Reihenfolge im Dokument: Warnliste vor „Material bei Laura bestellen“
       const folge = u.dom.html.querySelectorAll('h3,button').filter((e) => e.isConnected).map((e) => norm(e.textContent));
-      const iWarn = folge.indexOf('Nach dem Bau zu dünn'), iBest = folge.findIndex((t) => t.startsWith('Laura: Material bestellen'));
+      const iWarn = folge.indexOf('Nach dem Bau zu dünn'), iBest = folge.findIndex((t) => t.startsWith('Material bei Laura bestellen'));
       expect(iWarn).toBeGreaterThanOrEqual(0);
       expect(iBest).toBeGreaterThan(iWarn);
     });
@@ -337,3 +354,4 @@ describe('NR18-P3 Ereignis „engstelle“ markiert die Felder', () => {
     });
   }
 });
+

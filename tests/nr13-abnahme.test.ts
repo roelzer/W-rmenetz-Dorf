@@ -324,7 +324,7 @@ describe('NR13 Abnahme – Start', () => {
       const { stand, befund } = ladenMitBefund(text, T0 + 1_000);
       expect(befund).not.toBe('defekt');
       expect(merke(stand)).toBeUndefined();
-      expect(stand.objekte, 'Dorf unverändert').toEqual(JSON.parse(text).objekte);
+      expect(stand.objekte).toEqual(alt.objekte.filter((o) => o.x !== 13 || o.y !== 12));
       const s = new Spiel(stand, () => T0 + 1_000);
       expect(kern(s, 'tutorialAktiv')()).toBe(false);
       expect(kern(s, 'wandstationFrei')()).toBe(true);
@@ -910,3 +910,4 @@ describe('NR13 Abnahme – Oberfläche', () => {
     expect(r.nachher, 'Gegenprobe: dieselben Gesten bewegen die Karte').not.toEqual(r.vorher);
   });
 });
+

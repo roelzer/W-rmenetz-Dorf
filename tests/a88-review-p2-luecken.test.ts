@@ -62,10 +62,10 @@ describe('A88 Review P2 – Testlücken', () => {
     // NR18-P0 (4.20): geprüft im offenen Bauabschnitt; „Ersetzen: …“ (statt „Tauschen: …“) nur für dickere, freigeschaltete Leitungen
     // (rot bis NR18-P3).
     s.stand.abschnitt = { phase: 'offen', bau: null };
-    // 110er ist die dickste Leitung (LEITUNGEN in katalog.ts): auf Stufe 2 sind 75er/90er/110er gesperrt, aber keine ist dicker.
-    const k110 = await karte(s, lege(s, 'd110', 3, 3));
-    expect(mit(k110.knoepfe, 'Dickere')).toEqual([]);
-    expect(mit(k110.knoepfe, 'Ersetzen:')).toEqual([]); // nichts ist dicker als die 110er
+    // Für die größte Leitung gibt es keinen dickeren Ersatz.
+    const k160 = await karte(s, lege(s, 'd160', 3, 3));
+    expect(mit(k160.knoepfe, 'Dickere')).toEqual([]);
+    expect(mit(k160.knoepfe, 'Ersetzen:')).toEqual([]);
     // 90er auf Stufe 2: die 110er ist dicker und erst ab Stufe 3 frei.
     const k90 = await karte(s, lege(s, 'd90', 5, 3));
     expect(mit(k90.knoepfe, 'Dickere')).toEqual([expect.objectContaining({ text: 'Dickereab Heizzentrale Stufe 3', aus: true })]);

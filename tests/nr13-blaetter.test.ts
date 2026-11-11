@@ -123,7 +123,7 @@ describe('NR13 P3 Blätter: Ziele, Meldungen, Sperren', () => {
 
       s.stand.abschnitt = { phase: 'bestellen', bau: null };
       b = await baumenue(s, sp, dom);
-      expect(T(b.wurzel.querySelector('[data-ziel="laura"]')!)).toContain('Material bestellen');
+      expect(T(b.wurzel.querySelector('[data-ziel="laura"]')!)).toContain('Material bei Laura bestellen');
       b.zu();
 
       const blatt = await hausblatt(s, sp, dom, ersteHaus(s));

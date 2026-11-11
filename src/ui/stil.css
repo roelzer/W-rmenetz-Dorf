@@ -1,10 +1,10 @@
 /* Wärmenetz-Dorf – Oberfläche. Alle Farben, Maße und Zeiten kommen aus design/tokens.json (als Variablen, siehe tokens.ts). */
 *,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--farbe-karte-hintergrund);overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--farbe-karte-hintergrund);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 body{font-family:var(--schrift-text);font-size:var(--schrift-groesse-px-text);color:var(--farbe-ui-tinte);font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit;cursor:pointer}
-#app{position:fixed;inset:0}
-#karte{display:block;width:100%;height:100%}
+#app{position:fixed;inset:0;background:#cfdadf url('../render/wolkenfeld.svg') repeat 50% 50% / 720px 480px}
+#karte{display:block;width:100%;height:100%;touch-action:none}
 #hud,#ebene{position:absolute;inset:0;pointer-events:none;padding:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-right)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom)) max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-left))}
 #hud>*,#ebene>*{pointer-events:auto}
 .versteckt{display:none!important}
@@ -73,7 +73,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .blatt.popup{border-radius:var(--radius-px-popup);max-height:90%;margin:0}
 .blatt .kopf{display:flex;align-items:center;gap:var(--abstand-px-2);flex:none}
 .blatt .kopf h2{flex:1;margin:0;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.blatt .inhalt{overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.blatt .inhalt{min-height:0;overflow:auto;overscroll-behavior-y:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .blatt p{margin:0 0 var(--abstand-px-1);font-size:var(--schrift-groesse-px-absatz);line-height:1.35}
 .gedaempft{color:var(--farbe-ui-text-gedaempft)}
 .chips{display:flex;flex-wrap:wrap;gap:var(--abstand-px-1);margin:var(--abstand-px-1) 0}
@@ -104,6 +104,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .banner{position:absolute;top:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(92%,420px);display:flex;align-items:center;gap:var(--abstand-px-1);flex-wrap:wrap;padding:var(--abstand-px-1) var(--abstand-px-2);background:var(--farbe-ui-pergament);border:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand);border-radius:var(--radius-px-karte);box-shadow:var(--schatten-schild)}
 .banner .wer{flex:1 1 140px;font-family:var(--schrift-anzeige);font-weight:700}
 .banner .wer small{display:block;font-family:var(--schrift-text);font-weight:700;color:var(--farbe-ui-text-gedaempft)}
+
+/* Installationshilfe: Im Startbildschirm-Modus verschwindet die Browserleiste und die Karte gewinnt Höhe. */
+.install-hinweis{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:120;width:min(620px,calc(100% - max(24px,env(safe-area-inset-left)) - max(24px,env(safe-area-inset-right))));display:flex;align-items:center;gap:10px;padding:10px 42px 10px 12px;background:var(--menue-farbe-tafel);border:var(--kb) solid var(--k);border-radius:var(--menue-mass-px-radius-kasten);box-shadow:0 5px 0 var(--k),0 14px 36px rgba(20,10,4,.35);color:var(--menue-farbe-text)}
+.install-symbol{flex:none;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:var(--menue-chip-gruen-0);border:2px solid var(--k);font-size:24px;font-weight:800}
+.install-inhalt{flex:1;min-width:0}.install-inhalt strong{display:block;font-family:var(--menue-schrift-anzeige);font-size:18px}.install-text{margin:2px 0 0;font-size:13px;line-height:1.25;font-weight:600}
+.install-aktion{flex:none;white-space:nowrap}.install-schliessen{position:absolute;right:6px;top:4px;width:32px;height:32px;border:0;background:transparent;font-size:26px;font-weight:800;color:var(--k)}
+@media (orientation:landscape) and (max-height:480px){.install-hinweis{padding-block:7px}.install-symbol{display:none}.install-inhalt strong{font-size:16px}.install-text{font-size:12px}}
+@media (max-width:560px){.install-hinweis{align-items:stretch;flex-wrap:wrap}.install-inhalt{flex-basis:calc(100% - 52px)}.install-aktion{width:100%}}
 
 /* ---------- Eingabe ---------- */
 .feld{width:100%;padding:0 var(--abstand-px-2);font:inherit;-webkit-user-select:text;user-select:text}
@@ -167,6 +175,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .kasten h3{margin:0 -12px 4px;padding:8px 12px 6px;background:var(--menue-farbe-kasten-kopf);border-bottom:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie);font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-kasten-titel);letter-spacing:.02em;color:var(--k)}
 /* DESIGN 13.17.3: Warndreieck 16 px vor dem Titel „Überlastet“, auf der Schriftlinie */
 .kasten h3 .sym{width:16px;height:16px;margin-right:6px;vertical-align:-2px}
+.abschnitt-kurz{margin-bottom:4px}
+.abschnitt-hilfe{margin:0 0 6px;color:var(--menue-farbe-text-gedaempft);font-weight:600}
+.abschnitt-hilfe summary{cursor:pointer;font-weight:800}
+.abschnitt-hilfe p{margin:6px 0}
 /* DESIGN 12.22: Warnliste „Nach dem Bau zu dünn“ als roter Streifen im Kasten (kein Kasten im Kasten); hebt .kasten h3 auf */
 .warnstreifen{background:var(--menue-chip-rot-0);border-radius:12px;padding:8px 12px;margin:8px 0}
 .warnstreifen h3{display:flex;align-items:center;gap:6px;margin:0 0 4px;padding:0;background:none;border:0;font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-kasten-titel);color:var(--menue-chip-rot-1)}
@@ -349,30 +361,32 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* A63/A64: Logo, Schriftzug und Ladebildschirm */
 .schriftzug{font-family:'Lilita One',var(--schrift-anzeige);font-weight:400;letter-spacing:.02em;line-height:1;display:inline-flex}
 span.schriftzug>span.heat{color:#ff8a1f}span.schriftzug>span.ville{color:#3a92ea}
-/* A90: Startbildschirm ganz ruhig – nur das Logo blendet einmal ein und der Ladebalken läuft über transform.
-   Ausblenden nur über Deckkraft: transform auf der ganzen Fläche lässt WebKit sie neu malen. */
-#vorspann{position:fixed;inset:0;z-index:100;overflow:hidden;background:#3f8ff0;transition:opacity .5s}
-#vorspann .vs-szene{position:absolute;inset:0;width:100%;height:100%}
+/* Die ruhende Dorfkulisse und die animierten Leitungen liegen in getrennten SVGs. */
+#vorspann{position:fixed;inset:0;z-index:100;overflow:hidden;container-type:size;background:radial-gradient(ellipse at 50% 42%,#27476a 0%,#172a46 51%,#0b1426 100%);transition:opacity .5s}
 #vorspann.aus{opacity:0;pointer-events:none}
-.vs-kopf{position:absolute;left:50%;top:6%;transform:translateX(-50%) rotate(-3deg);display:flex;align-items:center;gap:14px;animation:vs-plopp .7s cubic-bezier(.2,1.6,.4,1) both}
-.vs-kopf .logo-bild{border-radius:26%;box-shadow:0 6px 0 #3b1d0a,0 14px 26px rgba(0,0,0,.35);border:4px solid #3b1d0a}
-.vs-titel{display:flex;flex-direction:column;align-items:flex-start}
-#vorspann .unterzeile{font-family:'Lilita One',var(--schrift-anzeige);color:#fff;font-size:20px;letter-spacing:.04em;-webkit-text-stroke:5px #3b1d0a;paint-order:stroke fill;margin:4px 0 0 6px;white-space:nowrap}
-.vs-fuss{position:absolute;left:50%;bottom:2.5%;transform:translateX(-50%);width:min(480px,62vw);display:flex;flex-direction:column;align-items:center;gap:8px}
-.vs-balken{position:relative;width:100%;height:20px;border:4px solid #3b1d0a;border-radius:16px;background:#2a3b4f;box-shadow:0 4px 0 #3b1d0a;overflow:hidden}
-.vs-fuellung{position:absolute;inset:0;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(#c8ff8a,#5fd14a 50%,#3a9e2e);animation:vs-laden 2.5s ease-out forwards;will-change:transform}
-.vs-fuellung::after{content:'';position:absolute;inset:3px 6px auto;height:5px;border-radius:4px;background:rgba(255,255,255,.55)}
-.vs-prozent{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Lilita One',var(--schrift-anzeige);color:#fff;font-size:13px;-webkit-text-stroke:4px #3b1d0a;paint-order:stroke fill}
-/* Lange Tipps dürfen auf zwei Zeilen umbrechen statt abgeschnitten zu werden (Designer-Nachprüfung, Kann 1) */
-.vs-tipp{margin:0;padding:4px 12px;border-radius:10px;background:rgba(32,20,10,.72);color:#fff;font-weight:700;font-size:12px;line-height:1.3;text-align:center;max-width:90vw;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
-.vs-tipp b{color:#ffd45c}
-.vs-blattzeichen{margin-right:6px;-webkit-text-stroke:0}
+#vorspann.still{transition:none}
+.vs-buehne{--vs-laufzeit:0ms;--vs-start:0ms;position:absolute;left:50%;top:50%;width:min(100vw,calc((100cqh - 90px)*2),1180px);aspect-ratio:2;transform:translate(-50%,-45%);pointer-events:none}
+.vs-buehne svg{position:absolute;inset:0;width:100%;height:100%}
+.vs-impuls{stroke-dasharray:10 104;stroke-dashoffset:10;opacity:0;animation:vs-impuls var(--vs-laufzeit) linear var(--vs-start) both}
+.vs-licht{animation:vs-licht .22s ease-out var(--vs-start) both}
+.vs-kopf{position:absolute;left:50%;top:max(4%,env(safe-area-inset-top));transform:translateX(-50%);animation:vs-plopp .6s ease-out both}
+.vs-titel{display:flex;flex-direction:column;align-items:center}
+#vorspann .unterzeile{font-family:'Lilita One',var(--schrift-anzeige);color:#e5efff;font-size:clamp(14px,2.3vh,20px);letter-spacing:.04em;text-align:center}
+.vs-fuss{position:absolute;left:50%;bottom:max(3%,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(420px,84vw);display:flex;flex-direction:column;align-items:center;gap:7px}
+.vs-balken{position:relative;width:min(240px,80%);height:12px;border:2px solid #4e6886;border-radius:12px;background:#111d32;overflow:hidden}
+.vs-fuellung{position:absolute;inset:0;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(#ffd799 0 30%,#f49a52 30% 62%,#85d3fa 62%);animation:vs-laden 2.5s ease-out forwards;will-change:transform}
+.vs-prozent{color:#e5efff;font-size:12px;line-height:1}
+.vs-tipp{margin:0;color:#ceddf0;font-weight:700;font-size:12px;line-height:1.3;text-align:center;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.vs-tipp b{color:#ffd28d}
 @keyframes vs-laden{to{transform:scaleX(1)}}
-@keyframes vs-plopp{from{transform:translateX(-50%) rotate(-3deg) scale(.3);opacity:0}to{transform:translateX(-50%) rotate(-3deg) scale(1);opacity:1}}
+@keyframes vs-plopp{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes vs-impuls{0%{opacity:1;stroke-dashoffset:10}98%{opacity:1}100%{opacity:0;stroke-dashoffset:-100}}
+@keyframes vs-licht{from{opacity:0}to{opacity:1}}
 #vorspann.still *{animation:none!important}#vorspann.still .vs-fuellung{transform:none}
 @media (prefers-reduced-motion:reduce){#vorspann *{animation:none!important}#vorspann .vs-fuellung{transform:none}}
-#vorspann .vs-schriftzug{width:440px;max-width:80vw;height:auto;display:block;overflow:visible}
-@media (max-height:420px){#vorspann .vs-schriftzug{width:320px}.vs-kopf{top:4%}.vs-kopf .logo-bild{width:64px;height:64px}#vorspann .unterzeile{font-size:14px;-webkit-text-stroke:4px #3b1d0a}}
+#vorspann .vs-schriftzug{width:min(400px,70vw,58vh);height:auto;display:block;overflow:visible}
+@media (orientation:portrait){.vs-kopf{top:max(15%,env(safe-area-inset-top))}.vs-fuss{bottom:max(13%,env(safe-area-inset-bottom))}.vs-buehne{width:112vw}}
+@media (max-height:420px){.vs-kopf{top:max(2%,env(safe-area-inset-top))}.vs-fuss{bottom:max(2%,env(safe-area-inset-bottom));gap:4px}}
 .einst-logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}.einst-logo .logo-bild{border-radius:24%}.einst-logo .schriftzug{font-size:30px}
 
 /* A83: Hinweis auf eine neue Version */
@@ -396,6 +410,12 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .blatt.zeichenleiste .kopf h2{font-size:var(--menue-schrift-groesse-px-zeichen-titel)}
 .blatt.zeichenleiste .kopf .frage{width:var(--menue-mass-px-schliessen);height:var(--menue-mass-px-schliessen);min-width:0;min-height:0;padding:0;flex:none;display:grid;place-items:center}
 .blatt.zeichenleiste .kopf .frage .sym{width:24px;height:24px}
+/* Auf Touch-Geräten bleiben Seitenmenü-Knöpfe außerhalb der Display-Aussparung und Systemgestenzone. */
+@media (orientation:landscape) and (max-height:600px) and (pointer:coarse){
+  .blatt:not(.popup) .kopf{padding-top:max(6px,env(safe-area-inset-top));padding-right:calc(10px + env(safe-area-inset-right))}
+  .blatt .kopf .schliessen{min-width:44px;min-height:44px;touch-action:manipulation}
+  .blatt .kopf .schliessen:active{transform:none}
+}
 .blatt.zeichenleiste .inhalt{flex:1 1 auto;min-height:0;padding:8px}
 .blatt.zeichenleiste .zeichen-werkzeug{display:flex;flex-direction:column;gap:8px}
 .blatt.zeichenleiste [hidden]{display:none}
@@ -444,6 +464,8 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .anleiter-figur{flex:none;width:var(--menue-mass-px-anleiter-figur);height:var(--menue-mass-px-anleiter-figur)}
 #anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein)}
 .anleiter-figur .sprecher-bild{width:100%;height:100%}
+.anleiter-figur .sprecher-bild.foto{width:100%;height:100%;margin:0}
+.anleiter-figur .sprecher-bild.foto img{width:100%;height:100%;object-fit:contain;object-position:center bottom}
 .anleiter-blase{flex:1;min-width:0;background:var(--menue-farbe-tafel);border:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-kontur);border-radius:var(--menue-mass-px-radius-kasten) var(--menue-mass-px-radius-kasten) var(--menue-mass-px-radius-kasten) 4px;box-shadow:0 3px 0 var(--menue-farbe-kontur);padding:8px 12px}
 .anleiter-kopf{display:flex;align-items:center;justify-content:space-between;height:18px}
 .anleiter-name{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-abzeichen);color:var(--menue-farbe-kontur)}
@@ -456,6 +478,12 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .anleiter-knopfzeile{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;min-height:var(--menue-mass-px-knopf-hoehe-klein)}
 .anleiter-knopfzeile .gedaempft{color:var(--menue-farbe-text-gedaempft);font-size:var(--schrift-groesse-px-absatz)}
 #anleiter-weiter{margin-left:auto}
+/* Auf sehr niedrigen Handy-Bildschirmen bleibt bei Antipp-Schritten mehr Karte und damit das leuchtende Ziel sichtbar. */
+@media (orientation:landscape) and (max-height:430px){
+  #anleiter.handlung .anleiter-figur{width:72px;height:72px}
+  #anleiter.handlung .anleiter-blase{padding:6px 10px}
+  #anleiter.handlung .anleiter-text{margin-top:2px;font-size:14px;line-height:16px}
+}
 .weniger-bewegung .spot-ring:not(.stupst-ruhig),.weniger-bewegung .info-kapsel,.weniger-bewegung #anleiter{animation:none}
 @media (prefers-reduced-motion:reduce){.spot-ring:not(.stupst-ruhig),.info-kapsel,#anleiter{animation:none}}
 /* Hochformat: das Tutorial ruht hinter dem Dreh-Hinweis (13.7) */

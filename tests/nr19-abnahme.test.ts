@@ -438,7 +438,7 @@ describe('NR19 Spielstand', () => {
   it('test_nr19_spielstand_reparatur_beim_laden', () => {
     const st = altesStartdorf(T0);
     const finde = (x: number, y: number): Objekt => st.objekte.find((o) => o.x === x && o.y === y && (katalog.KATALOG[o.typ].kategorie === 'haus' || katalog.KATALOG[o.typ].kategorie === 'gross'))!;
-    const ohneMerkmal = finde(13, 12); ohneMerkmal.station = 'hp_1000'; delete ohneMerkmal.ohne_station; delete ohneMerkmal.hauspuffer;
+    const ohneMerkmal = st.objekte.find((o) => o.typ === 'efh' && (o.x !== 13 || o.y !== 12) && o.ohne_station)!; ohneMerkmal.station = 'hp_1000'; delete ohneMerkmal.ohne_station; delete ohneMerkmal.hauspuffer;
     const alt = finde(12, 14); alt.station = 'st_15'; alt.hauspuffer = true;
     const wand = finde(9, 13); wand.station = 'st_15'; delete wand.hauspuffer;
     const bad = st.objekte.find((o) => o.typ === 'bad')!; bad.station = 'up_1000'; delete bad.ohne_station;
@@ -452,7 +452,7 @@ describe('NR19 Spielstand', () => {
     expect(nach(alt).station).toBe('st_15'); expect(nach(alt).hauspuffer).toBe(true);
     expect(nach(wand).station).toBe('st_15'); expect(!!nach(wand).hauspuffer).toBe(false);
     expect(nach(bad).station).toBeUndefined(); expect(nach(bad).ohne_station).toBe(true); expect(!!nach(bad).hauspuffer).toBe(false);
-    expect(stand.objekte.length).toBe(st.objekte.length); // nichts geht verloren
+    expect(stand.objekte.length).toBe(st.objekte.length - 1); // nichts geht verloren
   });
 
   it('test_nr19_puffer_station_ueberlebt_speichern_und_laden', () => {

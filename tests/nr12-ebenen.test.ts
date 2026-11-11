@@ -7,6 +7,7 @@ import { Spiel } from '../src/core/spiel';
 import { altesStartdorf } from './hilfen/altes-startdorf';
 import { Effekte } from '../src/render/effekte';
 import { BodenEbene, type Flaeche, type FlaechenFabrik } from '../src/render/ebenen';
+import { jahreszeit } from '../src/render/jahreszeiten';
 import { Kamera } from '../src/render/kamera';
 import { Maler } from '../src/render/maler';
 import { bodenEbeneEinrichten, bodenEbeneVerwerfen, zeichneSzene, type Szene } from '../src/render/szene';
@@ -95,9 +96,7 @@ afterEach(() => bodenEbeneEinrichten(null));
 describe('NR12 P3a Bodenebene (A90)', () => {
   it('NR12 P3a: ohne Fabrik ist die Befehlsfolge wie heute (Glitzern eingerechnet)', () => {
     // Nur Boden, Fluss, Straßen, Gitter (keine Gebäude): so hängt der Vergleich nur am Bodenteil.
-    // Referenz aufgenommen mit dem Stand vor P3a (Commit 44463cc): 16 689 Einträge, davon 8 Glitzerblöcke à 6 Einträge;
-    // 2 davon liegen auf Brückenfeldern (Straße über dem Fluss) und waren dort schon immer verdeckt – sie entfallen.
-    // Ohne Glitzer: 16 641 Einträge, Prüfsumme 3bd40a67; die 6 übrigen Glitzerblöcke: Prüfsumme aae3e7a5.
+    // Der Boden bleibt ohne Cache vollständig. Die sechs Glitzerblöcke werden separat geprüft.
     const ort = ortHolen(STANDARD_ORT);
     const s: Szene = {
       objekte: [], innen: [], netz: berechneNetz([neu('hz', 11, 10)], [], 2), spiel: null, auswahl_id: null, modus: 'stempel',
@@ -109,8 +108,9 @@ describe('NR12 P3a Bodenebene (A90)', () => {
     for (let i = 0; i < b.length; i++) {
       if (b[i] === 'strokeStyle=rgba(255,255,255,.35)') { glitzer.push(...b.slice(i, i + 6)); i += 5; } else rest.push(b[i]);
     }
-    expect(rest.length).toBe(16641);
-    expect(fnv(rest.join('\n'))).toBe('3bd40a67');
+    // Straßen, Fluss und der breitere Wiesenrand ohne Gebäude.
+    expect(rest.length).toBe(23420);
+    expect(fnv(rest.join('\n'))).toBe('3bf1a6dd');
     expect(glitzer.length).toBe(36);
     expect(fnv(glitzer.join('\n'))).toBe('aae3e7a5');
   });
@@ -465,7 +465,7 @@ describe('NR12 P3a BodenEbene (Einheit)', () => {
     const ziel = aufnahme();
     e.auflegen(ziel.X, 12.5, 9.4);
     // 12,5 − 10 = 2,5 → Math.round 3; 9,4 − 10 = −0,6 → −1
-    expect(ziel.befehle).toEqual(['save()', 'setTransform(1,0,0,1,0,0)', 'globalAlpha=1', 'drawImage(flaeche1,-22,-14)', 'restore()']);
+    expect(ziel.befehle).toEqual(['save()', 'setTransform(1,0,0,1,0,0)', 'globalAlpha=1', 'globalCompositeOperation=copy', 'drawImage(flaeche1,-22,-14)', 'restore()']);
   });
 });
 
@@ -490,19 +490,20 @@ describe('NR12 P0 Nachtrag aus dem P0-Review (K1/K2)', () => {
 });
 
 describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
-  const zaunStart = (b: string[]): [number, number] => {
-    const i = b.indexOf('strokeStyle=#c9a76a');
-    const m = b.slice(i).find((x) => x.startsWith('moveTo('))!;
-    const [x, y] = m.slice(7, -1).split(',').map(Number);
+  const wolkeStart = (b: string[]): [number, number] => {
+    const i = b.indexOf('addColorStop(0,rgba(245,249,251,.96))');
+    expect(i).toBeGreaterThan(0);
+    const [x, y] = b[i - 1].slice('createRadialGradient('.length, -1).split(',').map(Number);
     return [x, y];
   };
-  it('NR12 P3a: zwischengespeicherter Boden liegt genau an der Stelle des direkt gezeichneten (Zaun-Startpunkt, Auflegen bei −Rand)', () => {
+  it('Die Wolkenkante liegt im Cache genau an derselben Stelle wie beim direkten Zeichnen', () => {
     const { sp } = mitUhr();
     const k = kamera(), s = spielSzene(sp, T0);
-    const direkt = zaunStart(bild(k, s).befehle);
+    k.zentrieren(2, 2, 1);
+    const direkt = wolkeStart(bild(k, s).befehle);
     const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
     const a = bild(k, s);
-    const [x, y] = zaunStart(f.flaechen[0].a.befehle);
+    const [x, y] = wolkeStart(f.flaechen[0].a.befehle);
     // Rand in CSS-px: 422 / 2 = 211 und 195 / 2 = 97,5
     expect(x - RAND_X / 2).toBeCloseTo(direkt[0], 6);
     expect(y - RAND_Y / 2).toBeCloseTo(direkt[1], 6);
@@ -526,7 +527,7 @@ describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
     bodenEbeneEinrichten(null);
     expect([f2.flaechen[0].width, f2.flaechen[0].height]).toEqual([0, 0]);
   });
-  it('NR12 P3a: Hintergrund deckt die ganze Fläche, auch den aufgerundeten letzten Pixelstreifen', () => {
+  it('NR12 P3a: löscht auch den aufgerundeten letzten Pixelstreifen für den Himmel', () => {
     const { sp } = mitUhr();
     const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
     const k = new Kamera(); k.groesseSetzen(844.3, 390.2, 2); k.zentrieren(11, 10, 2);
@@ -534,6 +535,32 @@ describe('NR12 P3a Nachbesserung Review (W1, K1–K3)', () => {
     // 844,3 · 2 = 1688,6 → 1689 + 2 · round(422,15) = 1689 + 844 = 2533; 390,2 · 2 = 780,4 → 781 + 2 · round(195,1) = 781 + 390 = 1171
     expect([f.flaechen[0].width, f.flaechen[0].height]).toEqual([2533, 1171]);
     const b = f.flaechen[0].a.befehle;
-    expect(b.slice(0, 3)).toEqual(['setTransform(1,0,0,1,0,0)', 'fillStyle=#b9c8ad', 'fillRect(0,0,2533,1171)']);
+    expect(b.slice(0, 2)).toEqual(['setTransform(1,0,0,1,0,0)', 'clearRect(0,0,2533,1171)']);
+  });
+});
+
+
+describe('Wetter und Jahreszeiten', () => {
+  it('wechselt mit den Spielmonaten bis zum nächsten Jahr', () => {
+    expect([0, 2, 5, 8, 10, 11, 12, 20].map(jahreszeit))
+      .toEqual(['winter', 'fruehling', 'sommer', 'herbst', 'spaetherbst', 'winter', 'winter', 'herbst']);
+  });
+
+  it('erneuert den Boden beim Saisonwechsel und zeichnet bewegten Schnee in der Hauptleinwand', () => {
+    const { sp } = mitUhr();
+    const k = kamera(), s = spielSzene(sp, T0, { saison: 'herbst' });
+    const herbstSchluessel = szenenSchluessel(s);
+    const f = testFabrik(); bodenEbeneEinrichten(f.fabrik);
+    bild(k, s);
+    const herbstBefehle = f.befehle();
+    s.saison = 'winter';
+    const winter = bild(k, s);
+    expect(szenenSchluessel(s)).not.toBe(herbstSchluessel);
+    expect(f.befehle()).toBeGreaterThan(herbstBefehle);
+    expect(f.flaechen[0].a.befehle).toContain('fillStyle=#dfe9ed');
+    expect(winter.befehle).toContain('fillStyle=rgba(255,255,255,.82)');
+    const winterBefehle = f.befehle();
+    bild(k, s, .016, 2.7);
+    expect(f.befehle()).toBe(winterBefehle);
   });
 });

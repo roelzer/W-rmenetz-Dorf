@@ -1,3 +1,4 @@
+import { KATALOG } from '../src/core/katalog';
 import { describe, expect, it } from 'vitest';
 import { berechneNetz, bedarfKw } from '../src/core/netz';
 import { passendeStation, type TypId } from '../src/core/katalog';
@@ -52,16 +53,23 @@ describe('A91 P2 – Last nach dem Umhängen', () => {
     // Startwert 2471: Die d63-Reihe (11..16|9) hängt alt an den d32-Feldern darunter. Zuerst hängen (12|9)…(15|9) um; die
     // Klinik (13|9, 70 kW) und die Bäckerei (15|9, 20 kW) belasten danach (11|9)…(13|9) mit 90 kW. Rest über q = (15|9):
     // 95 × 1,1176 − 90 ≈ 16,2 kW < 20 kW Last hinter (16|9) (Bäckerei 16|8) → (16|9) bleibt an (16|10).
-    const { objekte, innen, vorlauf_c } = zufallsNetz(2471);
-    const alt = berechneNetzAlt(objekte, innen, 2, vorlauf_c);
-    const neu = berechneNetz(objekte, innen, 2, vorlauf_c);
-    expect([12, 13, 14, 15, 16].map((x) => alt.eltern.get(f(x, 9)))).toEqual([12, 13, 14, 15, 16].map((x) => f(x, 10)));
-    expect([12, 13, 14, 15].map((x) => neu.eltern.get(f(x, 9)))).toEqual([11, 12, 13, 14].map((x) => f(x, 9)));
-    expect(neu.last_kw.get(f(11, 9))).toBe(90);
-    expect(neu.last_kw.get(f(16, 9))).toBe(20);
-    expect(95 * neu.spreizung_faktor - 90).toBeLessThan(20);
-    expect(neu.eltern.get(f(16, 9))).toBe(f(16, 10));
-    expect(pruefeVergleich(alt, neu)).toEqual([]);
+    // Die historische Engstelle gezielt nachstellen, auch wenn das Spiel die 63er heute höher dimensioniert.
+    const kapazitaet = KATALOG.d63.kapazitaet_kw;
+    KATALOG.d63.kapazitaet_kw = 95;
+    try {
+      const { objekte, innen, vorlauf_c } = zufallsNetz(2471);
+      const alt = berechneNetzAlt(objekte, innen, 2, vorlauf_c);
+      const neu = berechneNetz(objekte, innen, 2, vorlauf_c);
+      expect([12, 13, 14, 15, 16].map((x) => alt.eltern.get(f(x, 9)))).toEqual([12, 13, 14, 15, 16].map((x) => f(x, 10)));
+      expect([12, 13, 14, 15].map((x) => neu.eltern.get(f(x, 9)))).toEqual([11, 12, 13, 14].map((x) => f(x, 9)));
+      expect(neu.last_kw.get(f(11, 9))).toBe(90);
+      expect(neu.last_kw.get(f(16, 9))).toBe(20);
+      expect(95 * neu.spreizung_faktor - 90).toBeLessThan(20);
+      expect(neu.eltern.get(f(16, 9))).toBe(f(16, 10));
+      expect(pruefeVergleich(alt, neu)).toEqual([]);
+    } finally {
+      KATALOG.d63.kapazitaet_kw = kapazitaet;
+    }
   });
 
   it('A91: test_a91_umhaengen_entlastet_den_alten_weg', () => {

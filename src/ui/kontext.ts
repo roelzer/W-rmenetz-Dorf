@@ -1,4 +1,5 @@
-import { ABSCHNITT_HELFER, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
+import { ausbauZieleKasten } from './ziele';
+import { ANDI_BUDGET_SCHRITT, ABSCHNITT_HELFER, istAltanlage, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
 import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, pufferStationReicht, spreizungHaus_k, stationReicht } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import { WANDSTATION_TUTORIAL, type Spiel } from '../core/spiel';
@@ -108,7 +109,9 @@ export function dickereFarbknopf(sp: Spiel): HTMLButtonElement | null {
 
 function signatur(c: HTMLElement): string {
   const k = c.cloneNode(true) as HTMLElement;
-  k.querySelectorAll('[data-live]').forEach((e) => { e.textContent = ''; e.removeAttribute('style'); });
+  k.querySelectorAll('[data-live]').forEach((e) => {
+    e.textContent = ''; e.removeAttribute('style'); e.removeAttribute('aria-valuenow');
+  });
   // Wackeln nach dem Antippen (12.19) ist kein neuer Inhalt – sonst baute der nächste Takt das Blatt mitten im Wackeln neu
   k.querySelectorAll('.wackelt').forEach((e) => e.classList.remove('wackelt'));
   return k.innerHTML;
@@ -163,11 +166,20 @@ export class Kontext {
     if (s !== this.sig) {
       this.sig = s;
       this.blatt.stufe.textContent = hatStufen(o.typ) ? `Stufe ${o.stufe}` : '';
+      const scroll = this.blatt.inhalt.scrollTop;
       this.blatt.inhalt.replaceChildren(...neu.childNodes);
+      this.blatt.inhalt.scrollTop = scroll;
     } else {
       neu.querySelectorAll<HTMLElement>('[data-live]').forEach((e) => {
         const alt = this.blatt!.inhalt.querySelector<HTMLElement>(`[data-live="${e.dataset.live}"]`);
-        if (alt) { alt.textContent = e.textContent; if (e.getAttribute('style')) alt.setAttribute('style', e.getAttribute('style')!); }
+        if (!alt) return;
+        if (e.getAttribute('role') === 'progressbar') {
+          alt.setAttribute('aria-valuenow', e.getAttribute('aria-valuenow')!);
+          alt.firstElementChild?.setAttribute('style', e.firstElementChild?.getAttribute('style') ?? '');
+        } else {
+          alt.textContent = e.textContent;
+          if (e.getAttribute('style')) alt.setAttribute('style', e.getAttribute('style')!);
+        }
       });
     }
   }
@@ -190,18 +202,26 @@ export class Kontext {
     } else if (kat === 'deko') {
       c.append(h('div', { class: 'knopfreihe' }, knopf('Verschieben', () => this.ui.verschieben(o.id)), knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); })));
     }
+    if (sp.istAusbauUmzug(o) || (['buero', 'huette'].includes(o.typ) && sp.hzAusbauBlocker().includes(o))) {
+      c.append(h('p', {}, 'Steht auf der Ausbaureserve der Heizzentrale.'),
+        h('div', { class: 'knopfreihe' }, knopf('Aus der Ausbaufläche verschieben', () => this.ui.verschieben(o.id))));
+    }
     if (!istAktiv(o)) return;
     void n;
   }
 
   private baustelle(c: HTMLElement, o: Objekt): void {
-    const b = o.bau!, sp = this.ui.spiel, jetzt = Date.now();
+    const b = o.bau!, sp = this.ui.spiel, jetzt = this.ui.jetzt_ms();
     const f = Math.max(0, Math.min(1, (jetzt - b.start_ms) / (b.ende_ms - b.start_ms)));
     const bal = balken(f), i = bal.querySelector('i') as HTMLElement;
     i.dataset.live = 'bar';
     const rest = h('span', { 'data-live': 'rest' }, zeitText((b.ende_ms - jetzt) / 1000));
     c.append(chip(b.art === 'neu' ? 'wird gebaut' : `wird ausgebaut auf Stufe ${o.stufe + 1}`, 'blau'), bal,
       h('p', {}, 'Noch ', rest));
+    if (sp.istNeubau(o)) {
+      c.append(h('p', {}, 'Dieses Haus entsteht von selbst. Lege in der Haupttrasse schon eine Vorsehung für den späteren Anschluss.'));
+      return;
+    }
     const kosten = h('span', { 'data-live': 'taler' }, String(sp.beschleunigungskosten_taler(b)));
     c.append(h('div', { class: 'knopfreihe' }, knopf(h('span', {}, 'Beschleunigen · ', kosten, ' Taler'), () => { sp.beschleunigen(o.bau); this.ui.geaendert(); }, 'taler')));
   }
@@ -243,7 +263,9 @@ export class Kontext {
     if (o.vollversorgung) chips.append(chip('Kamin aus', 'gruen'));
     if (o.aufgestockt) chips.append(chip('aufgestockt', 'blau'));
     const z = o.zufriedenheit_pct ?? 80;
-    c.append(zeile('Zufriedenheit', `${zahl(z)} %`), balken(z / 100));
+    const zufriedenheit = balken(z / 100);
+    zufriedenheit.setAttribute('data-live', 'zufriedenheit-balken');
+    c.append(zeile('Zufriedenheit', h('span', { 'data-live': 'zufriedenheit' }, `${zahl(z)} %`)), zufriedenheit);
     if (o.gekuendigt) {
       c.append(h('p', {}, 'Der Kunde ist wieder bei seinem Öl-Kessel. Mit einem fairen Preis und guter Wärme kommt er zurück.'),
         h('div', { class: 'knopfreihe' }, knopf('Zurückgewinnen', () => { sp.zurueckgewinnen(o.id); this.ui.geaendert(); }, 'geld', { unter: eur(KONSTANTEN.zurueckgewinnen_eur) })));
@@ -285,8 +307,8 @@ export class Kontext {
     const k = kasten('Wärmerechnung');
     const jahr_eur = sp.jahresverbrauch_kwh(o) * ct / 100 + 12 * sp.grundgebuehr_eur;
     k.append(zeile('Wärmepreis', `${zahl(ct)} ct/kWh`), zeile('Grundgebühr', `${eur(sp.grundgebuehr_eur)} im Monat`),
-      zeile(`${sp.monatsname(m.nr)} bisher`, `${zahl(o.zaehler_kwh ?? 0)} kWh`),
-      zeile(`Rechnung ${sp.monatsname(m.nr)} (erwartet)`, eur(sp.monatsbetrag_eur(o, m.nr))),
+      zeile(`${sp.monatsname(m.nr)} bisher`, h('span', { 'data-live': 'zaehler' }, `${zahl(o.zaehler_kwh ?? 0)} kWh`)),
+      zeile(`Rechnung ${sp.monatsname(m.nr)} (erwartet)`, h('span', { 'data-live': 'monatsbetrag' }, eur(sp.monatsbetrag_eur(o, m.nr)))),
       h('p', { class: 'gedaempft' }, `Im Jahr etwa ${eur(jahr_eur)}. Im Winter wird mehr geheizt als im Sommer – die Rechnung schwankt. Im Spiel wird jeden Monat abgerechnet, der Kunde zahlt automatisch (in echt meist Abschlag plus Jahresabrechnung).`));
     c.append(k);
   }
@@ -303,7 +325,7 @@ export class Kontext {
     k.append(zeile('Braucht mindestens', `${mind} °C Vorlauf`), h('p', { class: 'gedaempft' }, `Die Heizzentrale fährt gerade ${sp.vorlauf_c} °C.${mind > sp.vorlauf_c ? ' Das ist diesem Haus zu kalt – die Zufriedenheit sinkt.' : ''}`));
     if (o.upgrade_auftrag) {
       const u = UPGRADES[n], rest = Math.max(0, o.upgrade_auftrag.ende_ms - this.ui.jetzt_ms());
-      k.append(h('p', {}, `${o.upgrade_auftrag.helfer} arbeitet an: ${u.name} · noch ${zeitText(Math.ceil(rest / 1000))}`));
+      k.append(h('p', {}, `${o.upgrade_auftrag.helfer} arbeitet an: ${u.name} · noch `, h('span', { 'data-live': 'hausupgrade-rest' }, zeitText(Math.ceil(rest / 1000)))));
     } else if (n < UPGRADES.length) {
       const u = UPGRADES[n], frei = sp.freierHelfer();
       // DESIGN.md 12.20 H3 vor H4: Sind alle Helfer beschäftigt, nennt der Knopf das zuerst (so legt es tests/a92-sperrtexte H3 fest)
@@ -321,7 +343,7 @@ export class Kontext {
   private naechsterHelferFrei_ms(): number | null {
     const sp = this.ui.spiel;
     if (sp.freierHelfer()) return null;
-    return Math.min(...HELFER.map((name) => sp.helferAuftrag(name)?.ende_ms ?? Infinity));
+    return Math.min(...HELFER.map((name) => sp.helferFreiAb_ms(name)));
   }
 
   /** A32/NR19: Auswahl der Übergabestation – Reihe „Mit Pufferspeicher“ (nur Häuser, nur beim Anschluss) und die Wandstationen wie bisher;
@@ -405,15 +427,52 @@ export class Kontext {
       // A88: kleinste freigeschaltete Leitung, die den Bedarf (beim Sägewerk die Abwärme) trägt – der Kern entscheidet
       const leitung = sp.passendeLeitung(Math.max(bedarfKw(o), D.abwaerme_kw ?? 0));
       // A92: Leitungen entstehen nur im offenen Bauabschnitt – ohne ihn gesperrt wie „Leitung selbst legen“ am Haus
-      if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los', { sperre: abschnittSperre(sp, () => this.ui.jetzt_ms()) })) : '');
+      if (o.typ === 'gewerbe' && !n.anschluss.has(o.id)) c.append(this.saegewerkAnschluss(o));
+      else if (!n.anschluss.has(o.id)) c.append(h('p', {}, 'Noch nicht angeschlossen. Großabnehmer brauchen eine Leitung, die genug Wärme schafft.'), leitung ? h('div', { class: 'knopfreihe' }, knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los', { sperre: abschnittSperre(sp, () => this.ui.jetzt_ms()) })) : '');
       c.append(h('div', { class: 'knopfreihe' }, knopf('Vertrag unterschreiben', () => { sp.vertragUnterschreiben(o.id); this.ui.geaendert(); }, 'los', { sperre: vertragSperre(b.fehlt, () => sp.vertragBedingungen(o).fehlt) })));
       return;
     }
     c.append(h('div', { class: 'chips' }, chip('Vertrag läuft', 'gruen'), chip(n.anschluss.has(o.id) ? (n.warm.has(o.id) || o.typ === 'gewerbe' ? 'angeschlossen' : 'kalt') : 'nicht angeschlossen', n.anschluss.has(o.id) ? '' : 'rot')));
+    if (o.typ === 'gewerbe' && !n.anschluss.has(o.id)) c.append(this.saegewerkAnschluss(o));
     if (D.bedarf_kw && (o.ohne_station || n.kalt.get(o.id) === 'station')) this.stationswahl(c, o);
     if (D.bedarf_kw) c.append(zeile('Jahresverbrauch', `${zahl(D.verbrauch_kwh_a ?? 0)} kWh`), zeile('Anschlussleistung', `${kw(bedarfKw(o))} kW`));
     if (istKunde(o) && sp.netz.anschluss.has(o.id)) this.rechnungBereich(c, o);
-    if (D.abwaerme_kw) c.append(zeile('Abwärme ins Netz', `bis ${D.abwaerme_kw} kW`));
+    if (D.abwaerme_kw && n.anschluss.has(o.id)) c.append(zeile('Abwärme ins Netz', `bis ${D.abwaerme_kw} kW`));
+  }
+
+  private saegewerkAnschluss(o: Objekt): HTMLElement {
+    const sp = this.ui.spiel;
+    const { rohr, uebergang } = sp.saegewerkTrasse(o);
+    const k = kasten('Netzanschluss');
+    if (uebergang) {
+      const { von, nach, kosten } = uebergang;
+      k.append(h('p', {}, `Die Leitung liegt. Der Übergang bei (${von.x}|${von.y}) zum bestehenden Wärmenetz ist noch nicht verbunden.`),
+        knopf('Mit Wärmenetz verbinden', () => {
+          sp.trassenUmschalten(von.id, nach.id);
+          this.ui.geaendert();
+        }, 'los', { unter: kosten ? eur(kosten) : undefined, sperre: kosten ? geldSperre(sp, kosten) : null }));
+      return k;
+    }
+    if (rohr) {
+      k.append(h('p', {}, rohr.geplant
+        ? 'Ein Rohr ist bis ans Sägewerk eingezeichnet. Schließe den Bauabschnitt ab, bestelle Material und warte, bis die Leitung gebaut ist.'
+        : 'Ein Rohr liegt am Sägewerk. Folge der Trasse bis zur Heizzentrale und verbinde offene Übergänge im Rohrmenü. Fehlende Rohrfelder kannst du im Bauabschnitt ergänzen.'),
+        knopf('Leitung am Sägewerk anzeigen', () => this.ui.kontext(rohr.id)));
+      if (rohr.geplant) return k;
+    } else {
+      k.append(h('p', {}, 'Am Sägewerk fehlt ein Rohr direkt an der Gebäudekante. Zieh die Leitung bis an eine der vier Seiten.'));
+    }
+    const leitung = sp.passendeLeitung(KATALOG.gewerbe.abwaerme_kw!);
+    if (!sp.abschnitt) {
+      const preis = KONSTANTEN.abschnitt_planung_eur;
+      k.append(knopf(`${ABSCHNITT_HELFER.planung}: Bauabschnitt planen lassen`, () => {
+        sp.abschnittPlanen();
+        this.ui.geaendert();
+      }, 'geld', { unter: eur(preis), sperre: geldSperre(sp, preis) }));
+    }
+    if (leitung) k.append(knopf(`${KATALOG[leitung].name} legen`, () => this.ui.stempeln(leitung), 'los',
+      { sperre: abschnittSperre(sp, () => this.ui.jetzt_ms()) }));
+    return k;
   }
 
   private aussenquelle(c: HTMLElement, o: Objekt): void {
@@ -448,7 +507,7 @@ export class Kontext {
     const stueck = sp.ueberlastStuecke().find((e) => e.felder.includes(key));
     const fehler = planungsfehlerKasten(n.engpass.has(key), n.aufteilung.has(key), n.reduzierung.has(key));
     if (stueck) { if (fehler) c.append(fehler); this.ueberlastBereich(c, stueck, key); }
-    c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser, deshalb dick. Dünner werden darf sie nur an einem Abzweig (T-Stück).'));
+    c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser. Entscheidend ist, ob ihre Kapazität für die benötigte Wärme ausreicht.'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     // Fachprüfung A73: Unter 1 liegt der Faktor, wenn der Vorlauf so niedrig ist, dass bis 40 °C Rücklauf wenig Spreizung bleibt.
     if (n.spreizung_faktor > 1.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
@@ -464,6 +523,17 @@ export class Kontext {
     // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
     const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
     if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, hinweis: tStueckHinweis(), unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
+    const uebergaenge = sp.trassenNachbarn(o);
+    if (uebergaenge.length) {
+      const k = kasten('Trassen verbinden');
+      for (const { nachbar, verbunden, kosten } of uebergaenge) {
+        const richtung = nachbar.x > o.x ? 'Osten' : nachbar.x < o.x ? 'Westen' : nachbar.y > o.y ? 'Süden' : 'Norden';
+        k.append(knopf(verbunden ? `Verbindung nach ${richtung} zurücknehmen` : `Nach ${richtung} verbinden`, () => {
+          sp.trassenUmschalten(o.id, nachbar.id); this.ui.geaendert();
+        }, 'los', { unter: kosten ? eur(kosten) : `${KATALOG[nachbar.typ].name} · Feld ${nachbar.x}|${nachbar.y}`, sperre: kosten ? geldSperre(sp, kosten) : null }));
+      }
+      c.append(k);
+    }
     // 13.17.11 H4: Zeigt der Kasten „Wird auf … vergrößert“ (alle Felder geplant, nicht im Bau) und hat dieses Feld Ersatz in der
     // empfohlenen Größe, entfallen Feldzeile und [Ersatz zurücknehmen]: [Zurücknehmen] gilt fürs ganze Stück, ein Feld einzeln
     // zurückzunehmen erzeugte wieder eine Reduzierung. Von Hand gewählte andere Größen behalten Zeile und Knopf.
@@ -551,15 +621,12 @@ export class Kontext {
     s.innen.forEach((q, i) => {
       const D = KATALOG[q.typ];
       const leistung = D.leistung_kw![q.stufe - 1];
-      const rechts = q.bau ? h('span', {}, 'wird gebaut …') :
-        q.stufe >= KONSTANTEN.hoechststufe ? h('span', { class: 'gedaempft' }, 'Höchste Stufe') :
-          // Grauer Text an Knopfstelle sah aus wie ein Knopf ohne Rahmen (DESIGN.md 12.12): deshalb ein deaktivierter Knopf mit Grund
-          q.stufe >= sp.hzStufe ? knopf(`Stufe ${q.stufe + 1}`, () => undefined, '', { klein: true, sperre: hzStufeSperre(q.stufe + 1, true) }) :
-            knopf(`Stufe ${q.stufe + 1}`, () => { sp.innenAusbauen(i); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(D.kosten_eur![q.stufe]), sperre: geldSperre(sp, D.kosten_eur![q.stufe]) });
-      const verkauf = s.innen.length > 1 && !q.bau ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.rueckkauf_eur(q.typ, q.stufe))}` }) : null;
-      k.append(zeile(h('span', {}, `${D.name} · Stufe ${q.stufe}`, h('br'), h('small', { class: 'gedaempft' }, `${leistung} kW`)), h('span', { class: 'rechts' }, rechts, verkauf)));
+      const verkauf = !q.bau && (!s.tutorial || s.innen.length > 1)
+        ? knopf('Verkaufen', () => { sp.innenVerkaufen(i); this.ui.geaendert(); }, '', { klein: true, unter: `+${eur(sp.innenRueckkauf_eur(q))}` }) : null;
+      k.append(zeile(`${D.name} · ${leistung} kW`, q.bau ? 'wird eingebaut …' : verkauf ?? ''));
     });
-    if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Quelle einbauen', () => this.ui.katalog('innen'), 'los')));
+    if (s.innen.length === 1 && !s.tutorial) k.append(h('p', { class: 'gedaempft' }, 'Beim Verkauf der letzten Anlage fällt ihre Wärmeleistung weg, bis Ersatz läuft.'));
+    if (s.innen.length < plaetze) k.append(h('div', { class: 'knopfreihe' }, knopf('Wärmeerzeuger kaufen', () => this.ui.katalog('innen'), 'los')));
     else k.append(h('p', { class: 'gedaempft' }, 'Kein Platz mehr im Heizhaus – baue erst die Heizzentrale aus.'));
     const sperreVorlauf = sp.sperrgrund('vorlauf'); // A88: gesperrt = Stepper deaktiviert, Grund darunter
     // DESIGN.md 12.20 R1/R2: Die Stufe geht vor dem Rand des Reglers (Regel 4)
@@ -582,23 +649,62 @@ export class Kontext {
     else bg.append(h('p', { class: 'gedaempft' }, 'Ein zweiter Strang in die Gegenrichtung mit neuen Grundstücken. Der Wärmeerzeuger muss dafür mitwachsen.'),
       ...(bb.ok || sperreBg ? [] : [h('p', {}, `Fehlt noch: ${bb.fehlt.join(', ')}`)]),
       h('div', { class: 'knopfreihe' }, knopf('Baugebiet erschließen', () => { sp.baugebietErschliessen(); this.ui.geaendert(); }, 'geld', { klein: true, unter: eur(KONSTANTEN.baugebiet_eur), sperre: ersteSperre(stufenSperre(sp, 'baugebiet'), baugebietSperre(sp.versorgteHaeuser()), geldSperre(sp, KONSTANTEN.baugebiet_eur)) })));
-    const ziele = sp.hzZiele();
-    const zk = kasten('Ziele für die nächste Stufe');
-    if (ziele.length) {
-      for (const z of ziele) zk.append(zeile(z.text, h('span', { class: z.erreicht ? 'gruen' : '' }, `${z.ist} / ${z.soll}${z.erreicht ? ' ✓' : ''}`)));
-      zk.append(h('p', { class: 'gedaempft' }, `Spreizung = Vorlauf minus mittlerer Rücklauf. Aktuell ${Math.round(sp.spreizung_k())} K.`));
-    } else zk.append(h('p', { class: 'gedaempft' }, 'Höchste Stufe erreicht.'));
+    if (sp.stand.neubaugebiet) {
+      const neu = kasten('Neubaugebiet Süd');
+      neu.append(h('p', {}, 'Vier Straßen erschließen die Häuserblöcke. Führe die Haupttrasse nach Süden und zweige an den Querstraßen ab. Setze Vorsehungen für die laufenden Baustellen.'),
+        knopf('Zum Neubaugebiet', () => this.ui.neubaugebietZeigen?.(), 'los', { klein: true }));
+      bg.append(neu);
+    }
     const hk = kasten('Helfer');
+    if (sp.freigeschaltet('ruecklauf_helfer')) hk.append(h('p', { class: 'gedaempft' }, 'Die zehnminütige Pause beginnt erst, wenn der hydraulische Abgleich fertig ist.'));
     const sperreHelfer = sp.sperrgrund('ruecklauf_helfer');
     // A88: gesperrt = eine Zeile mit Grund; laufende Aufträge aus einem alten Stand werden trotzdem gezeigt
     if (sperreHelfer && !HELFER.some((name) => sp.helferAuftrag(name))) hk.append(sperrHinweis(`${merkmalName('ruecklauf_helfer')} ${sperreHelfer}`));
     else for (const name of HELFER) {
       const a = sp.helferAuftrag(name);
-      hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft' }, a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}` : 'frei')));
+      const pause = sp.helferPauseBis_ms(name) - this.ui.jetzt_ms();
+      const status = a ? `${KATALOG[a.objekt.typ].name}: noch ${zeitText(Math.ceil(Math.max(0, a.ende_ms - this.ui.jetzt_ms()) / 1000))}`
+        : pause > 0 ? `Pause · noch ${zeitText(Math.ceil(pause / 1000))}` : 'frei';
+      hk.append(zeile(name, h('span', { class: a ? '' : 'gedaempft', 'data-live': `helfer-${name}` }, status)));
     }
-    c.append(k, vl, this.preisKasten(), pvk, zk, hk, bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
+    c.append(ausbauZieleKasten(sp), k, vl, this.preisKasten(), pvk, hk, this.andiKasten(), bg, ...(sp.netz.strom_kw > 0 ? [zeile('Solarstrom', `${zahl(sp.netz.strom_kw)} kW · eingespeist ${zahl(sp.netz.einspeisung_kw)} kW`)] : []), zeile('Verfügbare Wärme', `${zahl(sp.netz.verfuegbar_kw)} kW`), zeile('Davon genutzt', `${zahl(sp.netz.genutzt_kw)} kW`));
     this.ausbauKnopf(c, o);
     void groesse;
+  }
+
+  private andiKasten(): HTMLElement {
+    const sp = this.ui.spiel, andi = sp.stand.andi;
+    const k = kasten('Andi · Zweiter Vorstand');
+    if (!sp.freigeschaltet('andi')) {
+      k.append(sperrHinweis(`Ab Heizzentralenstufe ${abStufe('andi')} verfügbar`));
+    } else if (!andi) {
+      k.append(knopf('Andi einstellen', () => { sp.andiEinstellen(); this.ui.geaendert(); }, 'los'));
+    } else {
+      const setzen = (anteil: number, aufgabe: typeof andi.aufgabe): void => {
+        sp.andiKonfigurieren(anteil, aufgabe);
+        this.ui.geaendert();
+      };
+      const aufgaben = [
+        ['pause', 'Pausieren'],
+        ['abgleich', 'Hydraulische Abgleiche'],
+        ['verbessern', 'Alle Hausverbesserungen'],
+      ] as const;
+      k.append(h('p', {}, 'Bei jeder Monatsabrechnung erhält Andi 10 % seiner neuen Budgetzuteilung als Vergütung, auch wenn seine Aufträge pausieren. Die übrigen 90 % stehen für Aufträge bereit. Ungenutztes Budget bleibt verfügbar.'),
+        zeile('Verfügbares Budget', h('span', { 'data-live': 'andi-budget' }, eur(andi.budget_eur))),
+        zwischenueberschrift('Anteil am Zahlungseingang'),
+        h('div', { class: 'knopfreihe' },
+          stepper('minus', 'Andis Budgetanteil senken', () => setzen(andi.anteil_pct - ANDI_BUDGET_SCHRITT, andi.aufgabe), andi.anteil_pct <= 0),
+          h('span', { class: 'preiswert' }, `${andi.anteil_pct} %`),
+          stepper('plus', 'Andis Budgetanteil erhöhen', () => setzen(andi.anteil_pct + ANDI_BUDGET_SCHRITT, andi.aufgabe), andi.anteil_pct >= 100)),
+        zwischenueberschrift('Aufgabe'),
+        h('div', { class: 'knopfreihe', role: 'group', 'aria-label': 'Andis Aufgabe' }, ...aufgaben.map(([wahl, titel]) => {
+          const aktiv = wahl === andi.aufgabe;
+          const taste = knopf(titel, () => { if (andi.aufgabe !== wahl) setzen(andi.anteil_pct, wahl); }, aktiv ? 'los' : '', { klein: true });
+          taste.setAttribute('aria-pressed', String(aktiv));
+          return taste;
+        })));
+    }
+    return k;
   }
 
   /** Wärmepreis einstellen (A52): gehört zur Heizzentrale, nicht ins Büro. */
@@ -631,7 +737,7 @@ export class Kontext {
     f.append(h('p', { class: 'gedaempft' }, `Bewilligte Förderung: ${Math.round(KONSTANTEN.foerderquote * 100)} % der Baukosten fließen zurück – nur, wenn du erst nach dem Bescheid baust.`));
     // DESIGN.md 12.15: frei zuerst, dann gesperrte nach Freischalt-Stufe (sort ist stabil, gleiche Stufe behält die Katalogreihenfolge).
     const rang = (t: TypId): number => (sp.freigeschaltet(t) ? 0 : abStufe(t));
-    for (const t of [...QUELLEN].sort((x, y) => rang(x) - rang(y))) {
+    for (const t of QUELLEN.filter((t) => !istAltanlage(t) || s.antraege[t]).sort((x, y) => rang(x) - rang(y))) {
       const a = s.antraege[t];
       // Gesperrte Quelle = nicht tippbarer Chip statt Knopf (viele gesperrte Zeilen); ein gestellter Antrag bleibt sichtbar.
       const rechts = a ? chip(a.stand === 'wartet' ? 'in Prüfung' : 'bewilligt', a.stand === 'wartet' ? 'blau' : 'gruen')
@@ -643,3 +749,4 @@ export class Kontext {
     this.ausbauKnopf(c, o);
   }
 }
+

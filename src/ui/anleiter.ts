@@ -123,6 +123,7 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
     wurzel = h('div', { id: 'anleiter', class: 'anleiter', role: 'status', 'aria-live': 'polite' });
     document.getElementById('app')!.append(wurzel);
   }
+  wurzel.classList.toggle('handlung', a.art === 'H' && a.weiter === null);
   platzSetzen(wurzel, platz);
   // Kapitel 3 (DESIGN 13.17.1 B6): kleine Figur und feste Höhe für drei Zeilen, damit die Karte die Spur nicht verdeckt
   wurzel.classList.toggle('kompakt', a.kompakt);
@@ -139,12 +140,13 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
     weiterKnopf = knopf(a.weiter === 'los' ? 'Los geht’s' : 'Weiter', () => aktionen.weiter(), 'los', { klein: true });
     weiterKnopf.setAttribute('id', 'anleiter-weiter');
   }
+  const zeileZeigen = weiterKnopf !== null || a.weiter === 'wartet' || !!a.knopf_hinweis;
   const blase = h('div', { class: 'anleiter-blase' },
     h('div', { class: 'anleiter-kopf' }, h('strong', { class: 'anleiter-name' }, 'Simon'), punkte),
     // Sammelliste P5 Punkt 5: kein Chip auf der kompakten Karte – ihre drei Zeilen gehören dem Satz
     !a.kompakt && a.wusstest_du ? h('span', { class: 'chip gold' }, 'Wusstest du?') : null,
     h('p', { class: 'anleiter-text' }, ...mitFett(a.text)),
-    h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf));
+    zeileZeigen ? h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf) : null);
   wurzel.replaceChildren(h('div', { class: 'anleiter-figur' }, sprecherFigur('Simon')), blase);
   // 13.11: Erklär-Schritt → Fokus auf [Weiter], sobald er erscheint
   weiterKnopf?.focus();

@@ -450,7 +450,7 @@ describe('NR13 P4 Einbindung – Teil 2', () => {
     }, { uhr: () => uhr.t });
   });
 
-  for (const [breite, hoehe] of [[844, 390], [667, 375]] as const) {
+  for (const [breite, hoehe] of [[844, 390], [667, 375], [844, 320], [667, 320]] as const) {
     it(`test_nr13_t22_kamera_eingepasst (${breite}×${hoehe}): nach der Fahrt liegen Heizzentrale und beide Häuser in der freien Fläche minus 24 px, Zoom ≤ 3`, async () => {
       const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
       let bild = 10_000;
@@ -974,3 +974,4 @@ describe('NR13 P4 Einbindung – Teil 6', () => {
     });
   }
 });
+

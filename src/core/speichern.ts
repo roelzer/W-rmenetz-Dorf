@@ -1,7 +1,7 @@
-import { KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
+import { ANDI_BUDGET_SCHRITT, HELFER, KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
 import { belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
-import { ERSTE_HAEUSER, neuesSpielMitTutorial } from './start';
+import { ERSTE_HAEUSER, hzAusbauflaecheFreiraeumen, neuesSpielMitTutorial } from './start';
 import type { Spielstand } from './typen';
 
 export const SPEICHER_SCHLUESSEL = 'waermedorf-spielstand-v1';
@@ -158,8 +158,20 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
       d.version = SPEICHER_VERSION; migriert = true;
     }
     if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
+      const andi = d.andi;
+      if (andi && (!Number.isInteger(andi.anteil_pct) || andi.anteil_pct < 0 || andi.anteil_pct > 100
+        || !Number.isFinite(andi.budget_eur) || andi.budget_eur < 0
+        || !['pause', 'abgleich', 'verbessern'].includes(andi.aufgabe))) delete d.andi;
+      if (d.andi) d.andi.anteil_pct = Math.round(d.andi.anteil_pct / ANDI_BUDGET_SCHRITT) * ANDI_BUDGET_SCHRITT;
+      if (d.helfer_pause_bis_ms) {
+        const pausen = d.helfer_pause_bis_ms;
+        d.helfer_pause_bis_ms = Object.fromEntries(HELFER
+          .filter(name => Number.isFinite(pausen[name]) && pausen[name] > 0)
+          .map(name => [name, pausen[name]]));
+      }
       nr18Aufraeumen(d as Spielstand);
       nr19Aufraeumen(d as Spielstand);
+      hzAusbauflaecheFreiraeumen(d as Spielstand);
       if (karteAnpassen(d as Spielstand)) migriert = true;
       // nach karteAnpassen, damit die Häuser an ihrem endgültigen Platz geprüft werden
       nr13Aufraeumen(d as Spielstand);
@@ -208,3 +220,4 @@ export function sicherungEinspielen(speicher: Pick<Storage, 'setItem'>, text: st
   geloescht = true;
   return { ok: true, stand };
 }
+
