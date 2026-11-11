@@ -280,6 +280,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   .pillen{gap:var(--abstand-px-3)}
   .rund.bauen .kreis{width:76px;height:76px}
   .rund.besuch .kreis{width:64px;height:64px}
+  .blatt{border-radius:var(--radius-px-popup);margin-bottom:var(--groesse-px-rand-bildschirm)}
 }
 @media (prefers-reduced-motion:reduce){
   .pille .fuell i,#toast,#toast .toast{transition:none}
@@ -336,6 +337,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 @media (orientation:landscape) and (max-height:520px){
   .blatt-offen .pillen .pille+.pille{display:none}
   /* Designer A66 N2: die verbleibende Geld-Anzeige steht links neben dem Blatt statt darunter */
+  .blatt-offen .pillen{right:calc(min(46%,400px) + 12px)}
+}
+/* NR26: Am Laptop (Querformat über 520 px Höhe) bleiben alle Anzeigen sichtbar – sie rücken links neben das Seitenblatt */
+@media (orientation:landscape) and (min-height:521px){
   .blatt-offen .pillen{right:calc(min(46%,400px) + 12px)}
 }
 /* Designer A66 N1: Zoom- und Drehknöpfe im Querformat paarweise, damit sie die Auftragskarte nicht berühren */

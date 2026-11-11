@@ -139,3 +139,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 Entwickler c90f38d (1892 grün, Browser nr20 68/0). Endstand Branch nr20-final c442d40 (Arbeitsbranch + nr20-mm-dev3) in /home/user/wt-final: Schranke projektleiter OK (Basis a4c56ef, 1892). Warte auf Nachprüfung, dann push Arbeitsbranch + main.
 - 2026-11-11 NR20–22 auf main (6157eec) veröffentlicht. Nächstes: NR23–25 solo; offen Simons Antwort zu Neubau-Verbrauchswerten.
 - 2026-11-11 NR26 (Blatt am Laptop rechts) gebaut, Commit 014f5ff, Schranke grün (1896), auf Arbeitsbranch. Review läuft; danach main. Offen: Simons Antwort Neubau-Verbrauch (NR23).
+- 2026-11-11 NR26 fertig inkl. Review-Befunde, Schranke 1898 grün, auf main.

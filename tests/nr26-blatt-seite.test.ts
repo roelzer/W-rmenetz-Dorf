@@ -39,11 +39,25 @@ describe('NR26 – Blatt als Seitenfläche auch am Laptop', () => {
     expect(inhalt).toMatch(/\.blatt\.popup\{width:min\(92%,640px\);height:auto;max-height:94%;/);
   });
 
-  it('test_nr26_laptop_regel_schiebt_blatt_nicht_mehr_nach_unten', () => {
-    // Die Laptop-Regel (min-width:700px, min-height:601px) darf dem Blatt keinen unteren Rand mehr geben,
-    // sonst reicht die Seitenfläche nicht bis an den Bildschirmrand.
-    const laptop = mediaBloecke(css).filter((b) => b.bedingung === '(min-width:700px)and(min-height:601px)');
-    expect(laptop.length).toBe(1);
-    expect(laptop[0].inhalt).not.toMatch(/\.blatt\{[^}]*margin-bottom/);
+  it('test_nr26_querformat_blatt_ohne_unteren_rand', () => {
+    // Die Laptop-Regel (min-width:700px, min-height:601px) gibt dem Blatt einen unteren Rand (Hochformat-Tablet);
+    // im Querformat setzt der spätere Block margin:0, damit die Seitenfläche bis an den Rand reicht.
+    const laptop = mediaBloecke(css).findIndex((b) => b.bedingung === '(min-width:700px)and(min-height:601px)');
+    const quer = mediaBloecke(css).findIndex((b) => b.bedingung === '(orientation:landscape)' && /\.blatt\{[^}]*margin:0/.test(b.inhalt));
+    expect(laptop).toBeGreaterThanOrEqual(0);
+    expect(quer).toBeGreaterThan(laptop);
+  });
+
+  it('test_nr26_popup_kontur_in_jedem_querformat', () => {
+    const inhalt = querformatOhneHoehe.map((b) => b.inhalt).join('\n');
+    expect(inhalt).toMatch(/\.blatt\.popup\{border-right:var\(--kb\) solid var\(--k\)\}/);
+  });
+
+  it('test_nr26_anzeigen_am_laptop_links_neben_dem_blatt', () => {
+    // Review NR26 W1: am Laptop verdeckte das Seitenblatt alle Anzeigen oben rechts (auch Geld)
+    const laptopQuer = mediaBloecke(css).filter((b) => b.bedingung === '(orientation:landscape)and(min-height:521px)');
+    expect(laptopQuer.length).toBe(1);
+    expect(laptopQuer[0].inhalt).toMatch(/\.blatt-offen \.pillen\{right:calc\(min\(46%,400px\) \+ 12px\)\}/);
+    expect(laptopQuer[0].inhalt).not.toMatch(/display:none/);
   });
 });
