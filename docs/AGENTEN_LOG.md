@@ -694,3 +694,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 08:52 | ■ 🟡 | entwickler | 🟡 **Status: fertig, aber Tests offen.** Der Merge ist committet. 65 Tests aus NR20–22 sind rot, und die darf nur der Tester ändern.  ([Bericht](docs/pruefberichte/20261111-085208-entwickler-acea3d8d4e8076f9c.md)) |
 | 2026-11-11 08:52 | ▶ | tester | Tester: Tests an main-Regeln anpassen |
 | 2026-11-11 09:05 | ▶ | designer | Designer: Neubaugebiet breiter (NR23) |
+| 2026-11-11 09:07 | ■ 🟡 | tester | 🟡 BLOCKIERT: Kontext voll. Ein Zwischenstand ist committet, der Rest ist offen.  ([Bericht](docs/pruefberichte/20261111-090703-tester-a03897214ad422c38.md)) |
