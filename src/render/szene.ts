@@ -399,8 +399,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
 }
 
 const MF = tokens.menue.farbe, MM = tokens.menue.mass_px, FAKTOR = tokens.menue.faktor, FREMD = tokens.karte.fremd, SAUM = tokens.karte.ueberlast;
-/** DESIGN 13.17.3: äußere Linie des Saums in `kontur` mit Deckkraft 0,55 (dunkle Kante zur Wiese, 8,0:1) */
-const SAUM_AUSSEN_DECKKRAFT = 0.55;
 /** DESIGN 13.17.3: Vorschau-Raute bei offenem Leitungsblatt halb durchsichtig – geplanter Ersatz zeigt sie mit 0,8 (12.22). */
 const VORSCHAU_DECKKRAFT = 0.5;
 const feldText = ([x, y]: Feld): string => `${x},${y}`;
@@ -742,19 +740,16 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     const D = KATALOG[o.typ], w = rohrBreite(tw, o.typ);
     m.raute(cx, cy, 0.55); X.fillStyle = 'rgba(140,100,55,.35)'; X.fill();
     X.lineCap = 'round';
-    // NR22 (DESIGN 13.17.3): Die Rohrfarbe bleibt auch bei Überlast; das überlastete Stück zeigt stattdessen den gelben Saum
+    // NR22 (DESIGN 13.17.3): Die Rohrfarbe bleibt auch bei Überlast; das überlastete Stück zeigt stattdessen den gelben Saum.
+    // 13.17.11 H1: Der Saum ersetzt nur die dunkle Kante (saum_px = 1 je Seite, keine Außenlinie), damit eine überlastete
+    // Leitung nicht dicker wirkt als eine größere daneben.
     const rohr = plan || an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
-    const kante: ReadonlyArray<readonly [number, string, number]> = ueberlastFelder.has(key)
-      ? [[w + 2 * SAUM.saum_px + 2, MF.kontur, SAUM_AUSSEN_DECKKRAFT], [w + 2 * SAUM.saum_px, MF.ueberlast_zeichen, 1]]
-      : [[w + 2, 'rgba(40,34,26,.4)', 1]];
-    for (const [lw, c, alpha] of [...kante, [w, rohr, 1] as const]) {
-      // Saumfelder liegen im gebauten Netz und sind nie eingezeichnet: die Deckkraft 0,6 der Planung gilt hier nicht
-      if (alpha !== 1) X.globalAlpha = alpha;
+    const kante: readonly [number, string] = ueberlastFelder.has(key) ? [w + 2 * SAUM.saum_px, MF.ueberlast_zeichen] : [w + 2, 'rgba(40,34,26,.4)'];
+    for (const [lw, c] of [kante, [w, rohr] as const]) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy); X.lineTo(mx, my); }
       if (!seg.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
       X.stroke();
-      if (alpha !== 1) X.globalAlpha = 1;
     }
     X.strokeStyle = 'rgba(255,255,255,.45)'; X.lineWidth = Math.max(1, w * 0.3); X.beginPath();
     for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
