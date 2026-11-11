@@ -280,7 +280,6 @@ button{font:inherit;color:inherit;cursor:pointer}
   .pillen{gap:var(--abstand-px-3)}
   .rund.bauen .kreis{width:76px;height:76px}
   .rund.besuch .kreis{width:64px;height:64px}
-  .blatt{border-radius:var(--radius-px-popup);margin-bottom:var(--groesse-px-rand-bildschirm)}
 }
 @media (prefers-reduced-motion:reduce){
   .pille .fuell i,#toast,#toast .toast{transition:none}
@@ -314,6 +313,10 @@ button{font:inherit;color:inherit;cursor:pointer}
   .pille .wert{font-size:var(--schrift-groesse-px-text)}
   .hud-links{width:210px}
   .auftrag .text{-webkit-line-clamp:2}
+  .banner{top:auto;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom))}
+}
+/* NR26 (Simon 2026-11-11): Blätter als Seitenfläche rechts in jedem Querformat – Handy wie Laptop; Popups bleiben mittig */
+@media (orientation:landscape){
   #ebene{align-items:flex-end;justify-content:stretch;padding:0}
   #ebene.mitte{align-items:center;justify-content:center}
   .blatt{width:min(46%,400px);max-width:none;height:100%;max-height:100%;margin:0;border-radius:var(--radius-px-popup) 0 0 var(--radius-px-popup);border-right:0}
@@ -321,10 +324,9 @@ button{font:inherit;color:inherit;cursor:pointer}
   .blatt.popup{width:min(92%,640px);height:auto;max-height:94%;border-radius:var(--radius-px-popup);border-right:var(--umriss-px-ui) solid var(--farbe-ui-pergament-rand)}
   .raster{grid-template-columns:repeat(2,minmax(0,1fr))}
   #ebene>.blatt{align-self:flex-end}
-  .banner{top:auto;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom))}
 }
 /* Menü-Stil v2: Die Querformat-Regel oben gibt dem Popup rechts den alten hellen Rand zurück; hier bekommt es wieder die Kontur */
-@media (orientation:landscape) and (max-height:600px){.blatt.popup{border-right:var(--kb) solid var(--k)}}
+@media (orientation:landscape){.blatt.popup{border-right:var(--kb) solid var(--k)}}
 
 /* Wärmepreis-Regler und Verkaufsknöpfe (A29/A31) */
 .preiswert{flex:1;align-self:center;white-space:nowrap;padding:0 6px;text-align:center;font-weight:700;font-size:1.05rem}
