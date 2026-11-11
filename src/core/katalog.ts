@@ -337,7 +337,7 @@ export const GRUNDGEBUEHR = { min_eur: 25, max_eur: 40, start_eur: 32, neutral_e
 export const KONSTANTEN = {
   /** Karte N×N Felder */
   feldanzahl: 24,
-  neubau_hoehe: 40,
+  neubau_hoehe: 46,
   heizzentrale_hoechststufe: 6,
   /** Grundkapazität der Kasse in € (ohne Abrechnungsbüro) */
   grundkasse_eur: 150000,

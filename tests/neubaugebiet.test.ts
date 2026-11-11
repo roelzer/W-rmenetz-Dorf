@@ -30,22 +30,28 @@ it('erweitert erst nach dem Ausbau auf Stufe 6, hält die Straße frei und ermö
   expect(spiel.kartenHoehe).toBe(KONSTANTEN.neubau_hoehe);
   expect(spiel.istStrasse(10, 24)).toBe(true);
   expect(spiel.kannPlatzieren('d160', 10, 24)).toBe(true);
-  expect(spiel.kannPlatzieren('d160', 10, 40)).toBe(false);
+  expect(spiel.kannPlatzieren('d160', 10, 46)).toBe(false);
+  expect(spiel.kannPlatzieren('d160', 10, 45)).toBe(true);
   const haeuser = stand.objekte.filter(o => spiel.istNeubau(o));
   expect(haeuser).toHaveLength(40);
   expect(haeuser.filter(o => o.bau).length).toBeGreaterThan(8);
-  expect(spiel.istStrasse(5, 35)).toBe(true);
-  expect(spiel.istStrasse(15, 32)).toBe(true);
-  expect(spiel.istStrasse(15, 37)).toBe(true);
+  expect(stand.neubaugebiet_layout).toBe(3);
+  expect(spiel.istStrasse(5, 34)).toBe(true);
+  expect(spiel.istStrasse(15, 27)).toBe(true);
+  expect(spiel.istStrasse(15, 41)).toBe(true);
+  expect(spiel.istStrasse(15, 32)).toBe(false);
+  expect(spiel.istStrasse(5, 35)).toBe(false);
   expect(spiel.beschaeftigt()).toBe(0);
-  const haus = haeuser.find(o => o.x === 12 && o.y === 24)!;
+  const haus = haeuser.find(o => o.x === 12 && o.y === 25)!;
   expect(spiel.stationKaufen(haus.id, passendeStation(bedarfKw(haus)).id).ok).toBe(false);
 
   stand.abschnitt = { phase: 'offen', bau: null };
   expect(spiel.platzieren('d160', 10, 24).ok).toBe(true);
   expect(spiel.platzieren('d160', 10, 25).ok).toBe(true);
-  const vorbereitet = stand.objekte.find(o => o.x === 10 && o.y === 24)!;
-  expect(spiel.trassenUmschalten(vorbereitet.id, leitungen.at(-1)!.id).ok).toBe(true);
+  const erstes = stand.objekte.find(o => o.x === 10 && o.y === 24)!;
+  expect(spiel.trassenUmschalten(erstes.id, leitungen.at(-1)!.id).ok).toBe(true);
+  // NR23: Das erste Haus an der Sammelstraße steht jetzt bei (12|25) – die Vorsehung kommt ins Feld daneben.
+  const vorbereitet = stand.objekte.find(o => o.x === 10 && o.y === 25)!;
   expect(spiel.vorsehungUmschalten(vorbereitet.id).ok).toBe(true);
   expect(spiel.abschnittAbschliessen().ok).toBe(true);
   expect(spiel.materialBestellen().ok).toBe(true);
@@ -57,8 +63,8 @@ it('erweitert erst nach dem Ausbau auf Stufe 6, hält die Straße frei und ermö
   expect(haus.ohne_station).toBe(true);
 
   stand.abschnitt = { phase: 'offen', bau: null };
-  expect(spiel.platzieren('d50', 11, 24).ok).toBe(true);
-  const abzweig = stand.objekte.find(o => o.x === 11 && o.y === 24)!;
+  expect(spiel.platzieren('d50', 11, 25).ok).toBe(true);
+  const abzweig = stand.objekte.find(o => o.x === 11 && o.y === 25)!;
   expect(spiel.trassenUmschalten(abzweig.id, vorbereitet.id).ok).toBe(true);
   expect(spiel.anbohrungsFelder()).toEqual([]);
   expect(spiel.abschnittAbschliessen().ok).toBe(true);

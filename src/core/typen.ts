@@ -115,7 +115,9 @@ export interface Spielstand {
   /** A43: Baugebiet bereits erschlossen */
   baugebiet?: boolean;
   neubaugebiet?: boolean;
-  neubaugebiet_layout?: 2;
+  neubaugebiet_layout?: 2 | 3;
+  /** NR23: Straßenfelder von Layout 3, auf denen beim Umzug ein angeschlossenes Haus stehen blieb (werden nicht gezeichnet). */
+  neubau_strassenluecken?: number[];
   garten_layout?: 1;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
   gestattungen?: number[];

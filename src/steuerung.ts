@@ -43,6 +43,8 @@ const BAUMENUE_ZIELE: ReadonlySet<ZielName> = new Set<ZielName>(['reiter_leitung
 /** DESIGN 13.6 / Bauplan NR13 P4 „Kamera“: Rand beim Einpassen mehrerer Ziele und höchster Zoom (= Startzoom am Handy) */
 const EINPASS_RAND_PX = 24;
 const ZIEL_ZOOM_MAX = T.karte.zoom_start_handy;
+/** NR23: freie Fläche für „Zum Neubaugebiet“ (Entwurf Designer, 844×390) und kleinster Zoom der Übersicht */
+const NEUBAU_HUD_PX = 48, NEUBAU_KNOPFSPALTE_PX = 72, NEUBAU_ZOOM_MIN = 1.35;
 /** DESIGN 13.16 M1: so weit darf die Kamera in T13 herauszoomen, damit Spur und Gebäude über der Anleiter-Karte Platz finden */
 const T13_ZOOM_MIN = 2;
 /** Tabelle Abschnitt 6: das Hausblatt schließt 200 ms nach dem Kauf, damit man den Kauf noch sieht */
@@ -288,8 +290,14 @@ export class Steuerung implements Ui {
   neubaugebietZeigen(): void {
     if (!this.spiel.stand.neubaugebiet) return;
     this.kontextUi.schliessen();
-    this.kamera.kartenHoehe = this.spiel.kartenHoehe;
-    this.kamera.zentrieren(10, (N + this.spiel.kartenHoehe - 1) / 2, 1);
+    const k = this.kamera;
+    k.kartenHoehe = this.spiel.kartenHoehe;
+    // NR23 (Entwurf Designer): ganzes Viertel x 1–17, y 24–44 in die freie Fläche einpassen (ohne HUD oben, ohne Knopfspalte
+    // rechts, 8 px Rand). Nie weiter heraus als Zoom 1,35 – sonst sind die Häuser zu klein zum Erkennen.
+    const frei = { x: 0, y: NEUBAU_HUD_PX, b: Math.max(1, k.breite - NEUBAU_KNOPFSPALTE_PX), h: Math.max(1, k.hoehe - NEUBAU_HUD_PX) };
+    const z = k.einpassenZiel({ x0: 1, y0: N, x1: 17, y1: N + 20 }, frei, 8, ZIEL_ZOOM_MAX);
+    k.zoom = Math.max(NEUBAU_ZOOM_MIN, z.zoom);
+    k.zentrierenBei(z.mitte_x, z.mitte_y, 1, frei.x + frei.b / 2, frei.y + frei.h / 2);
   }
 
   platzieren(typ: TypId): void {

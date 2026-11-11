@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { neubaugebietAnlegen } from '../src/core/neubaugebiet';
+import { neubaugebietLayout2Anlegen } from '../src/core/neubaugebiet';
 import { Spiel } from '../src/core/spiel';
 import { neuerSpielstand } from '../src/core/start';
 import { neu } from './hilfen';
@@ -38,7 +38,7 @@ describe('Rückbau des Gartenupdates', () => {
     const hz = stand.objekte[0];
     hz.stufe = 6;
     stand.naechste_id = 1200;
-    neubaugebietAnlegen(stand, 0);
+    neubaugebietLayout2Anlegen(stand, 0); // Gartenumbau-Stände stammen alle aus Layout 2 (NR23 friert es ein)
     const haus = stand.objekte.find((o) => o.id === 1200)!;
     const { x, y } = haus;
     haus.x--;

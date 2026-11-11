@@ -5,7 +5,7 @@ import {
   belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
-import { neubaugebietAnlegen, spielOrt } from './neubaugebiet';
+import { neubaugebietAnlegen, neubaugebietLayout2Anlegen, neubauPlan, neubauStrassen, spielOrt } from './neubaugebiet';
 import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import type { Feld, Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
 import { ERSTE_HAEUSER, TUTORIAL_HAUPTLEITUNG, ursprungskarte } from './start';
@@ -922,9 +922,9 @@ export class Spiel {
     const original = new Map(ursprung.objekte.map((o) => [o.id, o]));
     if (s.neubaugebiet) {
       const komplett: Spielstand = { ...s, objekte: [], naechste_id: 1, neubaugebiet: false, neubaugebiet_layout: undefined };
-      neubaugebietAnlegen(komplett, 0);
+      neubaugebietLayout2Anlegen(komplett, 0);
       const nachtrag: Spielstand = { ...komplett, objekte: [], naechste_id: 1, neubaugebiet: true, neubaugebiet_layout: undefined };
-      neubaugebietAnlegen(nachtrag, 0);
+      neubaugebietLayout2Anlegen(nachtrag, 0);
       const alt = komplett.objekte.slice(0, komplett.objekte.length - nachtrag.objekte.length);
       const nachId = new Map(s.objekte.map((o) => [o.id, o]));
       for (const reihe of [alt, nachtrag.objekte]) {
@@ -957,6 +957,74 @@ export class Spiel {
     }
     delete s.garten_layout;
     if (umgezogen) { this.neuBerechnen(); this.erreichtAbgleichen(); }
+  }
+
+  /** NR23: Stände mit dem dichten Neubaugebiet (Layout 2) ziehen auf die breiteren Grundstücke von Layout 3 um.
+   *  Nach dem Garten-Rückbau aufrufen. Ein Haus zieht nur um, wenn nichts daran hängt (keine Station, keine Leitung
+   *  gebaut oder geplant am Rand, kein Ausbauauftrag); sonst bleibt es stehen und die Straße darunter entfällt.
+   *  Kein Haus geht verloren, keine Leitung wird verschoben. Gibt die Meldung für Simon zurück (leer = nichts geändert). */
+  neubaugebietUmziehen(): string {
+    const s = this.stand;
+    if (!s.neubaugebiet || s.neubaugebiet_layout !== 2 || s.tutorial) return '';
+    const leitungen = new Set(s.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
+    const amRand = (o: Objekt) => randFelder(o).some(([x, y]) => leitungen.has(y * N + x));
+    const haeuser = s.objekte.filter((o) => this.istNeubau(o));
+    const beweglich = new Set(haeuser.filter((o) => o.ohne_station && !o.upgrade_auftrag && !amRand(o)));
+    const strassen3 = new Set(neubauStrassen(3).map(([x, y]) => y * N + x));
+    const felder = (x: number, y: number, k: number) => {
+      const r: number[] = [];
+      for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) r.push((y + dy) * N + x + dx);
+      return r;
+    };
+    // Belegt: alles außer den beweglichen Häusern.
+    const belegt = new Set<number>();
+    for (const o of s.objekte) if (!beweglich.has(o)) for (const f of felder(o.x, o.y, groesse(o))) belegt.add(f);
+    const luecken = new Set<number>();
+    for (const o of s.objekte) {
+      if (beweglich.has(o) || istLeitung(o.typ) || KATALOG[o.typ].kategorie === 'deko') continue;
+      for (const f of felder(o.x, o.y, groesse(o))) if (strassen3.has(f)) luecken.add(f);
+    }
+    const ziele = new Map<Objekt, { x: number; y: number }>();
+    const offen = [...beweglich];
+    for (const platz of neubauPlan(3)) {
+      const k = KATALOG[platz.typ].groesse ?? 1;
+      const fl = felder(platz.x, platz.y, k);
+      if (fl.some((f) => belegt.has(f) || strassen3.has(f) || this.istFluss(f % N, Math.floor(f / N)))) continue;
+      const probe = { x: platz.x, y: platz.y, typ: platz.typ } as Objekt;
+      if (amRand(probe)) continue;
+      const i = offen.findIndex((o) => o.typ === platz.typ);
+      if (i < 0) continue;
+      const [haus] = offen.splice(i, 1);
+      ziele.set(haus, { x: platz.x, y: platz.y });
+      for (const f of fl) belegt.add(f);
+    }
+    // Häuser ohne freien Platz bleiben stehen. Kollidieren sie mit einem neuen Platz, bleibt das ganze Viertel wie es ist.
+    for (const o of offen) {
+      const fl = felder(o.x, o.y, groesse(o));
+      if (fl.some((f) => belegt.has(f))) return '';
+      for (const f of fl) { belegt.add(f); if (strassen3.has(f)) luecken.add(f); }
+    }
+    // Geplante Leitungen auf früheren Straßenfeldern brauchen sonst plötzlich eine Gestattung: gilt als geklärt.
+    const strassen2 = new Set(neubauStrassen(2).map(([x, y]) => y * N + x));
+    const geklaert = new Set(s.gestattungen ?? []);
+    for (const o of s.objekte) {
+      const f = o.y * N + o.x;
+      if (o.geplant && istLeitung(o.typ) && strassen2.has(f) && !strassen3.has(f)) geklaert.add(f);
+    }
+    if (geklaert.size) s.gestattungen = [...geklaert].sort((a, b) => a - b);
+    for (const [haus, z] of ziele) { haus.x = z.x; haus.y = z.y; }
+    s.neubaugebiet_layout = 3;
+    if (luecken.size) s.neubau_strassenluecken = [...luecken].sort((a, b) => a - b);
+    else delete s.neubau_strassenluecken;
+    this.strassenSet = undefined;
+    this.flussSet = undefined;
+    this.neuBerechnen();
+    this.erreichtAbgleichen();
+    const bleiben = haeuser.length - ziele.size;
+    const text = `Das Neubaugebiet ist jetzt großzügiger geplant: ${ziele.size} Häuser sind auf breitere Grundstücke umgezogen.`
+      + (bleiben ? ` ${bleiben} ${bleiben === 1 ? 'Haus mit Anschluss bleibt' : 'Häuser mit Anschluss bleiben'}, wo ${bleiben === 1 ? 'es ist' : 'sie sind'}.` : '');
+    this.hinweis(text);
+    return text;
   }
 
   verschieben(id: number, x: number, y: number): Ergebnis {

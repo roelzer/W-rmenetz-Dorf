@@ -48,6 +48,8 @@ try {
   spiel = new Spiel(geladen.stand, uhr);
   weg = { geld_eur: geladen.stand.geld_eur, seit_ms: geladen.stand.zuletzt_ms, bau: geladen.stand.objekte.filter((o) => o.bau).length };
   spiel.gartenumbauRueckgaengig();
+  const umzug = spiel.neubaugebietUmziehen();
+  if (umzug && !startHinweis) startHinweis = umzug;
   spiel.bis(uhr());
 } catch (fehler) {
   console.warn('Spielstand führte zu einem Fehler, neues Dorf', fehler);
