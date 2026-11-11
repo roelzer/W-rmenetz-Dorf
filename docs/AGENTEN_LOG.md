@@ -710,3 +710,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 09:59 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN  ([Bericht](docs/pruefberichte/20261111-095902-entwickler-aac9efaeef637934d.md)) |
 | 2026-11-11 09:59 | ▶ | reviewer | Review Merge main + Nacharbeit |
 | 2026-11-11 09:59 | ▶ | designer | Designer-Fotos nach Merge |
+| 2026-11-11 10:05 | ■ 🔴 | reviewer | 🔴 Nachbesserung bzw. Entscheidung nötig. Die Prüfung ist auf Wunsch des Koordinators vorzeitig beendet. Schwerpunkt 2 (Tests) ist kaum geprüft, Schwerpunk ([Bericht](docs/pruefberichte/20261111-100524-reviewer-ac2466d4f73ee5bd5.md)) |

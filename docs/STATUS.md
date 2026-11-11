@@ -132,3 +132,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 Entwickler nr20-mm-dev 687efcd: 3 Änderungen grün, main a4c56ef gemergt; 1 main-Test (nr13-einbindung:998, alter Tutorialweg) rot → Tester Teil 3 zusammen mit T05/T07-Texten und Figur 96 px.
 - 2026-11-11 Tester Teil 3 b4fb0d1 (Test 998 umgestellt, Gegenprobe rot ohne Fix; Texte; Figur 96, 8 erwartet rot). Entwickler baut auf nr20-mm-dev2. Danach: Review gesamt Merge, Designer-Fotos, Schranke, main.
 - 2026-11-11 Entwickler c3239cf (nr20-mm-dev2): 1883 grün, Texte + Figur 96. Browser nr20 68/0; nr13 'T13h Zurück' scheitert nur mit neuer Figur (vermutl. Zeitrennen im Skript) → Designer prüft von Hand. Review und Designer laufen.
+- 2026-11-11 Review Merge 🔴 (W1 HUD hell, W2 Planungsfehler entgegen Simons main-Änderung). Entschieden: main gilt. Nächster Schritt Tester Teil 4 → Entwickler → Test-Review + Nachprüfung. Designer-Fotos laufen noch.
