@@ -3,6 +3,7 @@
 Stand 2026-11-04 · Designer, Modus `entwurf` (Überarbeitung) und `vorgabe` · Werte: `design/tokens.json`, Fassung 2. Im Code stehen keine Farben, Maße oder Zeiten direkt.
 **Nachtrag 2026-11-05: Für alle Menüs und Bedienoberflächen (DOM) gilt ab jetzt Abschnitt 12 „Menü-Stil v2“.** Wo die Abschnitte 1, 4 und 9 für Menüs etwas anderes sagen (Haarlinien, kein Textumriss, eine Schrift), gilt Abschnitt 12. Die Kartengrafik (Abschnitt 3) bleibt unverändert.
 **Nachtrag 2026-11-06: Abschnitt 13 „Tutorial (NR13)“** – Ablauf, Texte, Spotlight und Zustände des Pflicht-Tutorials für neue Spiele.
+**Nachtrag 2026-11-08: Abschnitt 13.17.11** – nach Fotocheck NR20–22 final: Saum am überlasteten Rohr schmal (Durchmesser bleibt), Vorschau-Rauten deutlicher, Titel bei Hand-Ersatz, kein doppeltes Zurücknehmen, Pfeil auf Eckfeldern verschoben.
 **Nachtrag 2026-11-07: Abschnitt 13.17.10** – nach Fotocheck P5f-final: Streifen über Gebäuden, Haken live, Rest-Satz, Raute ohne Füllung, Stecker blass beim eigenen Abgang, Klarstellung Abdunkeln/Pfeil.
 **Nachtrag 2026-11-07: Abschnitt 13.17 (NR20–NR22)** – Geisterleitung und Ziel-Häuser in T13, Hauptleitung + Hausanschluss im Tutorial, Überlast mit gelbem Warndreieck statt Rot-Blinken. Ersetzt die Überlast-Angaben in Abschnitt 3 und 9.
 Anlass: Simon wünscht „mach die Optik mehr modern, weniger kindlich“. Der Spielablauf, die Bildschirme und die Zustände aus Fassung 1 bleiben gleich. Neu sind Look, Schrift und Farben. Die offenen Mängel 3, 4, 7 und 14 aus `docs/DESIGN_TREUE_F5.md` sind hier fest eingeplant.
@@ -1518,3 +1519,32 @@ Anlass: Fotocheck `docs/pruefberichte/20261107-designer-p5f-final.md` (Integrati
 - Eigener Abgang: Stecker von Haus 2 blass, solange die Zielscheibe da ist.
 - Zwei Häuser mit Rest: nur der erste Satz, keine Zielscheibe.
 - Zug mit eigenem Abgang bis aufs Haus: kein Haken.
+
+#### 13.17.11 Nach Fotocheck NR20–22 final (2026-11-08, Designer)
+Anlass: Fotocheck `docs/pruefberichte/20261108-designer-nr20-22-final.md` (Worktree `nr20-p5gz`, Kopf 016e2b3). Geht 13.17.1–13.17.10 bei Widerspruch vor. `w` = Rohrbreite (`rohrBreite`, 25er = Feldbreite × 0,06).
+
+**H1 – Saum schmal, Gesamtbreite wie ohne Überlast (ersetzt den Saum in 13.17.3).**
+- Gemessen bei Startzoom Handy (Feldbreite 57 px): 25er `w` = 3,4 px, mit Saum heute 3,4 + 2 × 2 Gelb + 2 × 1 dunkel ≈ 9,4 px. Die 40er daneben ist 4,6 + 2 = 6,6 px breit. Die überlastete 25er wirkt damit **dicker als die 40er** und überwiegend gelb – fast wie eine 75er (`#f6c22c`). Das widerspricht Simons Wunsch „Farbe und Durchmesser behalten“.
+- **Neu:** Das Gelb `ueberlast_zeichen` ersetzt nur die dunkle Kante des Rohrs: Breite **w + 2** (1 px Gelb je Seite), **keine** zusätzliche dunkle Außenlinie. Die Gesamtbreite ist damit genau so groß wie ohne Überlast. Glanzstrich bleibt.
+- Sichtbarkeit trägt das Dreieck (Rand 3,7:1 bis 8,3:1, 13.17.3). Der Saum zeigt nur, wie weit das Stück reicht; dafür genügt der Farbwechsel dunkle Kante → Gelb.
+- Token: `karte.ueberlast.saum_px` = **1**; die Außenlinie (`kontur` 0,55) entfällt.
+- Prüfung: Pipette quer zum Rohr bei Feldbreite 57: Gesamtbreite überlastet = Gesamtbreite nicht überlastet (± 1 px), Rohrmitte = `leitung.d25`.
+
+**H2 – Vorschau-Rauten deutlicher.** Gemessen: hellblaue 40er-Raute mit Deckkraft 0,5 auf Wiese ≈ 1,1:1, bei Gerätefaktor 1 praktisch unsichtbar.
+- **Neu:** Farbstrich Deckkraft **1**, darunter im gleichen Strichrhythmus eine Linie `kontur`, 2 px breiter, Deckkraft **0,5**. Die Rauten des geplanten Ersatzes (0,8, 12.22) bleiben, wie sie sind.
+- Token: `faktor.ueberlast_vorschau_deckkraft` = 1, neu `faktor.ueberlast_vorschau_unterlinie` = 0,5.
+
+**H3 – Titel, wenn von Hand dicker geplant ist.** Sind alle offenen Felder geplant, aber nicht in der empfohlenen Größe:
+- alle Felder haben denselben Ersatz `{T}` → Titel „Wird auf {T} vergrößert“;
+- verschiedene Größen → Titel „Wird vergrößert“.
+- Satz und Zustand [Zurücknehmen] unverändert (Entscheidung PL 2026-11-08: nur Ersatz in der empfohlenen Größe wird zurückgenommen).
+
+**H4 – Kein doppeltes Zurücknehmen.** Steht das Blatt im Zustand „Wird auf … vergrößert“ und hat das angetippte Feld einen Ersatz in der **empfohlenen** Größe, entfallen darunter die Zeile „Wird im Bauabschnitt durch eine … ersetzt.“ und der Knopf [Ersatz zurücknehmen]. [Zurücknehmen] gilt fürs ganze Stück; ein Feld einzeln zurückzunehmen erzeugt wieder eine Reduzierung. Hat das Feld einen von Hand gewählten anderen Ersatz, bleiben Zeile und Knopf wie heute.
+
+**H5 – Pfeil auf Eckfeldern (ergänzt G7).** Die Halblänge 1,8 × Halbbreite bleibt (sie macht die Spitze eindeutig). Auf Feldern, an denen das Band abknickt (Richtung zum Vorgänger und zum Nachfolger nicht entgegengesetzt), wird der Pfeil um **0,6 × Halblänge** in Pfeilrichtung verschoben. Grund, Foto `t13w`: Auf (10\|14) ragt die hintere Kante sonst rund 3 px aus der Bandecke auf die Straße. Mit der Verschiebung liegt der Pfeil ab Bandbreite 12 px ganz im Band.
+
+**Angenommene Abweichungen (bleiben so):**
+- Die Hauptaktion „Auf {Größe} vergrößern“ steht direkt unter dem Kasten im scrollenden Inhalt statt in der Aktionsleiste. Gemessen sichtbar ohne Scrollen bei 844×390 und 667×375 (Unterkante 313 px).
+- Der Einleitungssatz der Leitung („Für ein einzelnes Haus …“) steht über dem Kasten „Überlastet“. Der Knopf bleibt trotzdem sichtbar.
+
+**Prüfung beim nächsten Fotocheck:** Überlast-Karte bei Startzoom (Pipette Breite und Mitte), Blatt mit Vorschau-Rauten bei Gerätefaktor 1, Zustand „Wird … vergrößert“ ohne [Ersatz zurücknehmen], T13w mit Pfeil auf (10\|14).
