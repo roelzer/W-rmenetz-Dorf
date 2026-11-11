@@ -25,10 +25,13 @@ const ZIEL = '#ffe08a', HAKEN_SCHEIBE = 'fillStyle=#d3f0c6';
 const SATZ_VOLL = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.';
 const SATZ_REST = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.';
 const EIGENER_ABGANG: ReadonlyArray<readonly [number, number]> = [[12, 12], [12, 13]];
-/** Eigener Abgang zu Haus 1 (9|13), von Hand aus dem Startdorf gesucht: von der Nordseite der Heizzentrale (11|9) nach Westen bis
- *  (6|9), um die Büsche (7|10)–(8|11) herum nach Süden und über (8|12) ans Leitungsende (8|13) neben Haus 1. Kein Feld liegt
- *  neben Spur oder Hauptleitung, also läuft der Hausweg nicht über den Abzweig (fremd_haus 1, Vorprobe in den Tests). */
-const ABGANG_HAUS1: ReadonlyArray<readonly [number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [6, 10], [6, 11], [6, 12], [7, 12], [8, 12], [8, 13]];
+/** Eigener Abgang zu Haus 1 (9|13), von Hand aus dem Startdorf gesucht. Seit main 4d2aecd sind Nord- und Ostseite der
+ *  Heizzentrale Ausbaureserve (11..13|9..11), und (10|10)/(11|12) liegen neben der Hauptleitung – frei bleibt nur der Abgang
+ *  (12|12) an der Südseite. Von dort nach Osten bis (14|12), an der Reserve vorbei nach Norden bis (14|8), auf Reihe 8 nach
+ *  Westen bis (6|8), über Spalte 6 nach Süden bis (6|12) und über (7|12), (8|12) ans Leitungsende (8|13) neben Haus 1.
+ *  Kein Feld liegt neben Hauptleitung oder Haus-2-Spur, also läuft der Hausweg nicht über den Abzweig (fremd_haus 1, Vorprobe). */
+const ABGANG_HAUS1: ReadonlyArray<readonly [number, number]> = [[12, 12], [13, 12], [14, 12], [14, 11], [14, 10], [14, 9], [14, 8],
+  [13, 8], [12, 8], [11, 8], [10, 8], [9, 8], [8, 8], [7, 8], [6, 8], [6, 9], [6, 10], [6, 11], [6, 12], [7, 12], [8, 12], [8, 13]];
 
 // ---------------------------------------------------------------- Hilfen: Canvas-Aufnahme (wie tests/nr20-darstellung.test.ts)
 function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {

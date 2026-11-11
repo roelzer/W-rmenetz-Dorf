@@ -183,12 +183,24 @@ describe('NR20 V1 – Zug ab einer vorhandenen Leitung (E4)', () => {
     });
   });
 
-  it('K3: Leitungsende über der Heizzentrale (11|9) bleibt beim 25er-Zug d32', async () => {
+  // Seit main 4d2aecd ist (11|9) Teil der Ausbaureserve 11..13|9..11: dort entsteht gar kein Leitungsende mehr. Der frühere
+  // Fall „über der Heizzentrale“ wird deshalb als Ablehnung geprüft; die K3-Regel selbst prüfen die Fälle (12|12) und (10|10).
+  it('K3: Zug über der Heizzentrale (11|9) wird abgelehnt – kein Rohr in der Ausbaureserve, Meldung „reserviert“', async () => {
     const s = neu();
     await echteSteuerung(s, (u) => {
       zeichne(u, 'd32', [[11, 9], [11, 8]]);
-      zeichne(u, 'd25', [[11, 9], [11, 8]]);
-      expect([typBei(s, 11, 9), typBei(s, 11, 8)]).toEqual(['d32', 'd25']);
+      expect(typBei(s, 11, 9), 'kein Rohr auf dem reservierten Feld').toBeNull();
+      expect(u.meldungen).toContain('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
+    });
+  });
+
+  it('K3: Leitungsende links der Heizzentrale (10|10) bleibt beim 25er-Zug d32', async () => {
+    const s = neu();
+    await echteSteuerung(s, (u) => {
+      zeichne(u, 'd32', [[10, 10], [10, 9]]);
+      expect([typBei(s, 10, 10), typBei(s, 10, 9)], 'Testaufbau').toEqual(['d32', 'd32']);
+      zeichne(u, 'd25', [[10, 10], [10, 9]]);
+      expect([typBei(s, 10, 10), typBei(s, 10, 9)]).toEqual(['d32', 'd25']);
     });
   });
 

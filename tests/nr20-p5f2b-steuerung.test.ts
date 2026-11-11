@@ -4,7 +4,7 @@ import { ERSTE_HAEUSER, TUTORIAL_HAUPT } from '../src/core/start';
 import { El } from './hilfen/dom-attrappe';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 import {
-  ZUG_HAUS1, abheben, bisT13, bisT13h, farbknopf, knopfMitId, knopfRechteck, neuesSpiel, schritt, st, wischeFelder,
+  ZUG_HAUS1, ZUG_HAUS2, abheben, bisT13, bisT13h, farbknopf, knopfMitId, knopfRechteck, neuesSpiel, schritt, st, wischeFelder,
 } from './hilfen/tutorial-zug';
 
 // Paket P5f-2 (DESIGN 13.17.9 F7, F8): Ring um den Farbknopf, Abstand der Kennzeile, Finger in T13w, Zeitpunkt des Wechsels.
@@ -126,26 +126,28 @@ describe('P5f-2 F8: Zustand „eigener Abgang“ wechselt gemeinsam beim Abheben
   it('im Zug mit dem Radierer: Streifen auf gerade wegradierten Feldern verschwinden sofort, Satz bleibt bis zum Abheben', async () => {
     const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
-      // Ablauf wie tests/nr21-ablauf.test.ts (11): 30.000 € reichen für alle Felder, kein Geld-Satz
+      // Ablauf wie tests/nr21-ablauf.test.ts (11): 30.000 € reichen für alle Felder, kein Geld-Satz. Früher über Spalte 11
+      // (11|12)→(11|14); (11|12) schließt seit main 859dda7 einen Ring über die Heizzentrale. Ringfrei: eigener Abgang
+      // (12|12),(12|13) zu Haus 2 und die Spur zu Haus 2 dazu.
       spiel.stand.geld_eur = 30_000;
       bisT13h(u, spiel, uhr);
       wischeFelder(u, ZUG_HAUS1); st(u).tick(uhr.t);
-      wischeFelder(u, [[11, 12], [11, 13], [11, 14], ERSTE_HAEUSER[1]]); st(u).tick(uhr.t);
-      wischeFelder(u, [[10, 13], [10, 14]]);
+      wischeFelder(u, [[12, 12], [12, 13], ERSTE_HAEUSER[1]]); st(u).tick(uhr.t);
+      wischeFelder(u, ZUG_HAUS2);
       const vorher = bild(u, uhr.t);
       expect(vorher.satz).toBe(SATZ_EIGENER_ABGANG);
       expect(vorher.streifen.length, 'Vorprobe: mehr als ein gestreiftes Feld').toBeGreaterThan(1);
       knopfMitId(u, 'radierer')!.click(); st(u).tick(uhr.t);
-      wischeFelder(u, [[11, 12]], false);
+      wischeFelder(u, [[12, 13]], false);
       const im = bild(u, uhr.t);
-      expect(im.streifen, 'gerade wegradiert: nicht mehr gestreift').not.toContainEqual([11, 12]);
-      expect(im.streifen, 'die übrigen bleiben').toContainEqual([11, 13]);
-      wischeFelder(u, [[11, 13]], false);
+      expect(im.streifen, 'gerade wegradiert: nicht mehr gestreift').not.toContainEqual([12, 13]);
+      expect(im.streifen, 'die übrigen bleiben').toContainEqual([12, 12]);
+      wischeFelder(u, [[12, 12]], false);
       const leer = bild(u, uhr.t);
       expect(leer.streifen).toEqual([]);
       expect(leer.satz, 'Satz bleibt bis zum Abheben').toBe(SATZ_EIGENER_ABGANG);
       expect(leer.zielscheibe).toEqual(vorher.zielscheibe);
-      abheben(u, [11, 13]); st(u).tick(uhr.t);
+      abheben(u, [12, 12]); st(u).tick(uhr.t);
       expect(schritt(u)).toBe('T14');
     }, { uhr: () => uhr.t });
   });

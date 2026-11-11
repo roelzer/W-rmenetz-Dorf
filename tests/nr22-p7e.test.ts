@@ -22,8 +22,10 @@ import { aufnahme, leeresDorf } from './hilfen/nr22';
 
 const N = KONSTANTEN.feldanzahl;
 // Von Hand: 25er '#d8392f', 40er '#6ec6ff', 32er '#4caf3e' (core/katalog.ts), Warngelb '#ffc531' und Kontur '#3b1d0a'
-// (design/tokens.json menue.farbe), dunkle Rohrkante 'rgba(40,34,26,.4)' (heute ohne Überlast, bleibt).
-const D25 = '#d8392f', D40 = '#6ec6ff', D32 = '#4caf3e', GELB = '#ffc531', KONTUR = '#3b1d0a', GLANZ = 'rgba(255,255,255,.45)';
+// (design/tokens.json menue.farbe). Schlanke Rohrgrafik aus main (src/render/szene.ts): dunkle Rohrkante 'rgba(35,40,35,.42)'
+// mit w + 1,25, Glanzstrich 'rgba(255,255,255,.32)' mit w × 0,19 (nur ab w ≥ 3), kein Rohrbett mehr unter dem Rohr.
+const D25 = '#d8392f', D40 = '#6ec6ff', D32 = '#4caf3e', GELB = '#ffc531', KONTUR = '#3b1d0a', GLANZ = 'rgba(255,255,255,.32)';
+const KANTE = 'rgba(35,40,35,.42)';
 
 // ---------------------------------------------------------------- Hilfe: Striche mit dem Zustand, der beim stroke() gilt
 type Strich = { i: number; farbe: string; breite: number; alpha: number; dash: string };
@@ -46,78 +48,88 @@ function striche(b: string[]): Strich[] {
 }
 const gleich = (a: number, c: number): boolean => Math.abs(a - c) < 1e-9;
 
-// ================================================================= H1 – Saum schmal, Gesamtbreite wie ohne Überlast
-// Lage wie tests/nr22-darstellung.test.ts: Kamera 844×390, Zoom 2 → Feldbreite tw = 52; 25er w = max(2, 52 × 0,06) = 3,12.
-// Ohne Überlast: dunkle Kante w + 2 = 5,12, darin das Rohr w. Mit Überlast (13.17.11 H1): Gelb w + 2 × saum_px = w + 2 = 5,12
-// statt der dunklen Kante, keine Außenlinie, Rohr w in der Mitte, Glanzstrich bleibt.
+// ================================================================= H1 – Saum ersetzt nur die Kante
+// Lage wie tests/nr22-darstellung.test.ts: Kamera 844×390, Zoom 2 → Feldbreite tw = 52. Schlanke Rohrgrafik aus main:
+// 25er w = max(1,5; 52 × 0,06 × 0,62) = 1,9344. Ohne Überlast: dunkle Kante w + 1,25 = 3,1844, darin das Rohr w.
+// Mit Überlast (13.17.11 H1): Gelb w + 2 × saum_px = w + 2 = 3,9344 statt der dunklen Kante, keine Außenlinie, Rohr w in der
+// Mitte unverändert. Den Glanzstrich zeichnet main erst ab w ≥ 3, also bei Zoom 4: tw = 104, w = 3,8688, Glanz w × 0,19.
 describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
   const objekte = [neu('hz', 11, 10), ...[10, 9, 8, 7, 6].map((x) => neu('d25', x, 10))];
   const F = (x: number): number => 10 * N + x;
   const netz = berechneNetz(objekte, [], 1);
   for (const x of [10, 9, 8, 7, 6]) netz.kapazitaet_ok.set(F(x), false);
   const STUECK = { felder: [F(10), F(9), F(8), F(7), F(6)], dreiecke: [F(10)], geplant: false, seit_ms: 0 };
+  const W2 = 52 * 0.06 * 0.62, W4 = 104 * 0.06 * 0.62;
   const szene = (extra: Partial<Szene>): Szene => ({
     objekte, innen: [], netz, spiel: null, auswahl_id: null, modus: 'normal', geist: null,
     verschiebe_id: null, stempel: null, jetzt_ms: 10_000, strassen: [], fluss: [], kw_anzeigen: false, ...extra,
   });
-  function bild(s: Szene): string[] {
+  function bild(s: Szene, zoom = 2): string[] {
     const a = aufnahme(), m = new Maler(a.X), k = new Kamera();
-    k.groesseSetzen(844, 390, 1); k.zoom = 2; k.zentrieren(9, 10, 1);
+    k.groesseSetzen(844, 390, 1); k.zoom = zoom; k.zentrieren(9, 10, 1);
     bodenEbeneEinrichten(null);
     zeichneSzene(m, k, s, new Effekte(), 0.016);
     return a.befehle;
   }
-  /** Querschnitt je Rohrfeld: alle Striche zwischen dem Rohrbett (fillStyle rgba(140,100,55,.35), szene.ts) und dem Glanzstrich */
-  function querschnitte(b: string[]): Strich[][] {
-    const alle = striche(b), r: Strich[][] = [];
-    b.forEach((x, i) => {
-      if (x !== 'fillStyle=rgba(140,100,55,.35)') return;
-      const glanz = alle.find((s) => s.i > i && s.farbe === GLANZ);
-      if (glanz) r.push(alle.filter((s) => s.i > i && s.i < glanz.i));
+  /** Querschnitt je Rohrfeld: alle Striche ab dem `lineCap=round` des Feldes bis einschließlich Rohrstrich (25er-Farbe, Breite w).
+   *  Eine zusätzliche Außenlinie vor der Kante läge also mit im Querschnitt. */
+  function querschnitte(b: string[], w: number): Strich[][] {
+    const alle = striche(b);
+    return alle.filter((s) => s.farbe === D25 && gleich(s.breite, w)).map((rohr) => {
+      let start = rohr.i;
+      while (start > 0 && b[start] !== 'lineCap=round') start--;
+      return alle.filter((x) => x.i > start && x.i <= rohr.i);
     });
-    return r;
   }
   const breiteste = (q: Strich[]): number => Math.max(...q.map((s) => s.breite));
 
-  // Vorprobe der Lage: ohne Überlast fünf Querschnitte mit dunkler Kante 5,12 und Rohr 3,12 in leitung.d25
-  it('test_h1_vorprobe_ohne_ueberlast: fünf Rohrfelder, breitester Strich 5,12 (dunkle Kante), innen 25er-Farbe 3,12', () => {
-    const q = querschnitte(bild(szene({})));
+  // Vorprobe der Lage: ohne Überlast fünf Querschnitte mit dunkler Kante w + 1,25 und Rohr w in leitung.d25
+  it('test_h1_vorprobe_ohne_ueberlast: fünf Rohrfelder, breitester Strich 3,1844 (dunkle Kante), innen 25er-Farbe 1,9344', () => {
+    const q = querschnitte(bild(szene({})), W2);
     expect(q).toHaveLength(5);
     for (const f of q) {
-      expect(breiteste(f)).toBeCloseTo(5.12, 9);
-      expect(f[f.length - 1]).toMatchObject({ farbe: D25, alpha: 1 });
-      expect(f[f.length - 1].breite).toBeCloseTo(3.12, 9);
+      expect(f.map((s) => [s.farbe, s.alpha])).toEqual([[KANTE, 1], [D25, 1]]);
+      expect(breiteste(f)).toBeCloseTo(3.1844, 9);
+      expect(f[f.length - 1].breite).toBeCloseTo(1.9344, 9);
     }
   });
 
-  // Fehler, der ihn rot macht: Saum außen breiter als die Leitung ohne Überlast (heute 9,12 statt 5,12), Gelb schmaler als die
-  // Kante (dann bliebe dunkler Rand sichtbar außen) oder dunkle Außenlinie in `kontur`.
-  it('test_h1_gesamtbreite_wie_ohne_ueberlast (rot bis P7e): je Feld breitester Strich = 5,12, und der ist gelb und voll deckend', () => {
-    const ohne = querschnitte(bild(szene({}))), mit = querschnitte(bild(szene({ ueberlast: [STUECK] })));
+  // Fehler, der ihn rot macht: das Rohr wird bei Überlast schmaler/breiter oder anders gefärbt, die dunkle Kante bleibt unter
+  // dem Gelb liegen, ein weiterer Strich kommt dazu, oder das Gelb ist nicht voll deckend/nicht die äußerste Linie.
+  it('test_h1_nur_kante_wird_saum: je Feld dieselben Striche wie ohne Überlast, nur die Kante ist Gelb w + 2 und voll deckend', () => {
+    const ohne = querschnitte(bild(szene({})), W2), mit = querschnitte(bild(szene({ ueberlast: [STUECK] })), W2);
     expect(mit).toHaveLength(5);
     mit.forEach((f, n) => {
-      expect(breiteste(f), `Feld ${n}: Gesamtbreite`).toBeCloseTo(breiteste(ohne[n]), 9);
-      const aussen = f.filter((s) => gleich(s.breite, breiteste(f)));
-      expect(aussen.map((s) => [s.farbe, s.alpha]), `Feld ${n}: oberster der breitesten Striche`).toContainEqual([GELB, 1]);
-      expect(aussen[aussen.length - 1].farbe, `Feld ${n}: Gelb liegt zuletzt auf der Kantenbreite`).toBe(GELB);
+      const vorher = ohne[n];
+      expect(f.length, `Feld ${n}: gleich viele Striche`).toBe(vorher.length);
+      expect(f.map((s) => s.farbe), `Feld ${n}: nur die Kante wechselt zum Gelb`).toEqual(vorher.map((s) => (s.farbe === KANTE ? GELB : s.farbe)));
+      expect(f.filter((s) => s.farbe === KANTE), `Feld ${n}: keine dunkle Kante mehr`).toEqual([]);
+      const gelb = f.find((s) => s.farbe === GELB)!;
+      expect([gelb.alpha, gelb.breite], `Feld ${n}: Gelb voll deckend, w + 2`).toEqual([1, expect.closeTo(W2 + 2, 9)]);
+      expect(breiteste(f), `Feld ${n}: das Gelb ist die äußerste Linie`).toBeCloseTo(gelb.breite, 9);
+      const rohr = f[f.length - 1], rohrVorher = vorher[vorher.length - 1];
+      expect([rohr.farbe, rohr.alpha], `Feld ${n}: Rohrfarbe bleibt`).toEqual([rohrVorher.farbe, rohrVorher.alpha]);
+      expect(rohr.breite, `Feld ${n}: Rohrbreite bleibt`).toBeCloseTo(rohrVorher.breite, 9);
     });
   });
 
   it('test_h1_keine_aussenlinie (rot bis P7e): auf den Feldern des Stücks kein Strich in `kontur`, keine Deckkraft 0,55', () => {
-    const mit = querschnitte(bild(szene({ ueberlast: [STUECK] })));
+    const mit = querschnitte(bild(szene({ ueberlast: [STUECK] })), W2);
+    expect(mit, 'Vorprobe: fünf Querschnitte (sonst prüft die Schleife nichts)').toHaveLength(5);
     for (const f of mit) {
       expect(f.filter((s) => s.farbe === KONTUR)).toEqual([]);
       expect(f.filter((s) => gleich(s.alpha, 0.55))).toEqual([]);
     }
   });
 
-  // Prüfzweck aus 13.17.3 bleibt: Rohrfarbe in der Mitte, Gelb erkennbar (1 px je Seite = Kantenbreite − Rohrbreite = 2)
-  it('test_h1_rohrfarbe_mitte_gelb_ein_px (rot bis P7e): innen 25er 3,12 voll deckend über dem Gelb, Gelb je Seite 1 px breiter', () => {
-    const mit = querschnitte(bild(szene({ ueberlast: [STUECK] })));
+  // Prüfzweck aus 13.17.3 bleibt: Rohrfarbe in der Mitte, Gelb erkennbar (1 px je Seite = Saumbreite − Rohrbreite = 2)
+  it('test_h1_rohrfarbe_mitte_gelb_ein_px (rot bis P7e): innen 25er 1,9344 voll deckend über dem Gelb, Gelb je Seite 1 px breiter', () => {
+    const mit = querschnitte(bild(szene({ ueberlast: [STUECK] })), W2);
+    expect(mit, 'Vorprobe: fünf Querschnitte (sonst prüft die Schleife nichts)').toHaveLength(5);
     for (const f of mit) {
       const letzter = f[f.length - 1];
       expect(letzter).toMatchObject({ farbe: D25, alpha: 1 });
-      expect(letzter.breite).toBeCloseTo(3.12, 9);
+      expect(letzter.breite).toBeCloseTo(1.9344, 9);
       const gelb = f.filter((s) => s.farbe === GELB);
       expect(gelb).toHaveLength(1);
       expect((gelb[0].breite - letzter.breite) / 2, 'Gelb je Seite 1 px (13.17.11 H1)').toBeCloseTo(1, 9);
@@ -129,10 +141,18 @@ describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
     expect(tokens.karte.ueberlast.saum_px).toBe(1);
   });
 
-  it('test_h1_glanz_bleibt: auch auf überlasteten Feldern folgt dem Rohr der Glanzstrich', () => {
-    const b = bild(szene({ ueberlast: [STUECK] }));
-    expect(querschnitte(b)).toHaveLength(5);
-    expect(striche(b).filter((s) => s.farbe === GLANZ).length).toBeGreaterThanOrEqual(5);
+  // Zoom 4, damit main den Glanz überhaupt zeichnet (w ≥ 3). Fehler, der ihn rot macht: Glanz fehlt auf überlasteten Feldern
+  // oder wird dort anders breit.
+  it('test_h1_glanz_bleibt: auch auf überlasteten Feldern folgt dem Rohr der Glanzstrich, gleich breit wie ohne Überlast', () => {
+    const glanzNachRohr = (b: string[]): Strich[] => {
+      const alle = striche(b);
+      return alle.filter((s, j) => s.farbe === D25 && gleich(s.breite, W4) && alle[j + 1]?.farbe === GLANZ).map((s) => alle[alle.indexOf(s) + 1]);
+    };
+    const ohne = glanzNachRohr(bild(szene({}), 4)), mit = glanzNachRohr(bild(szene({ ueberlast: [STUECK] }), 4));
+    expect(querschnitte(bild(szene({ ueberlast: [STUECK] }), 4), W4), 'Vorprobe: fünf Rohrfelder bei Zoom 4').toHaveLength(5);
+    expect(ohne, 'Vorprobe: ohne Überlast fünf Glanzstriche').toHaveLength(5);
+    expect(mit).toHaveLength(5);
+    for (const g of mit) expect(g.breite).toBeCloseTo(W4 * 0.19, 9);
   });
 });
 
@@ -193,10 +213,10 @@ describe('P7e H2: Vorschau-Rauten', () => {
 });
 
 // ================================================================= H3, H4 – Leitungsblatt
-// Lage wie tests/nr22-blatt.test.ts (dort von Hand hergeleitet): 25er von (11|9) bis (3|7), 11 Felder, Reihenhaus (4|7) mit
+// Lage wie tests/nr22-blatt.test.ts (dort von Hand hergeleitet): 25er von (10|10) über (10|9) bis (3|7), 11 Felder, Reihenhaus (4|7) mit
 // 16 kW am Ende; die 25er schafft 15 kW → ein Stück, empfohlen 32er.
 const T0 = 1_000_000_000_000;
-const WEG: ReadonlyArray<[number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
+const WEG: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
 const norm = (t: string): string => t.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 const leitung = (s: Spiel, x: number, y: number): Objekt => objektBei(s, x, y, (o) => istLeitung(o.typ))!;
 const wegLeitungen = (s: Spiel): Objekt[] => WEG.map(([x, y]) => leitung(s, x, y));
@@ -253,7 +273,7 @@ describe('P7e H3: Titel nennt die tatsächlich geplante Größe', () => {
     const { s, z } = gebautOffen();
     planen(s, [...alle('d40').slice(0, 6), ...alle('d50').slice(0, 5)]);
     await echteSteuerung(s, (u) => {
-      for (const [x, y] of [[11, 9], [3, 7]] as const) {
+      for (const [x, y] of [[10, 10], [3, 7]] as const) {
         u.st.kontext(leitung(s, x, y).id);
         expect(kastenTeile(u), `angetippt (${x}|${y})`).toEqual(['Überlastet', 'Wird vergrößert', SATZ_GEPLANT]);
       }

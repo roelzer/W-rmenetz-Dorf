@@ -12,15 +12,15 @@ import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18
 import { leeresDorf } from './hilfen/nr22';
 
 // Bauplan docs/bauplaene/NR20-22.md P7 (Punkt steuerung.ts, Rückfrage „welche Leitung öffnet das Blatt“), DESIGN 13.17.3.
-// Dorf wie tests/nr22-kern.test.ts, von Hand hergeleitet: Heizzentrale 2×2 ab (11|10), 25er-Stamm (11|9) → (6|9), danach 40er
+// Dorf wie tests/nr22-kern.test.ts, von Hand hergeleitet: Heizzentrale 2×2 ab (11|10), 25er-Stamm (10|10) → (10|9) → (6|9) (seit main 4d2aecd ist (11|9) Ausbaureserve), danach 40er
 // bis (3|9), (2|9), (2|8). Reihenhaus (3|10) 16 kW + EFH (2|7) 10 kW = 26 kW durch den Stamm; 25er trägt 15 kW, 32er 25 kW,
 // 40er 40 kW → ein Stück aus den sechs Stammfeldern, empfohlen die 40er. Feldnummer = y × 24 + x (KONSTANTEN.feldanzahl = 24).
 // Dreiecke (E9): Stück mit 6 Feldern, Tiefen t0 … t0 + 5 → nur das erste Feld (t0 + 8 liegt hinter dem Ende).
 const T0 = 1_000_000_000_000;
-const STAMM: ReadonlyArray<[number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9]];
+const STAMM: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9]];
 const ENDE: ReadonlyArray<[number, number]> = [[5, 9], [4, 9], [3, 9], [2, 9], [2, 8]];
-const STAMM_FELDER = [227, 226, 225, 224, 223, 222];
-const ERSTES = 227;
+const STAMM_FELDER = [250, 226, 225, 224, 223, 222];
+const ERSTES = 250;
 
 type Innen = {
   szene(): Szene;
@@ -126,7 +126,7 @@ describe('NR22 P7b Steuerung: Szene-Feld ueberlast', () => {
       const geplant = (): boolean | undefined => innen(u).szene().ueberlast?.[0].geplant;
       expect(geplant()).toBe(false);
       // ein Feld mit 40er-Ersatz: fünf Felder offen
-      expect(d.s.ersatzPlanen(leitung(d.s, 11, 9).id, 'd40').ok).toBe(true);
+      expect(d.s.ersatzPlanen(leitung(d.s, 10, 10).id, 'd40').ok).toBe(true);
       expect(geplant()).toBe(false);
       // alle übrigen Felder nur auf 32er: zu dünn für die Empfehlung (40er), also nicht geplant
       for (const [x, y] of STAMM.slice(1)) expect(d.s.ersatzPlanen(leitung(d.s, x, y).id, 'd32').ok).toBe(true);
@@ -147,10 +147,10 @@ describe('NR22 P7b Steuerung: Tipp auf das Warndreieck', () => {
       const k = innen(u).kamera;
       const [mx, my] = dreieckMitte(k, ERSTES);
       expect(mx > 0 && mx < BILD.breite && my > 0 && my < BILD.hoehe, 'Vorprobe: Dreieck im Bild').toBe(true);
-      // Vorprobe: An der Dreiecksmitte liegt nicht die Leitung (11|9) – ohne Dreieck-Treffer öffnete hier ihr Blatt nicht
-      expect(objektAmPunkt(k, d.s.stand.objekte, mx, my)?.id).not.toBe(leitung(d.s, 11, 9).id);
+      // Vorprobe: An der Dreiecksmitte liegt nicht die Leitung (10|10) – ohne Dreieck-Treffer öffnete hier ihr Blatt nicht
+      expect(objektAmPunkt(k, d.s.stand.objekte, mx, my)?.id).not.toBe(leitung(d.s, 10, 10).id);
       tippeAuf(u, mx, my);
-      expect(innen(u).kontextUi.offenFuer).toBe(leitung(d.s, 11, 9).id);
+      expect(innen(u).kontextUi.offenFuer).toBe(leitung(d.s, 10, 10).id);
     }, { ...BILD, uhr: () => d.z.t });
   });
 
@@ -178,7 +178,7 @@ describe('NR22 P7b Steuerung: Vorschau-Rauten bei offenem Leitungsblatt', () => 
       u.st.kontext(leitung(d.s, 8, 9).id);
       expect(innen(u).szene().ueberlast_vorschau).toEqual({ felder: STAMM_FELDER, typ: 'd40' });
       // ein Feld schon auf 40er geplant: es würde nicht mehr vergrößert
-      expect(d.s.ersatzPlanen(leitung(d.s, 11, 9).id, 'd40').ok).toBe(true);
+      expect(d.s.ersatzPlanen(leitung(d.s, 10, 10).id, 'd40').ok).toBe(true);
       expect(innen(u).szene().ueberlast_vorschau).toEqual({ felder: [226, 225, 224, 223, 222], typ: 'd40' });
       // ganzes Stück geplant: keine Vorschau mehr (die Planrauten des Ersatzes zeigen es)
       expect(d.s.stueckVergroessern(ERSTES, 'd40').ok).toBe(true);
