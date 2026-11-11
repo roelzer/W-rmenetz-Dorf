@@ -123,7 +123,7 @@ describe('NR13 P3 Blätter: Ziele, Meldungen, Sperren', () => {
 
       s.stand.abschnitt = { phase: 'bestellen', bau: null };
       b = await baumenue(s, sp, dom);
-      expect(T(b.wurzel.querySelector('[data-ziel="laura"]')!)).toContain('Material bestellen');
+      expect(T(b.wurzel.querySelector('[data-ziel="laura"]')!)).toContain('Material bei Laura bestellen');
       b.zu();
 
       const blatt = await hausblatt(s, sp, dom, ersteHaus(s));
@@ -244,7 +244,9 @@ describe('NR13 P3 Blätter: Ziele, Meldungen, Sperren', () => {
     });
   });
 
-  it('test_nr13_hud_tutorialmodus: versteckt nur Auftragskarte und [Dörfer]; aktualisieren/sichtbar holen sie nicht zurück', async () => {
+  // Merge B1 (Designer 2026-11-11, übernommen): auch der kW-Knopf aus main ist im Tutorial weg – er schaute hinter der
+  // Anleiter-Karte hervor. Gleicher Mechanismus wie [Dörfer]: Klasse „versteckt“ am Knopf selbst.
+  it('test_nr13_hud_tutorialmodus: versteckt Auftragskarte, [Dörfer] und kW-Knopf; aktualisieren/sichtbar holen sie nicht zurück', async () => {
     await mitDom(async ({ dom }) => {
       const s = spiel(true);
       const { Hud } = await import('../src/ui/hud');
@@ -261,19 +263,23 @@ describe('NR13 P3 Blätter: Ziele, Meldungen, Sperren', () => {
       expect(sichtbar(doerfer)).toBe(false);
       expect(karte.classList.contains('versteckt'), 'Klasse am Element selbst').toBe(true);
       expect(doerfer.classList.contains('versteckt')).toBe(true);
-      expect([bauen, pillen, kw, schild].every(sichtbar)).toBe(true);
+      expect(sichtbar(kw), 'kW-Knopf im Tutorial weg (B1)').toBe(false);
+      expect(kw.classList.contains('versteckt'), 'kW: Klasse am Knopf selbst').toBe(true);
+      expect([bauen, pillen, schild].every(sichtbar)).toBe(true);
 
       hud.aktualisieren(auftrag);
       expect(sichtbar(karte), 'aktualisieren holt die Auftragskarte nicht zurück').toBe(false);
       hud.sichtbar({ eigene: true });
       expect(sichtbar(karte)).toBe(false);
       expect(sichtbar(doerfer)).toBe(false);
-      expect([bauen, pillen, kw, schild].every(sichtbar)).toBe(true);
+      expect(sichtbar(kw), 'sichtbar() holt den kW-Knopf nicht zurück').toBe(false);
+      expect([bauen, pillen, schild].every(sichtbar)).toBe(true);
 
       hud.tutorialModus(false);
       hud.aktualisieren(auftrag);
       expect(sichtbar(karte)).toBe(true);
       expect(sichtbar(doerfer)).toBe(true);
+      expect(sichtbar(kw)).toBe(true);
     });
   });
 

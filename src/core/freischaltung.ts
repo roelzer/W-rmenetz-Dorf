@@ -1,4 +1,4 @@
-import { KATALOG, VORLAUF, type TypId } from './katalog';
+import { istAltanlage, KATALOG, VORLAUF, type TypId } from './katalog';
 import type { Spielstand } from './typen';
 
 /**
@@ -8,13 +8,14 @@ import type { Spielstand } from './typen';
  */
 export type Funktion =
   | 'stationstypen' | 'express' | 'gestattung' | 'spuelbohrung'
-  | 'vorlauf' | 'ruecklauf_helfer' | 'vorsehung' | 'dach_pv' | 'baugebiet';
+  | 'andi' | 'vorlauf' | 'ruecklauf_helfer' | 'vorsehung' | 'dach_pv' | 'baugebiet' | 'neubaugebiet';
 export type Merkmal = TypId | Funktion;
 
 /** Merkmal → ab Heizzentralen-Stufe; fehlt = 1. Spielwerte, Simon kann jede Zeile ändern (Bauplan Abschnitt 4). */
 export const FREISCHALTUNGEN: Readonly<Partial<Record<Merkmal, number>>> = {
   d50: 2, d63: 2,
   d75: 3, d90: 3, d110: 3,
+  d125: 4, d140: 4, d160: 5,
   stationstypen: 2,
   express: 2,
   gestattung: 2,
@@ -24,15 +25,16 @@ export const FREISCHALTUNGEN: Readonly<Partial<Record<Merkmal, number>>> = {
   solar: 2,
   bad: 2, gewerbe: 2,
   brunnen: 2,
+  andi: 3,
   vorlauf: 3,
   ruecklauf_helfer: 3,
-  pellet: 3, gas: 3,
   sonde: 3, klinik: 3,
   vorsehung: 4,
   bhkw: 4,
   ptk: 4,
   pv: 4, dach_pv: 4,
   baugebiet: 4,
+  neubaugebiet: 6,
 };
 
 /** Anzeigename der Funktionen, die kein Katalogeintrag sind. */
@@ -41,11 +43,13 @@ export const FUNKTION_NAME: Readonly<Record<Funktion, string>> = {
   express: 'Expresslieferung',
   gestattung: 'Gestattung',
   spuelbohrung: 'Spülbohrung',
+  andi: 'Andi · Zweiter Vorstand',
   vorlauf: 'Vorlauf-Regler',
   ruecklauf_helfer: 'Rücklauf-Helfer',
   vorsehung: 'T-Stück mit Vorsehung',
   dach_pv: 'PV auf dem Heizhaus-Dach',
   baugebiet: 'Baugebiet',
+  neubaugebiet: 'Neubaugebiet Süd',
 };
 
 export function merkmalName(m: Merkmal): string {
@@ -58,15 +62,26 @@ export function abStufe(m: Merkmal): number { return FREISCHALTUNGEN[m] ?? 1; }
 const hzStufe = (stand: Spielstand): number => stand.objekte.find((o) => o.typ === 'hz')?.stufe ?? 1;
 
 export function freigeschaltet(stand: Spielstand, m: Merkmal): boolean {
+  if (istAltanlage(m)) return false;
   // Bestandsschutz (Bauplan Abschnitt 5): Wer den Vorlauf schon verstellt hat, behält den Regler, bis er wieder auf Start steht.
   if (m === 'vorlauf' && stand.vorlauf_c != null && stand.vorlauf_c !== VORLAUF.start_c) return true;
   return hzStufe(stand) >= abStufe(m);
 }
 
 export function sperrgrund(stand: Spielstand, m: Merkmal): string | null {
+  if (istAltanlage(m)) return 'nicht mehr im Bauprogramm';
   return freigeschaltet(stand, m) ? null : `ab Heizzentrale Stufe ${abStufe(m)}`;
 }
 
 export function neuBeiStufe(stufe: number): Merkmal[] {
   return (Object.keys(FREISCHALTUNGEN) as Merkmal[]).filter((m) => abStufe(m) === stufe);
+}
+
+
+/** Jede Technologie startet auf ihrer Freischaltstufe. Größere Modelle folgen bis Stufe 6. */
+export function erzeugerAbStufe(t: TypId, modell: number): number {
+  const start = abStufe(t);
+  const anzahl = KATALOG[t].leistung_kw?.length ?? 1;
+  if (anzahl <= 1) return start;
+  return start + Math.floor((modell - 1) * (6 - start) / (anzahl - 1));
 }

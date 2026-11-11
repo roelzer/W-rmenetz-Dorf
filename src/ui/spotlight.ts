@@ -296,6 +296,12 @@ function tabWeiter(ev: KeyboardEvent, ziele: HTMLElement[]): void {
 
 function sperrEreignis(s: SperrQuelle, ev: Event): void {
   const typ = ev.type;
+  // Der Schließen-Knopf entscheidet selbst, ob er schließen darf, und zeigt sonst den Grund.
+  const ziel = ev.target as Element | null;
+  if ((typ === 'pointerdown' || typ === 'touchstart' || typ === 'click' || typ === 'keydown')
+    && typeof ziel?.closest === 'function' && ziel.closest('.blatt button.schliessen')) {
+    if (typ !== 'keydown' || ['Enter', ' '].includes((ev as KeyboardEvent).key)) return;
+  }
   if (typ === 'keydown') {
     const k = (ev as KeyboardEvent).key;
     if (k === 'Tab') tabWeiter(ev as KeyboardEvent, s.tab_ziele());
@@ -378,14 +384,16 @@ export function infoKapsel(text: string | null, loch: Rechteck | null): void {
   kapsel.style.top = px(oben < T.groesse_px.blatt_oben_quer ? loch.y + loch.h + M.info_kapsel_abstand : oben);
 }
 
-/** Blatt scrollt zum Ziel (K9): kürzester Weg im nächsten scrollenden Vorfahren, 8 px Abstand, weich (ruhig: sofort). */
+/** Blatt scrollt zum Ziel (K9): kürzester Weg im nächsten scrollenden Vorfahren, 8 px Abstand.
+ *  Absichtlich ohne weiches Scrollen: Mobile Safari kann eine laufende verschachtelte Scroll-Animation abbrechen. Dann
+ *  läge das Tutorial-Loch außerhalb des sichtbaren Blatts und die Eingabesperre ließe keinen erreichbaren Tipp mehr zu. */
 export function zielSichtbarMachen(el: HTMLElement, ruhig: boolean, fertig: () => void): void {
   const box = el.closest('.inhalt') as HTMLElement | null;
   if (!box) { fertig(); return; }
   const r = el.getBoundingClientRect(), b = box.getBoundingClientRect(), d = M.ziel_scroll_abstand;
   const weg = r.top < b.top + d ? r.top - b.top - d : r.bottom > b.bottom - d ? r.bottom - b.bottom + d : 0;
   if (weg === 0) { fertig(); return; }
-  if (ruhig) { box.scrollTop += weg; fertig(); return; }
-  box.scrollTo({ top: box.scrollTop + weg, behavior: 'smooth' });
-  window.setTimeout(fertig, Z.ziel_scrollen);
+  box.scrollTop += weg;
+  void ruhig;
+  fertig();
 }

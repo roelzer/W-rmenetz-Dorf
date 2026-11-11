@@ -200,15 +200,14 @@ describe('A92 / 12.20 S1–S3 – Ausbau-Knöpfe', () => {
     });
   });
 
-  it('A92 S2: Heizhaus, Kessel Stufe 2 bei Heizzentrale Stufe 2 – „Stufe 3“ mit Schloss, Hinweis verweist auf den Ausbau unten im Blatt', async () => {
+  it('Heizhaus zeigt die feste Leistung des Kessels und den Verkauf an', async () => {
     const uhr = { t: T0 }, s = neu(2, uhr);
     s.stand.innen[0].stufe = 2; s.neuBerechnen();
     await karte(s, hz(s), uhr, (b) => {
-      const k = b.mit('Stufe 3').filter((e) => norm(zeile2(b.a, e) ?? '').toLowerCase() === 'erst heizzentrale ausbauen');
-      expect(k, 'genau ein gesperrter Knopf „Stufe 3“ im Heizhaus').toHaveLength(1);
-      pruefeZeile(b, k[0], { zeile2: 'erst Heizzentrale ausbauen', schloss: true, hinweis: 'Stufe 3 gibt es, sobald die Heizzentrale Stufe 3 hat. Der Ausbau steht unten im Blatt.' }, 'S2');
+      expect(b.a.alle(b.c).some(e => b.a.text(e) === 'Hackschnitzelkessel · 90 kW')).toBe(true);
+      expect(b.mit('Verkaufen')).toHaveLength(1);
+      expect(b.mit('Stufe 3').filter(e => b.a.text(e).startsWith('Stufe 3'))).toHaveLength(0);
     });
-    expect(s.stand.innen[0].stufe).toBe(2);
   });
 
   it('A92 S3: Heizzentrale mit offenen Zielen – „Ziele noch offen“, Schloss, Hinweis auf die Ziele oben im Blatt', async () => {
@@ -372,7 +371,7 @@ describe('A92 / 12.20 B6, B8–B10 – Baumenü und Geld', () => {
     expect(kost).toBeGreaterThan(1);
     s.stand.geld_eur = kost - 0.25;
     await baumenue(s, 'netz', uhr, (b) => {
-      pruefeZeile(b, b.einer('Laura: Material bestellen'), { schloss: false, hinweis: GELD_HINWEIS('1 €') }, 'B8 Material');
+      pruefeZeile(b, b.einer('Material bei Laura bestellen'), { schloss: false, hinweis: GELD_HINWEIS('1 €') }, 'B8 Material');
     });
     expect(s.abschnitt?.phase).toBe('bestellen');
   });
@@ -490,7 +489,7 @@ describe('A92 / 12.20 H1–H5 – Haus und Großabnehmer', () => {
     const uhr = { t: T0 }, s = neu(3, uhr);
     const andere = s.stand.objekte.filter((o) => KATALOG[o.typ].kategorie === 'haus' && o !== haus(s));
     expect(andere.length).toBeGreaterThanOrEqual(HELFER.length);
-    HELFER.forEach((h, i) => { andere[i].upgrade_auftrag = { helfer: h, ende_ms: T0 + 120_000 + i * 60_000 }; });
+    HELFER.forEach((h, i) => { const haus = andere[i]; haus.upgrade = 1; haus.upgrade_auftrag = { helfer: h, ende_ms: T0 + 120_000 + i * 60_000 }; });
     await karte(s, haus(s), uhr, (b) => {
       const k = b.einer('Alle Helfer beschäftigt');
       expect(norm(zeile2(b.a, k) ?? '')).toBe('nächster frei in 2m');

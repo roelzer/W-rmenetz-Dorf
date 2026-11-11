@@ -49,6 +49,17 @@ const mit = (liste: Strich[], x: number, y: number, typ: TypId): Strich[] => lis
 function zeichnen(s: Spiel, striche: Strich[]): void {
   for (const [typ, x, y] of striche) expect(s.platzieren(typ, x, y).ok, `${typ} auf (${x}|${y})`).toBe(true);
 }
+/** Seit main 859dda7 verhindert der Kern Ringschlüsse beim Einzeichnen; die Hinweise beginnen mit diesem Satz. */
+const RING = 'Diese Verbindung würde einen Ringschluss erzeugen.';
+/** Ein Strich, der einen Ring schließen würde: abgelehnt mit dem Ring-Hinweis, kein Rohr dazu, Lage unverändert. */
+function ringAbgelehnt(s: Spiel, [typ, x, y]: Strich): void {
+  const vorher = s.stand.objekte.length, lage = kurz(s.tutorialLeitungen());
+  const r = s.platzieren(typ, x, y);
+  expect(r.ok, `${typ} auf (${x}|${y}) schließt einen Ring`).toBe(false);
+  expect(r.hinweis?.startsWith(RING), `Hinweis: ${r.hinweis}`).toBe(true);
+  expect(s.stand.objekte.length, 'kein Rohr dazugekommen').toBe(vorher);
+  expect(kurz(s.tutorialLeitungen()), 'Lage unverändert').toEqual(lage);
+}
 function lageMit(striche: Strich[]): { s: Spiel; lage: TutorialLeitungsLage; h1: Objekt; h2: Objekt; z: Uhr } {
   const t = tutorialOffen();
   zeichnen(t.s, striche);
@@ -215,20 +226,20 @@ describe('NR21 P1 Kern: Rollenprüfung (E3)', () => {
     expect(kurz(a.s.tutorialLeitungen())).toEqual({ ...ALLES_OK, haus2_ok: false, planungsfehler: true });
   });
 
-  it('test_nr21_eigener_abgang_spalte_11: Abgang über Spalte 11, auch mit umgehängtem Abzweig ein eigener Abgang', () => {
-    const { s, lage } = lageMit([...HAUPT, ...ANSCHLUSS_1, ['d25', 11, 12], ['d25', 11, 13], ['d25', 11, 14]]);
-    expect(kurz(lage)).toEqual({ ...ALLES_OK, haus2_ok: false, planungsfehler: true, fremd: [[11, 13], [11, 12]], fremd_haus: 2 });
-    // Kritiker-Fall: (10|12) hängt an (11|12) statt an (10|11). Der eigene Abgang zu Haus 2 bleibt derselbe (K-b);
-    // (11|12) liegt jetzt auf dem echten Hauptweg und ist darum nie fremd (Fassung 2.3 K-a), aber als 25er dort zu dünn.
-    const netz = netzVon(s);
-    expect(netz.eltern.get(nr(10, 12))).toBe(nr(10, 11));
-    const umgehaengt = { ...netz, eltern: new Map(netz.eltern).set(nr(10, 12), nr(11, 12)) };
-    const [h1, h2] = ERSTE_HAEUSER.map((k) => hausBei(s.stand, k));
-    const rein = tutorialLeitungsLage(umgehaengt, s.stand.objekte, h1.id, h2.id, 'd32', 'd25');
-    expect(kurz(rein)).toEqual({
-      haupt_ok: false, haus1_ok: false, haus2_ok: false, haupt_zu_duenn: true, anschluss_zu_dick: false,
-      planungsfehler: true, fremd: [[11, 13]], fremd_haus: 2,
-    });
+  // Früher: Abgang (11|12),(11|13),(11|14) neben der Hauptleitung als eigener Abgang zu Haus 2. Seit main 859dda7 schließt
+  // (11|12) zwischen Heizzentrale und Hauptleitung (10|12) einen Ring über die Heizzentrale und wird abgelehnt. Ohne Ring
+  // prüft test_nr21_eigener_abgang den eigenen Abgang über (12|12),(12|13).
+  it('test_nr21_eigener_abgang_spalte_11: Abgang über Spalte 11 neben der Hauptleitung schließt einen Ring → abgelehnt, Spur danach vollständig', () => {
+    const { s, lage } = lageMit([...HAUPT, ...ANSCHLUSS_1]);
+    expect([lage.haupt_ok, lage.haus1_ok, lage.haus2_ok, lage.fremd]).toEqual([true, true, false, []]);
+    ringAbgelehnt(s, ['d25', 11, 12]);
+    // Ohne (11|12) bleiben (11|13),(11|14) ein loses Stück: kein eigener Abgang, nur fremd (DESIGN 13.17.9 F3), wieder wegnehmbar
+    zeichnen(s, [['d25', 11, 13]]);
+    expect(kurz(s.tutorialLeitungen())).toEqual({ ...ALLES_OK, haus2_ok: false, planungsfehler: true, fremd: [[11, 13]] });
+    expect(s.geplanteLeitungEntfernen(11, 13).ok).toBe(true);
+    // Das Tutorial geht danach normal weiter: Anschluss 2 einzeichnen → alles richtig
+    zeichnen(s, ANSCHLUSS_2);
+    expect(kurz(s.tutorialLeitungen())).toEqual(ALLES_OK);
   });
 
   it('test_nr21_vorbeilaufend_eigenes_spurfeld: Haupt + (9|12),(8|12) → Haus 1 an (9|12) ok; + Anschluss 2 → kein Planungsfehler', () => {
@@ -242,9 +253,14 @@ describe('NR21 P1 Kern: Rollenprüfung (E3)', () => {
     expect(kurz(s.tutorialLeitungen())).toEqual(ALLES_OK);
   });
 
-  it('test_nr21_vierer_ring_fremd: E1 + (11|13) → beide ok, Planungsfehler, fremd nur (11|13); Gegenproben ohne fremd', () => {
-    const { lage } = lageMit([...E1, ['d25', 11, 13]]);
-    expect(kurz(lage)).toEqual({ ...ALLES_OK, planungsfehler: true, fremd: [[11, 13]] });
+  // Früher: E1 + (11|13) ergab einen Vierer-Ring (10|13),(11|13),(11|14),(10|14) mit Aufteilung als gestreiften Planungsfehler.
+  // Seit main 859dda7 lehnt der Kern den Ring schon beim Einzeichnen ab.
+  it('test_nr21_vierer_ring_fremd: E1 + (11|13) schließt einen Vierer-Ring → abgelehnt, Lage bleibt richtig; Gegenproben ohne fremd', () => {
+    const { s, lage } = lageMit(E1);
+    expect(kurz(lage)).toEqual(ALLES_OK);
+    ringAbgelehnt(s, ['d25', 11, 13]);
+    ringAbgelehnt(s, ['d32', 11, 13]);
+    expect(s.netz.aufteilung.size + netzVon(s).aufteilung.size, 'keine Aufteilung ohne Ring').toBe(0);
     const z1 = lageMit([...HAUPT, ...ANSCHLUSS_1]).lage;
     expect([z1.planungsfehler, z1.fremd, z1.fremd_haus]).toEqual([true, [], null]);
     const z2 = lageMit([...HAUPT, ...ANSCHLUSS_2]).lage;
@@ -256,32 +272,29 @@ describe('NR21 P1 Kern: Rollenprüfung (E3)', () => {
   });
 
   it('test_nr21_fremd_planungsfehler_sortiert: mehrere Fehlerfelder abseits der Spur → nach Feldnummer, ohne Spurfelder', () => {
-    // Vierer-Ring (Aufteilung (10|13),(11|13),(10|14)) plus Stummel (10|10) 25er → (10|9) 32er (Engpass (10|9),(10|10)).
-    const { s, lage } = lageMit([...E1, ['d25', 11, 13], ['d25', 10, 10], ['d32', 10, 9]]);
+    // Zwei Stummel mit Engpass (25er speist 32er), ohne Ring (main 859dda7 lehnt Ringe ab): zuerst (12|12) 25er → (13|12) 32er an
+    // der Südseite der Heizzentrale, danach (10|10) 25er → (10|9) 32er an der Westseite. Gezeichnet in der Reihenfolge
+    // 300, 301, 250, 226 – erwartet wird aufsteigend 226, 250, 300, 301 (y × 24 + x).
+    const { s, lage } = lageMit([...E1, ['d25', 12, 12], ['d32', 13, 12], ['d25', 10, 10], ['d32', 10, 9]]);
     const netz = netzVon(s);
-    expect([...netz.engpass].sort((p, q) => p - q)).toEqual([nr(10, 9), nr(10, 10)]);
-    expect(kurz(lage)).toEqual({ ...ALLES_OK, planungsfehler: true, fremd: [[10, 9], [10, 10], [11, 13]] });
+    expect([...netz.engpass].sort((p, q) => p - q)).toEqual([nr(10, 9), nr(10, 10), nr(12, 12), nr(13, 12)]);
+    expect(kurz(lage)).toEqual({ ...ALLES_OK, planungsfehler: true, fremd: [[10, 9], [10, 10], [12, 12], [13, 12]] });
     // Zwischenstand (Haus 2 fehlt) mit demselben Stummel: Der zweite Teil von fremd greift nur, wenn beide Häuser ok sind –
     // seit DESIGN 13.17.9 F3 ist der Stummel abseits der Spur aber trotzdem fremd (dritter Teil), sortiert nach Feldnummer.
     const zw = lageMit([...HAUPT, ...ANSCHLUSS_1, ['d25', 10, 10], ['d32', 10, 9]]).lage;
     expect([zw.planungsfehler, zw.haus2_ok, zw.fremd, zw.fremd_haus]).toEqual([true, false, [[10, 9], [10, 10]], null]);
   });
 
-  it('test_nr21_zweite_verbindung_11_12: volle Spur + 25er/32er auf (11|12) → was die Lage liefert (Probe PL)', () => {
-    // Probe: Mit 25er auf (11|12) hängt (10|12) wieder an (10|11) (A91 hängt an den dickeren Nachbarn), (11|12) ist ein
-    // Stummel an der Heizzentrale ohne Planungsfehler. Mit 32er auf (11|12) hängt (10|12) an (11|12), (10|11) wird der Stummel.
-    // DESIGN 13.17.9 F3: der 25er-Stummel (11|12) liegt abseits von Spur und echtem Hauptweg → fremd, bis er weg ist.
-    const d25 = lageMit([...E1, ['d25', 11, 12]]);
-    expect(netzVon(d25.s).eltern.get(nr(10, 12))).toBe(nr(10, 11));
-    expect(kurz(d25.lage)).toEqual({ ...ALLES_OK, fremd: [[11, 12]] });
-    expect(d25.lage.felder.some((f) => f.x === 11 && f.y === 12)).toBe(false);
-    expect(d25.s.geplanteLeitungEntfernen(11, 12).ok).toBe(true);
-    expect(kurz(d25.s.tutorialLeitungen())).toEqual(ALLES_OK);
-    const d32 = lageMit([...E1, ['d32', 11, 12]]);
-    expect(netzVon(d32.s).eltern.get(nr(10, 12))).toBe(nr(11, 12));
-    expect(kurz(d32.lage)).toEqual(ALLES_OK);
-    expect(d32.lage.felder.find((f) => f.x === 11 && f.y === 12)).toEqual({ x: 11, y: 12, rolle: 'haupt', typ: 'd32', richtig: true });
-    expect(d32.lage.felder.some((f) => f.x === 10 && f.y === 11)).toBe(false);
+  // Früher: 25er bzw. 32er auf (11|12) als zweite Verbindung zwischen Heizzentrale und Abzweig (Probe PL). Seit main 859dda7
+  // schließt das einen Ring über die Heizzentrale und wird abgelehnt. Die K-a-Lage (Hauptleitung über (11|12) statt (10|11))
+  // prüfen test_nr21_vierer_ring_fremd (Teil K-a) und test_nr21_fremd_fehler_auf_hauptweg weiter ohne Ring.
+  it('test_nr21_zweite_verbindung_11_12: volle Spur + 25er/32er auf (11|12) schließt einen Ring → abgelehnt, Lage bleibt richtig', () => {
+    const { s, lage } = lageMit(E1);
+    expect(kurz(lage)).toEqual(ALLES_OK);
+    ringAbgelehnt(s, ['d25', 11, 12]);
+    ringAbgelehnt(s, ['d32', 11, 12]);
+    expect(netzVon(s).eltern.get(nr(10, 12)), 'Abzweig hängt weiter an (10|11)').toBe(nr(10, 11));
+    expect(s.tutorialLeitungen().felder.some((f) => f.x === 11 && f.y === 12)).toBe(false);
   });
 
   it('test_nr21_planungsfehler: Zwischenstand wahr, E1 falsch, E1 + Stummel falsch, Engpass wahr', () => {
@@ -348,12 +361,15 @@ describe('NR21 P1 Kern: Randfälle', () => {
     expect(lage.fremd_haus).toBe(1);
   });
 
-  it('test_nr21_fremd_vorrang_vor_rolle: E1 + (11|13),(12|13) → fremd ohne Rolle, Hausbewertung unverändert', () => {
-    // Haus 2 hängt jetzt an (12|13) (Leitungsende); sein gezählter Hausweg (12|13),(11|13),(10|13),Abzweig gäbe (11|13) und
-    // (12|13) die Rolle Anschluss. Beide Felder sind aber Planungsfehler abseits der Spur → fremd hat Vorrang (Entscheidung PL).
-    const { s, h2, lage } = lageMit([...E1, ['d25', 11, 13], ['d25', 12, 13]]);
+  it('test_nr21_fremd_vorrang_vor_rolle: Haupt + Anschluss 1 + (10|13),(11|13),(12|13) → fremd ohne Rolle, Hausbewertung unverändert', () => {
+    // Haus 2 hängt an (12|13) (Leitungsende); sein gezählter Hausweg (12|13),(11|13),(10|13),Abzweig gäbe (11|13) und (12|13)
+    // die Rolle Anschluss. Beide Felder liegen aber abseits der Spur → fremd (DESIGN 13.17.9 F3) hat Vorrang (Entscheidung PL).
+    // Früher mit E1 + (11|13),(12|13) – das schließt seit main 859dda7 einen Ring; ohne (10|14),(11|14) gibt es keinen.
+    // Darum auch kein Planungsfehler mehr: Die frühere Aufteilung entstand erst durch den Ring (zwei gleich dicke Abgänge am
+    // Ringknoten); im ringfreien Baum wird keine Leitung ohne Abzweig dünner und keiner teilt sich gleich dick.
+    const { s, h2, lage } = lageMit([...HAUPT, ...ANSCHLUSS_1, ['d25', 10, 13], ['d25', 11, 13], ['d25', 12, 13]]);
     expect(anschlussFeld(s, h2)).toEqual([12, 13]);
-    expect(kurz(lage)).toEqual({ ...ALLES_OK, planungsfehler: true, fremd: [[11, 13], [12, 13]] });
+    expect(kurz(lage)).toEqual({ ...ALLES_OK, fremd: [[11, 13], [12, 13]] });
     expect(lage.felder).toEqual([
       { x: 10, y: 11, rolle: 'haupt', typ: 'd32', richtig: true },
       { x: 9, y: 12, rolle: 'anschluss', typ: 'd25', richtig: true },
@@ -386,6 +402,21 @@ describe('NR21 P1 Kern: Randfälle', () => {
     expect(kurz(rein)).toEqual({ ...ALLES_OK, planungsfehler: true });
   });
 
+  // Kritiker-Fall K-b ohne Ring (früher: E1 mit umgehängtem Elternfeld, das seit main 859dda7 einen Ring schloss). Fehler, der
+  // ihn rot macht: Ein Feld des echten Hauptwegs abseits der Spur (11|12) wird als Teil eines eigenen Abgangs fremd gestreift.
+  it('test_nr21_eigener_abgang_ueber_hauptweg: K-a-Netz + (11|13),(11|14) → Haus 2 eigener Abgang, nur (11|13) fremd, (11|12) nie (K-b)', () => {
+    const { s, h2, lage } = lageMit([['d32', 11, 12], ['d32', 10, 12], ...ANSCHLUSS_1, ['d25', 11, 13], ['d25', 11, 14]]);
+    const netz = netzVon(s);
+    // Testaufbau: Hauptleitung läuft über (11|12), Haus 2 hängt an (11|14), sein Weg (11|14),(11|13),(11|12) – ein Baum ohne Ring
+    expect(netz.eltern.get(nr(10, 12))).toBe(nr(11, 12));
+    expect(netz.eltern.get(nr(11, 13))).toBe(nr(11, 12));
+    expect(netz.eltern.get(nr(11, 14))).toBe(nr(11, 13));
+    expect(anschlussFeld(s, h2)).toEqual([11, 14]);
+    expect(lage.fremd).toEqual([[11, 13]]);
+    expect(lage.fremd_haus).toBe(2);
+    expect(lage.fremd).not.toContainEqual([11, 12]);
+  });
+
   it('test_nr21_haus_fehlt: fehlt ein Tutorial-Haus, wirft die Prüfung (wie heute)', () => {
     const { s, h2 } = tutorialOffen();
     const netz = netzVon(s);
@@ -408,22 +439,23 @@ describe('NR21 P1 Kern: letzteLeitungFeld', () => {
     expect(t.s.letzteLeitungZurueck().ok).toBe(true);
     expect(t.s.letzteLeitungFeld()).toEqual([9, 12]);
 
-    // Ersatz: gebaute 25er auf (14|12) bekommt nach einer neu gezeichneten Leitung einen 32er-Ersatz → sie ist die letzte.
+    // Ersatz: gebaute 25er auf (12|12) bekommt nach einer neu gezeichneten Leitung einen 32er-Ersatz → sie ist die letzte.
+    // (Früher (13|11) an der Ostseite; die liegt seit main 4d2aecd in der Ausbaureserve, daher Abgang an der Südseite.)
     const z = { t: T0 };
     const alt = new Spiel(neuerSpielstand(T0), () => z.t);
     expect(abschnittOeffnen(alt, z)).toBe(true);
-    zeichnen(alt, [['d25', 13, 11], ['d25', 14, 11]]);
+    zeichnen(alt, [['d25', 12, 12], ['d25', 13, 12]]);
     expect(abschnittBauen(alt, z).bestellen.ok).toBe(true);
     expect(alt.stand.abschnitt).toBeUndefined();
     expect(alt.letzteLeitungFeld()).toBeNull(); // kein offener Abschnitt
     expect(abschnittOeffnen(alt, z)).toBe(true);
-    zeichnen(alt, [['d25', 15, 11]]);
-    const gebaut = alt.stand.objekte.find((o) => o.x === 13 && o.y === 11 && !o.geplant)!;
+    zeichnen(alt, [['d25', 14, 12]]);
+    const gebaut = alt.stand.objekte.find((o) => o.x === 12 && o.y === 12 && !o.geplant)!;
     expect(alt.ersatzPlanen(gebaut.id, 'd32').ok).toBe(true);
-    expect(alt.letzteLeitungFeld()).toEqual([13, 11]);
+    expect(alt.letzteLeitungFeld()).toEqual([12, 12]);
     expect(alt.letzteLeitungZurueck().ok).toBe(true);
     expect(gebaut.ersatz).toBeUndefined();
-    expect(alt.letzteLeitungFeld()).toEqual([15, 11]);
+    expect(alt.letzteLeitungFeld()).toEqual([14, 12]);
   });
 
   it('test_nr21_letzte_leitung_feld_nach_abschliessen: Phase bestellen → null, Zurück nimmt nichts', () => {

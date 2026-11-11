@@ -722,3 +722,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 10:38 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Alles aus dem Auftrag ist gebaut. Die Schranke endet nur wegen des schon bekannten Abzweigpunkt-Hinweises auf „NICHT OK“, alle eig ([Bericht](docs/pruefberichte/20261111-103828-entwickler-a4614c59e59d557e3.md)) |
 | 2026-11-11 10:38 | ▶ | reviewer | Nachprüfung Review c90f38d |
 | 2026-11-11 10:41 | ■ 🟢 | reviewer | 🟢 **Nachprüfung Merge main ↔ NR20–22 (Branch nr20-mm-dev3, Stand c90f38d): alle Befunde behoben.**  ([Bericht](docs/pruefberichte/20261111-104144-reviewer-ac3616e941cb244cd.md)) |
+| 2026-11-11 08:52 | ▶ | reviewer | Review Tutorial-Fix steuerung.ts |
+| 2026-11-11 08:55 | ■ 🟡 | reviewer | ### Urteil: 🟡 freigegeben mit kleinen Punkten  ([Bericht](docs/pruefberichte/20261111-085551-reviewer-a3d58366076e04f8f.md)) |

@@ -1,7 +1,7 @@
 // P7e H4 (DESIGN 13.17.11): Zeile „Wird im Bauabschnitt durch eine … ersetzt.“ und [Ersatz zurücknehmen] entfallen, solange das
 // Blatt den Zustand „Wird auf … vergrößert“ zeigt – das ist nicht nur im offenen Abschnitt so, sondern auch nach „Abschnitt
 // abschließen“ bis zur Bestellung. Im Bau heißt der Zustand „Wird gerade vergrößert“; dort bleibt die Zeile wie bisher.
-// Lage wie tests/nr22-p7e.test.ts (H3/H4): 25er von (11|9) bis (3|7), 11 Felder, Reihenhaus (4|7) mit 16 kW → ein Stück, empfohlen 32er.
+// Lage wie tests/nr22-p7e.test.ts (H3/H4): 25er von (10|10) über (10|9) bis (3|7), 11 Felder, Reihenhaus (4|7) mit 16 kW → ein Stück, empfohlen 32er.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { KONSTANTEN, istLeitung, passendeStation } from '../src/core/katalog';
 import { bedarfKw } from '../src/core/netz';
@@ -13,7 +13,7 @@ import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18
 import { leeresDorf } from './hilfen/nr22';
 
 const T0 = 1_000_000_000_000;
-const WEG: ReadonlyArray<[number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
+const WEG: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
 // \s umfasst auch das geschützte Leerzeichen
 const norm = (t: string): string => t.replace(/\s+/g, ' ').trim();
 const leitung = (s: Spiel, x: number, y: number): Objekt => objektBei(s, x, y, (o) => istLeitung(o.typ))!;

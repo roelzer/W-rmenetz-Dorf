@@ -9,6 +9,7 @@ import type { Bedienung, TippMeldung, TutorialAnsicht, TutorialSperre, ZielName 
 import type { Objekt } from './core/typen';
 import { Effekte } from './render/effekte';
 import { FEDERN_MS } from './render/gebaeude';
+import { jahreszeit } from './render/jahreszeiten';
 import { Kamera } from './render/kamera';
 import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
@@ -23,7 +24,8 @@ import { anleiterAusblenden, anleiterKasten, anleiterPlaetze, anleiterPlatz, anl
 import { KARTEN_VORLESENAME, eingabeSperre, ersatzZiel, infoKapsel, lochRand, schleierSetzen, spotlightAus, spotlightSetzen, stupsen, zielSichtbarMachen, type Finger, type Loch, type Rechteck, type SperrLage } from './ui/spotlight';
 import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from './ui/einstellungen';
 import { Hud } from './ui/hud';
-import { ortHolen } from './core/orte';
+import { zieleOeffnen } from './ui/ziele';
+import { spielOrt } from './core/neubaugebiet';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
 import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
@@ -131,13 +133,15 @@ export class Steuerung implements Ui {
   constructor(readonly spiel: Spiel, private readonly leinwand: HTMLCanvasElement, private readonly maler: Maler, private readonly uhr: () => number) {
     // Der Schleier (ui/spotlight.ts) hängt sich direkt hinter #karte ein; main.ts setzt die id schon über index.html
     if (!leinwand.id) leinwand.id = 'karte';
+    this.kamera.kartenHoehe = spiel.kartenHoehe;
     this.katalogUi = new Katalog(this);
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });
     this.hud = new Hud(() => this.spiel, {
       bauen: () => this.bauenGetippt(),
       besuchen: () => this.doerferOeffnen(),
       einstellungen: () => einstellungenOeffnen(this, this.einstellungen, (e) => { this.einstellungen = e; this.bewegungAnwenden(); }),
-      auftrag: () => { if (this.auftrag) toast(this.auftrag.text); },
+      auftrag: () => zieleOeffnen(this.spiel, () => this.kontext(this.spiel.hz.id)),
+      geldfluss: () => this.geldflussOeffnen(),
       kwUmschalten: () => this.kwUmschalten(),
       kwAn: () => this.einstellungen.kw_anzeigen,
     });
@@ -234,7 +238,12 @@ export class Steuerung implements Ui {
   tutorialSperreKnopf(b: Bedienung): Sperre | null { return this.sperreKnopf(b, this.tutorialSperre(b)); }
   private sperreKnopf(b: Bedienung, s: TutorialSperre | null): Sperre | null {
     if (!s) return null;
-    return { grund: s.kurz, schloss: false, hinweis: () => { this.anleitung?.gesperrtGetippt(b); this.anleitungAnwenden(); return ''; } };
+    return { grund: s.kurz, schloss: false, hinweis: () => {
+      this.anleitung?.gesperrtGetippt(b);
+      this.anleitungAnwenden();
+      if (b === 'blatt_schliessen' && !s.satz) toastWichtig('Dieses Menü bleibt für den aktuellen Tutorialschritt offen.');
+      return '';
+    } };
   }
   /** Sperre von [Abschnitt abschließen], wie sie das Bild zeigt: im Zug der Stand vor dem Zug (13.17.9 F8 über imZugHalten),
    *  sonst die aktuelle. Beim Tippen liest der Knopf sie neu – nach dem Abheben ist das wieder die aktuelle. */
@@ -274,6 +283,13 @@ export class Steuerung implements Ui {
       const k = this.kamera;
       k.zentrierenBei(o.x, o.y, groesse(o), (k.breite - blattBreite_px()) / 2, k.hoehe * (this.anleitung ? T.menue.faktor.anleiter_ziel_hoehe : 0.58));
     }
+  }
+
+  neubaugebietZeigen(): void {
+    if (!this.spiel.stand.neubaugebiet) return;
+    this.kontextUi.schliessen();
+    this.kamera.kartenHoehe = this.spiel.kartenHoehe;
+    this.kamera.zentrieren(10, (N + this.spiel.kartenHoehe - 1) / 2, 1);
   }
 
   platzieren(typ: TypId): void {
@@ -417,7 +433,13 @@ export class Steuerung implements Ui {
   private bestaetigen(): void {
     const g = this.geist;
     if (!g) return;
-    if (!this.geistOk()) { toast('Hier ist kein Platz – such dir freie Wiese.'); return; }
+    if (!this.geistOk()) {
+      const bestand = this.verschiebeId != null && this.spiel.objekt(this.verschiebeId)?.bestand;
+      toast(this.spiel.sperrtAusbaureserve(g.typ, g.x, g.y, g.kante, !!bestand)
+        ? 'Dieses Feld ist für den Ausbau der Heizzentrale reserviert'
+        : 'Hier ist kein Platz – such dir freie Wiese.');
+      return;
+    }
     const r = this.verschiebeId != null ? this.spiel.verschieben(this.verschiebeId, g.x, g.y) : this.spiel.platzieren(g.typ, g.x, g.y);
     if (r.ok) { this.abbrechen(); this.geaendert(); }
     this.hinweiseZeigen();
@@ -561,13 +583,13 @@ export class Steuerung implements Ui {
   private geistSetzen(mx: number, my: number): void {
     const g = this.geist!, [fx, fy] = this.kamera.feldGenau(mx, my);
     g.x = Math.max(0, Math.min(N - g.kante, Math.round(fx - (g.kante - 1) / 2)));
-    g.y = Math.max(0, Math.min(N - g.kante, Math.round(fy - (g.kante - 1) / 2)));
+    g.y = Math.max(0, Math.min(this.spiel.kartenHoehe - g.kante, Math.round(fy - (g.kante - 1) / 2)));
   }
   /** `gesteStart`: erstes Feld einer Geste (Finger aufgesetzt) – nur dort meldet ein abgelehnter Ersatz etwas. */
   private stempelnBei(mx: number, my: number, gesteStart = false): void {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
-    if (x < 0 || y < 0 || x >= N || y >= N) {
+    if (x < 0 || y < 0 || x >= N || y >= this.spiel.kartenHoehe) {
       // E4 Regel 2: Verlässt der Finger S über den Kartenrand, ist F „außerhalb“ – S bleibt, auch beim Abheben dort
       this.stempelStart = null;
       return;
@@ -593,8 +615,9 @@ export class Steuerung implements Ui {
     }
     // A47: Die Leitung läuft gerade durch. Ein Knick entsteht nur, wenn der Finger deutlich (2 Felder) zur Seite zieht.
     const l = this.stempelLetzte;
+    if (l && x === l[0] && y === l[1]) return;
     let felder: Array<[number, number]> = [[x, y]];
-    if (l && (x !== l[0] || y !== l[1])) {
+    if (l) {
       const dx = x - l[0], dy = y - l[1];
       if (!this.stempelAchse) this.stempelAchse = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
       const entlang = this.stempelAchse === 'h' ? dx : dy, quer = this.stempelAchse === 'h' ? dy : dx;
@@ -604,15 +627,34 @@ export class Steuerung implements Ui {
       felder = [];
       for (let i = 1; i <= Math.abs(laenge); i++) felder.push(horizontal ? [l[0] + i * schritt, l[1]] : [l[0], l[1] + i * schritt]);
     }
+    const sp = this.spiel;
+    const rohrBei = (fx: number, fy: number): Objekt | undefined =>
+      sp.stand.objekte.find((o) => o.x === fx && o.y === fy && istLeitung(o.typ));
     let geaendert = false;
     if (s && this.startfeldUeberzeichnen(s, felder[0]) && this.ueberzeichnen(this.stempelTyp, s[0], s[1], true)) geaendert = true;
     for (const [fx, fy] of felder) {
-      if (!this.spiel.kannPlatzieren(this.stempelTyp, fx, fy)) {
-        const r = this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1);
-        if (r) { geaendert = true; this.stempelLetzte = [fx, fy]; }
+      const vorher = this.stempelLetzte ? rohrBei(...this.stempelLetzte) : undefined;
+      const vorhanden = rohrBei(fx, fy);
+      if (vorhanden) {
+        const verbunden = vorher ? sp.trasseBeimZeichnenVerbinden(vorher, vorhanden) : null;
+        if (verbunden && !verbunden.ok) { this.hinweiseZeigen(); break; }
+        if (verbunden || this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1)) geaendert = true;
+        this.stempelLetzte = [fx, fy];
         continue;
       }
-      if (this.spiel.platzieren(this.stempelTyp, fx, fy).ok) { geaendert = true; this.stempelLetzte = [fx, fy]; } else { this.hinweiseZeigen(); break; }
+      if (!sp.kannPlatzieren(this.stempelTyp, fx, fy)) {
+        if (sp.sperrtAusbaureserve(this.stempelTyp, fx, fy)) {
+          if (gesteStart) toast('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
+          break;
+        }
+        continue;
+      }
+      if (!sp.platzieren(this.stempelTyp, fx, fy).ok) { this.hinweiseZeigen(); break; }
+      const neu = rohrBei(fx, fy);
+      const verbunden = vorher && neu ? sp.trasseBeimZeichnenVerbinden(vorher, neu) : null;
+      geaendert = true;
+      this.stempelLetzte = [fx, fy];
+      if (verbunden && !verbunden.ok) { this.hinweiseZeigen(); break; }
     }
     if (geaendert) this.geaendert();
   }
@@ -703,15 +745,15 @@ export class Steuerung implements Ui {
 
   // ---------- je Bild ----------
   szene(): Szene {
-    const g = this.geist, v = this.besuch;
-    if (v) return { objekte: v.objekte, innen: v.innen, netz: v.netz, spiel: null, auswahl_id: null, modus: 'normal', verschiebe_id: null, jetzt_ms: this.uhr(), geist: null, stempel: null };
+    const g = this.geist, v = this.besuch, saison = jahreszeit(this.spiel.monat().nr);
+    if (v) return { saison, objekte: v.objekte, innen: v.innen, netz: v.netz, spiel: null, auswahl_id: null, modus: 'normal', verschiebe_id: null, jetzt_ms: this.uhr(), geist: null, stempel: null };
     // Je Bild genau eine Suche nach überlasteten Stücken: Saum, Dreiecke, „geplant“ und Vorschau lesen dasselbe Ergebnis.
     const stuecke = this.spiel.ueberlastStuecke();
     return {
-      objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
+      saison, objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
-      strassen: ortHolen(this.spiel.stand.ort).strassen, fluss: ortHolen(this.spiel.stand.ort).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
+      kartenHoehe: this.spiel.kartenHoehe, strassen: spielOrt(this.spiel.stand).strassen, fluss: spielOrt(this.spiel.stand).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
       ueberlast: this.ueberlastSzene(stuecke), ueberlast_vorschau: this.ueberlastVorschau(stuecke),
       ...this.szeneTutorial,
     };
@@ -744,15 +786,16 @@ export class Steuerung implements Ui {
   }
 
   /** Spiel fortschreiben, Ereignisse in Effekte/Toasts übersetzen, Oberfläche auffrischen. */
-  tick(jetzt_ms: number): void {
+  tick(jetzt_ms: number, oberflaeche_ms = jetzt_ms): void {
     // Fahrt nach der Bildzeit, nicht nach der Spieluhr – im Vorführ-Tempo wäre sie sonst sofort vorbei (Entscheidung PL)
     this.fahrtJetzt = this.kamera.fahrtLaeuft(this.bildzeit());
     this.spiel.bis(jetzt_ms);
+    this.kamera.kartenHoehe = this.spiel.kartenHoehe;
     this.ereignisse();
-    if (jetzt_ms - this.letzterAuftragMs > 1000) { this.letzterAuftragMs = jetzt_ms; this.auftrag = pruefeAuftraege(this.spiel); this.ereignisse(); }
-    if (jetzt_ms - this.letzteHudMs > 250) { this.letzteHudMs = jetzt_ms; this.hudJetzt(); this.kontextUi.aktualisieren(); }
+    if (oberflaeche_ms - this.letzterAuftragMs > 1000) { this.letzterAuftragMs = oberflaeche_ms; this.auftrag = pruefeAuftraege(this.spiel); this.ereignisse(); }
+    if (oberflaeche_ms - this.letzteHudMs > 250) { this.letzteHudMs = oberflaeche_ms; this.hudJetzt(); this.kontextUi.aktualisieren(); }
     // A92: Restzeit des Bauabschnitts im Baumenü; einmal je Sekunde reicht für eine Sekundenanzeige und schont die Bildrate (A90)
-    if (jetzt_ms - this.letzterKatalogMs >= 1000) { this.letzterKatalogMs = jetzt_ms; this.katalogUi.aktualisieren(); }
+    if (oberflaeche_ms - this.letzterKatalogMs >= 1000) { this.letzterKatalogMs = oberflaeche_ms; this.katalogUi.aktualisieren(); }
     if (this.anleitung && !this.anleitung.aktiv()) this.anleitungBeenden();
     // Weg b: Geld ändert sich auch ohne Ereignis, darum in jedem Bild prüfen (vor dem Anwenden)
     this.anleitung?.zustandPruefen();
@@ -971,13 +1014,12 @@ export class Steuerung implements Ui {
     const k = this.kamera, [cx, cy] = k.mitte(x, y), b = (kante * k.tw) / Math.SQRT2, hh = (kante * k.th) / Math.SQRT2;
     return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' };
   }
-  /** Gang im Schleier (DESIGN 13.17.1, 13.17.9 F5): jede Raute der Spur × 1,5, die Heizzentrale nur mit ihrer Grundfläche
-   *  (Gebäudehöhe und Dach bleiben unter dem Schleier, sonst stünden fremde Häuser im Gang) und beide Tutorial-Häuser. */
+  /** Gang im Schleier (DESIGN 13.17.1, 13.17.9 F5): die Heizzentrale nur mit ihrer Grundfläche (Gebäudehöhe und Dach bleiben
+   *  unter dem Schleier, sonst stünden fremde Häuser im Gang) und beide Tutorial-Häuser. */
   private schleierGang(a: TutorialAnsicht): Loch[] {
-    const rauten = a.band.map(({ x, y }) => this.rautenLoch(x, y, 1.5));
     const hz = this.kartenObjekt(a, 'heizzentrale')!, g = groesse(hz);
     const haeuser = (['haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
-    return [...rauten, this.rautenLoch(hz.x + (g - 1) / 2, hz.y + (g - 1) / 2, g),
+    return [this.rautenLoch(hz.x + (g - 1) / 2, hz.y + (g - 1) / 2, g),
       ...haeuser.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
   }
 
@@ -1042,11 +1084,12 @@ export class Steuerung implements Ui {
     if (this.leiste && (abschliessen?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
     this.tutorialSzeneSetzen(a);
     // Vor der Schlüsselprüfung: schleierSetzen baut nur bei geändertem Gang neu auf, folgt so aber jeder Kamerabewegung
-    schleierSetzen(a.ruhe ? this.schleierGang(a) : null);
+    // Ohne Abdunkelung (Leitung ziehen, T13–T13h) gibt es auch keinen Schleier: die Karte bleibt ganz frei
+    schleierSetzen(a.ruhe && a.abdunkeln !== 'nichts' ? this.schleierGang(a) : null);
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
     const ringEl = this.ringKnopf(ring_id), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
-    // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): Lochrand in der Zeichenleiste, die nur_hud ohnehin nicht abdunkelt
+    // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): nur der Lochrand in der Zeichenleiste; beim Leitungsziehen gibt es keinen Schleier
     // 13.17.9 F7: Am Farbknopf liegt der Ring 2 px eng an, damit er die Kennzeile darunter nicht berührt
     const ringLoch = (r: Rechteck): Loch => ({ r, form: 'rund', ...(ringEl?.classList.contains('farbknopf') ? { abstand_px: T.menue.mass_px.spot_abstand_farbknopf } : {}) });
     const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [ringLoch(ringR)] : [])];
@@ -1059,7 +1102,7 @@ export class Steuerung implements Ui {
     const bild = { breite: k.breite, hoehe: k.hoehe };
     const freierPlatz = anleiterPlatzFrei(frei, loecher.map(lochRand), bild, kartenHoehe_px);
     if (!freierPlatz && a.kamera !== 'frei' && !this.fahrtJetzt && this.zieleFreistellen(ziele, frei, kartenHoehe_px, this.freistellLage(a, frei, kartenHoehe_px))) {
-      this.anleitungAnwenden();
+      this.neuAnwenden();
       return;
     }
 
@@ -1070,7 +1113,12 @@ export class Steuerung implements Ui {
       this.gescrollt.add(z);
       // ohne Layout (Rechteck 0 × 0) gibt es nichts ins Bild zu holen
       const r = el.getBoundingClientRect();
-      if (r.width > 0 || r.height > 0) zielSichtbarMachen(el, ruhig, () => this.anleitungAnwenden());
+      if (r.width > 0 || r.height > 0) {
+        // Nach dem Scrollen komplett neu vermessen. Das alte Loch darf nicht anschließend mit den Koordinaten von vor
+        // dem Scrollen wieder eingesetzt werden – sonst ist das sichtbare Ziel auf dem Handy trotzdem nicht anklickbar.
+        zielSichtbarMachen(el, ruhig, () => this.neuAnwenden());
+        return;
+      }
     }
     const erstes = ziele[0]?.l?.loch.r ?? null;
     const finger = this.vorfuehrFinger(a, erstes, ringR, fingerRuht);
@@ -1084,7 +1132,8 @@ export class Steuerung implements Ui {
     else anleiterZeigen(a, freierPlatz ?? anleiterPlatz(frei, erstes, bild), { weiter: () => this.tutorialMelden({ art: 'tipp', tipp: 'weiter' }) }, this.uhr());
     const haus1 = this.spiel.objekt(a.objekt_ids.haus1);
     infoKapsel(a.info_kapsel ?? null, a.info_kapsel && haus1 ? this.objektRechteck(haus1, true) : null);
-    this.sperrLage = { fahrt: this.fahrtJetzt, anleiter: null, abdunkeln: a.abdunkeln, art: a.art, loecher: loecher.map((l) => l.r) };
+    // Die Karte ist beim Zeichnen hell, die Eingaberegel bleibt aber wie beim früheren HUD-Spotlight.
+    this.sperrLage = { fahrt: this.fahrtJetzt, anleiter: null, abdunkeln: a.spur ? 'nur_hud' : a.abdunkeln, art: a.art, loecher: loecher.map((l) => l.r) };
     // 13.11/K9: Kartenziel eines Handlungs-Schritts bekommt ein fokussierbares Ersatz-Element mit Vorlesenamen
     const z0 = a.art === 'H' ? a.ziele[0] : undefined, karte0 = z0 && istKartenziel(z0) ? this.kartenObjekt(a, z0) : null;
     ersatzZiel(z0 && istKartenziel(z0) && karte0 && erstes ? { r: erstes, name: KARTEN_VORLESENAME[z0], enter: () => this.kartenzielGetippt(karte0.id) } : null);
@@ -1107,6 +1156,14 @@ export class Steuerung implements Ui {
       });
     }
   }
+  /** Zweiter Durchlauf von anleitungAnwenden nach Scrollen oder Freistellen. Der Schlüssel wird geleert, Schritt und freie
+   *  Breite bleiben (sonst griffe `wechsel` erneut und leerte `gescrollt`): Hat sich am Bild nichts geändert (nichts zu
+   *  scrollen, Kamera an der Grenze), endete der Durchlauf sonst am gleichen Schlüssel, und Karte, Loch und Sperre blieben
+   *  dauerhaft auf dem vorigen Schritt stehen (Fehler T11/T14 auf dem Handy, 2026-11-11). */
+  private neuAnwenden(): void {
+    if (this.angewendet) this.angewendet = { ...this.angewendet, schluessel: '' };
+    this.anleitungAnwenden();
+  }
   /** ENTSCHEIDUNGEN 2026-11-06 (Muss M1): Kein Schritt steht nach dem Neuladen ohne erreichbares Ziel. Fehlt ein Baumenü-Ziel
    *  (T11 kasten_abschnitt, T12 leitungskarte), öffnet der Wiedereinstieg das Baumenü auf „Leitungen“ – sonst sperrte das
    *  Abdunkeln auch [Bauen], und das Tutorial hinge. Vor dem Messen der freien Fläche, weil das Blatt sie verkleinert. */
@@ -1119,6 +1176,22 @@ export class Steuerung implements Ui {
   private leisteHerstellen(a: TutorialAnsicht): void {
     if (this.leiste || (!a.zeichenleiste && !a.ziele.includes('abschliessen'))) return;
     this.stempeln(a.zeichenleiste?.typ ?? this.spiel.tutorialWerte().anschluss);
+  }
+
+  private geldflussOeffnen(): void {
+    if (this.spiel.tutorialAktiv() || this.besuch) return;
+    const sp = this.spiel, monat = sp.monat(), a = sp.stand.letzte_abrechnung;
+    const { inhalt } = blattOeffnen({ titel: 'Geldfluss', art: 'popup' });
+    inhalt.append(
+      h('p', {}, `Kontostand: ${eur(sp.verfuegbareEuro)}`),
+      h('p', {}, `Nächste Abrechnung: Ende ${sp.monatsname(monat.nr)}`),
+      a ? h('div', { class: 'kasten' },
+        h('h3', {}, `Letzte Abrechnung · ${sp.monatsname(a.monat)}`),
+        h('p', {}, `${a.kunden} Kunden · ${a.waerme_kwh.toLocaleString('de-DE')} kWh`),
+        h('p', {}, `Wärme ${eur(a.waerme_eur)} + Grundgebühr ${eur(a.grund_eur)} = ${eur(a.summe_eur)}`),
+        a.eingang_eur === undefined ? null : h('p', {}, `Eingegangen: ${eur(a.eingang_eur)}`))
+        : h('p', {}, 'Es gibt noch keine Monatsabrechnung.'),
+    );
   }
   private hudJetzt(): void { this.hud.aktualisieren(this.auftrag); }
   private hinweiseZeigen(): void { this.ereignisse(); }
@@ -1143,3 +1216,4 @@ export class Steuerung implements Ui {
     }
   }
 }
+

@@ -10,7 +10,7 @@ import { Maler } from '../src/render/maler';
 import { dauerText } from '../src/render/gebaeude';
 import { bodenEbeneEinrichten, zeichneSzene, type Szene } from '../src/render/szene';
 import { toastDauer_ms } from '../src/ui/toast';
-import { altesStartdorf } from './hilfen/altes-startdorf';
+import { altesStartdorf, frueheresAusbauHaus } from './hilfen/altes-startdorf';
 import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
 import type { El } from './hilfen/dom-attrappe';
 import { neu as neuesObjekt } from './hilfen';
@@ -246,6 +246,7 @@ describe('NR18-D (5) Mehrfach-Hinweis beim Abschließen', () => {
   it('NR18-D: zwei Stücke – nur „2 Stellen sind nach dem Bau zu dünn – die Liste steht im Baumenü.“', () => {
     const { s } = mitEinerEngstelle();
     // zweites Stück: 25er-Stichleitung mit Mehrfamilienhaus (über 15 kW) am Ende, wie tests/nr18-kern.test.ts
+    s.stand.objekte.push(frueheresAusbauHaus(s.stand.naechste_id++));
     zeichne(s, 'd25', [[12, 12]]);
     const c = haus(s, 13, 12);
     c.aufgestockt = true; c.vollversorgung = true;

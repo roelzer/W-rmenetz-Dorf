@@ -450,7 +450,7 @@ describe('NR13 P4 Einbindung – Teil 2', () => {
     }, { uhr: () => uhr.t });
   });
 
-  for (const [breite, hoehe] of [[844, 390], [667, 375]] as const) {
+  for (const [breite, hoehe] of [[844, 390], [667, 375], [844, 320], [667, 320]] as const) {
     it(`test_nr13_t22_kamera_eingepasst (${breite}×${hoehe}): nach der Fahrt liegen Heizzentrale und beide Häuser in der freien Fläche minus 24 px, Zoom ≤ 3`, async () => {
       const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
       let bild = 10_000;
@@ -973,4 +973,38 @@ describe('NR13 P4 Einbindung – Teil 6', () => {
       }, { uhr: () => uhr.t, breite, hoehe });
     });
   }
+});
+
+
+describe('NR13 Fix 2026-11-11: sichtbares Blatt-Ziel', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  // Fehler im Browser (T14 bei 852×393, T11 bei 667×375): Liegt das Ziel schon sichtbar in einem Blatt, muss nichts gescrollt
+  // werden; der zweite Durchlauf von anleitungAnwenden endete dann am unveränderten Schlüssel, und Karte, Loch und Sperre
+  // blieben auf dem vorigen Schritt stehen. Die DOM-Nachbildung meldet sonst 0 × 0 und überspringt diesen Weg.
+  it('test_nr13_t14_sichtbares_blattziel: nach dem Zug bis Haus 2 zeigt die Karte den T14-Text und das Loch sperrt daneben', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, async (u) => {
+      const { eingabeErlaubt } = await import('../src/ui/spotlight');
+      bisT13(u, spiel, uhr);
+      expect(zielEl(u, 'abschliessen')).not.toBeNull();
+      // Die Leiste baut den Knopf beim Schrittwechsel neu – darum jedes Element „abschliessen“ mit sichtbarem Rechteck
+      const alt = El.prototype.getBoundingClientRect;
+      vi.spyOn(El.prototype, 'getBoundingClientRect').mockImplementation(function (this: El) {
+        return this.getAttribute('data-ziel') === 'abschliessen'
+          ? { left: 600, top: 320, right: 820, bottom: 370, width: 220, height: 50, x: 600, y: 320 } : alt.call(this);
+      });
+      vonT13BisT13h(u, spiel, uhr);
+      wischeFelder(u, ZUG_HAUS1);
+      s2(u).tick(uhr.t);
+      wischeFelder(u, ZUG_HAUS2);
+      s2(u).tick(uhr.t);
+      expect(schrittJetzt(u)).toBe('T14');
+      const text = u.dom.doc.querySelector('#anleiter .anleiter-text')?.textContent.replace(/\s+/g, ' ').trim();
+      expect(text).toBe('Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.');
+      expect(u.dom.doc.querySelectorAll('.spot-ring').length).toBeGreaterThan(0);
+      expect(eingabeErlaubt(5, 5)).toBe(false);
+    }, { uhr: () => uhr.t });
+  });
 });

@@ -18,6 +18,7 @@ export interface Ui {
   verschieben(id: number): void;
   katalog(kategorie?: string): void;
   kontext(id: number | null): void;
+  neubaugebietZeigen?(): void;
   /** NR13: Blätter melden reine Bedienschritte an das Tutorial (AE-NR13-5) */
   tutorialMelden(m: TippMeldung): void;
   /** NR13: Sperre eines Knopfs durch das Tutorial; null = frei */

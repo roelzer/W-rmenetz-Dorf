@@ -10,10 +10,10 @@ import { leeresDorf } from './hilfen/nr22';
 
 // P7d (Entscheidung PL 2026-11-08 nach Tester P7t): [Zurücknehmen] im Kasten „Überlastet“ erscheint nur, wenn mindestens ein
 // Feld des Stücks Ersatz in genau der empfohlenen Größe hat – sonst gäbe es nichts zurückzunehmen.
-// Lage wie tests/nr22-blatt.test.ts (dort von Hand hergeleitet): 25er von (11|9) bis (3|7), 11 Felder, Reihenhaus (4|7) mit
+// Lage wie tests/nr22-blatt.test.ts (dort von Hand hergeleitet): 25er von (10|10) über (10|9) bis (3|7), 11 Felder, Reihenhaus (4|7) mit
 // 16 kW am Ende; die 25er schafft 15 kW → ein Stück, empfohlen 32er. Preis je Feld 32er: 560 € − 50 % von 400 € = 360 €.
 const T0 = 1_000_000_000_000;
-const WEG: ReadonlyArray<[number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
+const WEG: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
 const norm = (t: string): string => t.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 const leitung = (s: Spiel, x: number, y: number): Objekt => objektBei(s, x, y, (o) => istLeitung(o.typ))!;
 const wegLeitungen = (s: Spiel): Objekt[] => WEG.map(([x, y]) => leitung(s, x, y));

@@ -5,6 +5,7 @@ import { h } from './dom';
 import { logoElement, schriftzug } from './vorspann';
 import { tempo, tempoSetzen, TEMPO_STUFEN } from '../tempo';
 import type { Ui } from './schnittstelle';
+import { installationsKasten } from './installation';
 
 const SCHLUESSEL = 'waermedorf-einstellungen-v1';
 
@@ -60,7 +61,9 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),
       h('p', { class: 'gedaempft' }, 'Für Vorführungen: Die Spielzeit läuft schneller. Normal ist das vorgesehene Tempo.'),
       h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'gewaehlt' : '', { klein: true })))),
+    installationsKasten(),
     sicherungKasten(ui),
+    entwicklerKasten(ui),
     h('div', { class: 'knopfreihe' }, loeschen),
     h('div', { class: 'kasten' }, h('h3', {}, 'Hinweis'), h('p', {}, 'Alle Wärmenetze und Werte sind fiktiv. Das Spiel vereinfacht stark und ersetzt keine echte Planung.'),
       h('p', { class: 'gedaempft' }, 'Dein Spielstand liegt nur auf diesem Gerät. Es gibt kein Konto und es werden keine Daten gesendet.'),
@@ -92,4 +95,36 @@ function sicherungKasten(ui: Ui): HTMLElement {
   return h('div', { class: 'kasten' }, h('h3', {}, 'Sicherung'),
     h('p', { class: 'gedaempft' }, 'Speichere dein Dorf als Datei, z. B. vor einem Handywechsel. Beim Laden wird der jetzige Spielstand ersetzt.'),
     h('div', { class: 'knopfreihe' }, sichern, laden), datei);
+}
+
+/** Lokale Testcodes. Die Prüfsummen sind kein Zugriffsschutz für das öffentliche Spiel. */
+const TESTCODES = new Map<string, 'kasse' | 'unbegrenzt'>([
+  ['0875e09f45ecd97336ade0dfa6204e95fcc4f3d88defc583a6886ddb75fe314b', 'kasse'],
+  ['047162feacc99f4d7817de7862dfcf2e2208a1386857e49bcc00cddb5fa08c5e', 'unbegrenzt'],
+]);
+
+function entwicklerKasten(ui: Ui): HTMLElement {
+  const feld = h('input', { class: 'feld', type: 'password', id: 'entwicklerpasswort', autocomplete: 'off', maxlength: 80 });
+  const status = h('p', { role: 'status', class: 'gedaempft' }, ui.spiel.testwaehrungUnbegrenzt ? 'Unbegrenzte Währung ist aktiv.' : '');
+  const form = h('form', {},
+    h('label', { for: 'entwicklerpasswort' }, 'Entwicklerpasswort'), feld,
+    h('div', { class: 'knopfreihe' }, h('button', { type: 'submit', class: 'knopf los klein' }, 'Code anwenden')),
+    status);
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const code = feld.value.trim();
+    feld.value = '';
+    try {
+      const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code)));
+      const hash = Array.from(bytes, n => n.toString(16).padStart(2, '0')).join('');
+      const art = TESTCODES.get(hash);
+      if (!art) { status.textContent = 'Entwicklerpasswort ungültig.'; return; }
+      const ergebnis = ui.spiel.entwicklerhilfeAnwenden(art);
+      status.textContent = ergebnis.hinweis ?? '';
+      if (ergebnis.ok) ui.geaendert();
+    } catch {
+      status.textContent = 'Der Code konnte in diesem Browser nicht geprüft werden.';
+    }
+  });
+  return h('div', { class: 'kasten' }, h('h3', {}, 'Entwicklermodus'), form);
 }

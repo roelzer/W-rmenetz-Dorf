@@ -83,16 +83,19 @@ describe('Review P5f-1 W1 (a): Rest-Stück-Regel erst ab T13h', () => {
     expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13w', fremd: [] });
   });
 
-  it('test_w1_t13_planungsfehler_bleibt: im laufenden Zug in T13 volle Spur + (11|13) → beide Häuser ok mit Aufteilung, gestreift wie vor P5f-1', () => {
+  // Früher mit dem Vierer-Ring (11|13) (Aufteilung). Seit main 859dda7 lehnt der Kern Ringe ab; derselbe Fall „beide Häuser ok
+  // und ein Planungsfehler“ entsteht ohne Ring mit einem Engpass-Stummel (10|10) 25er → (10|9) 32er (tests/nr21-kern.test.ts
+  // test_nr21_fremd_planungsfehler_sortiert).
+  it('test_w1_t13_planungsfehler_bleibt: im laufenden Zug in T13 volle Spur + Engpass-Stummel (10|10),(10|9) → beide Häuser ok mit Planungsfehler, gestreift wie vor P5f-1', () => {
     const { s, t } = inT13();
     t.zugBeginnt();
-    for (const [typ, x, y] of [...HAUPT, ...ANSCHLUSS_1, ...ANSCHLUSS_2, ['d25', 11, 13] as const]) {
+    for (const [typ, x, y] of [...HAUPT, ...ANSCHLUSS_1, ...ANSCHLUSS_2, ['d25', 10, 10] as const, ['d32', 10, 9] as const]) {
       expect(s.platzieren(typ, x, y).ok, `${typ} auf (${x}|${y})`).toBe(true);
       t.schritt({ schritt: 'leitung_gezeichnet' });
     }
     const lg = s.tutorialLeitungen();
-    expect([lg.haus1_ok, lg.haus2_ok, lg.planungsfehler, lg.fremd_haus], 'Testaufbau (tests/nr21-kern.test.ts Vierer-Ring)').toEqual([true, true, true, null]);
-    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13', text: SATZ_EIGENER_ABGANG, fremd: [[11, 13]], finger_weg: [] });
+    expect([lg.haus1_ok, lg.haus2_ok, lg.planungsfehler, lg.fremd_haus], 'Testaufbau (tests/nr21-kern.test.ts Engpass-Stummel)').toEqual([true, true, true, null]);
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13', text: SATZ_EIGENER_ABGANG, fremd: [[10, 9], [10, 10]], finger_weg: [] });
     expect(t.sperre('abschliessen')?.kurz).toBe(KURZ_WEG);
   });
 

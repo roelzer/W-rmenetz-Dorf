@@ -1,4 +1,5 @@
-import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
+import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istAltanlage, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
+import { erzeugerAbStufe } from '../core/freischaltung';
 import { chip, knopf, symbol } from './bausteine';
 import { NICHTS_GEZEICHNET, ersteSperre, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
@@ -66,9 +67,12 @@ export class Katalog {
     const reiter = h('div', { class: 'reiter', role: 'tablist' }, ...BAU_KATEGORIEN.map(([k, name]) =>
       h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === this.kategorie), 'aria-label': name, class: `knopf klein ${k === this.kategorie ? 'gewaehlt' : ''}`, 'data-ziel': k === 'netz' ? 'reiter_leitungen' : null, onclick: () => { this.kategorie = k; this.aufbauen(); if (k === 'netz') this.ui.tutorialMelden({ art: 'tipp', tipp: 'reiter_leitungen' }); } },
         symbol(REITER[k]?.symbol ?? 'bauen', 'sym reiter-sym'), h('span', { class: 'wort lang' }, name), h('span', { class: 'wort kurz' }, REITER[k]?.kurz ?? name))));
-    const raster = h('div', { class: 'raster' });
-    const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz');
-    for (const t of typen) raster.append(this.karte(t));
+    const raster = h('div', { class: this.kategorie === 'innen' ? 'erzeugerliste' : 'raster' });
+    const typen = (Object.keys(KATALOG) as TypId[]).filter((t) => KATALOG[t].kategorie === this.kategorie && t !== 'hz' && !istAltanlage(t));
+    if (this.kategorie === 'innen') {
+      raster.append(h('p', { class: 'gedaempft' }, 'Wähle eine feste Leistungsklasse. Für ein größeres Modell kannst du eine alte Anlage im Heizhaus verkaufen.'));
+      for (const t of typen.sort((a, b) => erzeugerAbStufe(a, 1) - erzeugerAbStufe(b, 1))) raster.append(this.erzeuger(t));
+    } else for (const t of typen) raster.append(this.karte(t));
     if (!typen.length) raster.append(h('p', {}, 'In dieser Kategorie gibt es noch nichts zu bauen.'));
     this.blatt.inhalt.replaceChildren(reiter, h('div', { style: 'height:8px' }), ...(this.kategorie === 'netz' ? [this.abschnittKasten(), h('div', { style: 'height:8px' })] : []), raster);
     void s;
@@ -90,12 +94,14 @@ export class Katalog {
       // A88/F1: Gestattung, Spülbohrung, Anbohrung und Vorsehung erst erwähnen, wenn sie freigeschaltet sind – vorher kosten sie nichts.
       const anschluesse = sp.abschnittAnschluesse();
       const saetze = [
-        `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}. Leitungen liegen am besten in der öffentlichen Straße. Grenzt eine Leitung an ein Haus, kann es darüber Wärme bekommen – den kurzen Abzweig setzt das Spiel selbst. Endet ein eigenes Leitungsstück am Haus, ist es sein Hausanschluss${anschluesse.length ? ` – in diesem Abschnitt: ${anschluesse.length} (${anschluesse.map((a) => KATALOG[a.typ].name).slice(0, 4).join(', ')}${anschluesse.length > 4 ? ' …' : ''})` : ''}; er muss dick genug für das Haus sein.`,
+        `Leitungen liegen am besten in der öffentlichen Straße. Grenzt eine Leitung an ein Haus, kann es darüber Wärme bekommen – den kurzen Abzweig setzt das Spiel selbst. Endet ein eigenes Leitungsstück am Haus, ist es sein Hausanschluss${anschluesse.length ? ` – in diesem Abschnitt: ${anschluesse.length} (${anschluesse.map((a) => KATALOG[a.typ].name).slice(0, 4).join(', ')}${anschluesse.length > 4 ? ' …' : ''})` : ''}; er muss dick genug für das Haus sein.`,
+        'Zum Andocken zieh direkt über den Übergang zur Bestandsleitung oder wähle am Rohr „Trassen verbinden“.',
         sp.freigeschaltet('gestattung') ? `Abseits davon brauchst du die Gestattung des Eigentümers (${eur(KONSTANTEN.gestattung_eur_je_feld)} je Feld${sp.gestattungsFelder().length ? `, aktuell ${sp.gestattungsFelder().length} Felder = ${eur(sp.gestattung_eur())}` : ''}).` : '',
         sp.freigeschaltet('spuelbohrung') ? `Über den Fluss kommst du im Spiel nur per Spülbohrung (${eur(KONSTANTEN.bohrung_eur_je_feld)} je Feld${sp.bohrungsFelder().length ? `, aktuell ${eur(sp.bohrung_eur())}` : ''}).` : '',
         sp.freigeschaltet('vorsehung') ? `Dockst du an eine laufende Leitung an, muss sie angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}${sp.anbohrungsFelder().length ? `, aktuell ${sp.anbohrungsFelder().length}× = ${eur(sp.anbohrung_eur())}` : ''}) – außer an einem Leitungsende oder an einem T-Stück mit Vorsehung (${eur(KONSTANTEN.vorsehung_eur)}), das du jetzt beim Bau mit einplanst.` : '',
       ];
-      k.append(h('p', { class: 'gedaempft' }, saetze.filter(Boolean).join(' ')),
+      k.append(h('p', { class: 'gedaempft abschnitt-kurz' }, `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}.`),
+        h('details', { class: 'abschnitt-hilfe' }, h('summary', {}, 'Tipps zu Trassen und Anschlüssen'), h('p', { class: 'gedaempft' }, saetze.filter(Boolean).join(' '))),
         h('div', { class: 'knopfreihe' },
           knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, sperre: n ? null : NICHTS_GEZEICHNET }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('verwerfen') })));
@@ -107,7 +113,7 @@ export class Katalog {
       if (warnungen.length) k.append(h('div', { class: 'warnstreifen', role: 'note' }, h('h3', {}, 'Nach dem Bau zu dünn'), ...warnungen.map((w) => h('p', {}, w))));
       k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${dauerText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}`),
         h('div', { class: 'knopfreihe' },
-          ziel(knopf(`${ABSCHNITT_HELFER.material}: Material bestellen`, () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }), 'laura'),
+          ziel(knopf('Material bei Laura bestellen', () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }), 'laura'),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('weiter_einzeichnen') }),
           knopf('Verwerfen', () => { sp.abschnittVerwerfen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('verwerfen') })));
     } else {
@@ -122,6 +128,28 @@ export class Katalog {
     return k;
   }
 
+  private erzeuger(t: TypId): HTMLElement {
+    const { spiel: sp } = this.ui, d = KATALOG[t];
+    const k = h('div', { class: 'kasten' }, h('h3', {}, d.name), h('p', {}, d.beschreibung));
+    if (d.vorteil || d.nachteil) k.append(h('p', { class: 'gedaempft' }, [d.vorteil, d.nachteil].filter(Boolean).join(' · ')));
+    for (const [i, kw] of d.leistung_kw!.entries()) {
+      const modell = i + 1, preis = d.kosten_eur![i], grund = sp.erzeugerSperrgrund(t, modell);
+      const daten = [`${kw} kW Wärme`];
+      if (d.strom_je_waerme) daten.push(`${Math.round(kw * d.strom_je_waerme)} kW Strom`);
+      if (d.elektrisch) daten.push('braucht Strom');
+      daten.push(`ab Heizhausstufe ${erzeugerAbStufe(t, modell)}`, dauerText(d.bauzeit_s![i] * KONSTANTEN.bauzeit_faktor) + ' Bauzeit');
+      const kaufen = knopf(`${kw} kW kaufen`, () => {
+        if (sp.innenEinbauen(t, false, modell).ok) this.schliessen();
+        this.ui.geaendert();
+      }, 'geld', {
+        klein: true, unter: eur(preis),
+        sperre: grund ? { grund, schloss: true, hinweis: `Dieses Modell gibt es ${grund}.` } : geldSperre(sp, preis),
+      });
+      k.append(h('div', { class: 'knopfreihe' }, kaufen), h('p', { class: 'gedaempft' }, daten.join(' · ')));
+    }
+    return k;
+  }
+
   private karte(t: TypId): HTMLElement {
     const { spiel: sp } = this.ui, s = sp.stand, D = KATALOG[t];
     const innen = D.kategorie === 'innen';
@@ -131,7 +159,7 @@ export class Katalog {
     const voll = !innen && !gesperrt && gesamtLeitungen >= grenze;
     const c = sp.kosten(t, 1);
     const kostetText = c.taler != null ? `${c.taler} Taler` : eur(c.eur ?? 0);
-    const zuTeuer = c.taler != null ? s.taler < c.taler : s.geld_eur < (c.eur ?? 0);
+    const zuTeuer = c.taler != null ? sp.verfuegbareTaler < c.taler : sp.verfuegbareEuro < (c.eur ?? 0);
     const antrag = s.antraege[t];
     // NR13: erst die normale Aktion (Zeichenleiste öffnet), dann die Meldung – so ist die Leiste offen, wenn das Tutorial weiterzählt
     const leitung = istLeitung(t);
@@ -147,14 +175,14 @@ export class Katalog {
   }
 
   private waehlen(t: TypId): void {
-    const { spiel: sp } = this.ui, D = KATALOG[t], s = sp.stand;
+    const { spiel: sp } = this.ui, D = KATALOG[t];
     const grund = sp.sperrgrund(t);
     // DESIGN.md 12.20 (Katalogkarten): derselbe Wortlaut wie an den gesperrten Knöpfen (Regel 5/6)
     if (grund) { this.ui.toast(`${D.name} ${grund}. Baue die Heizzentrale aus.`); return; }
     const c = sp.kosten(t, 1);
-    const fehltGeld = c.eur != null && !istLeitung(t) ? geldHinweis(c.eur - s.geld_eur) : null;
+    const fehltGeld = c.eur != null && !istLeitung(t) ? geldHinweis(c.eur - sp.verfuegbareEuro) : null;
     if (fehltGeld) { this.ui.toast(fehltGeld); return; }
-    const fehltTaler = c.taler != null ? talerHinweis(c.taler - s.taler) : null;
+    const fehltTaler = c.taler != null ? talerHinweis(c.taler - sp.verfuegbareTaler) : null;
     if (fehltTaler) { this.ui.toast(fehltTaler); return; }
     if (D.kategorie === 'innen') {
       const r = sp.innenEinbauen(t);
@@ -170,3 +198,4 @@ export class Katalog {
     this.ui.platzieren(t);
   }
 }
+

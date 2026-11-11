@@ -8,6 +8,7 @@ import { ladenMitBefund, serialisieren, SPEICHER_SCHLUESSEL, speichernErlaubt } 
 import { Spiel } from './core/spiel';
 import { neuesSpielMitTutorial } from './core/start';
 import { Maler } from './render/maler';
+import { grafikenLaden } from './render/grafiken';
 import { bodenEbeneEinrichten, bodenEbeneVerwerfen, zeichneSzene } from './render/szene';
 import { animationBedarf, szenenSchluessel } from './render/szene-schluessel';
 import { neuerTakt, sollZeichnen, type BildProbe } from './render/takt';
@@ -15,15 +16,18 @@ import { animationAus, bildAbschluss, sparHinweisSchritt } from './render/schlei
 import { aufloesungGeaendert, zeichenAufloesung, type Aufloesung } from './render/aufloesung';
 import { Steuerung } from './steuerung';
 import { tokensAnwenden } from './ui/tokens';
+import { sprecherFotosVorladen } from './ui/sprecher';
 import { vorspannZeigen } from './ui/vorspann';
 import { hinweisMitKnopf } from './ui/toast';
 import { beiEinstellungsAenderung, einstellungenLesen, type Einstellungen } from './ui/einstellungen';
 import { tempoSpeichern, uhr } from './tempo';
+import { installationStarten } from './ui/installation';
 
 tokensAnwenden();
 /** Nur lesen: Änderungen kommen über beiEinstellungsAenderung; geschrieben wird von der Oberfläche, nie von hier. */
 let einstellungen: Einstellungen = einstellungenLesen();
 vorspannZeigen(einstellungen.weniger_bewegung);
+sprecherFotosVorladen();
 
 const lesen = (): string | null => { try { return localStorage.getItem(SPEICHER_SCHLUESSEL); } catch { return null; } };
 /** Einen unbrauchbaren Spielstand sichern, bevor er vom neuen Spiel überschrieben wird. */
@@ -43,6 +47,7 @@ else if (geladen.befund === 'migriert') startHinweis = 'Das Dorf hat jetzt Stra�
 try {
   spiel = new Spiel(geladen.stand, uhr);
   weg = { geld_eur: geladen.stand.geld_eur, seit_ms: geladen.stand.zuletzt_ms, bau: geladen.stand.objekte.filter((o) => o.bau).length };
+  spiel.gartenumbauRueckgaengig();
   spiel.bis(uhr());
 } catch (fehler) {
   console.warn('Spielstand führte zu einem Fehler, neues Dorf', fehler);
@@ -55,6 +60,9 @@ try {
 const leinwand = document.getElementById('karte') as HTMLCanvasElement;
 const maler = new Maler(leinwand.getContext('2d')!);
 const steuerung = new Steuerung(spiel, leinwand, maler, uhr);
+// Der Installationshinweis darf das Tutorial und dessen Ziele nie verdecken. Bei bestehenden Dörfern startet er sofort,
+// bei neuen Spielern erst nach dem vollständigen Tutorial.
+steuerung.nachTutorial(() => installationStarten());
 const kamera = steuerung.kamera;
 let ersteMeldung = startHinweis;
 // K6 (DESIGN 13.15): Im Tutorial entfällt „Willkommen zurück“ ganz und wird nicht nachgeholt.
@@ -86,6 +94,10 @@ function groesseAnpassen(): void {
   if (kamera.groesseSetzen(r.width, r.height, a.faktor)) steuerung.zentrieren();
 }
 window.addEventListener('resize', groesseAnpassen);
+// Die mobile Browserleiste verändert den sichtbaren Bereich nicht in jeder iOS-Version über ein zuverlässiges
+// window.resize. Bleiben Kamera/Leinwand auf dem alten Seitenverhältnis, streckt CSS das Bild und Häuser wirken verzerrt.
+window.visualViewport?.addEventListener('resize', groesseAnpassen);
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(groesseAnpassen).observe(leinwand.parentElement!);
 groesseAnpassen();
 beiEinstellungsAenderung((e) => {
   const sparWechsel = e.sparmodus !== einstellungen.sparmodus;
@@ -95,6 +107,7 @@ beiEinstellungsAenderung((e) => {
 });
 /** Rückkehr in die App oder Leinwand-Verlust: der zwischengespeicherte Boden kann leer sein – freigeben und sofort neu zeichnen. */
 const neuAufbauen = (): void => { bodenEbeneVerwerfen(); erzwingen = true; };
+void grafikenLaden().then(neuAufbauen);
 // Zweitleinwand für den ruhenden Boden; sie kann ihren Inhalt wie die Karte verlieren (Speicherdruck auf dem Handy).
 bodenEbeneEinrichten((b, h) => {
   const c = document.createElement('canvas');
@@ -149,7 +162,7 @@ let letzt = performance.now(), letztGezeichnet = letzt, letzteKamera = '';
 const t0 = letzt;
 function bild(jetzt: number): void {
   const raf_abstand_ms = jetzt - letzt; letzt = jetzt;
-  steuerung.tick(uhr());
+  steuerung.tick(uhr(), jetzt);
   kamera.schritt(raf_abstand_ms / 1000);
   // Überschreibt steuerung.bewegungAnwenden je Bild absichtlich: der Sparmodus schaltet die Umgebungsanimation ebenfalls ab.
   maler.reduziert = animationAus(einstellungen);
@@ -207,3 +220,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 }
 // A83: Den Browser bitten, den Spielstand dauerhaft zu behalten (vor allem iPhone/Safari räumen sonst auf).
 void navigator.storage?.persist?.().catch((f: unknown) => console.warn('Dauerhafter Speicher abgelehnt', f));
+
+// Der Startstatus funktioniert auch ohne Spielskript. Erst nach erfolgreichem Start übernimmt die Oberfläche.
+document.getElementById('startstatus')?.setAttribute('hidden', '');
+document.getElementById('drehen')?.removeAttribute('hidden');

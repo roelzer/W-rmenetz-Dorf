@@ -192,8 +192,8 @@ describe('NR18-P4 Engstellen-Markierung (Bauplan 5.1)', () => {
 });
 
 describe('NR18-P4 Leitung mit geplantem Ersatz (Bauplan P4)', () => {
-  function szeneMit(leitung: Partial<Objekt>): string[] {
-    const objekte = [neu('hz', 10, 10), neu('d25', 12, 10, leitung), neu('d25', 13, 10), neu('efh', 14, 10)];
+  function szeneMit(leitung: Partial<Objekt>, gebaeude = neu('efh', 14, 10)): string[] {
+    const objekte = [neu('hz', 10, 10), neu('d25', 12, 10, leitung), neu('d25', 13, 10), gebaeude];
     const s: Szene = {
       objekte, innen: [], netz: berechneNetz(objekte, [], 2), spiel: null, auswahl_id: null, modus: 'normal', geist: null,
       verschiebe_id: null, stempel: null, jetzt_ms: 1000, strassen: [], fluss: [], kw_anzeigen: true,
@@ -206,6 +206,18 @@ describe('NR18-P4 Leitung mit geplantem Ersatz (Bauplan P4)', () => {
     zeichneSzene(new Maler(a.X), k, s, new Effekte(), 0.016);
     return a.befehle;
   }
+
+  it('zeichnet den Anschluss zum Sägewerk auch ohne Übergabestation', () => {
+    const saegewerk = neu('gewerbe', 14, 10, { zustand: 'vertrag', ohne_station: true });
+    const kamera = new Kamera();
+    kamera.groesseSetzen(844, 390, 2);
+    kamera.zentrieren(12, 10, 2);
+    const [x, y] = kamera.mitte(13, 10);
+    const [gx, gy] = kamera.mitte(14, 10);
+    const anschluss = `moveTo(${x},${y})|lineTo(${(x + gx) / 2},${(y + gy) / 2})`;
+    expect(szeneMit({}, saegewerk).join('|')).toContain(anschluss);
+    expect(szeneMit({}, neu('efh', 14, 10, { ohne_station: true })).join('|')).not.toContain(anschluss);
+  });
 
   it('NR18-P4: gebaute Leitung mit Ersatz bekommt die Planmarkierung (gestrichelte blaue Raute), ohne Ersatz nicht', () => {
     // umgebaut NR18-D 06.11.: Die Raute ist nicht mehr Plan-Blau, sondern in der Farbe der neuen Leitung (KATALOG[ersatz.typ].farbe),
