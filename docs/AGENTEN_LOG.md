@@ -683,3 +683,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 07:53 | ■ 🟡 | reviewer | **🟡 Plan-Treue erfüllt. Das Spiel selbst ist in Ordnung, aber für G5 und G6 fehlen echte Testprüfungen. Freigabe nach zwei kleinen Test-Ergänzungen. Die  ([Bericht](docs/pruefberichte/20261111-075338-reviewer-a583b5f69287d8076.md)) |
 | 2026-11-11 08:06 | ■ 🟡 | tester | 🟡 **Tester-Vorarbeit P7e ist fertig.** 28 Tests sind jetzt absichtlich rot und werden mit P7e grün. Alle vier Zusatzaufgaben aus dem Review P5g sind drin un ([Bericht](docs/pruefberichte/20261111-080653-tester-a0f327a39af104928.md)) |
 | 2026-11-11 08:07 | ▶ | entwickler | P7e Saum H1 und H2-H5 |
+| 2026-11-11 08:28 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-11 08:28 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261111-082832-entwickler-a7e71a0eb7050b815.md)) |
