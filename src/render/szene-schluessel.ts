@@ -90,7 +90,8 @@ export function szenenSchluessel(s: Szene): string {
     `band,${(s.tutorial_band ?? []).map((f) => `${f.x},${f.y},${f.typ},${ja(f.aktiv)},${ja(f.falsch)},${f.pfeil?.join(',') ?? ''}`).join(';')}`,
     `raute,${s.naechstes_feld?.join(',') ?? ''}`, `zielscheibe,${s.zielscheibe?.join(',') ?? ''}`,
     `ziel,${s.ziel?.stecker.join(';') ?? ''},${s.ziel?.ring ?? ''}`, `ruhe,${ja(s.ruhe)}`, `fremd,${koordinaten(s.tutorial_fremd)}`,
-    `blass,${ja(s.stecker_blass)}`,
+    // NR20 G5: blass kann auch nur der Stecker einzelner Häuser sein – die Liste gehört dazu, sonst fehlt das neue Bild
+    `blass,${ja(s.stecker_blass)},${(s.stecker_blass_ids ?? []).join(';')}`,
     // NR22: Saum, Dreiecke und ihre Deckkraft; `seit_ms` gehört dazu, weil ein neues Federn ein neues Bild braucht
     `ueberlast,${(s.ueberlast ?? []).map((u) => `${u.felder.join(';')}/${u.dreiecke.join(';')}/${ja(u.geplant)}/${u.seit_ms}`).join(':')}`,
     `vorschau,${s.ueberlast_vorschau?.typ ?? ''},${s.ueberlast_vorschau?.felder.join(';') ?? ''}`,
