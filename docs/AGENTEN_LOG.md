@@ -703,3 +703,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 09:22 | ▶ | entwickler | Entwickler: 3 Änderungen + main mergen |
 | 2026-11-11 09:29 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-11 09:29 | ■ 🔴 | entwickler | 🔴 **BLOCKIERT.** Meine drei Code-Änderungen sind fertig und grün. Der Merge mit main hat aber einen Test aus main mitgebracht, der auf dem NR20–22-Stand  ([Bericht](docs/pruefberichte/20261111-092911-entwickler-a9ab7d08811fb66b6.md)) |
+| 2026-11-11 09:29 | ▶ | tester | Tester Teil 3: Test 998, Texte, Figur |
