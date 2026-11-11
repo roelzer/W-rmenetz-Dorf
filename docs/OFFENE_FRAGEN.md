@@ -78,3 +78,6 @@ Q2: 10 m · Q3: 40 °C Mindest-Rücklauf (A73) · Q4: passt · Q5: ja, weiter so
 - Q21 (NR21): Wie soll der Spieler im Tutorial die Leitungsgrößen kennenlernen?
 - Q22 (NR22): Wie soll Überlast angezeigt werden, damit die Größe erkennbar bleibt?
 - Antworten Simon 2026-11-07: Q20 „man sieht nicht, wo man hin soll“; Q21 Hauptleitung + Hausanschluss; Q22 Farbe + Warnzeichen mit Vergrößern-Vorschlag. Erledigt.
+
+## 2026-11-11 – NR23 Verbrauch Neubauhäuser (Fachregel, nur Simon)
+Neubaugebiet nutzt dieselben Werte wie das Altdorf (EFH 15.000 kWh/a = 10 kW, Spielbalance A71). Fachprüfer (Sicherheit ~75) und Designer: für Neubau zu hoch. Frage an Simon: Sollen Neubauhäuser eigene, niedrigere Werte bekommen (Recherche Q-A: GEG/KfW-55/40-Bedarf je Haustyp; Q-B: Wärmebelegungsdichte Neubau)? Folge: weniger kW je Haus, Neubaugebiet wirtschaftlich schwächer.
