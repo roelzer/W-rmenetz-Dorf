@@ -718,3 +718,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 10:23 | ■ 🟡 | tester | 🟡 Tester Teil 4 ist fertig. Der Commit liegt auf nr20-mm-tester4, nicht gepusht.  ([Bericht](docs/pruefberichte/20261111-102334-tester-af3e72e4d636e5c81.md)) |
 | 2026-11-11 10:27 | ■ 🟡 | tester | 🟡 Tester Teil 4 mit dem Zusatz aus dem Test-Review ist fertig. Alles steckt in einem Commit auf nr20-mm-tester4. Den früheren Commit ccefeb1 habe ich dafür ([Bericht](docs/pruefberichte/20261111-102734-tester-af3e72e4d636e5c81.md)) |
 | 2026-11-11 10:28 | ▶ | entwickler | Entwickler: Planungsfehler weg, kW-Knopf, Aufräumen |
+| 2026-11-11 10:38 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-11 10:38 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN. Alles aus dem Auftrag ist gebaut. Die Schranke endet nur wegen des schon bekannten Abzweigpunkt-Hinweises auf „NICHT OK“, alle eig ([Bericht](docs/pruefberichte/20261111-103828-entwickler-a4614c59e59d557e3.md)) |
+| 2026-11-11 10:38 | ▶ | reviewer | Nachprüfung Review c90f38d |
