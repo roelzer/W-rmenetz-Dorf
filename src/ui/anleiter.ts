@@ -17,7 +17,13 @@ const KAPITEL_ANZAHL = 6;
 
 export interface AnleiterPlatz { links: number; unten?: number; oben?: number; breite: number; figur_px: 112 | 96 }
 /** Figurgrößen nur aus den Tokens (`anleiter_figur` 112, `anleiter_figur_klein` 96), damit die Zahl nicht mehrfach fest im Code steht. */
-const FIGUR_GROSS_PX = M.anleiter_figur as AnleiterPlatz['figur_px'], FIGUR_KLEIN_PX = M.anleiter_figur_klein as AnleiterPlatz['figur_px'];
+function figurPx(name: 'anleiter_figur' | 'anleiter_figur_klein'): AnleiterPlatz['figur_px'] {
+  const v = M[name];
+  // Geprüft statt per `as`: Bilder und CSS sind auf genau diese beiden Größen gezeichnet, ein anderer Token-Wert fiele sonst still durch
+  if (v === 112 || v === 96) return v;
+  throw new Error(`Token menue.mass_px.${name} = ${v}, erwartet 112 oder 96`);
+}
+const FIGUR_GROSS_PX = figurPx('anleiter_figur'), FIGUR_KLEIN_PX = figurPx('anleiter_figur_klein');
 
 /** Platzregel 13.3: unten links in der freien Fläche; mit offenem Blatt bzw. offener Zeichenleiste (freie Fläche schmaler
  *  als das Bild) freie Breite − 2 × Rand, sonst Bildbreite − 112 (88 px frei für [Bauen] plus Rand), höchstens 460.

@@ -117,14 +117,6 @@ function signatur(c: HTMLElement): string {
   return k.innerHTML;
 }
 
-/** Planungsfehler-Kasten einer Leitung (Engpass vor Aufteilung vor Reduzierung); null ohne Planungsfehler. */
-function planungsfehlerKasten(engpass: boolean, aufteilung: boolean, reduzierung: boolean): HTMLDivElement | null {
-  if (engpass) return kasten('Planungsfehler', h('p', {}, 'Hinter dieser Leitung wird es zum Kunden hin dünner und danach wieder dicker. Wärme kommt nur durch den dünnsten Abschnitt – tausche ihn gegen eine dickere Leitung.'));
-  if (aufteilung) return kasten('Planungsfehler', h('p', {}, 'Hier teilt sich die Leitung in zwei Abgänge, die beide so dick sind wie die Zuleitung. So plant das niemand: Nimm eine dickere Zuleitung (z. B. eine 90er aus der Heizzentrale), führe zwei eigene Abgänge aus der Heizzentrale oder lass mindestens einen Abgang dünner weiterlaufen.'));
-  if (reduzierung) return kasten('Planungsfehler', h('p', {}, 'Hier wird die Leitung mitten auf der Strecke dünner. Wie in echt wechselt der Durchmesser nur an einem Abzweig (T-Stück). Tausche den dünneren Abschnitt auf die Größe davor oder lass die Leitung erst am Abzweig dünner werden.'));
-  return null;
-}
-
 /** NR22 (DESIGN 13.17.3): Kasten „Überlastet“ – im Kopf vor dem Titel das gelbe Warndreieck der Karte (16 px über stil.css). */
 function ueberlastKasten(...inhalt: Node[]): HTMLDivElement {
   const k = kasten('Überlastet', ...inhalt);
@@ -503,17 +495,16 @@ export class Kontext {
       return ex >= k.x - 1 && ex <= k.x + g && ey >= k.y - 1 && ey <= k.y + g && !(ex >= k.x && ex < k.x + g && ey >= k.y && ey < k.y + g);
     });
     const anHaus = !verzweigt && haeuser.length === 1;
-    // NR22 (DESIGN 13.17.3): Planungsfehler steht vor „Überlastet“, beide ganz oben, wenn das Feld zu einem überlasteten Stück gehört.
+    // NR22 (DESIGN 13.17.3): „Überlastet“ steht ganz oben, wenn das Feld zu einem überlasteten Stück gehört. Planungsfehler
+    // (Engpass, Aufteilung, Reduzierung) zeigt das freie Spiel nicht mehr (Simon, main c4335c9); nur das Tutorial nutzt sie.
     const stueck = sp.ueberlastStuecke().find((e) => e.felder.includes(key));
-    const fehler = planungsfehlerKasten(n.engpass.has(key), n.aufteilung.has(key), n.reduzierung.has(key));
-    if (stueck) { if (fehler) c.append(fehler); this.ueberlastBereich(c, stueck, key); }
+    if (stueck) this.ueberlastBereich(c, stueck, key);
     c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser. Entscheidend ist, ob ihre Kapazität für die benötigte Wärme ausreicht.'));
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     // Fachprüfung A73: Unter 1 liegt der Faktor, wenn der Vorlauf so niedrig ist, dass bis 40 °C Rücklauf wenig Spreizung bleibt.
     if (n.spreizung_faktor > 1.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
     else if (n.spreizung_faktor < 0.99) c.append(h('p', { class: 'gedaempft' }, `Der Vorlauf ist so niedrig, dass bis zum Rücklauf (mindestens ${MIN_RUECKLAUF_C} °C) wenig Spreizung bleibt – die Leitung schafft ${Math.round((1 - n.spreizung_faktor) * 100)} % weniger als nominal.`));
-    if (fehler) { if (!stueck) c.append(fehler); }
-    else if (o.geplant) c.append(h('p', {}, `Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung${sp.freigeschaltet('gestattung') ? ' (abseits der Straße samt Gestattung)' : ''}. Zählt noch nicht fürs Netz.`));
+    if (o.geplant) c.append(h('p', {}, `Geplante Leitung: Sie ist Teil des Bauabschnitts und kostet erst mit der Materialbestellung${sp.freigeschaltet('gestattung') ? ' (abseits der Straße samt Gestattung)' : ''}. Zählt noch nicht fürs Netz.`));
     else if (!n.tiefe.has(key)) c.append(h('p', {}, 'Diese Leitung ist noch nicht mit der Heizzentrale verbunden.'));
     // A69: T-Stück mit Vorsehung (verschlossener Abgang für einen späteren Anschluss)
     if (o.vorsehung) c.append(h('p', {}, o.geplant

@@ -462,8 +462,8 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .info-kapsel{position:absolute;z-index:26;transform:translateX(-50%);white-space:nowrap;pointer-events:none;animation:nr13-ein var(--menue-zeit-ms-spot-wechsel) ease-out}
 #anleiter{position:absolute;z-index:33;display:flex;align-items:flex-end;gap:8px;box-sizing:border-box;animation:nr13-ein var(--menue-zeit-ms-anleiter-wechsel) ease-out}
 .anleiter-figur{flex:none;width:var(--menue-mass-px-anleiter-figur);height:var(--menue-mass-px-anleiter-figur)}
-/* Kleine Figur ragt 24 px über die Blase hinaus (96 statt früher 72 hoch), damit die Karte nicht höher wird; unten bündig über align-items:flex-end */
-#anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:-24px}
+/* Kleine Figur zählt in der Karte weiter mit 72 px (DESIGN 13.3, Kartenhöhe 162) und ragt um den Rest über die Blase hinaus, damit die Karte nicht höher wird; unten bündig über align-items:flex-end */
+#anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:calc(72px - var(--menue-mass-px-anleiter-figur-klein))}
 .anleiter-figur .sprecher-bild{width:100%;height:100%}
 .anleiter-figur .sprecher-bild.foto{width:100%;height:100%;margin:0}
 .anleiter-figur .sprecher-bild.foto img{width:100%;height:100%;object-fit:contain;object-position:center bottom}
@@ -481,7 +481,7 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 #anleiter-weiter{margin-left:auto}
 /* Auf sehr niedrigen Handy-Bildschirmen bleibt bei Antipp-Schritten mehr Karte und damit das leuchtende Ziel sichtbar. */
 @media (orientation:landscape) and (max-height:430px){
-  #anleiter.handlung .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:-24px}
+  #anleiter.handlung .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:calc(72px - var(--menue-mass-px-anleiter-figur-klein))}
   #anleiter.handlung .anleiter-blase{padding:6px 10px}
   #anleiter.handlung .anleiter-text{margin-top:2px;font-size:14px;line-height:16px}
 }

@@ -895,12 +895,8 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       X.beginPath(); X.arc(ex, ey, Math.max(1.5, w * 0.55), 0, Math.PI * 2); X.fillStyle = '#2d2a26'; X.fill();
       X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1; X.stroke();
     }
-    // NR22 (DESIGN 13.17.3): Überlast zeigt das gelbe Warndreieck (zeichneWarndreiecke); das rote bleibt den Planungsfehlern
-    if (netz.engpass.has(key) || netz.reduzierung.has(key) || netz.aufteilung.has(key)) {
-      m.bahn([[cx, cy - tw * 0.32], [cx + tw * 0.13, cy - tw * 0.07], [cx - tw * 0.13, cy - tw * 0.07]]);
-      X.fillStyle = '#d8392f'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2; X.fill(); X.stroke();
-      m.symbol('ausruf', cx, cy - tw * 0.14, tw * 0.07);
-    }
+    // NR22 (DESIGN 13.17.3): Überlast zeigt das gelbe Warndreieck (zeichneWarndreiecke). Ein rotes Planungsfehler-Dreieck gibt es im
+    // freien Spiel nicht mehr (Simon, main c4335c9).
     if (plan) {
       planRaute(cx, cy);
       X.restore();

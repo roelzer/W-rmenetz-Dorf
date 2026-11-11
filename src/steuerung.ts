@@ -1014,13 +1014,12 @@ export class Steuerung implements Ui {
     const k = this.kamera, [cx, cy] = k.mitte(x, y), b = (kante * k.tw) / Math.SQRT2, hh = (kante * k.th) / Math.SQRT2;
     return { r: { x: cx - b / 2, y: cy - hh / 2, b, h: hh }, form: 'ellipse' };
   }
-  /** Gang im Schleier (DESIGN 13.17.1, 13.17.9 F5): jede Raute der Spur × 1,5, die Heizzentrale nur mit ihrer Grundfläche
-   *  (Gebäudehöhe und Dach bleiben unter dem Schleier, sonst stünden fremde Häuser im Gang) und beide Tutorial-Häuser. */
+  /** Gang im Schleier (DESIGN 13.17.1, 13.17.9 F5): die Heizzentrale nur mit ihrer Grundfläche (Gebäudehöhe und Dach bleiben
+   *  unter dem Schleier, sonst stünden fremde Häuser im Gang) und beide Tutorial-Häuser. */
   private schleierGang(a: TutorialAnsicht): Loch[] {
-    const rauten = a.band.map(({ x, y }) => this.rautenLoch(x, y, 1.5));
     const hz = this.kartenObjekt(a, 'heizzentrale')!, g = groesse(hz);
     const haeuser = (['haus1', 'haus2'] as const).map((z) => this.kartenObjekt(a, z)!);
-    return [...rauten, this.rautenLoch(hz.x + (g - 1) / 2, hz.y + (g - 1) / 2, g),
+    return [this.rautenLoch(hz.x + (g - 1) / 2, hz.y + (g - 1) / 2, g),
       ...haeuser.map((o): Loch => ({ r: this.objektRechteck(o, true), form: 'ellipse' }))];
   }
 
@@ -1090,7 +1089,7 @@ export class Steuerung implements Ui {
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
     const ringEl = this.ringKnopf(ring_id), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;
-    // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): Lochrand in der Zeichenleiste, die nur_hud ohnehin nicht abdunkelt
+    // Ring ohne eigenes Loch-Ziel (Farbknopf, DESIGN 13.17.1): nur der Lochrand in der Zeichenleiste; beim Leitungsziehen gibt es keinen Schleier
     // 13.17.9 F7: Am Farbknopf liegt der Ring 2 px eng an, damit er die Kennzeile darunter nicht berührt
     const ringLoch = (r: Rechteck): Loch => ({ r, form: 'rund', ...(ringEl?.classList.contains('farbknopf') ? { abstand_px: T.menue.mass_px.spot_abstand_farbknopf } : {}) });
     const loecher = [...ziele.flatMap((e) => (e.l ? [e.l.loch] : [])), ...(ringR ? [ringLoch(ringR)] : [])];

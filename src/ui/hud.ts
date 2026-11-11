@@ -78,16 +78,17 @@ export class Hud {
   /** Ein- und Ausblenden für Startwahl und Besuch (S1, S7). */
   sichtbar(teile: { alles?: boolean; eigene?: boolean }): void {
     this.wurzel.classList.toggle('versteckt', teile.alles === false);
-    // Schaltet nur die Gruppen; die Tutorial-Verstecke sitzen an Auftragskarte und [Dörfer] selbst und bleiben davon unberührt.
+    // Schaltet nur die Gruppen; die Tutorial-Verstecke sitzen an Auftragskarte, [Dörfer] und kW-Schalter selbst und bleiben davon unberührt.
     for (const e of [this.links, this.pillen, this.zoom, this.runde]) e.classList.toggle('versteckt', teile.eigene === false);
   }
 
-  /** NR13 (Bauplan §6): Im Tutorial sind nur Auftragskarte und [Dörfer] weg; [Bauen], Pillen, Dorfschild und kW-Schalter bleiben. */
+  /** NR13 (Bauplan §6), Merge B1: Im Tutorial sind Auftragskarte, [Dörfer] und der kW-Schalter weg; [Bauen], Pillen und Dorfschild bleiben. */
   tutorialModus(an: boolean): void {
     this.tutorialModusAn = an;
     // Außerhalb des Tutorials ist die Auftragskarte immer da (ohne Auftrag mit „Alle Aufträge erledigt“), daher zeigt `false` beide
     this.auftragKarte.classList.toggle('versteckt', an);
     this.besuch.classList.toggle('versteckt', an);
+    this.kwKnopf.classList.toggle('versteckt', an);
   }
 
   geldPillePunkt(): [number, number] {
