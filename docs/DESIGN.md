@@ -657,7 +657,7 @@ Alle Bausteine im Menü-Stil v2 (Abschnitt 12). Neue Werte stehen in 13.10 als V
 - **[Weiter]** rechts unten in der Blase, Variante `los` klein (Höhe 44, Lilita 16). Nur in Erklär-Schritten. In Handlungs-Schritten gibt es **keinen** Knopf – die Blase sagt, was zu tippen ist, und der Finger zeigt es.
 - **„Wusstest du?“-Variante** (NR3): über dem Text ein Gold-Chip „Wusstest du?“ (12.7 Chip `gold`, 26 px), sonst gleich. Dieselbe Variante nutzen später alle Freischalt-Karten (NR3), damit das Spiel überall gleich spricht.
 - **Figur:** Bis Simons Foto da ist, ein **Platzhalter im Stil der gezeichneten Sprecher-Figuren** (`sprecher.ts`, `AUSSEHEN`): kurze dunkelbraune Haare, Haut wie Philipp, Jacke in Heat-Orange `#ff8a1f` (`naht_vorlauf`) mit 6 px Kragen in ville-Blau `#3a92ea` (`naht_ruecklauf`) – Simon trägt das Logo-Paar und ist damit von Philipp (blau) und Laura (rot) sofort zu unterscheiden. Kein Helm (er erklärt, er baut nicht). Mit Foto: freigestellt wie A52 (`public/figuren/simon.webp`, Oberkörper, Transparenz), 112 px hoch; der Designer zeichnet daraus die endgültige Figur im Spielstil, sobald das Bild da ist (offene Frage Q11 Teil 2).
-- **Größen:** Figur 112 px hoch; ist die freie Breite unter 400 px (667×375 mit offenem Blatt), 72 px. Karte höchstens 460 px breit.
+- **Größen:** Figur 112 px hoch; ist die freie Breite unter 400 px (667×375 mit offenem Blatt), 96 px mit 24 px Überstand nach oben über die Blase, die Karte wird dadurch nicht höher (Simon 2026-11-11). Karte höchstens 460 px breit.
 
 **Spotlight** (Abdunkeln mit Loch).
 - Fläche `menue.farbe.abdunkeln` (`rgba(28,14,4,.55)`) über Karte und HUD, mit einem oder mehreren **Löchern** um das Ziel. Die Anleiter-Karte liegt **über** dem Abdunkeln.
@@ -682,7 +682,7 @@ Grundregel: **unten links in der freien Kartenfläche**, nie über einer offenen
 | Ziel liegt im unteren Teil der freien Fläche (Unterkante Ziel > Oberkante Karte − 16) | Karte wechselt nach **oben links**, direkt unter die Anzeigenreihe (top 64). Wechsel per Blende 200 ms | wie oben |
 | Sprecher A51 (Philipp, Laura) meldet sich | Sprecher-Karte erscheint **auf demselben Platz**; die Anleiter-Karte blendet so lange aus (200 ms) und kommt danach zurück. Nie zwei Sprechblasen gleichzeitig | – |
 
-**Höhe:** Figur 112 bzw. 72; Blase bei 4 Zeilen 8 + 18 + 4 + 72 + 8 + 44 + 8 = **162 px**. Bei 844×390 liegt die Oberkante damit bei 216 px, bei 667×375 bei 201 px. Darüber bleibt für das Ziel die Fläche von 64 px bis rund 200 px.
+**Höhe:** Figur 112 bzw. 96 (ragt 24 px nach oben hinaus, zählt mit 72; Simon 2026-11-11); Blase bei 4 Zeilen 8 + 18 + 4 + 72 + 8 + 44 + 8 = **162 px**. Bei 844×390 liegt die Oberkante damit bei 216 px, bei 667×375 bei 201 px. Darüber bleibt für das Ziel die Fläche von 64 px bis rund 200 px.
 **Kamera-Regel dazu:** Das Ziel eines Schritts steht in der Mitte der freien Breite und auf **38 % der Bildschirmhöhe** (statt 50 % wie in 12.21), damit es über der Karte liegt. Zoom bleibt 3 (Handy), außer der Schritt sagt etwas anderes.
 **Meldungen (Toast)** sind im Tutorial stumm: Simon spricht statt der Meldung (keine zwei Stimmen). Ausnahme: Fehler beim Speichern/Laden (S0) erscheinen wie immer, nach 12.17 über der Anleiter-Karte.
 
@@ -762,7 +762,7 @@ Grundregel: **unten links in der freien Kartenfläche**, nie über einer offenen
 └───────────────────────────────────────────────┴────────────────────────────────┘
  (S = gezeichnetes Schloss-Symbol `schloss`, kein Schriftzeichen.)
 ```
-**667×375:** gleicher Aufbau. Seitenfläche 306,8 px, freie Fläche 360 px → Karte 336 px breit, Figur 72 px, Blase 256 px (innen rund 32 Zeichen je Zeile → 120 Zeichen = 4 Zeilen, 162 px hoch, Oberkante 201 px). Zeichenleiste: freie Fläche 451 px → Karte 427 px.
+**667×375:** gleicher Aufbau. Seitenfläche 306,8 px, freie Fläche 360 px → Karte 336 px breit, Figur 96 px mit Überstand nach oben (Simon 2026-11-11), Blase 256 px (innen rund 32 Zeichen je Zeile → 120 Zeichen = 4 Zeilen, 162 px hoch, Oberkante 201 px). Zeichenleiste: freie Fläche 451 px → Karte 427 px.
 
 ### 13.5 Schritt-Liste
 Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Schritt, weiter nur mit der genannten Handlung (Finger zeigt sie). **Fett** = Fachbegriff beim ersten Auftauchen. **[F]** = Satz sagt etwas über echte Wärmenetze → Fachprüfer. `{…}` = Wert aus dem Spiel, nie fest im Text (Beispielwerte in Klammern: Einfamilienhaus 15.000 kWh/Jahr, ohne Puffer 1.500 h → 10 kW, mit Puffer 2.000 h → 7,5 kW, Kessel Stufe 1 60 kW, 25er bis 15 kW). `{Name}` = Spielername aus dem Namensfenster (Standard „Chef“). Alle Texte ≤ 120 Zeichen auch mit 20 Zeichen langem Namen, höchstens 2 Sätze.
@@ -776,9 +776,9 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 | T02 | W | „Hier steht dein **Wärmeerzeuger**, ein **Hackschnitzelkessel**. Er verbrennt Holzreste und macht damit Wasser heiß.“ **[F]** | Loch Heizzentrale | [Weiter] | – |
 | T03 | W | „Wie viel Wärme er in jedem Moment schafft, misst man in **Kilowatt (kW)**. Dein Kessel schafft {kessel_kw}.“ **[F]** (60 kW; Platzhalter mit Einheit, 13.15 K3) | Löcher Heizzentrale **und** Wärme-Pille („0 / 60 kW“) | [Weiter] | Die Wärme-Pille hüpft einmal (240 ms, 12.9) |
 | T04 | W | „Das heiße Wasser fließt durch Rohre unter der Straße zu den Häusern. Das nennt man **Wärmenetz** oder **Nahwärme**.“ **[F]** | Loch Heizzentrale | [Weiter] | Nach [Weiter] fährt die Kamera (13.6) |
-| T05 | W | „Diese Häuser heizen noch mit Öl – siehst du den grauen Rauch? Du willst die ersten zwei anschließen.“ | Löcher um beide Tutorial-Häuser | [Weiter] | **Kamerafahrt** zur Mitte der beiden Häuser, 1.200 ms. Abdunkeln erst nach der Ankunft |
+| T05 | W | „Diese Häuser heizen noch mit Öl. Du willst die ersten zwei anschließen.“ | Löcher um beide Tutorial-Häuser | [Weiter] | **Kamerafahrt** zur Mitte der beiden Häuser, 1.200 ms. Abdunkeln erst nach der Ankunft |
 | T06 | W | „Ein Haus braucht im Jahr {kwh} Wärme. An den kältesten Tagen braucht es bis zu {kw_ohne} gleichzeitig.“ **[F]** (15.000 kWh / 10 kW) | Loch Haus 1; darüber eine Info-Kapsel (Chip `neutral`, 26 px) „15.000 kWh im Jahr · bis 10 kW“ | [Weiter] | **kWh** wird hier eingeführt (fett) |
-| T07 | W | „**kW** ist, wie viel Wasser gerade aus dem Hahn läuft. **kWh** ist, wie voll der Eimer am Ende ist.“ **[F]** | wie T06 | [Weiter] | Kein Bild nötig; der Vergleich steht für sich |
+| T07 | W | „Nur ein Bild, das Netz bringt Wärme, kein Leitungswasser: **kW** ist, was gerade aus dem Hahn läuft, **kWh**, was im Eimer ist.“ **[F]** | wie T06 | [Weiter] | Kein Bild nötig; der Vergleich steht für sich |
 
 **Kapitel 2 – Planen mit Philipp**
 | Nr | Art | Text | Licht / Finger | Weiter mit | Kamera, Sonstiges |
@@ -897,7 +897,7 @@ Legende: **[W]** = Erklär-Schritt, weiter mit [Weiter]. **[H]** = Handlungs-Sch
 Noch **nicht** in `tokens.json` eingetragen (dieser Auftrag ändert nur DESIGN.md); der Designer trägt sie mit der Baufreigabe ein oder der Projektleiter beauftragt das.
 | Token | Wert | Zweck |
 |---|---|---|
-| `mass_px.anleiter_figur` / `anleiter_figur_klein` | 112 / 72 | Figur; klein bei freier Breite < 400 |
+| `mass_px.anleiter_figur` / `anleiter_figur_klein` | 112 / 96 | Figur; klein bei freier Breite < 400, ragt 24 px nach oben über die Blase (Simon 2026-11-11) |
 | `mass_px.anleiter_karte_max` | 460 | größte Kartenbreite |
 | `mass_px.anleiter_rand` | 12 | Abstand zum Rand und zum Blatt |
 | `mass_px.anleiter_platz_bauen` | 88 | frei für [Bauen] rechts unten |
@@ -1135,7 +1135,7 @@ Die Spur zeigt **die Leitung, die hier hingehört, in ihrer echten Farbe** – w
 - **Weniger Bewegung:** Der Finger steht still mit Druckpunkt auf dem nächsten Feld. Kein Ziehen, keine Füllung. Die Richtung zeigen die Pfeile im Band.
 
 **B6 – Kompakte Anleiter-Karte und größere Kamera in Kapitel 3 (Muss, ändert 13.3 und die M1-Abweichung)**
-- In T13, T13w und T13h ist die Karte **kompakt**: Figur 72 px, Blase höchstens **3 Zeilen**, kein [Weiter]. Höhe 8 + 18 + 4 + 3 × 18 + 8 = **92 px**. Lage: links 12, unten 12. Breite min(460, freie Breite − 24) → 460 (844) bzw. 427 (667). Oberkante 286 (844) bzw. 271 (667). Alle Texte in Kapitel 3 (Grundtexte, Zwischenstände, Größen-, Sperr-, Hilfe- und Geld-Sätze) haben **≤ 96 Zeichen**. Damit passen sie in 3 Zeilen, auch bei 667 (Blase rund 347 px, innen rund 38 Zeichen je Zeile).
+- In T13, T13w und T13h ist die Karte **kompakt**: Figur 96 px mit 24 px Überstand nach oben (Simon 2026-11-11), Blase höchstens **3 Zeilen**, kein [Weiter]. Höhe 8 + 18 + 4 + 3 × 18 + 8 = **92 px**. Lage: links 12, unten 12. Breite min(460, freie Breite − 24) → 460 (844) bzw. 427 (667). Oberkante 286 (844) bzw. 271 (667). Alle Texte in Kapitel 3 (Grundtexte, Zwischenstände, Größen-, Sperr-, Hilfe- und Geld-Sätze) haben **≤ 96 Zeichen**. Damit passen sie in 3 Zeilen, auch bei 667 (Blase rund 347 px, innen rund 38 Zeichen je Zeile).
 - **Kamera T13:** wie die heutige T13-Einpassung (Heizzentrale, Spur, beide Häuser, je Feldmitte ± halbe Feldbreite), aber in die freie Fläche **x 0 … Zeichenleiste, y 64 … Kartenoberkante − 16** mit **24 px Rand**, und zwar mit dem **größten Zoom ≤ 3, der passt**. Untergrenze 2 wie bisher. Gerechnet aus den Messwerten: rund **2,4 (844)** bzw. **2,3 (667)** statt 2. **Fassung 2: unverändert.** Der Rahmen umfasst weiter die Felder x 9 … 12, y 10 … 14 (Heizzentrale reicht bis y 10, Haus 1 liegt auf x 9, Haus 2 auf x 12/y 14); dass (10|10) wegfällt und (9|12) dazukommt, ändert die Außenkanten nicht. Damit ist der Weg rund 20 % größer, das Feld zum Treffen 62×31 statt 52×26 px, und der 24-px-Rand aus M1 ist wieder eingehalten. *Gerechnet, nicht gemessen* – der Bau misst nach. Die Kamera bleibt von T13 bis T14 stehen, ohne Sprung. Die Kamera-Grenze K5 gilt mit dieser Lage.
 
 **Skizze 844×390 – T13 frisch (Zeichenleiste 216 px, Karte kompakt)**

@@ -462,7 +462,8 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .info-kapsel{position:absolute;z-index:26;transform:translateX(-50%);white-space:nowrap;pointer-events:none;animation:nr13-ein var(--menue-zeit-ms-spot-wechsel) ease-out}
 #anleiter{position:absolute;z-index:33;display:flex;align-items:flex-end;gap:8px;box-sizing:border-box;animation:nr13-ein var(--menue-zeit-ms-anleiter-wechsel) ease-out}
 .anleiter-figur{flex:none;width:var(--menue-mass-px-anleiter-figur);height:var(--menue-mass-px-anleiter-figur)}
-#anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein)}
+/* Kleine Figur ragt 24 px über die Blase hinaus (96 statt früher 72 hoch), damit die Karte nicht höher wird; unten bündig über align-items:flex-end */
+#anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:-24px}
 .anleiter-figur .sprecher-bild{width:100%;height:100%}
 .anleiter-figur .sprecher-bild.foto{width:100%;height:100%;margin:0}
 .anleiter-figur .sprecher-bild.foto img{width:100%;height:100%;object-fit:contain;object-position:center bottom}
@@ -480,7 +481,7 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 #anleiter-weiter{margin-left:auto}
 /* Auf sehr niedrigen Handy-Bildschirmen bleibt bei Antipp-Schritten mehr Karte und damit das leuchtende Ziel sichtbar. */
 @media (orientation:landscape) and (max-height:430px){
-  #anleiter.handlung .anleiter-figur{width:72px;height:72px}
+  #anleiter.handlung .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:-24px}
   #anleiter.handlung .anleiter-blase{padding:6px 10px}
   #anleiter.handlung .anleiter-text{margin-top:2px;font-size:14px;line-height:16px}
 }
@@ -488,7 +489,7 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 @media (prefers-reduced-motion:reduce){.spot-ring:not(.stupst-ruhig),.info-kapsel,#anleiter{animation:none}}
 /* Hochformat: das Tutorial ruht hinter dem Dreh-Hinweis (13.7) */
 @media (orientation:portrait) and (max-width:600px){#spotlight,#anleiter,.ersatz-ziel,.info-kapsel{display:none}}
-/* Kapitel 3 kompakt (13.17.1 B6): Höhe 92 und Figur 72 (figur-klein) setzt anleiter.ts; Blase 8 + 18 + 4 + 3 × 18 + 8, der Rand zählt in die 8 px Innenabstand */
+/* Kapitel 3 kompakt (13.17.1 B6): Höhe 92 und Figur 96 mit 24 px Überstand nach oben (figur-klein) setzt anleiter.ts; Blase 8 + 18 + 4 + 3 × 18 + 8, der Rand zählt in die 8 px Innenabstand */
 #anleiter.kompakt .anleiter-blase{align-self:stretch;box-sizing:border-box;overflow:hidden;padding:calc(8px - var(--menue-mass-px-kontur-fein)) 12px}
 #anleiter.kompakt .anleiter-knopfzeile{display:none}
 /* Schleier mit Gang (13.17.1): direkt über der Spielkarte, unter allen Bedienelementen; sperrt nichts */

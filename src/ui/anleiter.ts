@@ -15,7 +15,9 @@ const wenigerBewegung = (): boolean => document.body.classList.contains('weniger
 /** Das Tutorial hat sechs Kapitel (DESIGN 13.5). */
 const KAPITEL_ANZAHL = 6;
 
-export interface AnleiterPlatz { links: number; unten?: number; oben?: number; breite: number; figur_px: 112 | 72 }
+export interface AnleiterPlatz { links: number; unten?: number; oben?: number; breite: number; figur_px: 112 | 96 }
+/** Figurgrößen nur aus den Tokens (`anleiter_figur` 112, `anleiter_figur_klein` 96), damit die Zahl nicht mehrfach fest im Code steht. */
+const FIGUR_GROSS_PX = M.anleiter_figur as AnleiterPlatz['figur_px'], FIGUR_KLEIN_PX = M.anleiter_figur_klein as AnleiterPlatz['figur_px'];
 
 /** Platzregel 13.3: unten links in der freien Fläche; mit offenem Blatt bzw. offener Zeichenleiste (freie Fläche schmaler
  *  als das Bild) freie Breite − 2 × Rand, sonst Bildbreite − 112 (88 px frei für [Bauen] plus Rand), höchstens 460.
@@ -25,7 +27,7 @@ export function anleiterPlatz(frei: Rechteck, ziel: Rechteck | null, bild: { bre
   const blattOffen = frei.x + frei.b < bild.breite;
   const verfuegbar = blattOffen ? frei.b - 2 * rand : bild.breite - M.anleiter_platz_bauen - 2 * rand;
   const breite = Math.floor(Math.min(M.anleiter_karte_max, verfuegbar));
-  const figur_px = frei.b < M.anleiter_figur_klein_unter ? 72 : 112;
+  const figur_px = frei.b < M.anleiter_figur_klein_unter ? FIGUR_KLEIN_PX : FIGUR_GROSS_PX;
   const kartenOben = bild.hoehe - rand - M.anleiter_hoehe;
   const links = frei.x + rand;
   if (ziel && ziel.y + ziel.h > kartenOben - M.anleiter_ziel_abstand) return { links, oben: T.groesse_px.blatt_oben_quer, breite, figur_px };
@@ -113,7 +115,7 @@ function platzSetzen(el: HTMLElement, p: AnleiterPlatz): void {
   // Unten zusätzlich der Sicherheitsabstand des Geräts (13.3)
   el.style.bottom = p.unten !== undefined ? `calc(${p.unten}px + env(safe-area-inset-bottom))` : '';
   el.style.top = p.oben !== undefined ? `${p.oben}px` : '';
-  el.classList.toggle('figur-klein', p.figur_px === 72);
+  el.classList.toggle('figur-klein', p.figur_px === FIGUR_KLEIN_PX);
 }
 
 /** Zeigt die Karte für die Ansicht. Bei gleichem Inhalt wird nur die Restzeit erneuert – so springt der Fokus nicht und der
