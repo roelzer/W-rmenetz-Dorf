@@ -313,7 +313,8 @@ describe('NR22 P7t: Nacharbeit P7d (rot bis P7d)', () => {
       expect(mit(u, 'Auf 32er vergrößern').map(zeile2)).toEqual(['8 Felder · 2.880 €']);
       mit(u, 'Auf 32er vergrößern')[0].click();
       expect(ersatzTypen(s)).toEqual(mitDick('d32'));
-      expect(kastenTeile(u)[1]).toBe('Wird auf 32er vergrößert');
+      // Tester-Vorarbeit P7e (DESIGN 13.17.11 H3): 8 × 32er und 3 × 40er sind verschiedene Größen → „Wird vergrößert“
+      expect(kastenTeile(u)[1]).toBe('Wird vergrößert');
       const zurueck = mit(u, 'Zurücknehmen');
       expect(zurueck).toHaveLength(1);
       zurueck[0].click();

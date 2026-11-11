@@ -11,8 +11,9 @@ import { aufnahme } from './hilfen/nr22';
 
 // Bauplan NR20-22 P7, DESIGN 13.17.3. Werte von Hand: 25er-Farbe '#d8392f' und Breite 0,06 (core/katalog.ts), Warngelb '#ffc531'
 // und Kontur '#3b1d0a' (design/tokens.json menue.farbe). Kamera 844×390, Zoom 2 → Grundmaß min(844 / 26, 390 / 15) = 26
-// (kamera.ts, N = 24), Feldbreite tw = 52; Rohr w = max(2, 52 × 0,06) = 3,12 → Saum außen w + 6 = 9,12, Gelb w + 4 = 7,12; heute
-// die dunkle Kante w + 2 = 5,12.
+// (kamera.ts, N = 24), Feldbreite tw = 52; Rohr w = max(2, 52 × 0,06) = 3,12 → ohne Überlast dunkle Kante w + 2 = 5,12.
+// Tester-Vorarbeit P7e (DESIGN 13.17.11 H1, ersetzt den Saum aus 13.17.3): Gelb ersetzt nur die dunkle Kante, w + 2 = 5,12
+// (1 px je Seite), keine Außenlinie – die Leitung ist mit Überlast genau so breit wie ohne.
 
 const N = KONSTANTEN.feldanzahl;
 const D25 = '#d8392f', GELB = '#ffc531', KONTUR = '#3b1d0a';
@@ -49,11 +50,20 @@ describe('NR22 P7 Darstellung: Farbe bleibt, Saum und Dreieck', () => {
     expect(b).toEqual(a);
   });
 
-  it('Saum gelb auf jedem Feld des Stücks: außen Kontur w + 6, darin Gelb w + 4, innen das Rohr w', () => {
+  it('Saum gelb auf jedem Feld des Stücks: Gelb w + 2 statt der dunklen Kante, innen das Rohr w, nichts breiter (H1)', () => {
     const b = bild(szene({ ueberlast: [STUECK] }));
     expect(zahl(b, `strokeStyle=${GELB}`)).toBe(5);
-    expect(breiten(b, 9.12)).toBe(5);
-    expect(breiten(b, 7.12)).toBe(5);
+    expect(breiten(b, 9.12)).toBe(0);
+    expect(breiten(b, 7.12)).toBe(0);
+    // je Gelb-Strich die Breite w + 2 = 5,12 (wie die dunkle Kante ohne Überlast), danach das Rohr w = 3,12 in leitung.d25
+    const gelb = b.flatMap((x, i) => (x === `strokeStyle=${GELB}` ? [i] : []));
+    for (const i of gelb) {
+      const nach = b.slice(i);
+      expect(Number(nach.find((x) => x.startsWith('lineWidth='))!.slice(10))).toBeCloseTo(5.12, 9);
+      const rohr = nach.indexOf(`strokeStyle=${D25}`);
+      expect(rohr, 'Rohr folgt auf das Gelb').toBeGreaterThan(0);
+      expect(Number(nach.slice(rohr).find((x) => x.startsWith('lineWidth='))!.slice(10))).toBeCloseTo(3.12, 9);
+    }
     // ohne Überlast-Stück bleibt die dunkle Kante (w + 2), auch wenn das Netz die Leitung als zu voll führt
     const ohne = bild(szene({}));
     expect(zahl(ohne, `strokeStyle=${GELB}`)).toBe(0);
@@ -96,20 +106,23 @@ describe('NR22 P7 Darstellung: Farbe bleibt, Saum und Dreieck', () => {
 });
 
 // Tester-Vorarbeit P7t (Review P7 gesamt K3): Verhalten, das es schon gibt – sofort grün.
-describe('NR22 P7t Darstellung: fehlende Prüfungen (Saum-Außenlinie, seit_ms im Schlüssel)', () => {
+describe('NR22 P7t Darstellung: fehlende Prüfungen (Saum ohne Außenlinie seit P7e, seit_ms im Schlüssel)', () => {
   const letzte = (b: string[], bis: number, anfang: string): string | undefined => b.slice(0, bis).filter((x) => x.startsWith(anfang)).pop();
 
-  // Fehler, der ihn rot macht: Außenlinie voll deckend (Deckkraft 1) oder in anderer Farbe; Deckkraft 0,55 bleibt für das Gelb stehen.
-  it('Saum: Außenlinie w + 6 in kontur mit Deckkraft 0,55, das Gelb darin wieder voll deckend', () => {
+  // Tester-Vorarbeit P7e (DESIGN 13.17.11 H1): Die Außenlinie (kontur 0,55) entfällt. Fehler, der ihn rot macht: dunkle Außenlinie
+  // um das Gelb bleibt (Leitung wieder breiter als ohne Überlast) oder das Gelb ist nicht voll deckend.
+  it('Saum: keine Außenlinie in kontur, keine Deckkraft 0,55, das Gelb voll deckend', () => {
     const b = bild(szene({ ueberlast: [STUECK] }));
-    const aussen = b.flatMap((x, i) => (x.startsWith('lineWidth=') && Math.abs(Number(x.slice(10)) - 9.12) < 1e-9 ? [i] : []));
-    expect(aussen).toHaveLength(5);
-    for (const i of aussen) {
-      expect(letzte(b, i, 'strokeStyle=')).toBe(`strokeStyle=${KONTUR}`);
-      expect(letzte(b, i, 'globalAlpha=')).toBe('globalAlpha=0.55');
-      const gelb = b.indexOf(`strokeStyle=${GELB}`, i);
-      expect(gelb).toBeGreaterThan(i);
-      expect(letzte(b, gelb, 'globalAlpha=')).toBe('globalAlpha=1');
+    const gelb = b.flatMap((x, i) => (x === `strokeStyle=${GELB}` ? [i] : []));
+    expect(gelb).toHaveLength(5);
+    for (const i of gelb) {
+      const naechsterStroke = b.indexOf('stroke()', i);
+      expect(letzte(b, naechsterStroke, 'globalAlpha=') ?? 'globalAlpha=1').toBe('globalAlpha=1');
+      // vom Rohrbett dieses Felds (fillStyle rgba(140,100,55,.35), szene.ts) bis zum Gelb: keine Linie in kontur, keine 0,55
+      const bett = b.slice(0, i).lastIndexOf('fillStyle=rgba(140,100,55,.35)');
+      expect(bett, 'Rohrbett vor dem Gelb').toBeGreaterThan(-1);
+      expect(b.slice(bett, i)).not.toContain(`strokeStyle=${KONTUR}`);
+      expect(b.slice(bett, i)).not.toContain('globalAlpha=0.55');
     }
   });
 

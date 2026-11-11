@@ -25,6 +25,10 @@ const ZIEL = '#ffe08a', HAKEN_SCHEIBE = 'fillStyle=#d3f0c6';
 const SATZ_VOLL = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.';
 const SATZ_REST = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.';
 const EIGENER_ABGANG: ReadonlyArray<readonly [number, number]> = [[12, 12], [12, 13]];
+/** Eigener Abgang zu Haus 1 (9|13), von Hand aus dem Startdorf gesucht: von der Nordseite der Heizzentrale (11|9) nach Westen bis
+ *  (6|9), um die Büsche (7|10)–(8|11) herum nach Süden und über (8|12) ans Leitungsende (8|13) neben Haus 1. Kein Feld liegt
+ *  neben Spur oder Hauptleitung, also läuft der Hausweg nicht über den Abzweig (fremd_haus 1, Vorprobe in den Tests). */
+const ABGANG_HAUS1: ReadonlyArray<readonly [number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [6, 10], [6, 11], [6, 12], [7, 12], [8, 12], [8, 13]];
 
 // ---------------------------------------------------------------- Hilfen: Canvas-Aufnahme (wie tests/nr20-darstellung.test.ts)
 function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {
@@ -157,6 +161,16 @@ describe('P5g G3: T13h, beide Häuser richtig angeschlossen, aber noch ein gestr
 
   it('test_g3_ein_haus_offen_bleibt_voller_satz: eigener Abgang zu Haus 2 (Haus 2 nicht richtig) → beide Sätze und Zielscheibe wie bisher', () => {
     const { t } = offenMit([...HAUPT, ...A1, ['d25', 12, 12], ['d25', 12, 13]]);
+    expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', text: SATZ_VOLL, zielscheibe: [10, 12] });
+    expect(t.sperre('abschliessen')?.satz).toBe(SATZ_VOLL);
+  });
+
+  // Review P5g (Nachtrag Tester P7et). Fehler, der ihn rot macht: G3 prüft nur Haus 2 (bzw. „irgendein Haus ok“) – dann
+  // fehlte hier, wo Haus 1 noch offen ist, die Aufforderung zum Ziehen.
+  it('test_g3_haus2_richtig_eigener_abgang_haus1_voller_satz: Haus 2 vom Abzweig, Haus 1 über eigenen Abgang → voller Satz', () => {
+    const { s, t } = offenMit([...HAUPT, ...A2, ...ABGANG_HAUS1.map(([x, y]) => ['d25', x, y] as const)]);
+    const lg = s.tutorialLeitungen();
+    expect([lg.haus1_ok, lg.haus2_ok, lg.fremd_haus], 'Vorprobe: Haus 2 richtig, Haus 1 über eigenen Abgang').toEqual([false, true, 1]);
     expect(t.ansicht(T0)).toMatchObject({ schritt: 'T13h', text: SATZ_VOLL, zielscheibe: [10, 12] });
     expect(t.sperre('abschliessen')?.satz).toBe(SATZ_VOLL);
   });
@@ -377,6 +391,26 @@ describe('P5g mit der echten Steuerung', () => {
     }, { uhr: () => uhr.t });
   });
 
+  // Review P5g (Nachtrag Tester P7et). Fehler, der ihn rot macht: statt nur das Ring-Haus wird der Stecker aller Häuser blass
+  // (z. B. `stecker_blass = true` statt `stecker_blass_ids`) – dann verlöre das noch offene Haus 2 sein Ziel-Zeichen.
+  it('test_g5_eigener_abgang_haus1_nur_haus1_blass: eigener Abgang zu Haus 1, Haus 2 offen → Stecker Haus 1 0,35, Haus 2 voll', async () => {
+    const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
+    await echteSteuerung(spiel, (u) => {
+      spiel.stand.geld_eur = 30_000;
+      bisT13h(u, spiel, uhr);
+      for (const [x, y] of ABGANG_HAUS1) expect(spiel.platzieren('d25', x, y).ok, `25er auf (${x}|${y})`).toBe(true);
+      (u.st as unknown as { anleitung: { handlung(): void } }).anleitung.handlung();
+      uhr.t += 16; st(u).tick(uhr.t);
+      const lg = spiel.tutorialLeitungen();
+      expect([lg.haus1_ok, lg.haus2_ok, lg.fremd_haus], 'Vorprobe: eigener Abgang zu Haus 1, Haus 2 offen').toEqual([false, false, 1]);
+      const a = st(u).anleitungAnsicht()!;
+      expect([a.zielscheibe, a.ziel_ring], 'Vorprobe: Zielscheibe und Ring an Haus 1').toEqual([[10, 12], hausBei(spiel, ERSTE_HAEUSER[0]).id]);
+      const ziel = (i: 0 | 1) => steckerVon(u, spiel, i).filter((b) => b.art === 'ziel');
+      expect(ziel(0).map((b) => b.alpha), 'Stecker Haus 1 (Ring-Haus) blass').toEqual([0.35]);
+      expect(ziel(1).map((b) => b.alpha), 'Stecker Haus 2 voll').toEqual([1]);
+    }, { uhr: () => uhr.t });
+  });
+
   it('test_g6_abdunkeln_nur_anzeigenreihe: in T13h liegt die Abdunkel-Fläche nicht über Karte und Zeichenleiste', async () => {
     // Fehler: Rechteck des ganzen HUD-Behälters (so groß wie der Bildschirm) als Abdunkel-Fläche (steuerung.ts ~1036).
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
@@ -403,6 +437,8 @@ describe('P5g mit der echten Steuerung', () => {
       expect(innen(300, 250), 'Kartenmitte unten nicht abgedunkelt').toBe(false);
       expect(innen(780, 200), 'Zeichenleiste rechts nicht abgedunkelt').toBe(false);
       expect(innen(60, 30), 'Dorfschild abgedunkelt').toBe(true);
+      // Review P5g (Nachtrag Tester P7et): auch die Pillen gehören zur Anzeigenreihe (Rechteck 300…530 × 8…48 oben gesetzt)
+      expect(innen(400, 25), 'Pillen abgedunkelt').toBe(true);
     }, { uhr: () => uhr.t });
   });
 

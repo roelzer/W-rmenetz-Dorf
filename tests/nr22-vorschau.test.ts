@@ -10,7 +10,8 @@ import { neu } from './hilfen';
 import { aufnahme } from './hilfen/nr22';
 
 // Bauplan NR20-22 P7 (Vorschau-Rauten), DESIGN 13.17.3 „Auf der Karte, solange das Blatt offen ist“: gestrichelte Raute in der
-// Farbe der empfohlenen Größe mit Deckkraft 0,5 auf den Feldern, die vergrößert würden. Farben von Hand aus core/katalog.ts:
+// Farbe der empfohlenen Größe auf den Feldern, die vergrößert würden. Seit DESIGN 13.17.11 H2 (Tester-Vorarbeit P7e): Farbstrich
+// voll deckend (vorher 0,5), darunter eine Linie `kontur` mit 0,5 (geprüft in tests/nr22-p7e.test.ts). Farben aus core/katalog.ts:
 // 40er '#6ec6ff', 32er '#4caf3e'. Im Bild liegen nur 25er, also stammt jeder Strich in diesen Farben von einer Raute.
 
 const N = KONSTANTEN.feldanzahl;
@@ -33,8 +34,18 @@ function bild(s: Szene): string[] {
   return a.befehle;
 }
 const zahl = (b: string[], marke: string): number => b.filter((x) => x === marke).length;
-/** Letzte Deckkraft vor dem Befehl an Stelle `i` */
-const deckkraftVor = (b: string[], i: number): string | undefined => b.slice(0, i).reverse().find((x) => x.startsWith('globalAlpha='));
+/** Deckkraft, die vor dem Befehl an Stelle `i` gilt – mit save()/restore() wie im echten Canvas (P7e: die Unterlinie mit 0,5
+ *  darf in einem eigenen save/restore liegen) */
+const deckkraftVor = (b: string[], i: number): string => {
+  let a = '1';
+  const stapel: string[] = [];
+  for (const x of b.slice(0, i)) {
+    if (x === 'save()') stapel.push(a);
+    else if (x === 'restore()') a = stapel.pop() ?? '1';
+    else if (x.startsWith('globalAlpha=')) a = x.slice(12);
+  }
+  return `globalAlpha=${a}`;
+};
 
 describe('NR22 P7b Vorschau-Rauten', () => {
   it('ohne Vorschau: keine Raute in der 40er-Farbe, die vorhandene 32er-Ersatzraute bleibt', () => {
@@ -43,12 +54,12 @@ describe('NR22 P7b Vorschau-Rauten', () => {
     expect(zahl(b, `strokeStyle=${D32}`)).toBe(1);
   });
 
-  it('je Vorschau-Feld eine gestrichelte Raute in der Farbe der Zielgröße mit Deckkraft 0,5', () => {
+  it('je Vorschau-Feld eine gestrichelte Raute in der Farbe der Zielgröße, voll deckend (H2)', () => {
     const b = bild(szene({ ueberlast_vorschau: { felder: [F(9), F(8), F(7)], typ: 'd40' } }));
     const stellen = b.flatMap((x, i) => (x === `strokeStyle=${D40}` ? [i] : []));
     expect(stellen).toHaveLength(3);
     for (const i of stellen) {
-      expect(deckkraftVor(b, i)).toBe('globalAlpha=0.5');
+      expect(deckkraftVor(b, i)).toBe('globalAlpha=1');
       expect(b.slice(0, i).reverse().find((x) => x.startsWith('setLineDash('))).not.toBe('setLineDash([])');
     }
   });
