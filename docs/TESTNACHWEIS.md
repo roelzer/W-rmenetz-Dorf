@@ -203,3 +203,5 @@ Ein zweiter Prüflauf ergab bei Z8/Z9 ebenfalls „erfüllt“ (JS 1× 10,2 ms, 
 | 2026-11-06 15:10 | e5c8adb | projektleiter | 🟢 | 1432 | 0 | 2026-11-06 / NR13-Abnahme aufgedeckt / tests/nr13-abnahme.test.ts.verdeckt / Auf |
 | 2026-11-06 15:41 | c06c9fe | projektleiter | 🟢 | 1435 | 0 | – |
 | 2026-11-06 16:10 | fc6b2dc | projektleiter | 🟢 | 1435 | 0 | – |
+| 2026-11-11 08:52 | b389b68 | solo | 🔴 | 1526 | 1 | – |
+| 2026-11-11 08:54 | b389b68 | entwickler | 🔴 | 1526 | 1 | – |
