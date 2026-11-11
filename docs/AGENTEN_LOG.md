@@ -706,3 +706,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 09:29 | ▶ | tester | Tester Teil 3: Test 998, Texte, Figur |
 | 2026-11-11 09:37 | ■ 🟡 | tester | 🟡 **Alle drei Teile fertig. 8 Tests sind mit Absicht rot, bis der Entwickler die Änderungen baut.** Mit einem Probe-Nachbau waren alle 1883 Tests grün und  ([Bericht](docs/pruefberichte/20261111-093744-tester-abf2700c6272421b4.md)) |
 | 2026-11-11 09:38 | ▶ | entwickler | Entwickler: Texte und Figur 96 px |
+| 2026-11-11 09:59 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-11 09:59 | ■ 🟡 | entwickler | 🟡 FERTIG_MIT_BEDENKEN  ([Bericht](docs/pruefberichte/20261111-095902-entwickler-aac9efaeef637934d.md)) |
+| 2026-11-11 09:59 | ▶ | reviewer | Review Merge main + Nacharbeit |
+| 2026-11-11 09:59 | ▶ | designer | Designer-Fotos nach Merge |
