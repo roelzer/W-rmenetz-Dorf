@@ -127,3 +127,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 Designer-Entwurf NR23 fertig (docs/bauplaene/NR23-neubaugebiet-entwurf.md): Grundstücke 2×3, 1 Feld Abstand, drei Wohnstraßen, Karte 40→46 hoch, Leitungen +39 %. Bau nach NR20–22-Veröffentlichung.
 - 2026-11-11 Simon (über Cloudflare-Sitzung): Tutorialtexte T05 (Rauch streichen) und T07 (Wasser als Bild) ändern → kommt mit dem Merge-Entwickler nach Tester Teil 2; T07 beim Fachprüfer.
 - 2026-11-11 Simon (über Cloudflare): Anleiter-Figur Simon im Tutorial am Handy größer → mit Entwickler nach Tester Teil 2, Browser-Durchklick 844/667 (Karte verdeckt kein Loch/Ziel), Designer-Fotos.
+- 2026-11-11 Tester Teil 2 9f3c4b8 (10 erwartet rot, 3 Code-Änderungen). Entwickler: Änderungen + main a4c56ef mergen.

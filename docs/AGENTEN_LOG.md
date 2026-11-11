@@ -698,3 +698,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 09:07 | ▶ | tester | Tester Teil 2: Darstellung, Saum, helle Karte |
 | 2026-11-11 09:15 | ■ 🟢 | designer | 🟢 Der Entwurf NR23 ist fertig. Kein Code geändert, nichts committet.  ([Bericht](docs/pruefberichte/20261111-091517-designer-a9ae3760b44460ece.md)) |
 | 2026-11-11 09:21 | ▶ | fachpruefer | Fachprüfer: T07-Text und NR23-Werte |
+| 2026-11-11 09:22 | ■ 🟡 | tester | 🟡 Fertig. Es sind nur Testdateien geändert, in src/ ist nichts geändert. 10 Tests sind absichtlich rot. Alle 10 werden grün, sobald drei kleine Code-Ände ([Bericht](docs/pruefberichte/20261111-092218-tester-a933df94364c017a7.md)) |
