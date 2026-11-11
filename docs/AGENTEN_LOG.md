@@ -500,3 +500,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-06 16:51 | ■ 🟢 | produktpruefer | 🟢 NR13 ist frei. M1 ist erfüllt: Neuladen mitten im Tutorial hängt es nicht mehr auf.  ([Bericht](docs/pruefberichte/20261106-165157-produktpruefer-a361340deae88cdd3.md)) |
 | 2026-11-06 16:52 | ■ 🟢 | reviewer | ## Ergebnis: 🟢 freigegeben (mit drei kleinen Kann-Punkten)  ([Bericht](docs/pruefberichte/20261106-165256-reviewer-a686dae9bce670f4e.md)) |
 | 2026-11-11 08:52 | ▶ | reviewer | Review Tutorial-Fix steuerung.ts |
+| 2026-11-11 08:55 | ■ 🟡 | reviewer | ### Urteil: 🟡 freigegeben mit kleinen Punkten  ([Bericht](docs/pruefberichte/20261111-085551-reviewer-a3d58366076e04f8f.md)) |

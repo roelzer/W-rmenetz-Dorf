@@ -908,7 +908,7 @@ export class Steuerung implements Ui {
     const bild = { breite: k.breite, hoehe: k.hoehe };
     const freierPlatz = anleiterPlatzFrei(frei, loecher.map(lochRand), bild, kartenHoehe_px);
     if (!freierPlatz && a.kamera !== 'frei' && !this.fahrtJetzt && this.zieleFreistellen(ziele, frei, kartenHoehe_px, this.freistellLage(a, frei, kartenHoehe_px))) {
-      this.anleitungAnwenden();
+      this.neuAnwenden();
       return;
     }
 
@@ -922,9 +922,7 @@ export class Steuerung implements Ui {
       if (r.width > 0 || r.height > 0) {
         // Nach dem Scrollen komplett neu vermessen. Das alte Loch darf nicht anschließend mit den Koordinaten von vor
         // dem Scrollen wieder eingesetzt werden – sonst ist das sichtbare Ziel auf dem Handy trotzdem nicht anklickbar.
-        // Der Schlüssel wird dafür geleert: Musste nichts gescrollt werden, wäre er unverändert, der zweite Durchlauf endete
-        // sofort, und Karte, Loch und Sperre blieben auf dem alten Schritt stehen (Fehler T11/T14 auf dem Handy).
-        zielSichtbarMachen(el, ruhig, () => { if (this.angewendet) this.angewendet = { ...this.angewendet, schluessel: '' }; this.anleitungAnwenden(); });
+        zielSichtbarMachen(el, ruhig, () => this.neuAnwenden());
         return;
       }
     }
@@ -962,6 +960,14 @@ export class Steuerung implements Ui {
         tab_ziele: () => this.tabZiele,
       });
     }
+  }
+  /** Zweiter Durchlauf von anleitungAnwenden nach Scrollen oder Freistellen. Der Schlüssel wird geleert, Schritt und freie
+   *  Breite bleiben (sonst griffe `wechsel` erneut und leerte `gescrollt`): Hat sich am Bild nichts geändert (nichts zu
+   *  scrollen, Kamera an der Grenze), endete der Durchlauf sonst am gleichen Schlüssel, und Karte, Loch und Sperre blieben
+   *  dauerhaft auf dem vorigen Schritt stehen (Fehler T11/T14 auf dem Handy, 2026-11-11). */
+  private neuAnwenden(): void {
+    if (this.angewendet) this.angewendet = { ...this.angewendet, schluessel: '' };
+    this.anleitungAnwenden();
   }
   /** ENTSCHEIDUNGEN 2026-11-06 (Muss M1): Kein Schritt steht nach dem Neuladen ohne erreichbares Ziel. Fehlt ein Baumenü-Ziel
    *  (T11 kasten_abschnitt, T12 leitungskarte), öffnet der Wiedereinstieg das Baumenü auf „Leitungen“ – sonst sperrte das
