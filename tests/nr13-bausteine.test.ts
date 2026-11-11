@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { domAttrappe, El, sichtbar, sichtbarerText, TextKnoten, type DomAttrappe } from './hilfen/dom-attrappe';
 import type { TutorialAnsicht } from '../src/core/tutorial-vertrag';
+import type { AnleiterPlatz } from '../src/ui/anleiter';
 
 type Ereignis = Record<string, unknown> & { type: string };
 interface Eintrag { typ: string; f: (ev: unknown) => void; opt: unknown }
@@ -68,6 +69,8 @@ function ansicht(teil: Partial<TutorialAnsicht> = {}): TutorialAnsicht {
   };
 }
 const PLATZ = { links: 12, unten: 12, breite: 432, figur_px: 112 as const };
+/** Kleine Figur: 96 px seit Auftrag 2026-11-11 (vorher 72). Über `number`, damit der Test auch vor der Typänderung übersetzt. */
+const FIGUR_KLEIN = 96 as number as AnleiterPlatz['figur_px'];
 const karte = (): El => a.doc.getElementById('anleiter') as El;
 
 describe('NR13 Anleiter-Platz (DESIGN 13.3)', () => {
@@ -83,13 +86,13 @@ describe('NR13 Anleiter-Platz (DESIGN 13.3)', () => {
     const { anleiterPlatz } = await anleiter();
     // Seitenfläche 388 bzw. 306,8: frei 456 − 24 = 432; frei 360,2 − 24 = 336,2 → 336; Figur klein, weil 360,2 < 400
     expect(anleiterPlatz({ x: 0, y: 0, b: 456, h: 390 }, null, { breite: 844, hoehe: 390 })).toEqual({ links: 12, unten: 12, breite: 432, figur_px: 112 });
-    expect(anleiterPlatz({ x: 0, y: 0, b: 360.2, h: 375 }, null, { breite: 667, hoehe: 375 })).toEqual({ links: 12, unten: 12, breite: 336, figur_px: 72 });
+    expect(anleiterPlatz({ x: 0, y: 0, b: 360.2, h: 375 }, null, { breite: 667, hoehe: 375 })).toEqual({ links: 12, unten: 12, breite: 336, figur_px: 96 });
     // Zeichenleiste 216: frei 628 − 24 = 604 → 460; frei 451 − 24 = 427
     expect(anleiterPlatz({ x: 0, y: 0, b: 628, h: 390 }, null, { breite: 844, hoehe: 390 }).breite).toBe(460);
     expect(anleiterPlatz({ x: 0, y: 0, b: 451, h: 375 }, null, { breite: 667, hoehe: 375 })).toEqual({ links: 12, unten: 12, breite: 427, figur_px: 112 });
     // Grenze der kleinen Figur: genau 400 frei → groß, 399 → klein
     expect(anleiterPlatz({ x: 0, y: 0, b: 400, h: 375 }, null, { breite: 667, hoehe: 375 }).figur_px).toBe(112);
-    expect(anleiterPlatz({ x: 0, y: 0, b: 399, h: 375 }, null, { breite: 667, hoehe: 375 }).figur_px).toBe(72);
+    expect(anleiterPlatz({ x: 0, y: 0, b: 399, h: 375 }, null, { breite: 667, hoehe: 375 }).figur_px).toBe(96);
     // Freie Fläche nicht am linken Rand: links = frei.x + 12
     expect(anleiterPlatz({ x: 100, y: 0, b: 456, h: 390 }, null, { breite: 844, hoehe: 390 }).links).toBe(112);
   });
@@ -148,7 +151,7 @@ describe('NR13 Anleiter-Karte', () => {
     expect(weiter).toHaveBeenCalledTimes(1);
 
     // [Los geht’s] und „Wusstest du?“-Chip
-    anleiterZeigen(ansicht({ weiter: 'los', wusstest_du: true }), { links: 12, oben: 64, breite: 336, figur_px: 72 }, { weiter }, 0);
+    anleiterZeigen(ansicht({ weiter: 'los', wusstest_du: true }), { links: 12, oben: 64, breite: 336, figur_px: FIGUR_KLEIN }, { weiter }, 0);
     expect((a.doc.getElementById('anleiter-weiter') as El).textContent).toBe('Los geht’s');
     expect(karte().querySelector('.chip.gold')!.textContent).toBe('Wusstest du?');
     expect(karte().style.top).toBe('64px');

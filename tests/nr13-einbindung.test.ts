@@ -995,7 +995,10 @@ describe('NR13 Fix 2026-11-11: sichtbares Blatt-Ziel', () => {
         return this.getAttribute('data-ziel') === 'abschliessen'
           ? { left: 600, top: 320, right: 820, bottom: 370, width: 220, height: 50, x: 600, y: 320 } : alt.call(this);
       });
-      wischeFelder(u, SPUR_BIS_HAUS2);
+      vonT13BisT13h(u, spiel, uhr);
+      wischeFelder(u, ZUG_HAUS1);
+      s2(u).tick(uhr.t);
+      wischeFelder(u, ZUG_HAUS2);
       s2(u).tick(uhr.t);
       expect(schrittJetzt(u)).toBe('T14');
       const text = u.dom.doc.querySelector('#anleiter .anleiter-text')?.textContent.replace(/\s+/g, ' ').trim();

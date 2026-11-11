@@ -47,7 +47,7 @@ function ansicht(teil: Partial<TutorialAnsicht> = {}): TutorialAnsicht {
     farbknopf_ring: null, zeichenleiste: null, zeichnen_ruht: false, kompakt: false, ruhe: false, ...teil,
   };
 }
-// Große Figur vom Platz, damit sichtbar wird, dass die kompakte Karte selbst auf 72 px verkleinert
+// Große Figur vom Platz, damit sichtbar wird, dass die kompakte Karte selbst auf die kleine Figur (96 px, figur-klein) verkleinert
 const PLATZ = { links: 12, unten: 12, breite: 460, figur_px: 112 as const };
 const karte = (): El => a.doc.getElementById('anleiter') as El;
 const schleier = (): El | null => a.doc.getElementById('schleier') as El | null;

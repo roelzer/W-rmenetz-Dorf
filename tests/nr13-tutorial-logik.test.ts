@@ -396,9 +396,11 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       T01: TEXT.T01, T02: TEXT.T02,
       T03: `Wie viel Wärme er in jedem Moment schafft, misst man in **Kilowatt (kW)**. Dein Kessel schafft 60${NB}kW.`,
       T04: 'Das heiße Wasser fließt durch Rohre unter der Straße zu den Häusern. Das nennt man **Wärmenetz** oder **Nahwärme**.',
-      T05: 'Diese Häuser heizen noch mit Öl – siehst du den grauen Rauch? Du willst die ersten zwei anschließen.',
+      // ENTSCHEIDUNGEN 2026-11-11: der „graue Rauch“ fällt weg (Hauskamine rauchen seit A60 nicht mehr)
+      T05: 'Diese Häuser heizen noch mit Öl. Du willst die ersten zwei anschließen.',
       T06: `Ein Haus braucht im Jahr 15.000${NB}kWh Wärme. An den kältesten Tagen braucht es bis zu 10${NB}kW gleichzeitig.`,
-      T07: '**kW** ist, wie viel Wasser gerade aus dem Hahn läuft. **kWh** ist, wie voll der Eimer am Ende ist.',
+      // ENTSCHEIDUNGEN 2026-11-11: das Bild als Bild kennzeichnen – das Netz bringt kein Leitungswasser
+      T07: 'Nur ein Bild, das Netz bringt Wärme, kein Leitungswasser: **kW** ist, was gerade aus dem Hahn läuft, **kWh**, was im Eimer ist.',
       T08: 'Leitungen baust du in **Bauabschnitten**. Tippe auf Bauen.',
       T09: 'Hier ist alles für dein Netz. Tippe auf Leitungen.',
       T10: 'Philipp plant, wo die Leitung in der Straße liegen soll. Tippe auf seinen Knopf.',
@@ -426,7 +428,25 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(TUTORIAL_ZURUFE).toEqual(['Hallo {Name}!', 'Prima!', 'Fertig geplant!', 'Geschafft, {Name}!', 'Weiter geht’s, {Name}!']);
   });
 
-  it('test_nr13_texte_laenge – alle Blasen-, Hilfe-, Sperr- und Wiedereinstiegs-Sätze ≤ 120 Zeichen, ≤ 2 Sätze (K2)', () => {
+  // ENTSCHEIDUNGEN 2026-11-11: Hauskamine rauchen seit A60 nicht mehr – T05 darf keinen Rauch versprechen. T07 muss sagen,
+  // dass Hahn und Eimer nur ein Bild sind: Das Netz liefert Wärme, kein Leitungswasser (fachlich falsch verstanden sonst).
+  it('test_nr13_t05_ohne_rauch_t07_kein_leitungswasser – T05 nennt keinen Rauch, T07 stellt klar: kein Leitungswasser', () => {
+    const l = lageBauen();
+    const t = new Tutorial(l);
+    bis(t, l, 'T05');
+    const t05 = t.ansicht(T0)!.text;
+    expect(t05).toContain('Öl');
+    expect(t05).not.toMatch(/rauch/i);
+    bis(t, l, 'T07');
+    const t07 = t.ansicht(T0)!.text;
+    expect(t07).toContain('kein Leitungswasser');
+    // Fett-Marken bleiben an den Einheiten
+    expect(t07).toContain('**kW**');
+    expect(t07).toContain('**kWh**');
+    expect(t07.replace(/\*\*/g, '').length).toBeLessThanOrEqual(120);
+  });
+
+  it('test_nr13_texte_laenge – alle Blasen-,Hilfe-, Sperr- und Wiedereinstiegs-Sätze ≤ 120 Zeichen, ≤ 2 Sätze (K2)', () => {
     const werte = { kwh: 99_999, kw_ohne: 17.5, kw_puffer: 12.5, kessel_kw: 999, kw_summe: 1_234.5, haupt: 'd110' as const, anschluss: 'd110' as const };
     const texte: string[] = [];
     const sammle = (t: Tutorial): void => {
