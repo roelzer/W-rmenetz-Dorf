@@ -1085,7 +1085,8 @@ export class Steuerung implements Ui {
     if (this.leiste && (abschliessen?.kurz ?? null) !== this.leisteSperreKurz) this.leisteAufbauen();
     this.tutorialSzeneSetzen(a);
     // Vor der Schlüsselprüfung: schleierSetzen baut nur bei geändertem Gang neu auf, folgt so aber jeder Kamerabewegung
-    schleierSetzen(a.ruhe ? this.schleierGang(a) : null);
+    // Ohne Abdunkelung (Leitung ziehen, T13–T13h) gibt es auch keinen Schleier: die Karte bleibt ganz frei
+    schleierSetzen(a.ruhe && a.abdunkeln !== 'nichts' ? this.schleierGang(a) : null);
 
     const ziele = a.ziele.map((z) => ({ z, l: this.zielLoch(a, z) }));
     const ringEl = this.ringKnopf(ring_id), ringR = ringEl ? Steuerung.elRechteck(ringEl) : null;

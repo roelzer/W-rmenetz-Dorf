@@ -851,10 +851,11 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     const D = KATALOG[o.typ], w = rohrBreite(tw, o.typ);
     X.lineCap = 'round';
     // NR22 (DESIGN 13.17.3): Die Rohrfarbe bleibt auch bei Überlast; das überlastete Stück zeigt stattdessen den gelben Saum.
-    // 13.17.11 H1: Der Saum ersetzt nur die dunkle Kante (saum_px = 1 je Seite, keine Außenlinie), damit eine überlastete
+    // 13.17.11 H1: Der Saum ersetzt nur die dunkle Kante in genau deren Breite (keine Außenlinie), damit eine überlastete
     // Leitung nicht dicker wirkt als eine größere daneben.
     const rohr = plan || an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
-    const kante: readonly [number, string] = ueberlastFelder.has(key) ? [w + 2 * SAUM.saum_px, MF.ueberlast_zeichen] : [w + 1.25, 'rgba(35,40,35,.42)'];
+    const kanteBreite = w + 1.25;
+    const kante: readonly [number, string] = ueberlastFelder.has(key) ? [kanteBreite, MF.ueberlast_zeichen] : [kanteBreite, 'rgba(35,40,35,.42)'];
     for (const [lw, c] of [kante, [w, rohr] as const]) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy); X.lineTo(mx, my); }
