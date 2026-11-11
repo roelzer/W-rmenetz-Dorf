@@ -218,7 +218,7 @@ async function laufA(s, a, g, ort) {
   pruefe(ort, 'T12: Schleier liegt', l.schleier, '');
   await bisSchritt(s, ort, 'T13');
   l = await foto(s, a, g, 't13');
-  pruefe(ort, 'T13: Schleier liegt', l.schleier, '');
+  pruefe(ort, 'T13: kein Schleier (Karte beim Leitungsziehen hell, main 9918f8d)', !l.schleier, '');
   await ziehen(s, await punkte(p, HAUPT));
   l = await bis(p, (x) => x.schritt === 'T13w', 3000);
   muss(ort, 'T13 → T13w nach dem Abheben', l.schritt === 'T13w', String(l.schritt));

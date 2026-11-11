@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ERSTE_HAEUSER, TUTORIAL_HAUPT } from '../src/core/start';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 import type { El } from './hilfen/dom-attrappe';
-import { T0, bisT13, farbknopf, hausBei, neuesSpiel, st, wischeFelder, type U } from './hilfen/tutorial-zug';
+import { T0, bisT12, bisT13, farbknopf, hausBei, neuesSpiel, st, wischeFelder, type U } from './hilfen/tutorial-zug';
 
 const schleierSvg = (u: U): El => (u.dom.doc.getElementById('schleier') as El).querySelector('svg') as El;
 const maske = (u: U): string => /<mask[^>]*>(.*)<\/mask>/.exec(schleierSvg(u).attrs.quelle)![1];
@@ -16,14 +16,16 @@ function loecher(u: U): Array<{ cx: number; cy: number; rx: number; ry: number }
   });
 }
 
+// Seit main 9918f8d (ENTSCHEIDUNGEN 2026-11-11) liegt beim Leitungsziehen (T13–T13h) kein Schleier mehr; die Maße des Gangs
+// werden darum in T12 geprüft (Löcher: Heizzentrale, Haus 1, Haus 2).
 describe('P5f-2 Schleier (DESIGN 13.17.9 F5, Review P5e)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
   afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
-  it('Schleier ohne Änderung wird nicht neu gebaut: zwei weitere Bilder in T13 lassen dasselbe SVG-Element stehen', async () => {
+  it('Schleier ohne Änderung wird nicht neu gebaut: zwei weitere Bilder in T12 lassen dasselbe SVG-Element stehen', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
-      bisT13(u, spiel, uhr);
+      bisT12(u, spiel, uhr);
       const vorher = schleierSvg(u);
       uhr.t += 16; st(u).tick(uhr.t);
       uhr.t += 16; st(u).tick(uhr.t);
@@ -34,7 +36,7 @@ describe('P5f-2 Schleier (DESIGN 13.17.9 F5, Review P5e)', () => {
   it('Lochmitte Haus 2: Ellipse um das Haus (Grundfläche + eine Feldhöhe nach oben), Mitte also eine halbe Feldhöhe über der Feldmitte', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
-      bisT13(u, spiel, uhr);
+      bisT12(u, spiel, uhr);
       const k = st(u).kamera, h2 = hausBei(spiel, ERSTE_HAEUSER[1]);
       const [mx, my] = k.mitte(h2.x, h2.y);
       const l = loecher(u).at(-1)!;
@@ -46,7 +48,7 @@ describe('P5f-2 Schleier (DESIGN 13.17.9 F5, Review P5e)', () => {
   it('F5: Heizzentrale nur mit der Grundfläche (2×2 Felder als Raute) + 12 px: Mitte = Mitte der vier Felder, Halbachsen Feldbreite + 12 und Feldhöhe + 12', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
-      bisT13(u, spiel, uhr);
+      bisT12(u, spiel, uhr);
       const k = st(u).kamera, hz = spiel.hz;
       // Heizzentrale (11|10), Größe 2: Mitte der Bodenraute bei (11,5|10,5); Ellipse durch die Rautenecken = halbe Diagonalen
       // 2 · tw / 2 und 2 · th / 2, dazu spot_abstand_karte 12 px

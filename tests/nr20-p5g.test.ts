@@ -414,8 +414,10 @@ describe('P5g mit der echten Steuerung', () => {
     }, { uhr: () => uhr.t });
   });
 
-  it('test_g6_abdunkeln_nur_anzeigenreihe: in T13h liegt die Abdunkel-Fläche nicht über Karte und Zeichenleiste', async () => {
-    // Fehler: Rechteck des ganzen HUD-Behälters (so groß wie der Bildschirm) als Abdunkel-Fläche (steuerung.ts ~1036).
+  // Vorrang main (Commit 9918f8d, ENTSCHEIDUNGEN 2026-11-11): Beim Leitungsziehen ist die ganze Karte hell – in T13h liegt keine
+  // Abdunkel-Fläche über Karte, Zeichenleiste oder Anzeigenreihe (ersetzt G6 „nur Anzeigenreihe“ für diesen Schritt).
+  // Fehler, der ihn rot macht: T13h dunkelt weiter ab ('nur_hud'/'alles') oder die Abdunkel-Ebene bleibt sichtbar.
+  it('test_g6_abdunkeln_t13h_nichts: in T13h liegt keine Abdunkel-Fläche über dem Bildschirm', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
       // Lage wie im Browser (Foto 844×390): HUD-Behälter über den ganzen Bildschirm, die Anzeigenreihe oben links/mitte
@@ -429,19 +431,10 @@ describe('P5g mit der echten Steuerung', () => {
       setze(u.dom.html.querySelector('.pillen'), 300, 8, 230, 40);
       bisT13h(u, spiel, uhr);
       uhr.t += 16; st(u).tick(uhr.t);
-      expect(st(u).anleitungAnsicht()!.abdunkeln, 'Vorprobe: T13h dunkelt nur das HUD ab').toBe('nur_hud');
+      expect(st(u).anleitungAnsicht()!.abdunkeln, 'T13h ohne Abdunkeln').toBe('nichts');
       const dunkel = u.dom.html.querySelector('.spot-dunkel');
-      expect(dunkel, 'Vorprobe: Abdunkel-Ebene da').not.toBeNull();
-      const pfad = /path\(evenodd, '([^']*)'\)/.exec(String(dunkel!.style.clipPath))?.[1];
-      expect(pfad, `Umriss lesbar: ${String(dunkel!.style.clipPath)}`).toBeDefined();
-      const innen = (px: number, py: number): boolean => imUmriss(pfad!, px, py);
-      const [zx, zy] = st(u).kamera.mitte(10, 12);
-      expect(innen(zx, zy), 'Zielscheibe (10|12) auf der Karte nicht abgedunkelt').toBe(false);
-      expect(innen(300, 250), 'Kartenmitte unten nicht abgedunkelt').toBe(false);
-      expect(innen(780, 200), 'Zeichenleiste rechts nicht abgedunkelt').toBe(false);
-      expect(innen(60, 30), 'Dorfschild abgedunkelt').toBe(true);
-      // Review P5g (Nachtrag Tester P7et): auch die Pillen gehören zur Anzeigenreihe (Rechteck 300…530 × 8…48 oben gesetzt)
-      expect(innen(400, 25), 'Pillen abgedunkelt').toBe(true);
+      expect(dunkel, 'Vorprobe: Abdunkel-Ebene da (Tutorial läuft)').not.toBeNull();
+      expect(dunkel!.hidden, 'Abdunkel-Ebene unsichtbar').toBe(true);
     }, { uhr: () => uhr.t });
   });
 
@@ -471,27 +464,3 @@ describe('P5g mit der echten Steuerung', () => {
     }, { uhr: () => uhr.t });
   });
 });
-
-/** Gerade-ungerade-Regel für einen Umriss aus M/L/H/V/Z (auch mit Leerzeichen); Bögen (A) sind hier nicht erwartet. */
-function imUmriss(d: string, px: number, py: number): boolean {
-  if (/[AaCcQq]/.test(d)) throw new Error(`Umriss mit Bögen nicht auswertbar: ${d}`);
-  const zuege = d.match(/[MLHVZmlhvz]|-?[\d.]+/g) ?? [];
-  const ringe: Array<Array<[number, number]>> = [];
-  let ring: Array<[number, number]> = [], x = 0, y = 0, befehl = '';
-  for (let i = 0; i < zuege.length; i++) {
-    const z = zuege[i];
-    if (/[A-Za-z]/.test(z)) { befehl = z.toUpperCase(); if (befehl === 'Z') { if (ring.length) ringe.push(ring); ring = []; } continue; }
-    if (befehl === 'M') { if (ring.length) ringe.push(ring); x = Number(z); y = Number(zuege[++i]); ring = [[x, y]]; befehl = 'L'; }
-    else if (befehl === 'L') { x = Number(z); y = Number(zuege[++i]); ring.push([x, y]); }
-    else if (befehl === 'H') { x = Number(z); ring.push([x, y]); }
-    else if (befehl === 'V') { y = Number(z); ring.push([x, y]); }
-  }
-  if (ring.length) ringe.push(ring);
-  let drin = false;
-  for (const r of ringe) for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
-    const [xi, yi] = r[i], [xj, yj] = r[j];
-    if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) drin = !drin;
-  }
-  return drin;
-}
-

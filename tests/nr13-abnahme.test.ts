@@ -458,7 +458,7 @@ describe('NR13 Abnahme – kompletter Ablauf', () => {
     for (const id of T13_FAMILIE) {
       expect(gesehen[id].kamera_grenze, `K5 Kamera-Grenze in ${id}`).toBe(true);
       expect(gesehen[id].spur, id).toBe(true);
-      expect(gesehen[id].abdunkeln, id).toBe('nur_hud');
+      expect(gesehen[id].abdunkeln, `${id}: Karte beim Leitungsziehen hell (main 9918f8d)`).toBe('nichts');
     }
     for (const id of FOLGE.filter((x) => !T13_FAMILIE.has(x))) { expect(gesehen[id].kamera_grenze, id).toBe(false); expect(gesehen[id].spur, id).toBe(false); }
     expect(gesehen.T15.normale_aktion && gesehen.T18.normale_aktion, 'T15/T18 Tipp aufs Haus öffnet das Hausblatt').toBe(true);

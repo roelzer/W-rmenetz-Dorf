@@ -370,7 +370,7 @@ describe('NR21 Tutorial-Schrittlogik (Bauplan NR20-22 P2)', () => {
 
   it('test_nr21_schritt_tabelle – alle Zellen der Tabelle B6', () => {
     const HZ3 = ['heizzentrale', 'haus1', 'haus2'];
-    const k3 = { ziele: [], abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
+    const k3 = { ziele: [], abdunkeln: 'nichts', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
       kompakt: true, ruhe: true };
     const [t13, l] = inT13();
     expect(an(t13)).toMatchObject({ ...k3, finger: 'spur', zielscheibe: [10, 12], ziel_ring: null, zeichenleiste: { typ: 'd32' }, zeichnen_ruht: false });

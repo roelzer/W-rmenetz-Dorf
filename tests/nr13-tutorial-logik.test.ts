@@ -564,13 +564,13 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       T11: { art: 'W', ziele: ['kasten_abschnitt'], finger: 'aus', weiter: 'wartet' },
       T12: { ziele: ['leitungskarte'], finger: 'tippen', leitung_typ: 'd32', kamera_ziele: HZ3, abdunkeln: 'alles', ruhe: true },
       // NR20/NR21 Schritt-Tabelle Bauplan NR20-22 P2 (B6) und §5
-      T13: { ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true, leitung_typ: undefined,
+      T13: { ziele: [], finger: 'spur', abdunkeln: 'nichts', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true, leitung_typ: undefined,
         zielscheibe: [10, 12], naechstes_feld: [10, 11], finger_weg: [[10, 11], [10, 12]], ziel_ring: null, zeichenleiste: { typ: 'd32' },
         zeichnen_ruht: false, kompakt: true, ruhe: true, farbknopf_ring: null },
-      T13w: { ziele: [], finger: 'tippen', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
+      T13w: { ziele: [], finger: 'tippen', abdunkeln: 'nichts', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
         zielscheibe: [10, 12], naechstes_feld: [10, 12], finger_weg: [], ziel_ring: null, zeichenleiste: { typ: 'd32' }, zeichnen_ruht: true,
         kompakt: true, ruhe: true, farbknopf_ring: 'd25' },
-      T13h: { ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
+      T13h: { ziele: [], finger: 'spur', abdunkeln: 'nichts', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
         // Bauplan NR20-22 P2: finger_weg = ab naechstes_feld (9|12) das Stück zu Haus 1, dann Hausmitte K2 [x + (g − 1) / 2, y + (g − 1) / 2];
         // Haus 1 = efh (Größe 1) auf (9|13) → (9|13). ziel_ring = erstes nicht-ok Haus = Haus 1 (Id, unten in der Schleife gesetzt).
         zielscheibe: null, naechstes_feld: [9, 12], finger_weg: [[9, 12], [9, 13]], zeichenleiste: { typ: 'd25' }, zeichnen_ruht: false, kompakt: true, ruhe: true, farbknopf_ring: null },

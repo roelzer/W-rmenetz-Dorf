@@ -51,8 +51,9 @@ const gleich = (a: number, c: number): boolean => Math.abs(a - c) < 1e-9;
 // ================================================================= H1 – Saum ersetzt nur die Kante
 // Lage wie tests/nr22-darstellung.test.ts: Kamera 844×390, Zoom 2 → Feldbreite tw = 52. Schlanke Rohrgrafik aus main:
 // 25er w = max(1,5; 52 × 0,06 × 0,62) = 1,9344. Ohne Überlast: dunkle Kante w + 1,25 = 3,1844, darin das Rohr w.
-// Mit Überlast (13.17.11 H1): Gelb w + 2 × saum_px = w + 2 = 3,9344 statt der dunklen Kante, keine Außenlinie, Rohr w in der
-// Mitte unverändert. Den Glanzstrich zeichnet main erst ab w ≥ 3, also bei Zoom 4: tw = 104, w = 3,8688, Glanz w × 0,19.
+// Mit Überlast (13.17.11 H1, Entscheidung 2026-11-11 Saum-Breite): Gelb ersetzt die dunkle Kante in genau deren Breite,
+// w + 1,25 = 3,1844 (vorher w + 2 = 3,9344), keine Außenlinie, Rohr w in der Mitte unverändert. Gesamtbreite also wie ohne
+// Überlast; die normale 32er ist breiter: w32 = 52 × 0,07 × 0,62 = 2,2568, Kante w32 + 1,25 = 3,5068 > 3,1844. Den Glanzstrich zeichnet main erst ab w ≥ 3, also bei Zoom 4: tw = 104, w = 3,8688, Glanz w × 0,19.
 describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
   const objekte = [neu('hz', 11, 10), ...[10, 9, 8, 7, 6].map((x) => neu('d25', x, 10))];
   const F = (x: number): number => 10 * N + x;
@@ -96,7 +97,7 @@ describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
 
   // Fehler, der ihn rot macht: das Rohr wird bei Überlast schmaler/breiter oder anders gefärbt, die dunkle Kante bleibt unter
   // dem Gelb liegen, ein weiterer Strich kommt dazu, oder das Gelb ist nicht voll deckend/nicht die äußerste Linie.
-  it('test_h1_nur_kante_wird_saum: je Feld dieselben Striche wie ohne Überlast, nur die Kante ist Gelb w + 2 und voll deckend', () => {
+  it('test_h1_nur_kante_wird_saum: je Feld dieselben Striche wie ohne Überlast, nur die Kante ist Gelb w + 1,25 und voll deckend', () => {
     const ohne = querschnitte(bild(szene({})), W2), mit = querschnitte(bild(szene({ ueberlast: [STUECK] })), W2);
     expect(mit).toHaveLength(5);
     mit.forEach((f, n) => {
@@ -105,7 +106,7 @@ describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
       expect(f.map((s) => s.farbe), `Feld ${n}: nur die Kante wechselt zum Gelb`).toEqual(vorher.map((s) => (s.farbe === KANTE ? GELB : s.farbe)));
       expect(f.filter((s) => s.farbe === KANTE), `Feld ${n}: keine dunkle Kante mehr`).toEqual([]);
       const gelb = f.find((s) => s.farbe === GELB)!;
-      expect([gelb.alpha, gelb.breite], `Feld ${n}: Gelb voll deckend, w + 2`).toEqual([1, expect.closeTo(W2 + 2, 9)]);
+      expect([gelb.alpha, gelb.breite], `Feld ${n}: Gelb voll deckend, w + 1,25 wie die Kante`).toEqual([1, expect.closeTo(W2 + 1.25, 9)]);
       expect(breiteste(f), `Feld ${n}: das Gelb ist die äußerste Linie`).toBeCloseTo(gelb.breite, 9);
       const rohr = f[f.length - 1], rohrVorher = vorher[vorher.length - 1];
       expect([rohr.farbe, rohr.alpha], `Feld ${n}: Rohrfarbe bleibt`).toEqual([rohrVorher.farbe, rohrVorher.alpha]);
@@ -122,8 +123,9 @@ describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
     }
   });
 
-  // Prüfzweck aus 13.17.3 bleibt: Rohrfarbe in der Mitte, Gelb erkennbar (1 px je Seite = Saumbreite − Rohrbreite = 2)
-  it('test_h1_rohrfarbe_mitte_gelb_ein_px (rot bis P7e): innen 25er 1,9344 voll deckend über dem Gelb, Gelb je Seite 1 px breiter', () => {
+  // Prüfzweck aus 13.17.3 bleibt: Rohrfarbe in der Mitte, Gelb erkennbar. Seit der Entscheidung 2026-11-11 je Seite so breit wie
+  // die Kante: (w + 1,25 − w) / 2 = 0,625 px.
+  it('test_h1_rohrfarbe_mitte_gelb_wie_kante: innen 25er 1,9344 voll deckend über dem Gelb, Gelb je Seite 0,625 px breiter', () => {
     const mit = querschnitte(bild(szene({ ueberlast: [STUECK] })), W2);
     expect(mit, 'Vorprobe: fünf Querschnitte (sonst prüft die Schleife nichts)').toHaveLength(5);
     for (const f of mit) {
@@ -132,9 +134,37 @@ describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
       expect(letzter.breite).toBeCloseTo(1.9344, 9);
       const gelb = f.filter((s) => s.farbe === GELB);
       expect(gelb).toHaveLength(1);
-      expect((gelb[0].breite - letzter.breite) / 2, 'Gelb je Seite 1 px (13.17.11 H1)').toBeCloseTo(1, 9);
+      expect((gelb[0].breite - letzter.breite) / 2, 'Gelb je Seite 0,625 px wie die Kante (Entscheidung 2026-11-11)').toBeCloseTo(0.625, 9);
       expect(gelb[0].i).toBeLessThan(letzter.i);
     }
+  });
+
+  // Fehler, der ihn rot macht: der Saum ist breiter als die Kante (z. B. w + 2), die überlastete Leitung wirkt dicker als ohne.
+  it('test_h1_gesamtbreite_wie_ohne_ueberlast: je Feld breitester Strich mit Überlast = ohne Überlast = 3,1844', () => {
+    const ohne = querschnitte(bild(szene({})), W2), mit = querschnitte(bild(szene({ ueberlast: [STUECK] })), W2);
+    expect(ohne, 'Vorprobe: fünf Querschnitte ohne Überlast').toHaveLength(5);
+    expect(mit, 'Vorprobe: fünf Querschnitte mit Überlast').toHaveLength(5);
+    mit.forEach((f, n) => {
+      expect(breiteste(f), `Feld ${n}: Gesamtbreite mit Überlast`).toBeCloseTo(3.1844, 9);
+      expect(breiteste(f), `Feld ${n}: gleich breit wie ohne Überlast`).toBeCloseTo(breiteste(ohne[n]), 9);
+    });
+  });
+
+  // Anlass des Fotochecks (H1): überlastete 25er wirkte dicker als eine größere Leitung. Fehler, der ihn rot macht: Saum w + 2
+  // (3,9344 > 3,5068). Die 32er wird in derselben Lage ohne Überlast gezeichnet.
+  it('test_h1_ueberlastete_25er_schmaler_als_normale_32er: breitester Strich 3,1844 < 3,5068 (Kante der 32er)', () => {
+    const W32 = 52 * 0.07 * 0.62;
+    const o32 = [neu('hz', 11, 10), ...[10, 9, 8, 7, 6].map((x) => neu('d32', x, 10))];
+    const s32: Szene = { ...szene({}), objekte: o32, netz: berechneNetz(o32, [], 1) };
+    const alle32 = striche(bild(s32));
+    const rohre32 = alle32.filter((s) => s.farbe === D32 && gleich(s.breite, W32));
+    expect(rohre32, 'Vorprobe: fünf 32er-Rohrfelder').toHaveLength(5);
+    const kanten32 = alle32.filter((s, j) => s.farbe === KANTE && alle32[j + 1]?.farbe === D32 && gleich(alle32[j + 1].breite, W32));
+    expect(kanten32, 'Vorprobe: vor jedem 32er-Rohr die Kante').toHaveLength(5);
+    for (const k of kanten32) expect(k.breite).toBeCloseTo(3.5068, 9);
+    const mit = querschnitte(bild(szene({ ueberlast: [STUECK] })), W2);
+    expect(mit, 'Vorprobe: fünf überlastete 25er-Felder').toHaveLength(5);
+    for (const f of mit) expect(breiteste(f)).toBeLessThan(Math.min(...kanten32.map((k) => k.breite)));
   });
 
   it('test_h1_token_saum_px_1 (rot bis P7e): karte.ueberlast.saum_px = 1', () => {
