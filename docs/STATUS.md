@@ -115,3 +115,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - P7 in nr20-int (6c08d28, 1716 grün). Laufen: Entwickler P5g, Tester P7t (nr20-p7t ab 6c08d28). Danach P7d.
 - Tester P7t fertig (58759b2). Laufen: P5g-Entwickler, P7d-Entwickler.
 - P5g + P7d fertig, Probe-Merge nr20-p5gz (016e2b3, 1749 grün). Laufen: Review P5g+P7d, Designer-Fotocheck. Danach: nr20-p5gz → nr20-int → Schranke projektleiter → claude/keen-mccarthy-f4p5us → main.
+- 2026-11-11: Review P5g+P7d und Designer-Fotocheck nach Wochenlimit fortgesetzt. Neue Wünsche NR23–25 im Lastenheft, Plan nach Veröffentlichung NR20–22.
