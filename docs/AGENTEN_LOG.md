@@ -685,3 +685,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 08:07 | ▶ | entwickler | P7e Saum H1 und H2-H5 |
 | 2026-11-11 08:28 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-11 08:28 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261111-082832-entwickler-a7e71a0eb7050b815.md)) |
+| 2026-11-11 08:28 | ▶ | reviewer | Review P7e |
+| 2026-11-11 08:28 | ▶ | designer | Kurzcheck H1-H5 Fotos |
