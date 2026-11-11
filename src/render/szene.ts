@@ -554,16 +554,28 @@ function zeichneBand(m: Maler, k: Kamera, band: ReadonlyArray<TutorialBandFeld>,
  *  (1,11) und noch bei 1,3 (1,31) las man im Browserfoto eine hintere Ecke als Spitze: Rand und Kantenglättung runden die
  *  spitze Ecke bei rund 9 px Breite stärker ab als die stumpfen. */
 const PFEIL_LAENGE = 1.8;
+/** 13.17.11 H5: Auf einem Eckfeld rückt der Pfeil um diesen Teil seiner Halblänge in Pfeilrichtung vor – sonst ragt die hintere
+ *  Kante aus der Bandecke (Foto t13w, (10|14): rund 3 px auf die Straße). Ab Bandbreite 12 px liegt er so ganz im Band. */
+const PFEIL_ECKE_VOR = 0.6;
+
+/** Eckfeld des Bands: Vorgänger und Nachfolger liegen nicht genau gegenüber (13.17.11 H5). Ohne festen Vorgänger kommt der
+ *  Bandweg gegen den eigenen Pfeil (bandWeg), das Feld ist dann gerade. */
+function bandEcke(f: TutorialBandFeld, pfeil: Feld): boolean {
+  const vor = bandVorgaenger(f.x, f.y);
+  return !!vor && !(vor[0] - f.x === -pfeil[0] && vor[1] - f.y === -pfeil[1]);
+}
 
 /** Pfeilspitze in der Bandmitte, Breite b × 0,6, zeigt auf dem Bildschirm zur Mitte des nächsten Felds (B2, 13.17.10 G7) –
  *  die Richtung kommt aus den Bildschirmpunkten, gilt also auch bei gedrehter Karte. Weiß mit Kontur oder in `kontur` mit
  *  Rand `tafel` (13.17.9 F5: der dunkle Pfeil hebt sich so vom Grün der 32er ab). Der Umriss beginnt mit der Spitze. */
 function pfeilSpitze(m: Maler, k: Kamera, f: TutorialBandFeld, b: number, farbe: string): void {
   const { X } = m, pfeil = f.pfeil!;
-  const [ax, ay] = k.mitte(f.x, f.y), [bx, by] = k.mitte(f.x + pfeil[0], f.y + pfeil[1]);
-  const l = Math.hypot(bx - ax, by - ay);
+  const [mx, my] = k.mitte(f.x, f.y), [bx, by] = k.mitte(f.x + pfeil[0], f.y + pfeil[1]);
+  const l = Math.hypot(bx - mx, by - my);
   if (l === 0) return;
-  const ux = (bx - ax) / l, uy = (by - ay) / l, h = (b * 0.6) / 2, lh = h * PFEIL_LAENGE;
+  const ux = (bx - mx) / l, uy = (by - my) / l, h = (b * 0.6) / 2, lh = h * PFEIL_LAENGE;
+  // Mitte des Pfeils: Feldmitte, auf Eckfeldern um PFEIL_ECKE_VOR × Halblänge in Pfeilrichtung vorgerückt
+  const vor = bandEcke(f, pfeil) ? PFEIL_ECKE_VOR * lh : 0, ax = mx + ux * vor, ay = my + uy * vor;
   const fuellung = pfeilFarbe(farbe), weiss = fuellung === WEISS;
   X.fillStyle = fuellung;
   X.beginPath();
