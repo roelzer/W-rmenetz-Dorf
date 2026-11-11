@@ -717,3 +717,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 10:23 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig: zwei Prüfungen sind bei der Anpassung weggefallen, und für beide gibt es keinen Ersatz.** Die übrigen Anpassungen in den drei Te ([Bericht](docs/pruefberichte/20261111-102309-reviewer-a2e84ce3e35eadbfe.md)) |
 | 2026-11-11 10:23 | ■ 🟡 | tester | 🟡 Tester Teil 4 ist fertig. Der Commit liegt auf nr20-mm-tester4, nicht gepusht.  ([Bericht](docs/pruefberichte/20261111-102334-tester-af3e72e4d636e5c81.md)) |
 | 2026-11-11 10:27 | ■ 🟡 | tester | 🟡 Tester Teil 4 mit dem Zusatz aus dem Test-Review ist fertig. Alles steckt in einem Commit auf nr20-mm-tester4. Den früheren Commit ccefeb1 habe ich dafür ([Bericht](docs/pruefberichte/20261111-102734-tester-af3e72e4d636e5c81.md)) |
+| 2026-11-11 10:28 | ▶ | entwickler | Entwickler: Planungsfehler weg, kW-Knopf, Aufräumen |
