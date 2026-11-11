@@ -681,3 +681,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 07:52 | ■ 🔴 | designer | 🟡 **Ampel gelb.** Das Tutorial ist fertig. Die Überlast-Anzeige ist so gebaut wie entworfen. Ein Fehler betrifft aber genau Simons Wunsch, Farbe und Durchme ([Bericht](docs/pruefberichte/20261111-075228-designer-a4dd65919d6fd3595.md)) |
 | 2026-11-11 07:52 | ▶ | tester | Tester P7e Vorarbeit H1-H5 |
 | 2026-11-11 07:53 | ■ 🟡 | reviewer | **🟡 Plan-Treue erfüllt. Das Spiel selbst ist in Ordnung, aber für G5 und G6 fehlen echte Testprüfungen. Freigabe nach zwei kleinen Test-Ergänzungen. Die  ([Bericht](docs/pruefberichte/20261111-075338-reviewer-a583b5f69287d8076.md)) |
+| 2026-11-11 08:06 | ■ 🟡 | tester | 🟡 **Tester-Vorarbeit P7e ist fertig.** 28 Tests sind jetzt absichtlich rot und werden mit P7e grün. Alle vier Zusatzaufgaben aus dem Review P5g sind drin un ([Bericht](docs/pruefberichte/20261111-080653-tester-a0f327a39af104928.md)) |
