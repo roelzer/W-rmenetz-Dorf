@@ -122,3 +122,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - Designer P7e 🟢. Warte auf Review P7e.
 - 2026-11-11 Review P7e 🟡 angenommen, Schranke auf nr20-int grün (1793). Feature-Branch enthält NR20–22 (565f09a, gepusht). Merge mit main (Cloudflare-Änderungen) läuft beim Entwickler, Branch nr20-main-merge. Danach: Review Merge, Schranke, main, Lastenheft-Status, Bericht an Simon, dann NR23–25 solo.
 - 2026-11-11 Merge cf28180 auf nr20-main-merge: 65 NR20–22-Tests rot wegen neuer main-Regeln → Tester passt an.
+- 2026-11-11 main inzwischen a4c56ef (Tutorial-Fix der Cloudflare-Sitzung in steuerung.ts, neuer Test nr13-einbindung). Nach dem Tester muss a4c56ef zusätzlich in nr20-mm gemergt werden. Cloudflare-Sitzung gebeten, steuerung/tutorial/szene/kontext auf main bis zu unserem Merge ruhen zu lassen.
