@@ -129,3 +129,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 Simon (über Cloudflare): Anleiter-Figur Simon im Tutorial am Handy größer → mit Entwickler nach Tester Teil 2, Browser-Durchklick 844/667 (Karte verdeckt kein Loch/Ziel), Designer-Fotos.
 - 2026-11-11 Tester Teil 2 9f3c4b8 (10 erwartet rot, 3 Code-Änderungen). Entwickler: Änderungen + main a4c56ef mergen.
 - 2026-11-11 Fachprüfer: T05 🟢, T07 mit Zusatz 'kein Leitungswasser' (übernommen), NR23 Verbrauch Neubau vermutlich zu hoch → Frage an Simon in OFFENE_FRAGEN.
+- 2026-11-11 Entwickler nr20-mm-dev 687efcd: 3 Änderungen grün, main a4c56ef gemergt; 1 main-Test (nr13-einbindung:998, alter Tutorialweg) rot → Tester Teil 3 zusammen mit T05/T07-Texten und Figur 96 px.

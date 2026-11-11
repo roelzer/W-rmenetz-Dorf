@@ -701,3 +701,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 09:22 | ■ 🟡 | tester | 🟡 Fertig. Es sind nur Testdateien geändert, in src/ ist nichts geändert. 10 Tests sind absichtlich rot. Alle 10 werden grün, sobald drei kleine Code-Ände ([Bericht](docs/pruefberichte/20261111-092218-tester-a933df94364c017a7.md)) |
 | 2026-11-11 09:22 | ■ 🟡 | fachpruefer | 🟡 Gesamt: T05 ist in Ordnung. T07 braucht einen kleinen Zusatz. Beim Neubaugebiet ist der Wert für das Einfamilienhaus wahrscheinlich zu hoch. Belegen kann  ([Bericht](docs/pruefberichte/20261111-092241-fachpruefer-addcb8c5e618960f9.md)) |
 | 2026-11-11 09:22 | ▶ | entwickler | Entwickler: 3 Änderungen + main mergen |
+| 2026-11-11 09:29 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-11 09:29 | ■ 🔴 | entwickler | 🔴 **BLOCKIERT.** Meine drei Code-Änderungen sind fertig und grün. Der Merge mit main hat aber einen Test aus main mitgebracht, der auf dem NR20–22-Stand  ([Bericht](docs/pruefberichte/20261111-092911-entwickler-a9ab7d08811fb66b6.md)) |
