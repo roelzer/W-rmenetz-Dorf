@@ -31,3 +31,6 @@ Entschieden vom Projektleiter aus den Reviews von P1, P2, P3 und P4 (2026-11-07)
 ## Für P7 (aus P5f-3)
 - Satz T13h bei beiden Häusern ok + Stummel: nur erster Satz von SATZ_EIGENER_ABGANG (auch Sperre tutorial.ts ~462). Vorher Tester: nr21-feinschliff-kern.test.ts:88–94 anpassen.
 - Leisten-Abgleich je Bild (steuerung.ts ~1003) liest die gehaltene Sperre – nicht auf aktuelle zurückstellen (sonst Neuaufbau je Bild im Zug); ggf. Zähltest.
+
+## Nach P7e
+- Test fehlt: eingezeichnete Leitungen mit Deckkraft 0,6 (src/render/szene.ts:751) – Review P7e, klein
