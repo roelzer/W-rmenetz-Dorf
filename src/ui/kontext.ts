@@ -464,7 +464,11 @@ export class Kontext {
     // A88: Eine gesetzte Vorsehung lässt sich immer wegnehmen; neu setzen erst, wenn die Vorsehung freigeschaltet ist.
     const sperreVorsehung = o.vorsehung ? null : sp.sperrgrund('vorsehung');
     if (o.geplant && sp.abschnitt?.phase === 'offen') c.append(h('div', { class: 'knopfreihe' }, knopf(o.vorsehung ? 'Vorsehung entfernen' : 'T-Stück mit Vorsehung setzen', () => { sp.vorsehungUmschalten(o.id); this.ui.geaendert(); }, o.vorsehung ? '' : 'geld', { klein: true, schloss: true, aus: sperreVorsehung !== null, hinweis: tStueckHinweis(), unter: sperreVorsehung ?? (o.vorsehung ? `−${eur(KONSTANTEN.vorsehung_eur)}` : `+${eur(KONSTANTEN.vorsehung_eur)}`) })));
-    if (!o.geplant) this.ersatzBereich(c, o, stueck?.empfohlen ?? null);
+    // 13.17.11 H4: Gehört der Ersatz dieses Felds zu dem, was [Zurücknehmen] fürs ganze Stück entfernt, entfällt der Knopf je
+    // Feld – ein Feld einzeln zurückzunehmen erzeugte wieder eine Reduzierung. Von Hand gewählte andere Größen behalten ihn.
+    const stueckNimmtZurueck = !!stueck?.empfohlen && o.ersatz?.typ === stueck.empfohlen && sp.abschnitt?.phase === 'offen'
+      && !sp.stueckOffeneFelder(key, stueck.empfohlen, [stueck]).length;
+    if (!o.geplant && !stueckNimmtZurueck) this.ersatzBereich(c, o, stueck?.empfohlen ?? null);
     c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
   }
 
