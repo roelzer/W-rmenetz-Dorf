@@ -399,8 +399,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
 }
 
 const MF = tokens.menue.farbe, MM = tokens.menue.mass_px, FAKTOR = tokens.menue.faktor, FREMD = tokens.karte.fremd, SAUM = tokens.karte.ueberlast;
-/** DESIGN 13.17.3: Vorschau-Raute bei offenem Leitungsblatt halb durchsichtig – geplanter Ersatz zeigt sie mit 0,8 (12.22). */
-const VORSCHAU_DECKKRAFT = 0.5;
+/** Linienbreite der gestrichelten Planraute (geplante Leitung, Ersatz, Vorschau) */
+const PLANRAUTE_LINIE_PX = 1.5;
 const feldText = ([x, y]: Feld): string => `${x},${y}`;
 
 /** Rohrbreite einer Leitung in px – dieselbe Formel für das Rohr und die Hülle der Streifen. */
@@ -698,8 +698,8 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
-  const planRaute = (cx: number, cy: number, farbe = '#2a6fb0'): void => {
-    X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = farbe; X.lineWidth = 1.5; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
+  const planRaute = (cx: number, cy: number, farbe = '#2a6fb0', breite_px = PLANRAUTE_LINIE_PX): void => {
+    X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = farbe; X.lineWidth = breite_px; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
   };
   for (const o of rohre) {
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
@@ -779,7 +779,11 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       X.restore();
     } else if (vorschau && vorschauFelder.has(key)) {
       // NR22 (DESIGN 13.17.3): Was „Hier vergrößern“ meint – an die Stelle der Ersatzraute, damit nicht zwei Rauten übereinander liegen
-      X.save(); X.globalAlpha = VORSCHAU_DECKKRAFT; planRaute(cx, cy, KATALOG[vorschau.typ].farbe);
+      // 13.17.11 H2: Farbstrich voll deckend, darunter im gleichen Strichrhythmus eine dunkle Linie 2 px breiter –
+      // die helle 40er-Raute allein war auf der Wiese kaum zu sehen (≈ 1,1:1)
+      X.save();
+      X.globalAlpha = FAKTOR.ueberlast_vorschau_unterlinie; planRaute(cx, cy, MF.kontur, PLANRAUTE_LINIE_PX + 2);
+      X.globalAlpha = FAKTOR.ueberlast_vorschau_deckkraft; planRaute(cx, cy, KATALOG[vorschau.typ].farbe);
       X.restore();
     } else if (o.ersatz) {
       // NR18: Gebaute Leitung mit geplantem Ersatz zeigt eine gestrichelte Planraute; die alte Leitung bleibt bis zum Bauende
