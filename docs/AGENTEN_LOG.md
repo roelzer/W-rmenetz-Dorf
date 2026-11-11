@@ -690,3 +690,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 08:34 | ■ 🟢 | designer | 🟢 **Ampel grün. Aus Sicht der Gestaltung kann veröffentlicht werden.** H1 bis H5 sind so gebaut wie entworfen. Vor der Veröffentlichung ist nichts mehr n� ([Bericht](docs/pruefberichte/20261111-083456-designer-a1a30611ab9d69864.md)) |
 | 2026-11-11 08:35 | ■ 🟡 | reviewer | 🟡 **P7e ist freigegeben, mit einem kleinen Punkt.** Plan-Treue: ✅  ([Bericht](docs/pruefberichte/20261111-083555-reviewer-a090521586614a28a.md)) |
 | 2026-11-11 08:39 | ▶ | entwickler | Merge main into NR20-22 stand |
+| 2026-11-11 08:52 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-11 08:52 | ■ 🟡 | entwickler | 🟡 **Status: fertig, aber Tests offen.** Der Merge ist committet. 65 Tests aus NR20–22 sind rot, und die darf nur der Tester ändern.  ([Bericht](docs/pruefberichte/20261111-085208-entwickler-acea3d8d4e8076f9c.md)) |
