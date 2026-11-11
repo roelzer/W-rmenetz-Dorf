@@ -679,3 +679,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-08 00:43 | ▶ | reviewer | Review P5g + P7d |
 | 2026-11-08 00:43 | ▶ | designer | Fotocheck P5g + Überlast |
 | 2026-11-11 07:52 | ■ 🔴 | designer | 🟡 **Ampel gelb.** Das Tutorial ist fertig. Die Überlast-Anzeige ist so gebaut wie entworfen. Ein Fehler betrifft aber genau Simons Wunsch, Farbe und Durchme ([Bericht](docs/pruefberichte/20261111-075228-designer-a4dd65919d6fd3595.md)) |
+| 2026-11-11 07:52 | ▶ | tester | Tester P7e Vorarbeit H1-H5 |
