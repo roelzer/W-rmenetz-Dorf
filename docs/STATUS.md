@@ -119,3 +119,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - Review P5g+P7d 🟡. Läuft: Tester P7et (H1–H5 + Review-Testlücken). Danach Entwickler P7e → Review → Designer kurz (H1) → nr20-int → Schranke → main.
 - 2026-11-11: Tester P7et fertig (910c4ab, Vorarbeit eingetragen). Läuft: Entwickler P7e (nr20-p7e ab 910c4ab). Danach: Review P7e (kurz) + Designer kurz H1 → nr20-p5gz+P7e nach nr20-int (bzw. p5gz ist Obermenge: 6c08d28+P5g+P7d) → Schranke projektleiter → claude/keen-mccarthy-f4p5us → main → Lastenheft NR20–22 Status → Bericht Simon (Handy-Check, ?messen=1). Dann NR23–25 Solo.
 - P7e fertig (d6e2962, 1793 grün). Laufen: Review P7e, Designer-Kurzcheck H1/H2. Danach nr20-p7e → nr20-int → Schranke → main.
+- Designer P7e 🟢. Warte auf Review P7e.
