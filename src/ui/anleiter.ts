@@ -124,20 +124,25 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
     document.getElementById('app')!.append(wurzel);
   }
   platzSetzen(wurzel, platz);
-  const inhalt = JSON.stringify([a.schritt, a.kapitel, a.text, a.weiter, a.knopf_hinweis ?? '', a.wusstest_du, a.warte_text ?? '', a.wiedereinstieg]);
+  // Kapitel 3 (DESIGN 13.17.1 B6): kleine Figur und feste Höhe für drei Zeilen, damit die Karte die Spur nicht verdeckt
+  wurzel.classList.toggle('kompakt', a.kompakt);
+  if (a.kompakt) wurzel.classList.add('figur-klein');
+  wurzel.style.height = a.kompakt ? `${M.anleiter_kompakt_hoehe}px` : '';
+  const inhalt = JSON.stringify([a.schritt, a.kapitel, a.text, a.weiter, a.knopf_hinweis ?? '', a.wusstest_du, a.warte_text ?? '', a.wiedereinstieg, a.kompakt]);
   if (inhalt === gebaut && warteZeile) { warteZeile.textContent = a.weiter === 'wartet' ? warteText(a, jetzt_ms) : a.knopf_hinweis ?? ''; return; }
   gebaut = inhalt;
   const punkte = h('span', { class: 'kapitel-punkte', role: 'img', 'aria-label': `Kapitel ${a.kapitel} von ${KAPITEL_ANZAHL}` },
     ...Array.from({ length: KAPITEL_ANZAHL }, (_, i) => h('i', { class: i < a.kapitel ? 'punkt an' : 'punkt' })));
   warteZeile = h('span', { class: 'gedaempft' }, a.weiter === 'wartet' ? warteText(a, jetzt_ms) : a.knopf_hinweis ?? '');
   let weiterKnopf: HTMLButtonElement | null = null;
-  if (a.weiter === 'weiter' || a.weiter === 'los') {
+  if (!a.kompakt && (a.weiter === 'weiter' || a.weiter === 'los')) {
     weiterKnopf = knopf(a.weiter === 'los' ? 'Los geht’s' : 'Weiter', () => aktionen.weiter(), 'los', { klein: true });
     weiterKnopf.setAttribute('id', 'anleiter-weiter');
   }
   const blase = h('div', { class: 'anleiter-blase' },
     h('div', { class: 'anleiter-kopf' }, h('strong', { class: 'anleiter-name' }, 'Simon'), punkte),
-    a.wusstest_du ? h('span', { class: 'chip gold' }, 'Wusstest du?') : null,
+    // Sammelliste P5 Punkt 5: kein Chip auf der kompakten Karte – ihre drei Zeilen gehören dem Satz
+    !a.kompakt && a.wusstest_du ? h('span', { class: 'chip gold' }, 'Wusstest du?') : null,
     h('p', { class: 'anleiter-text' }, ...mitFett(a.text)),
     h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf));
   wurzel.replaceChildren(h('div', { class: 'anleiter-figur' }, sprecherFigur('Simon')), blase);

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { KATALOG } from '../src/core/katalog';
+import { KATALOG, type TypId } from '../src/core/katalog';
 import { groesse } from '../src/core/netz';
 import { laden, serialisieren } from '../src/core/speichern';
 import { Spiel } from '../src/core/spiel';
-import { ERSTE_HAEUSER, TUTORIAL_SPUR, neuesSpielMitTutorial } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
 import { Tutorial } from '../src/core/tutorial';
 import type { TippMeldung } from '../src/core/tutorial-vertrag';
 import type { Objekt } from '../src/core/typen';
@@ -54,15 +54,41 @@ const bisT12 = (s: Spiel, f: ReturnType<typeof fahrer>): void => {
   f.tippe({ tipp: 'weiter' });
   expect(f.jetzt()).toBe('T12');
 };
+/** Ein Zug wie in der Steuerung: Felder einzeichnen (je Feld ein Ereignis), dann heben die Finger ab */
+const zug = (s: Spiel, f: ReturnType<typeof fahrer>, typ: TypId, felder: ReadonlyArray<readonly [number, number]>): void => {
+  for (const [x, y] of felder) { expect(s.platzieren(typ, x, y).ok, `${typ} auf ${x}|${y}`).toBe(true); f.melden(); }
+  f.tippe({ tipp: 'abgehoben' });
+};
+/** NR20-22: in T13 die ersten `anzahl` Felder der Hauptleitung (E1) in der Größe aus T12 */
 const striche = (s: Spiel, f: ReturnType<typeof fahrer>, anzahl: number): void => {
   bisT12(s, f);
-  const typ = s.tutorialWerte().leitung;
+  const typ = s.tutorialWerte().haupt;
   f.tippe({ tipp: 'leitungskarte', typ });
   expect(f.jetzt()).toBe('T13');
-  for (const [x, y] of TUTORIAL_SPUR.slice(0, anzahl)) { expect(s.platzieren(typ, x, y).ok).toBe(true); f.melden(); }
+  zug(s, f, typ, TUTORIAL_HAUPT.slice(0, anzahl));
+};
+/** Hauptleitung fertig → T13w; Farbknopf der Hausanschluss-Größe → T13h; dann die genannten Hausanschlüsse */
+const hausanschluesse = (s: Spiel, f: ReturnType<typeof fahrer>, stuecke: ReadonlyArray<ReadonlyArray<readonly [number, number]>>): void => {
+  striche(s, f, TUTORIAL_HAUPT.length);
+  expect(f.jetzt()).toBe('T13w');
+  const typ = s.tutorialWerte().anschluss;
+  f.tippe({ tipp: 'farbknopf', typ });
+  expect(f.jetzt()).toBe('T13h');
+  for (const st of stuecke) zug(s, f, typ, st);
+};
+/** NR20-22 E3 (Beispiel aus dem Bauplan): Haus 1 richtig, Haus 2 über einen eigenen Abgang (12|12)→(12|13) an der Heizzentrale */
+const eigenerAbgang = (s: Spiel, f: ReturnType<typeof fahrer>): void => {
+  hausanschluesse(s, f, [TUTORIAL_ANSCHLUSS_1, [[12, 12], [12, 13]]]);
+  expect(f.jetzt()).toBe('T13h');
+};
+/** Spielstand von vor NR20: die alte durchgehende Spur (10|10)…(11|14) ganz in der Hausanschluss-Größe (Prüf-Schwerpunkt 4) */
+const alteSpur25 = (s: Spiel, f: ReturnType<typeof fahrer>): void => {
+  bisT12(s, f);
+  f.tippe({ tipp: 'leitungskarte', typ: s.tutorialWerte().haupt });
+  zug(s, f, s.tutorialWerte().anschluss, [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]]);
 };
 const bisT15 = (s: Spiel, f: ReturnType<typeof fahrer>): void => {
-  striche(s, f, TUTORIAL_SPUR.length);
+  hausanschluesse(s, f, [TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2]);
   expect(f.jetzt()).toBe('T14');
   expect(s.abschnittAbschliessen().ok).toBe(true); f.melden();
   expect(f.jetzt()).toBe('T15');
@@ -91,8 +117,13 @@ const LAGEN: Lage[] = [
   { name: 'kein Abschnitt, Kapitel 2', schritt: 'T08', spielen: bisT08 },
   { name: 'Planung läuft', schritt: 'T11', spielen: bisT11 },
   { name: 'offen, nichts gezeichnet (Neuladen in T12)', schritt: 'T12', spielen: bisT12 },
-  { name: 'offen, Striche im Netz (Neuladen in T13)', schritt: 'T12', spielen: (s, f) => striche(s, f, 3) },
-  { name: 'offen, beide verbunden', schritt: 'T12', spielen: (s, f) => striche(s, f, TUTORIAL_SPUR.length) },
+  // Wiedereinstieg NR20-22 (Tabelle P2): !haupt_ok → T12; fremd → T13h; nicht beide Häuser ok → T13w; planungsfehler → T13h; sonst T14
+  { name: 'offen, Striche im Netz, Hauptleitung halb (Neuladen in T13)', schritt: 'T12', spielen: (s, f) => striche(s, f, 1) },
+  { name: 'offen, alte durchgehende Spur in der Hausanschluss-Größe', schritt: 'T12', spielen: alteSpur25 },
+  { name: 'offen, Hauptleitung fertig (Neuladen in T13w)', schritt: 'T13w', spielen: (s, f) => hausanschluesse(s, f, []) },
+  { name: 'offen, Hauptleitung und Haus 1 (Neuladen in T13h)', schritt: 'T13w', spielen: (s, f) => hausanschluesse(s, f, [TUTORIAL_ANSCHLUSS_1]) },
+  { name: 'offen, eigener Abgang zu Haus 2', schritt: 'T13h', spielen: eigenerAbgang },
+  { name: 'offen, beide verbunden', schritt: 'T14', spielen: (s, f) => hausanschluesse(s, f, [TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2]) },
   { name: 'bestellen, Haus 1 ohne Station', schritt: 'T15', spielen: bisT15 },
   { name: 'bestellen, Haus 2 ohne Station', schritt: 'T18', spielen: bisT18 },
   { name: 'bestellen, beide Stationen', schritt: 'T20', spielen: bisT20 },
@@ -115,6 +146,8 @@ function geladen(lage: Lage, uhr: { t: number }): Spiel {
 type Werkzeug = {
   st: St; doc: { getElementById(id: string): El | null; querySelector(s: string): El | null };
   eingabeErlaubt(x: number, y: number): boolean; tippeKarte(o: Objekt): void; karte: Record<string, Objekt>; mitte(o: Objekt): [number, number];
+  /** ein Zug mit echter Geste über die Feldmitten, danach Abheben */
+  wische(felder: ReadonlyArray<readonly [number, number]>): void;
 };
 
 /** Echte Steuerung auf dem geladenen Stand; erste Blase = Wiedereinstieg, danach [Weiter]. */
@@ -128,11 +161,17 @@ async function nachNeuladen(spiel: Spiel, uhr: { t: number }, arbeit: (w: Werkze
     const mitte = (o: Objekt): [number, number] => { const g = groesse(o); return st.kamera.mitte(o.x + (g - 1) / 2, o.y + (g - 1) / 2); };
     const zeiger = (id: number, [x, y]: readonly [number, number]) => ({ pointerId: id, clientX: x, clientY: y, pointerType: 'touch', button: 0 });
     const tippeKarte = (o: Objekt): void => { const p = mitte(o); leinwand.ausloesen('pointerdown', zeiger(3, p)); leinwand.ausloesen('pointerup', zeiger(3, p)); };
+    const wische = (felder: ReadonlyArray<readonly [number, number]>): void => {
+      const weg = felder.map(([x, y]) => st.kamera.mitte(x, y));
+      leinwand.ausloesen('pointerdown', zeiger(7, weg[0]));
+      for (const p of weg.slice(1)) leinwand.ausloesen('pointermove', zeiger(7, p));
+      leinwand.ausloesen('pointerup', zeiger(7, weg[weg.length - 1]));
+    };
     st.tick(uhr.t);
     expect(st.anleitungAnsicht()?.wiedereinstieg, 'erste Blase nach dem Neuladen').toBe(true);
     doc.getElementById('anleiter-weiter')!.click();
     vi.advanceTimersByTime(2_000); st.tick(uhr.t); // eine begonnene Kamerafahrt ist vorbei
-    arbeit({ st, doc, eingabeErlaubt, tippeKarte, karte: { heizzentrale: spiel.hz, haus1: h1, haus2: h2 }, mitte });
+    arbeit({ st, doc, eingabeErlaubt, tippeKarte, karte: { heizzentrale: spiel.hz, haus1: h1, haus2: h2 }, mitte, wische });
   }, { uhr: () => uhr.t });
 }
 
@@ -178,6 +217,33 @@ describe('NR13 Neuladen: jeder Wiedereinstiegs-Schritt hat ein erreichbares Ziel
       await nachNeuladen(spiel, uhr, (w) => {
         const a = w.st.anleitungAnsicht()!;
         expect(a.schritt).toBe(lage.schritt);
+        if (a.schritt === 'T13w' || a.schritt === 'T13h') {
+          // NR20-22 (Tabelle P2): die Zeichenleiste ist offen, gewählt ist T13w die Hauptleitung, T13h der Hausanschluss
+          const { haupt, anschluss } = spiel.tutorialWerte();
+          const gewaehlt = w.doc.querySelector(`[data-id="farbe-${a.schritt === 'T13w' ? haupt : anschluss}"]`);
+          expect(gewaehlt, `${a.schritt}: Zeichenleiste offen`).not.toBeNull();
+          expect(gewaehlt!.getAttribute('aria-pressed'), `${a.schritt}: richtige Größe gewählt`).toBe('true');
+          if (a.schritt === 'T13w') {
+            // Ziel T13w: der Farbknopf der Hausanschluss-Größe
+            const knopf = w.doc.querySelector(`[data-id="farbe-${anschluss}"]`);
+            expect(knopf, 'T13w: Farbknopf Hausanschluss').not.toBeNull();
+            knopf!.click();
+            vi.advanceTimersByTime(2_000); w.st.tick(uhr.t);
+            expect(w.st.anleitungAnsicht()?.schritt).toBe('T13h');
+          } else {
+            // T13h nach dem Neuladen nur mit eigenem Abgang: zweimal [Zurück] nimmt ihn weg, dann die Spur zu Haus 2 → T14
+            for (let i = 0; i < 2; i++) {
+              const zurueck = w.doc.querySelector('[data-id="zurueck"]');
+              expect(zurueck, 'T13h: [Zurück] in der Zeichenleiste').not.toBeNull();
+              zurueck!.click(); w.st.tick(uhr.t);
+            }
+            expect(w.st.anleitungAnsicht()?.schritt).toBe('T13h');
+            w.wische([...TUTORIAL_ANSCHLUSS_2, ERSTE_HAEUSER[1]]);
+            vi.advanceTimersByTime(2_000); w.st.tick(uhr.t);
+            expect(w.st.anleitungAnsicht()?.schritt).toBe('T14');
+          }
+          return;
+        }
         let erstes: (() => void) | null = null;
         for (const z of a.ziele) {
           const o = w.karte[z];

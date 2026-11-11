@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KATALOG } from '../src/core/katalog';
 import { groesse } from '../src/core/netz';
 import { Spiel } from '../src/core/spiel';
-import { ERSTE_HAEUSER, TUTORIAL_SPUR, neuesSpielMitTutorial } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
 import type { Objekt } from '../src/core/typen';
 import { echteSteuerung } from './hilfen/echte-steuerung';
 
@@ -69,13 +69,26 @@ describe('NR13 P4 Klickweg', () => {
       expect(doc.getElementById('anleiter-weiter'), 'T11: erst nach der Planung').toBeNull();
       vi.advanceTimersByTime(7_000); // Philipps Blase (höchstens 3.800 + 2.500 + 350 ms, src/ui/sprecher.ts)
       uhr.t += 10_000; st.tick(uhr.t); weiter();
-      schritt('T12'); klicke('leitungskarte', spiel.tutorialWerte().leitung);
+      schritt('T12'); klicke('leitungskarte', spiel.tutorialWerte().haupt);
       schritt('T13');
-      // Spur wischen und weiter auf Haus 2 (A47: das letzte Feld legt erst der Zug auf das Haus)
-      const weg = [...TUTORIAL_SPUR, ERSTE_HAEUSER[1]].map(([x, y]) => st.kamera.mitte(x, y));
-      leinwand.ausloesen('pointerdown', zeiger(7, weg[0]));
-      for (const p of weg.slice(1)) leinwand.ausloesen('pointermove', zeiger(7, p));
-      leinwand.ausloesen('pointerup', zeiger(7, weg[weg.length - 1]));
+      // NR20-22 E1: Hauptleitung in der Größe aus T12 wischen; der Wechsel nach T13w kommt erst beim Abheben (B1)
+      const wische = (felder: ReadonlyArray<readonly [number, number]>): void => {
+        const weg = felder.map(([x, y]) => st.kamera.mitte(x, y));
+        leinwand.ausloesen('pointerdown', zeiger(7, weg[0]));
+        for (const p of weg.slice(1)) leinwand.ausloesen('pointermove', zeiger(7, p));
+        leinwand.ausloesen('pointerup', zeiger(7, weg[weg.length - 1]));
+      };
+      wische(TUTORIAL_HAUPT);
+      schritt('T13w');
+      // T13w: Farbknopf der Hausanschluss-Größe in der offenen Zeichenleiste
+      const farbknopf = doc.querySelector(`[data-id="farbe-${spiel.tutorialWerte().anschluss}"]`) as HTMLElement | null;
+      expect(farbknopf, 'T13w: Farbknopf der Hausanschluss-Größe').not.toBeNull();
+      farbknopf!.click();
+      schritt('T13h');
+      // je Haus ein Zug bis aufs Haus (A47: das letzte Feld legt erst der Zug auf das Haus)
+      wische([...TUTORIAL_ANSCHLUSS_1, ERSTE_HAEUSER[0]]);
+      schritt('T13h');
+      wische([...TUTORIAL_ANSCHLUSS_2, ERSTE_HAEUSER[1]]);
       schritt('T14'); klicke('abschliessen');
       expect(spiel.abschnittWarnungen()).toEqual([]);
       schritt('T15'); tippeKarte(h1);
@@ -96,7 +109,7 @@ describe('NR13 P4 Klickweg', () => {
       for (const id of ['T24', 'T25', 'T26']) { schritt(id); weiter(); }
       st.tick(uhr.t);
 
-      expect(gesehen).toEqual(['T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T10', 'T11', 'T12', 'T13', 'T14', 'T15', 'T16',
+      expect(gesehen).toEqual(['T01', 'T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T08', 'T10', 'T11', 'T12', 'T13', 'T13w', 'T13h', 'T13h', 'T14', 'T15', 'T16',
         'T17', 'T18', 'T19', 'T20', 'T21', 'T22', 'T23', 'T24', 'T25', 'T26']);
       expect(ansicht()).toBeNull();
       expect(spiel.stand.tutorial).toBeUndefined();

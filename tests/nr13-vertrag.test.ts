@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ladenMitBefund, serialisieren } from '../src/core/speichern';
 import { neuerSpielstand, Spiel, WANDSTATION_TUTORIAL } from '../src/core/spiel';
-import { neuesSpielMitTutorial, TUTORIAL_SPUR } from '../src/core/start';
+import { neuesSpielMitTutorial, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT } from '../src/core/start';
 import { altesStartdorf } from './hilfen/altes-startdorf';
 
 // Bauplan docs/bauplaene/NR13-tutorial.md (Fassung 3), Paket P0: Merke `tutorial` nur in neuen Spielen (AE-NR13-1, AE-NR13-3).
@@ -42,7 +42,10 @@ describe('NR13 Vertrag (P0)', () => {
   });
 
   it('test_nr13_spur_und_wandstation_text: feste Werte aus dem Vertrag', () => {
-    expect(TUTORIAL_SPUR).toEqual([[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]]);
+    // NR20-22 E1: die alte durchgehende Spur ist in Hauptleitung und zwei Hausanschlüsse geteilt.
+    expect(TUTORIAL_HAUPT).toEqual([[10, 11], [10, 12]]);
+    expect(TUTORIAL_ANSCHLUSS_1).toEqual([[9, 12]]);
+    expect(TUTORIAL_ANSCHLUSS_2).toEqual([[10, 13], [10, 14], [11, 14]]);
     expect(WANDSTATION_TUTORIAL).toBe('Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.');
   });
 });

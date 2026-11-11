@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { KATALOG, istLeitung } from '../src/core/katalog';
+import { KATALOG, istLeitung, type TypId } from '../src/core/katalog';
 import { groesse } from '../src/core/netz';
 import { Spiel } from '../src/core/spiel';
-import { ERSTE_HAEUSER, TUTORIAL_SPUR, neuesSpielMitTutorial } from '../src/core/start';
+import { ERSTE_HAEUSER, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT, neuesSpielMitTutorial } from '../src/core/start';
 import { Tutorial } from '../src/core/tutorial';
 import type { TippMeldung } from '../src/core/tutorial-vertrag';
 import { echteSteuerung } from './hilfen/echte-steuerung';
@@ -117,6 +117,12 @@ const s2 = (u: U): St2 => u.st as unknown as St2;
 const schrittJetzt = (u: U): string | undefined => s2(u).anleitungAnsicht()?.schritt;
 const offeneBlaetter = (u: U) => u.dom.html.querySelectorAll('.blatt').filter((b) => b.isConnected && !b.classList.contains('zeichenleiste'));
 const zielEl = (u: U, name: string, typ?: string) => u.dom.html.querySelector(`[data-ziel="${name}"]${typ ? `[data-typ="${typ}"]` : ''}`);
+/** Farbknopf einer Leitungsgröße in der offenen Zeichenleiste */
+function farbknopf(u: U, typ: string) {
+  const k = u.dom.html.querySelector(`[data-id="farbe-${typ}"]`);
+  expect(k, `Farbknopf ${typ} in ${schrittJetzt(u)}`).not.toBeNull();
+  return k!;
+}
 function weiterTippen(u: U): void {
   const k = u.dom.doc.getElementById('anleiter-weiter');
   expect(k, `[Weiter] in ${schrittJetzt(u)}`).not.toBeNull();
@@ -151,9 +157,17 @@ function imBild(u: U, o: Obj, breite: number, hoehe: number): void {
   expect(y).toBeGreaterThanOrEqual(24 - 1); expect(y).toBeLessThanOrEqual(hoehe - 24 + 1);
 }
 
-/** Wie ein Spieler: die Spur entlang und weiter auf Haus 2. Der letzte Spurschritt (10,14)→(11,14) geht nur ein Feld
- *  zur Seite; nach A47 knickt die Leitung erst bei 2 Feldern seitlich – erst der Zug auf das Haus legt (11,14). */
-const SPUR_BIS_HAUS2 = [...TUTORIAL_SPUR, ERSTE_HAEUSER[1]];
+/** NR20-22 E1, wie ein Spieler: je Hausanschluss ein Zug bis aufs Haus. Der letzte Schritt geht nur ein Feld zur Seite;
+ *  nach A47 knickt die Leitung erst bei 2 Feldern seitlich – erst der Zug auf das Haus legt das letzte Feld. */
+const ZUG_HAUS1 = [...TUTORIAL_ANSCHLUSS_1, ERSTE_HAEUSER[0]];
+const ZUG_HAUS2 = [...TUTORIAL_ANSCHLUSS_2, ERSTE_HAEUSER[1]];
+/** T13: Hauptleitung in einem Zug (Wechsel beim Abheben) → T13w; Farbknopf der Hausanschluss-Größe → T13h */
+function vonT13BisT13h(u: U, spiel: Spiel, uhr: { t: number }): void {
+  wischeFelder(u, TUTORIAL_HAUPT);
+  s2(u).tick(uhr.t); expect(schrittJetzt(u)).toBe('T13w');
+  farbknopf(u, spiel.tutorialWerte().anschluss).click();
+  s2(u).tick(uhr.t); expect(schrittJetzt(u)).toBe('T13h');
+}
 
 /** Echter Klickweg ab der stehenden T01-Ansicht bis T13 (Zeichenleiste offen). */
 function vonT01BisT13(u: U, spiel: Spiel, uhr: { t: number }): void {
@@ -171,7 +185,7 @@ function vonT01BisT13(u: U, spiel: Spiel, uhr: { t: number }): void {
   vi.advanceTimersByTime(7_000);
   uhr.t += 10_000; s.tick(uhr.t); weiterTippen(u);
   s.tick(uhr.t); expect(schrittJetzt(u)).toBe('T12');
-  zielEl(u, 'leitungskarte', spiel.tutorialWerte().leitung)!.click();
+  zielEl(u, 'leitungskarte', spiel.tutorialWerte().haupt)!.click();
   s.tick(uhr.t); expect(schrittJetzt(u)).toBe('T13');
 }
 /** Wiedereinstiegs-Blase wegtippen, dann T01 */
@@ -180,10 +194,13 @@ function bisT01(u: U, uhr: { t: number }): void {
   s2(u).tick(uhr.t); expect(schrittJetzt(u)).toBe('T01');
 }
 function bisT13(u: U, spiel: Spiel, uhr: { t: number }): void { bisT01(u, uhr); vonT01BisT13(u, spiel, uhr); }
-/** Weiter bis T14: ganze Spur in einem Zug */
+/** Weiter bis T14: Hauptleitung, Farbknopf, je Haus ein Zug */
 function bisT14(u: U, spiel: Spiel, uhr: { t: number }): void {
   bisT13(u, spiel, uhr);
-  wischeFelder(u, SPUR_BIS_HAUS2);
+  vonT13BisT13h(u, spiel, uhr);
+  wischeFelder(u, ZUG_HAUS1);
+  s2(u).tick(uhr.t); expect(schrittJetzt(u)).toBe('T13h');
+  wischeFelder(u, ZUG_HAUS2);
   s2(u).tick(uhr.t); expect(schrittJetzt(u)).toBe('T14');
 }
 /** Weiter bis T22 (Laura hat bestellt) */
@@ -314,24 +331,40 @@ describe('NR13 P4 Einbindung – Teil 2', () => {
     }, { uhr: () => uhr.t });
   });
 
-  it('test_nr13_t13_kamera_einpassen_und_breite: Eintritt T13 passt ein und setzt die Grenze; neue freie Breite führt nur mitte_px nach', async () => {
+  it('test_nr13_t13_kamera_einpassen_und_breite: Eintritt T13 passt ein (Zoom 2–3, 24 px Rand über der kompakten Karte) und setzt die Grenze; neue freie Breite führt nur mitte_px nach', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
       bisT13(u, spiel, uhr);
       const k = s2(u).kamera;
-      // DESIGN 13.16 M1: Spur, HZ und Häuser brauchen 2,5 Feldbreiten Höhe (Feldsumme 20…26 → 6 × tw/4 + tw); frei sind nur
-      // 64…200 px (Karte oben 216 − 16). Bei basis 26 px passt erst Zoom 88/65 ≈ 1,35 → Kamera zoomt bis zur Untergrenze 2.
-      const erwartet = 2;
-      expect(k.zoom).toBeCloseTo(erwartet, 6);
-      expect(k.grenze!.zoom_min).toBeCloseTo(erwartet, 6);
+      // NR20-22 P5: Band (Hauptleitung + beide Hausanschlüsse), Heizzentrale und Häuser bei Zoom 2 … 3 eingepasst.
+      // Freie Fläche über der kompakten Karte (92 px, Bauplan P4): Anzeigenreihe 64 bis Kartenoberkante 390 − 12 − 92 = 286,
+      // minus Abstand 16 → 64 … 270 (design/tokens.json: blatt_oben_quer 64, anleiter_rand 12, anleiter_ziel_abstand 16).
+      const oben = 64, unten = 390 - 12 - 92 - 16;
+      expect(k.zoom).toBeGreaterThanOrEqual(2 - 1e-9);
+      expect(k.zoom).toBeLessThanOrEqual(3 + 1e-9);
+      expect(k.grenze!.zoom_min).toBeCloseTo(k.zoom, 6);
       expect(k.grenze!.zoom_max).toBe(3);
-      // Bildmitte der freien Fläche zwischen Anzeigenreihe (64) und Kartenoberkante − 16 (200): (64 + 200) / 2 = 132
-      expect(k.grenze!.mitte_px).toEqual([422, 132]);
+      // Bildmitte der freien Fläche: (64 + 270) / 2 = 167
+      expect(k.grenze!.mitte_px).toEqual([422, (oben + unten) / 2]);
+      // Feldmitten ± halbe Feldbreite mit 24 px Rand in der freien Fläche (bei Zoom über 2 voller Rand; an der Untergrenze
+      // 2 darf der Rand kleiner werden, der Umriss steht dann mittig – darum dort nur „in der Fläche“)
+      const halb = k.mitte(1, 0)[0] - k.mitte(0, 0)[0];
+      const rand = k.zoom > 2 + 1e-9 ? 24 - 1 : 0;
+      const [h1, h2] = [hausBei(spiel, ERSTE_HAEUSER[0]), hausBei(spiel, ERSTE_HAEUSER[1])];
+      const punkte: Array<[string, [number, number]]> = [
+        ...[...TUTORIAL_HAUPT, ...TUTORIAL_ANSCHLUSS_1, ...TUTORIAL_ANSCHLUSS_2].map(([x, y]): [string, [number, number]] => [`Band ${x}|${y}`, k.mitte(x, y)]),
+        ['Heizzentrale', objektMitte(u, spiel.hz)], ['Haus 1', objektMitte(u, h1)], ['Haus 2', objektMitte(u, h2)],
+      ];
+      for (const [name, [, py]] of punkte) {
+        expect(py - halb, `${name} unter der Anzeigenreihe`).toBeGreaterThanOrEqual(oben + rand);
+        expect(py + halb, `${name} über der kompakten Karte`).toBeLessThanOrEqual(unten - rand);
+      }
+      const zoom = k.zoom;
       k.groesseSetzen(700, 390, 2);
       s2(u).tick(uhr.t);
-      expect(k.zoom).toBeCloseTo(erwartet, 6);
-      expect(k.grenze!.zoom_min).toBeCloseTo(erwartet, 6);
-      expect(k.grenze!.mitte_px).toEqual([350, 132]);
+      expect(k.zoom).toBeCloseTo(zoom, 6);
+      expect(k.grenze!.zoom_min).toBeCloseTo(zoom, 6);
+      expect(k.grenze!.mitte_px).toEqual([350, (oben + unten) / 2]);
       expect(schrittJetzt(u)).toBe('T13');
     }, { uhr: () => uhr.t });
   });
@@ -351,32 +384,37 @@ describe('NR13 P4 Einbindung – Teil 2', () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
       bisT13(u, spiel, uhr);
-      wischeFelder(u, TUTORIAL_SPUR.slice(0, 4));
+      vonT13BisT13h(u, spiel, uhr);
+      wischeFelder(u, ZUG_HAUS1);
       s2(u).tick(uhr.t);
-      expect(schrittJetzt(u)).toBe('T13');
+      expect(schrittJetzt(u)).toBe('T13h');
       const k = zielEl(u, 'abschliessen')!;
       expect(zeile2(k)).toBe('noch 1 Haus fehlt');
       const zahl = u.meldungen.length;
       k.click();
-      expect(s2(u).anleitungAnsicht()!.text).toBe('Zieh die Leitung bis an beide Häuser – folge der gelben Spur.');
+      // NR20-22 E8 „Abschließen zu früh“
+      expect(s2(u).anleitungAnsicht()!.text).toBe('Zieh die Leitung bis an beide Häuser – folge der Spur.');
       expect(u.meldungen.length).toBe(zahl);
-      u.dom.html.querySelector('.farbknopf')!.click();
-      expect(s2(u).anleitungAnsicht()!.text).toBe('Das erste Haus ist erreicht. Jetzt weiter bis zum zweiten.');
+      farbknopf(u, spiel.tutorialWerte().anschluss).click();
+      // E8 „T13h Zwischenstand“ mit {anschluss} in Kurzform (25er, tests/nr13-kern.test.ts test_nr13_werte)
+      expect(s2(u).anleitungAnsicht()!.text).toBe('Das erste Haus hat seinen Hausanschluss. Jetzt zieh die 25er zum zweiten Haus.');
     }, { uhr: () => uhr.t });
   });
 
-  it('test_nr13_t13_bleibt_bei_geldmangel: Umweg bei knappem Geld → T13 mit Geld-Satz und „Geld reicht nicht“; Zurück wirkt → T14', async () => {
+  it('test_nr13_t13_bleibt_bei_geldmangel: Umweg bei knappem Geld → T13h mit Geld-Satz und „Geld reicht nicht“; Zurück wirkt → T14', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
-      bisT13(u, spiel, uhr);
-      wischeFelder(u, SPUR_BIS_HAUS2);
-      // Geld genau so knapp, dass Spur und Stationen gerade bezahlbar sind; ein Feld Umweg ist zu viel
+      bisT14(u, spiel, uhr);
+      // Geld genau so knapp, dass Spur und Stationen gerade bezahlbar sind; ein Feld Umweg ist zu viel.
+      // Umweg (11|15): Stichleitung am Ende des Hausanschlusses 2 – kein Ring, keine Reduzierung, kein Planungsfehler
       spiel.stand.geld_eur = 0;
       spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur();
-      wischeFelder(u, [[11, 13]]);
+      wischeFelder(u, [[11, 15]]);
       expect(spiel.tutorialGeldFehlt_eur(), 'Testaufbau: Umweg kostet').toBeGreaterThan(0);
+      expect(spiel.tutorialLeitungen().planungsfehler, 'Testaufbau: Umweg ist kein Planungsfehler').toBe(false);
       s2(u).tick(uhr.t);
-      expect(schrittJetzt(u)).toBe('T13');
+      // Tabelle P2: T14 → T13h, wenn Geld fehlt
+      expect(schrittJetzt(u)).toBe('T13h');
       expect(s2(u).anleitungAnsicht()!.text).toBe('Dann reicht dein Geld nicht mehr für die Stationen. Nimm mit Zurück ein paar Leitungen weg.');
       expect(zeile2(zielEl(u, 'abschliessen')!)).toBe('Geld reicht nicht');
       u.knoepfe().find((b) => b.getAttribute('data-id') === 'zurueck')!.click();
@@ -438,7 +476,7 @@ describe('NR13 P4 Einbindung – Ablauf Geldmangel', () => {
     const jetzt = (): string | undefined => t.ansicht(uhr.t)?.schritt;
     const tippe = (m: Omit<TippMeldung, 'art'>): void => { t.tipp({ art: 'tipp', ...m } as TippMeldung); melden(); };
     const [h1, h2] = ERSTE_HAEUSER.map((k) => hausBei(s, k));
-    const typ = s.tutorialWerte().leitung;
+    const typ = s.tutorialWerte().haupt;
 
     tippe({ tipp: 'heizzentrale' });
     for (let i = 0; i < 6; i++) tippe({ tipp: 'weiter' });
@@ -451,8 +489,18 @@ describe('NR13 P4 Einbindung – Ablauf Geldmangel', () => {
     tippe({ tipp: 'weiter' }); tippe({ tipp: 'leitungskarte', typ });
     expect(jetzt()).toBe('T13');
 
-    // Spur ganz: beide Häuser erreicht, Geld reicht → T14
-    for (const [x, y] of TUTORIAL_SPUR) { expect(s.platzieren(typ, x, y).ok).toBe(true); melden(); }
+    // NR20-22 E1: Hauptleitung, Farbknopf, beide Hausanschlüsse – je Zug Abheben; Geld reicht → T14
+    const anschluss = s.tutorialWerte().anschluss;
+    const zug = (z: TypId, felder: ReadonlyArray<readonly [number, number]>): void => {
+      for (const [x, y] of felder) { expect(s.platzieren(z, x, y).ok, `${z} auf ${x}|${y}`).toBe(true); melden(); }
+      tippe({ tipp: 'abgehoben' });
+    };
+    zug(typ, TUTORIAL_HAUPT);
+    expect(jetzt()).toBe('T13w');
+    tippe({ tipp: 'farbknopf', typ: anschluss });
+    expect(jetzt()).toBe('T13h');
+    zug(anschluss, TUTORIAL_ANSCHLUSS_1);
+    zug(anschluss, TUTORIAL_ANSCHLUSS_2);
     expect(jetzt()).toBe('T14');
     // Umwege, bis Spur, Umwege und zwei Puffer-Stationen mehr kosten als da ist
     let umwege = 0;
@@ -463,20 +511,35 @@ describe('NR13 P4 Einbindung – Ablauf Geldmangel', () => {
     }
     expect(s.tutorialGeldFehlt_eur(), 'Testaufbau: Umwege machen das Geld knapp').toBeGreaterThan(0);
     expect(umwege).toBeGreaterThan(1);
+    tippe({ tipp: 'abgehoben' });
     expect(s.erreichteHaeuser()).toEqual(expect.arrayContaining([h1.id, h2.id]));
+    expect(s.tutorialLeitungen().planungsfehler, 'Testaufbau: die Umwege hängen nicht am Netz').toBe(false);
     t.zustandPruefen();
-    expect(jetzt()).toBe('T13');
+    // Tabelle P2: T14 → T13h, wenn Geld fehlt
+    expect(jetzt()).toBe('T13h');
     expect(t.ansicht(uhr.t)!.text).toBe('Dann reicht dein Geld nicht mehr für die Stationen. Nimm mit Zurück ein paar Leitungen weg.');
     expect(t.sperre('abschliessen')?.kurz).toBe('Geld reicht nicht');
 
-    // Zurück nimmt die letzten Umwege weg; solange Geld fehlt, bleibt T13 – danach geht es weiter, der Spieler hängt nicht fest
+    // Zurück nimmt die letzten Umwege weg; solange Geld fehlt, bleibt T13h – danach geht es weiter, der Spieler hängt nicht fest
     let zurueck = 0;
     while (s.tutorialGeldFehlt_eur() > 0) {
       expect(s.letzteLeitungZurueck().ok).toBe(true); melden(); t.handlung();
       zurueck++;
-      if (s.tutorialGeldFehlt_eur() > 0) { t.zustandPruefen(); expect(jetzt()).toBe('T13'); }
+      if (s.tutorialGeldFehlt_eur() > 0) { t.zustandPruefen(); expect(jetzt()).toBe('T13h'); }
     }
     expect(zurueck).toBeLessThan(umwege);
+    expect(s.erreichteHaeuser()).toEqual(expect.arrayContaining([h1.id, h2.id]));
+    // Geld reicht wieder, aber die übrigen Umwege liegen abseits der Spur → „Stück muss weg“ (DESIGN 13.17.9 F3), kein T14
+    t.zustandPruefen();
+    expect(jetzt()).toBe('T13h');
+    expect(s.tutorialLeitungen().fremd).toHaveLength(umwege - zurueck);
+    expect(t.sperre('abschliessen')?.kurz).toBe('Stück muss weg');
+    // weiter mit Zurück, bis alle Umwege weg sind – auch hier hängt der Spieler nicht fest
+    while (s.tutorialLeitungen().fremd.length > 0) {
+      expect(s.letzteLeitungZurueck().ok).toBe(true); melden(); t.handlung();
+      zurueck++;
+    }
+    expect(zurueck).toBe(umwege);
     expect(s.erreichteHaeuser()).toEqual(expect.arrayContaining([h1.id, h2.id]));
     t.zustandPruefen();
     expect(jetzt()).toBe('T14');
@@ -526,7 +589,7 @@ const ohneTutorial = (uhr: { t: number }): Spiel => { const s = neuesSpiel(uhr);
 /** Punkte (px) der letzten Spur-Animation des Fingers, in der Reihenfolge, in der er sie abfährt */
 function fingerSpurPunkte(anim: { mock: { calls: unknown[][] } }): Array<[number, number]> {
   const spur = anim.mock.calls.filter(([kf, o]) => Array.isArray(kf) && (o as { iterations?: number } | undefined)?.iterations === Infinity
-    && (kf as Keyframe[]).length >= 4 && (kf as Keyframe[]).every((k) => typeof k.transform === 'string')
+    && (kf as Keyframe[]).length >= 3 && (kf as Keyframe[]).every((k) => typeof k.transform === 'string')
     && (kf as Keyframe[]).some((k) => k.opacity === 0));
   expect(spur.length, 'Testaufbau: die Finger-Spur wurde gezeigt').toBeGreaterThan(0);
   const kf = spur[spur.length - 1][0] as Keyframe[];
@@ -616,19 +679,39 @@ describe('NR13 P4 Einbindung – Teil 3', () => {
     }
   });
 
-  it('test_nr13_spur_nachfahren_bis_haus2: wer die Finger-Spur in T13 genau nachfährt, verbindet beide Häuser → T14', async () => {
+  it('test_nr13_spur_nachfahren_bis_haus2: wer die Finger-Spur in T13 und T13h genau nachfährt (dazwischen der Farbknopf in T13w), verbindet beide Häuser → T14', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     const anim = vi.spyOn(El.prototype, 'animate');
     await echteSteuerung(spiel, (u) => {
       bisT13(u, spiel, uhr);
-      const punkte = fingerSpurPunkte(anim);
-      leinwand(u).ausloesen('pointerdown', zeiger(7, ...punkte[0]));
-      for (const p of punkte.slice(1)) leinwand(u).ausloesen('pointermove', zeiger(7, ...p));
-      leinwand(u).ausloesen('pointerup', zeiger(7, ...punkte[punkte.length - 1]));
-      const leitungBei = (x: number, y: number) => spiel.stand.objekte.some((o) => istLeitung(o.typ) && o.x === x && o.y === y);
-      for (const [x, y] of TUTORIAL_SPUR) expect(leitungBei(x, y), `Leitung auf ${x},${y}`).toBe(true);
+      const leitungBei = (x: number, y: number) => spiel.stand.objekte.find((o) => istLeitung(o.typ) && o.x === x && o.y === y)?.typ;
+      /** Fingerweg seit `ab` (Aufrufe der Animation) nachfahren und abheben */
+      const nachfahren = (ab: number): void => {
+        const punkte = fingerSpurPunkte({ mock: { calls: anim.mock.calls.slice(ab) } });
+        expect(punkte.length, 'Fingerweg hat mindestens zwei Punkte').toBeGreaterThanOrEqual(2);
+        leinwand(u).ausloesen('pointerdown', zeiger(7, ...punkte[0]));
+        for (const p of punkte.slice(1)) leinwand(u).ausloesen('pointermove', zeiger(7, ...p));
+        leinwand(u).ausloesen('pointerup', zeiger(7, ...punkte[punkte.length - 1]));
+        s2(u).tick(uhr.t);
+      };
+      const { haupt, anschluss } = spiel.tutorialWerte();
+      // T13: Fingerweg endet auf dem Abzweig (P2 finger_weg)
+      nachfahren(0);
+      for (const [x, y] of TUTORIAL_HAUPT) expect(leitungBei(x, y), `Hauptleitung auf ${x},${y}`).toBe(haupt);
+      expect(schrittJetzt(u)).toBe('T13w');
+      let ab = anim.mock.calls.length;
+      farbknopf(u, anschluss).click();
+      vi.advanceTimersByTime(500); s2(u).tick(uhr.t);
+      expect(schrittJetzt(u)).toBe('T13h');
+      // T13h: erst Haus 1, dann Haus 2 – der Fingerweg endet je auf der Hausmitte
+      nachfahren(ab);
+      for (const [x, y] of TUTORIAL_ANSCHLUSS_1) expect(leitungBei(x, y), `Hausanschluss 1 auf ${x},${y}`).toBe(anschluss);
+      expect(schrittJetzt(u)).toBe('T13h');
+      ab = anim.mock.calls.length;
+      vi.advanceTimersByTime(4_500); s2(u).tick(uhr.t); // P5: der Finger kommt 4 s nach der letzten Berührung zurück
+      nachfahren(ab);
+      for (const [x, y] of TUTORIAL_ANSCHLUSS_2) expect(leitungBei(x, y), `Hausanschluss 2 auf ${x},${y}`).toBe(anschluss);
       expect(spiel.erreichteHaeuser()).toEqual(expect.arrayContaining(tutorialObjekte(spiel).slice(1).map((o) => o.id)));
-      s2(u).tick(uhr.t);
       expect(schrittJetzt(u)).toBe('T14');
     }, { uhr: () => uhr.t });
   });
@@ -683,16 +766,17 @@ describe('NR13 P4 Einbindung – Teil 4', () => {
     }, { uhr: () => uhr.t });
   });
 
-  it('test_nr13_geld_pruefung_je_bild: T13, beide Häuser erreicht, Geld knapp → Geld direkt erhöhen → nur tick → T14 ohne Geld-Grund', async () => {
+  it('test_nr13_geld_pruefung_je_bild: T13h, beide Häuser erreicht, Geld knapp → Geld direkt erhöhen → nur tick → T14 ohne Geld-Grund', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
-      bisT13(u, spiel, uhr);
-      wischeFelder(u, SPUR_BIS_HAUS2);
+      bisT14(u, spiel, uhr);
       spiel.stand.geld_eur = 0;
-      spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur();
-      wischeFelder(u, [[11, 13]]);
+      // 1 € weniger als nötig. Früher machte eine Stichleitung (11|15) das Geld knapp; seit DESIGN 13.17.9 F3 wäre sie ein
+      // fremdes Stück und sperrte T14 aus einem anderen Grund. Auch der Weg zurück nach T13h kommt so allein aus dem Bild.
+      spiel.stand.geld_eur = spiel.tutorialGeldFehlt_eur() - 1;
+      expect(spiel.tutorialGeldFehlt_eur()).toBe(1);
       s2(u).tick(uhr.t);
-      expect(schrittJetzt(u)).toBe('T13');
+      expect(schrittJetzt(u)).toBe('T13h');
       expect(zeile2(zielEl(u, 'abschliessen')!)).toBe('Geld reicht nicht');
       // Kein Ereignis, nur mehr Geld: allein die Prüfung im Bild darf weiterschalten
       spiel.stand.geld_eur += 100_000;

@@ -11,8 +11,10 @@ const M = T.menue.mass_px, Z = T.menue.zeit_ms;
 export interface Rechteck { x: number; y: number; b: number; h: number }
 /** Loch um ein Ziel: `r` ist das Bildschirm-Rechteck des Ziels selbst; der Abstand des Lochs kommt hier dazu (13.2):
  *  Kartenobjekt = Ellipse um das Rechteck + 12 px, Bedienelement = Rechteck + 8 px mit Radius des Elements + 8. */
-export interface Loch { r: Rechteck; form: 'ellipse' | 'rund'; radius_px?: number }
-export type Finger = { art: 'tippen'; ziel: Rechteck } | { art: 'spur'; punkte: ReadonlyArray<readonly [number, number]> };
+export interface Loch { r: Rechteck; form: 'ellipse' | 'rund'; radius_px?: number; /** Abstand statt `spot_abstand_knopf` (13.17.9 F7 Farbknopf) */ abstand_px?: number }
+/** `je_feld_ms` (DESIGN 13.17.1 B5, Kapitel 3): Finger zieht vor – drückt auf dem ersten Punkt auf und braucht je Punkt
+ *  diese Zeit; ohne das Feld fährt er die Spur in `spur_finger` ab (K9). */
+export type Finger = { art: 'tippen'; ziel: Rechteck; /** Hand nach rechts oben aus dem Ziel (13.17.9 F7), sonst rechts unten */ nach_oben?: boolean } | { art: 'spur'; punkte: ReadonlyArray<readonly [number, number]>; je_feld_ms?: number };
 
 /** Eingangsdaten der Sperrregel AE-NR13-6 – aus der Tutorial-Ansicht gebaut, nicht aus dem gerade gezeigten Bild.
  *  `loecher` sind die Rechtecke der Ziele (wie `Loch.r`). */
@@ -37,7 +39,7 @@ function umriss(l: Loch): { x: number; y: number; b: number; h: number; radius: 
     const rx = l.r.b / Math.SQRT2 + M.spot_abstand_karte, ry = l.r.h / Math.SQRT2 + M.spot_abstand_karte;
     return { x: l.r.x + l.r.b / 2 - rx, y: l.r.y + l.r.h / 2 - ry, b: 2 * rx, h: 2 * ry, radius: null };
   }
-  const d = M.spot_abstand_knopf, b = l.r.b + 2 * d, hh = l.r.h + 2 * d;
+  const d = l.abstand_px ?? M.spot_abstand_knopf, b = l.r.b + 2 * d, hh = l.r.h + 2 * d;
   return { x: l.r.x - d, y: l.r.y - d, b, h: hh, radius: Math.min((l.radius_px ?? 0) + d, b / 2, hh / 2) };
 }
 
@@ -84,33 +86,48 @@ function fingerStoppen(): void {
 
 /** Bewegung des Fingers über die Web-Animations-Schnittstelle (keine eigene Bildschleife, Architekturregel R1).
  *  Tippen (13.2): nach `verzoegerung` 6 px schräg zum Ziel und zurück in 400 ms, dann 1.200 ms Ruhe.
- *  Spur (K9): gleichmäßig in 2.400 ms über alle Punkte, am Ende ausblenden, 600 ms Pause, von vorn. */
+ *  Spur (K9): gleichmäßig in 2.400 ms über alle Punkte, am Ende ausblenden, 600 ms Pause, von vorn.
+ *  Spur mit `je_feld_ms` (B5): 200 ms auf dem ersten Punkt aufdrücken, dann Punktzahl × `je_feld_ms` nach Weglänge verteilt
+ *  (DESIGN: zwei Felder = 800 ms, vier = 1.600 ms), 200 ms ausblenden, 600 ms Pause, von vorn. */
 function fingerBewegen(el: HTMLElement, f: Finger, verzoegerung: number): void {
   fingerStoppen();
   if (f.art === 'tippen') {
     const zyklus = Z.finger_tipp + Z.finger_ruhe, weg = M.finger_weg / Math.SQRT2;
-    const dx = el.classList.contains('von-links') ? weg : -weg, aus = 'translate(0px, 0px)';
+    const dx = el.classList.contains('von-links') ? weg : -weg, dy = el.classList.contains('nach-oben') ? weg : -weg, aus = 'translate(0px, 0px)';
     fingerAnim.push(el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: Z.spot_wechsel, delay: verzoegerung, fill: 'both' }));
     fingerAnim.push(el.animate([
       { offset: 0, transform: aus },
-      { offset: Z.finger_tipp / 2 / zyklus, transform: `translate(${px(dx)}, ${px(-weg)})` },
+      { offset: Z.finger_tipp / 2 / zyklus, transform: `translate(${px(dx)}, ${px(dy)})` },
       { offset: Z.finger_tipp / zyklus, transform: aus },
       { offset: 1, transform: aus },
     ], { duration: zyklus, delay: verzoegerung, iterations: Infinity }));
     return;
   }
-  const p = f.punkte, zyklus = Z.spur_finger + Z.spur_pause;
+  // K9 blendet innerhalb der Pause aus; B5 hebt erst ab (Ausblenden), danach kommen die 600 ms Pause
+  const p = f.punkte, b5 = f.je_feld_ms !== undefined, druck = b5 ? Z.finger_aufdruecken : 0;
+  const zug = f.je_feld_ms === undefined ? Z.spur_finger : p.length * f.je_feld_ms;
+  const zyklus = druck + zug + (b5 ? Z.spot_wechsel : 0) + Z.spur_pause;
   const laengen = p.map((q, i) => (i === 0 ? 0 : Math.hypot(q[0] - p[i - 1][0], q[1] - p[i - 1][1])));
   const gesamt = laengen.reduce((s, l) => s + l, 0);
   let bisher = 0;
   const lage = (q: readonly [number, number]): string => `translate(${px(q[0])}, ${px(q[1])})`;
-  const kf: Keyframe[] = p.map((q, i) => {
+  const kf: Keyframe[] = druck > 0 ? [{ offset: 0, transform: lage(p[0]), opacity: 1 }] : [];
+  kf.push(...p.map((q, i) => {
     bisher += laengen[i];
-    return { offset: gesamt > 0 ? (bisher / gesamt) * (Z.spur_finger / zyklus) : 0, transform: lage(q), opacity: 1 };
-  });
+    return { offset: (druck + (gesamt > 0 ? (bisher / gesamt) * zug : 0)) / zyklus, transform: lage(q), opacity: 1 };
+  }));
   const ende = lage(p[p.length - 1]);
-  kf.push({ offset: (Z.spur_finger + Z.spot_wechsel) / zyklus, transform: ende, opacity: 0 }, { offset: 1, transform: ende, opacity: 0 });
+  kf.push({ offset: (druck + zug + Z.spot_wechsel) / zyklus, transform: ende, opacity: 0 }, { offset: 1, transform: ende, opacity: 0 });
   fingerAnim.push(el.animate(kf, { duration: zyklus, delay: verzoegerung, iterations: Infinity }));
+}
+
+/** Druckpunkt an der Fingerspitze (DESIGN 13.17.1 B5): Kreis `mass_px.druckpunkt` in `farbe.ziel` mit 2 px `kontur`,
+ *  Mitte auf dem Ursprung des Fingers – dort liegt die Spitze. Steht auch bei „Weniger Bewegung“ mit dem Finger. */
+function druckpunkt(): HTMLElement {
+  const d = h('span', { class: 'spot-druckpunkt' }), r = M.druckpunkt / 2;
+  Object.assign(d.style, { position: 'absolute', boxSizing: 'border-box', borderRadius: '50%', width: px(M.druckpunkt), height: px(M.druckpunkt),
+    left: px(-r), top: px(-r), background: 'var(--menue-farbe-ziel)', border: '2px solid var(--menue-farbe-kontur)' });
+  return d;
 }
 
 function fingerSetzen(f: Finger | null, ruhig: boolean): void {
@@ -128,9 +145,11 @@ function fingerSetzen(f: Finger | null, ruhig: boolean): void {
     el.style.left = px(mx); el.style.top = px(my);
     // Am rechten Rand ist rechts unten kein Platz für die Hand – dann kommt sie von links unten (13.2).
     if (mx + M.finger + M.anleiter_rand > window.innerWidth) el.classList.add('von-links');
+    if (f.nach_oben) el.classList.add('nach-oben');
   } else {
     el.style.left = '0px'; el.style.top = '0px';
     el.style.transform = `translate(${px(f.punkte[0][0])}, ${px(f.punkte[0][1])})`;
+    if (f.je_feld_ms !== undefined) el.append(druckpunkt());
   }
   ebene.append(el);
   fingerEl = el;
@@ -174,6 +193,42 @@ export function spotlightAus(): void {
   fingerSetzen(null, false);
   ebene?.remove();
   ebene = null; dunkel = null; ringe = []; lochSchluessel = '';
+}
+
+let schleier: HTMLElement | null = null;
+let schleierSchluessel = '';
+
+/** SVG des Schleiers: Fläche in `schleier_leicht`, aus der eine Maske die Löcher des Gangs weich ausspart. Der Rand von
+ *  `gang_rand` (12 px) entspricht etwa ±2 σ der Unschärfe, also σ = gang_rand / 4. Ein Pfad je Loch, damit sich
+ *  überlappende Löcher nicht gegenseitig aufheben. Nur eigene Zahlen gelangen in den Text. */
+function schleierSvg(breite: number, hoehe: number, gang: Loch[]): string {
+  const b = zahl(breite), hh = zahl(hoehe);
+  const loecher = gang.map((l) => `<path d="${lochPfad(l)}" fill="#000" filter="url(#schleier-weich)"/>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${b}" height="${hh}" viewBox="0 0 ${b} ${hh}">`
+    + `<defs><filter id="schleier-weich" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${zahl(M.gang_rand / 4)}"/></filter>`
+    + `<mask id="schleier-gang" maskUnits="userSpaceOnUse" x="0" y="0" width="${b}" height="${hh}"><rect width="${b}" height="${hh}" fill="#fff"/>${loecher}</mask></defs>`
+    + `<rect width="${b}" height="${hh}" fill="${T.menue.farbe.schleier_leicht}" mask="url(#schleier-gang)"/></svg>`;
+}
+
+/** Leichter Schleier über der Spielkarte mit ausgespartem Gang (DESIGN 13.17.1); `null` nimmt ihn weg. Er liegt direkt über
+ *  `#karte`, also unter allen Bedienelementen, fängt per CSS keine Zeiger und ist nicht Teil der Eingabesperre. Gleicher Gang
+ *  bei gleicher Bildgröße baut nichts neu auf, weil der Aufruf in jedem Bild kommt. */
+export function schleierSetzen(gang: Loch[] | null): void {
+  if (gang === null) {
+    schleier?.remove();
+    schleier = null; schleierSchluessel = '';
+    return;
+  }
+  const breite = window.innerWidth, hoehe = window.innerHeight;
+  const schluessel = JSON.stringify({ gang, breite, hoehe });
+  if (schleier && schluessel === schleierSchluessel) return;
+  if (!schleier) {
+    schleier = h('div', { id: 'schleier', 'aria-hidden': 'true' });
+    document.getElementById('karte')!.after(schleier);
+  }
+  schleierSchluessel = schluessel;
+  const svg = new DOMParser().parseFromString(schleierSvg(breite, hoehe, gang), 'image/svg+xml').documentElement;
+  schleier.replaceChildren(document.importNode(svg, true));
 }
 
 /** Antwort auf einen Fehltipp (13.7): Lochrand stupst einmal, der Finger erscheint sofort neu.

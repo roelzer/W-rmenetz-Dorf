@@ -14,7 +14,7 @@ export class Maler {
   dreh_cos = 1;
   dreh_sin = 0;
   zeit_s = 0;
-  /** „Weniger Bewegung“: Animationen stehen still, Überlast bleibt dauerhaft rot */
+  /** „Weniger Bewegung“: Animationen stehen still; das Überlast-Warndreieck erscheint ohne Federn (DESIGN 13.17.3) */
   reduziert = false;
   constructor(public X: CanvasRenderingContext2D) {}
 

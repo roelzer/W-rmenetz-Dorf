@@ -61,7 +61,10 @@ function ansicht(teil: Partial<TutorialAnsicht> = {}): TutorialAnsicht {
     schritt: 'T01', kapitel: 2, kapitel_name: 'Erstes Netz', art: 'W', text: 'Das ist deine **Heizzentrale**.', wusstest_du: false,
     ziele: [], finger: 'aus', abdunkeln: 'alles', weiter: 'weiter', kamera: 'steht', kamera_ziele: [], kamera_grenze: false,
     spur: false, erreicht_zeigen: false, objekt_ids: { heizzentrale: 1, haus1: 2, haus2: 3, leitungsstueck: [] },
-    normale_aktion: false, wiedereinstieg: false, ...teil,
+    normale_aktion: false, wiedereinstieg: false,
+    // NR20/NR21 Vertrag (Bauplan NR20-22 §5): Leerwerte wie P0 in tutorial.ts
+    band: [], naechstes_feld: null, zielscheibe: null, finger_weg: [], fremd: [], ziel_stecker: [], ziel_ring: null, erreicht_ids: [],
+    farbknopf_ring: null, zeichenleiste: null, zeichnen_ruht: false, kompakt: false, ruhe: false, ...teil,
   };
 }
 const PLATZ = { links: 12, unten: 12, breite: 432, figur_px: 112 as const };

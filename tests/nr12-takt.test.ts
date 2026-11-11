@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { berechneNetz } from '../src/core/netz';
 import { Kamera } from '../src/render/kamera';
+import type { Szene } from '../src/render/szene';
+import { animationBedarf } from '../src/render/szene-schluessel';
+import { neu } from './hilfen';
 import { neuerTakt, sollZeichnen, sparHinweisNoetig, type BildProbe, type TaktEingabe, type TaktZustand } from '../src/render/takt';
 
 // NR12 / A90 Paket P1 (Bauplan docs/bauplaene/NR12-fluessig.md, Abschnitt 7 „P1“, Regeln 1–8 für sollZeichnen).
@@ -119,6 +123,25 @@ describe('NR12 P1 Takt: sollZeichnen', () => {
     const l = sollZeichnen(neuerTakt(), { ...ruhig, jetzt_ms: 1000, bedarf: 'langsam' }).zustand;
     expect(sollZeichnen(l, { ...ruhig, jetzt_ms: 1242, bedarf: 'langsam' }).zeichnen).toBe(true);
     expect(sollZeichnen(l, { ...ruhig, jetzt_ms: 1241.5, bedarf: 'langsam' }).zeichnen).toBe(false);
+  });
+  it('NR22 E7 (Zusammenspiel Szene → Takt): Überlast federt 450 ms flüssig, danach nur noch das Sicherheitsbild', () => {
+    // Bauplan NR20-22 E7/P7: kein Dauerblinken. Szene mit überlasteter Leitung (kapazitaet_ok false) und Überlast-Stück ab 1000 ms.
+    // Von Hand (Grenze G erreicht ab G − 8 ms, Kopf dieser Datei): Federn < 450 ms → 'fluessig' = 30 Bilder/s, bei 60 Hz jedes
+    // 2. Bild: i = 0, 2, … 26 (1000 … 1433,3 ms); i = 27 (1450 ms) Wechsel des Bedarfs → ein Bild; danach 'keine' → Sicherheitsbild
+    // alle 500 ms: ab 1450 + 492 = 1942 → i = 57 (1950), dann i = 87, i = 117.
+    // Mit dem alten Blinken ('langsam', 4/s) kämen nach dem Federn Bilder alle 250 ms dazu.
+    const objekte = [neu('hz', 10, 10)];
+    const netz = berechneNetz(objekte, [], 2);
+    netz.kapazitaet_ok.set(5 * 20 + 6, false);
+    const szene = (jetzt_ms: number): Szene => ({
+      objekte, innen: [], netz, spiel: null, auswahl_id: null, modus: 'normal', geist: null, verschiebe_id: null, stempel: null,
+      jetzt_ms, strassen: [], fluss: [], kw_anzeigen: false,
+      ueberlast: [{ felder: [5 * 20 + 6, 5 * 20 + 7], dreiecke: [5 * 20 + 6], geplant: false, seit_ms: 1000 }],
+    });
+    const zeiten = takt(120, 1000 / 60);
+    const gezeichnet = lauf(zeiten, (i) => ({ bedarf: animationBedarf(szene(zeiten[i]), false) }));
+    const erwartet = [...Array.from({ length: 14 }, (_, i) => 2 * i), 27, 57, 87, 117].map((i) => zeiten[i]);
+    expect(gezeichnet).toEqual(erwartet);
   });
 });
 

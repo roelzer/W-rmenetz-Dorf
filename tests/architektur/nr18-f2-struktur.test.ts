@@ -19,10 +19,11 @@ function dateien(dir: string): string[] {
 }
 const importe = (f: string): string[] => [...lesen(f).matchAll(/(?:from|import)\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
 
-/** Bauplan 5.4 – die einzigen erlaubten Namen. */
+/** Bauplan 5.4 – die einzigen erlaubten Namen. TIPPS ergänzt um 'farbknopf' und 'abgehoben' (NR20-22 §5, Paket P0). */
 const SCHRITTE = ['abschnitt_geplant', 'abschnitt_offen', 'leitung_gezeichnet', 'haus_erreicht', 'haus_getrennt', 'station_gekauft',
   'abschnitt_abgeschlossen', 'material_bestellt', 'abschnitt_gebaut', 'haus_warm'];
-const TIPPS = ['heizzentrale', 'baumenue', 'reiter_leitungen', 'leitungskarte', 'haus', 'weiter', 'daneben'];
+const TIPPS = ['heizzentrale', 'baumenue', 'reiter_leitungen', 'leitungskarte', 'haus', 'weiter', 'daneben',
+  'farbknopf', 'abgehoben'];
 const VERTRAG = 'src/core/tutorial-vertrag.ts';
 /** Werte eines String-Literal-Typs `export type Name = | 'a' | 'b';` */
 function literale(quelle: string, name: string): string[] | null {
@@ -49,10 +50,13 @@ describe('NR18 Fassung 3: Struktur', { timeout: 30000 }, () => {
     expect(kern).toEqual([]);
   });
 
-  it('F2c: Dateien mit „tutorial“ im Namen rechnen keine Spielregel nach (kein Import von netz/engstelle, kein berechneNetz)', () => {
+  it('F2c: Dateien mit „tutorial“ im Namen rechnen keine Spielregel nach (kein Import von netz/engstelle, kein berechneNetz; Ausnahme N4)', () => {
     const verstoesse: string[] = [];
+    // Einzige Ausnahme (NR20-22 §4 N4, AE-NR21-1, Paket P1): tutorial-netz.ts darf genau ./netz importieren
+    // (für leitungsNachbarn). engstelle und berechneNetz/engstellenFinden bleiben auch dort verboten; N4 prüft die Datei eng.
+    const ausnahme = (f: string, i: string): boolean => f === 'src/core/tutorial-netz.ts' && i === './netz';
     for (const f of dateien('src').map(norm).filter((x) => /tutorial/i.test(basename(x)))) {
-      for (const i of importe(f)) if (/(^|\/)(netz|engstelle)$/.test(i)) verstoesse.push(`${f}: importiert ${i}`);
+      for (const i of importe(f)) if (/(^|\/)(netz|engstelle)$/.test(i) && !ausnahme(f, i)) verstoesse.push(`${f}: importiert ${i}`);
       if (/\b(berechneNetz|engstellenFinden)\s*\(/.test(lesen(f))) verstoesse.push(`${f}: rechnet selbst`);
     }
     expect(verstoesse).toEqual([]);

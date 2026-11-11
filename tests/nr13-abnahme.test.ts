@@ -22,8 +22,9 @@ import { echteSteuerung } from './hilfen/echte-steuerung';
 // - Spielwerte: Kessel Stufe 1 60 kW; EFH 15.000 kWh/a, ohne Puffer ÷ 1.500 h = 10 kW, mit Puffer ÷ 2.000 h = 7,5 kW;
 //   zwei Häuser mit Puffer 15 kW → 25er (trägt 15 kW); 25er auf 14 kW gesetzt → 32er (trägt 25 kW).
 // - Puffer-Station für ein EFH: HP 800 (14 kW Netz / 19 kW Spitze, 5.570 €); Wandstation Typ 15 (2.400 €).
-// - Geld: 2.000 € Planung, 25er 400 € je Feld. Mit 16.000 € Start: nach Planung 14.000 €; 8 Felder + 2 × 5.570 = 14.340 € → es
-//   fehlen 340 €; 10 Felder → 1.140 €; 7 Felder → 13.940 € → 0.
+// - Geld (NR20-22 E1, V0 Teil 2c): 2.000 € Planung, 32er 560 €, 25er 400 € je Feld. Mit 16.000 € Start: nach Planung 14.000 €;
+//   Spur E1 2 × 560 + 4 × 400 = 2.720 € + 2 × 5.570 = 13.860 € → 0; mit vier 25er-Stummeln 15.460 € → es fehlen 1.460 €;
+//   Haupt + Anschluss 1 + vier Stummel 14.260 € → 260 €.
 // - Zeiten im Tutorial: Planung 10 s, Bau 20 s (ohne Bauzeit-Faktor), Laura „Lieferzeit: 1 Tag.“; danach normal
 //   30 s × 2,5 = 75 s und 360 s × 2,5 = 900 s, Lieferzeit 900 s ÷ 19,726 s je Spieltag ≈ 46 Tage.
 // - Wiedereinstieg: Tabelle DESIGN 13.7, Kapitelnamen „Die Heizzentrale“, „Planen mit Philipp“, „Leitung ziehen“,
@@ -54,7 +55,7 @@ interface TutorialModul {
   Tutorial: new (lage: unknown, opt?: { wiedereinstieg?: boolean }) => TutorialObj;
   einstieg(lage: unknown): SchrittId;
 }
-type Werte = { kessel_kw: number; kwh: number; kw_ohne: number; kw_puffer: number; leitung: TypId; kap_kw: number };
+type Werte = { kessel_kw: number; kwh: number; kw_ohne: number; kw_puffer: number; kw_summe: number; haupt: TypId; anschluss: TypId };
 type Nr13Kern = {
   tutorialAktiv?(): boolean; wandstationFrei?(): boolean; tutorialWerte?(): Werte; tutorialGeldFehlt_eur?(): number;
   tutorialBeenden?(): void; tutorialUeberspringen?(): void;
@@ -81,11 +82,17 @@ const merkeSetzen = (st: Spielstand, v: unknown): void => { (st as unknown as { 
 const T0 = 1_000_000_000_000;
 const NAME = 'Kunigunde Habermaßen'; // 20 Zeichen
 const NB = ' ';
-const SPUR: ReadonlyArray<readonly [number, number]> = [[10, 10], [10, 11], [10, 12], [10, 13], [10, 14], [11, 14]];
-const FOLGE: SchrittId[] = Array.from({ length: 26 }, (_, i) => `T${String(i + 1).padStart(2, '0')}`);
+// NR20-22 E1 (von Hand, Bauplan §3): Hauptleitung bis zum Abzweig, je Haus ein eigener Hausanschluss
+const HAUPT: ReadonlyArray<readonly [number, number]> = [[10, 11], [10, 12]];
+const ANSCHLUSS_1: ReadonlyArray<readonly [number, number]> = [[9, 12]];
+const ANSCHLUSS_2: ReadonlyArray<readonly [number, number]> = [[10, 13], [10, 14], [11, 14]];
+const ANSCHLUSS = 'd25' as TypId;
+// Schrittfolge NR20-22 P2: T12, T13, T13w, T13h, T14
+const FOLGE: SchrittId[] = Array.from({ length: 26 }, (_, i) => `T${String(i + 1).padStart(2, '0')}`).flatMap((id) => (id === 'T13' ? ['T13', 'T13w', 'T13h'] : [id]));
+const T13_FAMILIE = new Set(['T13', 'T13w', 'T13h']);
 const W_SCHRITTE = new Set(['T02', 'T03', 'T04', 'T05', 'T06', 'T07', 'T11', 'T16', 'T22', 'T23', 'T24', 'T25', 'T26']);
 const KAPITEL_NAME = ['', 'Die Heizzentrale', 'Planen mit Philipp', 'Leitung ziehen', 'Übergabestationen', 'Bauen', 'Warm!'];
-const kapitelVon = (id: SchrittId): number => { const n = Number(id.slice(1)); return n <= 7 ? 1 : n <= 11 ? 2 : n <= 14 ? 3 : n <= 19 ? 4 : n <= 23 ? 5 : 6; };
+const kapitelVon = (id: SchrittId): number => { const n = parseInt(id.slice(1), 10); return n <= 7 ? 1 : n <= 11 ? 2 : n <= 14 ? 3 : n <= 19 ? 4 : n <= 23 ? 5 : 6; };
 const TEXTE = (n: string): Record<SchrittId, string> => ({
   T01: `Hallo ${n}! Ich bin Simon und zeige dir, wie dein Dorf warm wird. Tippe auf die Heizzentrale.`,
   T02: 'Hier steht dein Wärmeerzeuger, ein Hackschnitzelkessel. Er verbrennt Holzreste und macht damit Wasser heiß.',
@@ -98,8 +105,11 @@ const TEXTE = (n: string): Record<SchrittId, string> => ({
   T09: 'Hier ist alles für dein Netz. Tippe auf Leitungen.',
   T10: 'Philipp plant, wo die Leitung in der Straße liegen soll. Tippe auf seinen Knopf.',
   T11: 'Je mehr Häuser an einer Leitung hängen, desto mehr kW muss sie tragen – und desto dicker muss sie sein.',
-  T12: `Fertig geplant! Nimm die 25er – sie trägt im Spiel bis 15${NB}kW, genug für beide Häuser.`,
-  T13: 'Zieh die Leitung mit dem Finger von der Heizzentrale bis an beide Häuser. Folge der gelben Spur.',
+  // NR20-22 E8 (DESIGN 13.17.2 Fassung 2): {haupt} = 32er, {anschluss} = 25er
+  T12: 'Fertig geplant! Zuerst die Hauptleitung: Nimm die dicke 32er, sie trägt die Wärme für beide Häuser.',
+  T13: 'Zieh die 32er von der Heizzentrale bis zur Abzweigung. Folge der Spur.',
+  T13w: `Bis hier fließen 15${NB}kW für beide Häuser, ab hier je Haus nur 7,5${NB}kW. Dafür reicht die 25er.`,
+  T13h: 'Jedes Haus bekommt seinen eigenen Hausanschluss. Zieh die 25er bis ans erste Haus.',
   T14: 'Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.',
   T15: 'Damit ein Haus die Wärme nehmen kann, braucht es eine Übergabestation. Tippe auf das erste Haus.',
   T16: 'Sie holt die Wärme aus dem Netz ins Haus. Ein Wärmetauscher trennt dabei das Netzwasser vom Heizwasser im Haus.',
@@ -114,14 +124,17 @@ const TEXTE = (n: string): Record<SchrittId, string> => ({
   T25: 'In jeder Leitung liegen zwei Rohre: Heißes Wasser fließt hin (Vorlauf), abgekühltes zurück (Rücklauf).',
   T26: 'Am Monatsende zahlen deine Kunden ihre Wärmerechnung. Damit schließt du die nächsten Häuser an.',
 });
-const T13B = 'Das erste Haus ist erreicht. Jetzt weiter bis zum zweiten.';
+// NR20-22 E8: T13b entfällt, an seine Stelle tritt der Zwischenstand von T13h (Erklärsatz T13w und Grundtext T13h in TEXTE)
+const T13B = 'Das erste Haus hat seinen Hausanschluss. Jetzt zieh die 25er zum zweiten Haus.';
 const HILFE: Record<SchrittId, string> = {
   T01: 'Tippe auf das große Gebäude, das gelb leuchtet.',
   T08: 'Der Knopf Bauen ist unten rechts – er leuchtet gelb.', T20: 'Der Knopf Bauen ist unten rechts – er leuchtet gelb.',
   T09: 'Leitungen ist der Reiter mit dem Rohr – oben im Blatt.',
   T10: 'Tippe auf den leuchtenden Knopf im Blatt.', T21: 'Tippe auf den leuchtenden Knopf im Blatt.',
   T12: 'Tippe auf die leuchtende Leitungs-Karte.',
-  T13: 'Leg den Finger auf die Heizzentrale und zieh ihn die gelbe Spur entlang.',
+  T13: 'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.',
+  T13w: 'Tippe rechts in der Leiste auf 25.',
+  T13h: 'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.',
   T14: 'Unten in der Leiste: Abschnitt abschließen.',
   T15: 'Tippe auf das leuchtende Haus.', T18: 'Tippe auf das leuchtende Haus.',
   T17: 'Tippe auf Puffer-Übergabestation.', T19: 'Tippe auf Puffer-Übergabestation.',
@@ -130,7 +143,7 @@ const TIPPE_WEITER = 'Tippe auf Weiter.';
 const WANDSTATION_SATZ = 'Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.';
 const GELD_KURZ = 'Geld reicht nicht';
 const GELD_SATZ = 'Dann reicht dein Geld nicht mehr für die Stationen. Nimm mit Zurück ein paar Leitungen weg.';
-const HAEUSER_SATZ = 'Zieh die Leitung bis an beide Häuser – folge der gelben Spur.';
+const HAEUSER_SATZ = 'Zieh die Leitung bis an beide Häuser – folge der Spur.';
 const LEISTE_SATZ = 'Die Leiste bleibt offen, bis beide Häuser erreicht sind.';
 const IMMER_GESPERRT: Bedienung[] = ['zoom', 'doerfer', 'auftrag', 'verwerfen', 'sofort', 'express', 'weiter_einzeichnen'];
 const ALLE_BEDIENUNGEN: Bedienung[] = [...IMMER_GESPERRT, 'blatt_schliessen', 'abschliessen', 'karte_gesten'];
@@ -149,7 +162,7 @@ function saetze(text: string, n: string): number {
 
 // ─────────────── Ablauf mit echtem Spiel und echtem Tutorial (ohne Oberfläche) ───────────────
 type Uhr = { t: number };
-type Lauf = { s: Spiel; tut: TutorialObj; z: Uhr; h1: Objekt; h2: Objekt; hz: Objekt; log: Ereignis[]; leitung: TypId; name: string };
+type Lauf = { s: Spiel; tut: TutorialObj; z: Uhr; h1: Objekt; h2: Objekt; hz: Objekt; log: Ereignis[]; leitung: TypId; anschluss: TypId; name: string };
 const istHaus = (o: Objekt): boolean => KATALOG[o.typ].kategorie === 'haus';
 const hausBei = (st: Spielstand, [x, y]: readonly [number, number]): Objekt => {
   const h = st.objekte.find((o) => o.x === x && o.y === y && istHaus(o));
@@ -175,7 +188,7 @@ async function lauf(st: Spielstand, z: Uhr, opt: { wiedereinstieg: boolean; leit
   const tut = new M.Tutorial(s, { wiedereinstieg: opt.wiedereinstieg });
   s.ereignisse.length = 0;
   return { s, tut, z, h1: hausBei(s.stand, ERSTE_HAEUSER[0]), h2: hausBei(s.stand, ERSTE_HAEUSER[1]),
-    hz: s.stand.objekte.find((o) => o.typ === 'hz')!, log: [], leitung: opt.leitung ?? 'd25', name: s.spielerName };
+    hz: s.stand.objekte.find((o) => o.typ === 'hz')!, log: [], leitung: opt.leitung ?? 'd32', anschluss: ANSCHLUSS, name: s.spielerName };
 }
 
 /** Neues Spiel über den Produktionsweg (leerer Speicher), Namensfenster ausgefüllt. */
@@ -192,6 +205,14 @@ async function neuesSpiel(opt: { name?: string; geld_eur?: number; leitung?: Typ
   return l;
 }
 
+/** Ein Zug wie in der Steuerung: fehlende Felder einzeichnen (je Feld ein Ereignis), dann heben die Finger ab */
+function zug(l: Lauf, typ: TypId, felder: ReadonlyArray<readonly [number, number]>): void {
+  for (const [x, y] of felder) {
+    if (l.s.stand.objekte.some((o) => o.x === x && o.y === y && istLeitung(o.typ))) continue; // nach Wiedereinstieg schon da
+    expect(l.s.platzieren(typ, x, y).ok, `${typ} auf (${x}|${y})`).toBe(true); pumpen(l);
+  }
+  tippen(l, 'abgehoben');
+}
 /** Die richtige Handlung des Schritts, so wie ein Spieler sie über die Oberfläche auslöst. */
 function handeln(l: Lauf, a: Ansicht): void {
   const { s, z } = l;
@@ -214,12 +235,13 @@ function handeln(l: Lauf, a: Ansicht): void {
     case 'T12':
       expect(a.leitung_typ, 'T12 zeigt auf die Karte der berechneten Leitung').toBe(l.leitung);
       tippen(l, 'leitungskarte', { typ: l.leitung }); break;
-    case 'T13':
-      for (const [x, y] of SPUR) {
-        if (s.stand.objekte.some((o) => o.x === x && o.y === y && istLeitung(o.typ))) continue; // nach Wiedereinstieg schon da
-        expect(s.platzieren(l.leitung, x, y).ok, `Leitung auf (${x}|${y})`).toBe(true); pumpen(l);
-      }
-      break;
+    // NR20-22: Hauptleitung (l.leitung = haupt) in einem Zug, Abheben; T13w Farbknopf; T13h je Haus ein Zug
+    case 'T13': zug(l, l.leitung, HAUPT); break;
+    case 'T13w': tippen(l, 'farbknopf', { typ: l.anschluss }); break;
+    case 'T13h':
+      // eigener Abgang (nach Wiedereinstieg): die gestreiften Felder wegnehmen
+      for (const [x, y] of s.tutorialLeitungen().fremd) { expect(s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
+      zug(l, l.anschluss, ANSCHLUSS_1); zug(l, l.anschluss, ANSCHLUSS_2); break;
     case 'T14': expect(s.abschnittAbschliessen().ok).toBe(true); pumpen(l); break;
     case 'T15': tippen(l, 'haus', { objekt_id: l.h1.id }); break;
     case 'T18': tippen(l, 'haus', { objekt_id: l.h2.id }); break;
@@ -338,14 +360,15 @@ describe('NR13 Abnahme – kompletter Ablauf', () => {
         // Ereignisse, deren Zustand nicht stimmt, schalten nicht (Bauplan: „Wo es einen Zustand gibt, entscheidet der Zustand“)
         const fremd: Array<{ schritt: Schritt; objekt_id?: number }> = [];
         if (vorher === 'T10') fremd.push({ schritt: 'abschnitt_geplant' });
-        if (vorher === 'T13') fremd.push({ schritt: 'haus_erreicht', objekt_id: l.h1.id }, { schritt: 'haus_erreicht', objekt_id: l.h2.id });
+        if (T13_FAMILIE.has(vorher)) fremd.push({ schritt: 'haus_erreicht', objekt_id: l.h1.id }, { schritt: 'haus_erreicht', objekt_id: l.h2.id });
+        if (vorher === 'T13w') { tippen(l, 'farbknopf', { typ: l.leitung }); bleibt('Farbknopf der Hauptleitung'); }
         if (vorher === 'T14') fremd.push({ schritt: 'abschnitt_abgeschlossen' });
         if (vorher === 'T17') fremd.push({ schritt: 'station_gekauft', objekt_id: l.h1.id });
         if (vorher === 'T19') fremd.push({ schritt: 'station_gekauft', objekt_id: l.h2.id });
         if (vorher === 'T21') fremd.push({ schritt: 'material_bestellt' });
         if (W_SCHRITTE.has(vorher)) fremd.push({ schritt: 'abschnitt_gebaut' }, { schritt: 'haus_warm', objekt_id: l.h1.id });
         for (const e of fremd) { l.tut.schritt(e); bleibt(`Ereignis ${e.schritt} ohne passenden Zustand`); }
-        if (['T13', 'T14'].includes(vorher)) geld.push(kern(l.s, 'tutorialGeldFehlt_eur')());
+        if (['T13', 'T13w', 'T13h', 'T14'].includes(vorher)) geld.push(kern(l.s, 'tutorialGeldFehlt_eur')());
       },
     });
     expect(l.tut.aktiv()).toBe(false);
@@ -396,12 +419,12 @@ describe('NR13 Abnahme – kompletter Ablauf', () => {
     laufen(l, {
       bei: (a) => {
         expect(ohneMarken(a.text), a.schritt).toBe(soll[a.schritt]);
-        if (a.schritt === 'T13') {
-          for (const [x, y] of SPUR.slice(0, 4)) { expect(l.s.platzieren(l.leitung, x, y).ok).toBe(true); pumpen(l); }
+        if (a.schritt === 'T13h') {
+          zug(l, l.anschluss, ANSCHLUSS_1);
           t13b = ohneMarken(jetzt(l).text);
-          expect(jetzt(l).schritt, 'ein Haus erreicht → Schritt bleibt T13').toBe('T13');
-          expect(l.s.geplanteLeitungEntfernen(10, 13).ok).toBe(true); pumpen(l);
-          expect(ohneMarken(jetzt(l).text), 'Haus wieder getrennt → T13-Text').toBe(soll.T13);
+          expect(jetzt(l).schritt, 'ein Haus angeschlossen → Schritt bleibt T13h').toBe('T13h');
+          expect(l.s.geplanteLeitungEntfernen(9, 12).ok).toBe(true); pumpen(l);
+          expect(ohneMarken(jetzt(l).text), 'Haus wieder getrennt → T13h-Text').toBe(soll.T13h);
         }
       },
     });
@@ -432,16 +455,18 @@ describe('NR13 Abnahme – kompletter Ablauf', () => {
     expect(gesehen.T06.info_kapsel, 'Info-Kapsel K9').toBe(`15.000${NB}kWh im Jahr · bis 10${NB}kW`);
     expect(gesehen.T07.info_kapsel).toBe(`15.000${NB}kWh im Jahr · bis 10${NB}kW`);
     expect(gesehen.T08.info_kapsel ?? null).toBeNull();
-    expect(gesehen.T13.kamera_grenze, 'K5 Kamera-Grenze in T13').toBe(true);
-    expect(gesehen.T13.spur).toBe(true);
-    expect(gesehen.T13.abdunkeln).toBe('nur_hud');
-    for (const id of FOLGE.filter((x) => x !== 'T13')) { expect(gesehen[id].kamera_grenze, id).toBe(false); expect(gesehen[id].spur, id).toBe(false); }
+    for (const id of T13_FAMILIE) {
+      expect(gesehen[id].kamera_grenze, `K5 Kamera-Grenze in ${id}`).toBe(true);
+      expect(gesehen[id].spur, id).toBe(true);
+      expect(gesehen[id].abdunkeln, id).toBe('nur_hud');
+    }
+    for (const id of FOLGE.filter((x) => !T13_FAMILIE.has(x))) { expect(gesehen[id].kamera_grenze, id).toBe(false); expect(gesehen[id].spur, id).toBe(false); }
     expect(gesehen.T15.normale_aktion && gesehen.T18.normale_aktion, 'T15/T18 Tipp aufs Haus öffnet das Hausblatt').toBe(true);
     for (const id of FOLGE.filter((x) => x !== 'T15' && x !== 'T18')) expect(gesehen[id].normale_aktion, id).toBe(false);
     expect(gesehen.T25.wusstest_du).toBe(true);
     // T25: Loch um ein gebautes Leitungsstück auf dem Weg Heizzentrale → Haus 1 und seine zwei Nachbarn (K9)
     const ids = gesehen.T25.objekt_ids.leitungsstueck;
-    const weg = SPUR.slice(0, 4).map(([x, y]) => l.s.stand.objekte.find((o) => o.x === x && o.y === y && istLeitung(o.typ))!);
+    const weg = [...HAUPT, ...ANSCHLUSS_1].map(([x, y]) => l.s.stand.objekte.find((o) => o.x === x && o.y === y && istLeitung(o.typ))!);
     expect(ids.length).toBe(3);
     for (const id of ids) expect(weg.map((o) => o.id), 'Leitungsstück auf dem Weg HZ → Haus 1').toContain(id);
     expect(weg.filter((o) => ids.includes(o.id)).every((o) => !o.geplant)).toBe(true);
@@ -453,7 +478,7 @@ describe('NR13 Abnahme – kompletter Ablauf', () => {
     laufen(l, {
       bei: (a) => {
         for (const b of IMMER_GESPERRT) expect(l.tut.sperre(b), `${a.schritt}: ${b} gesperrt`).not.toBeNull();
-        if (a.schritt === 'T13') expect(l.tut.sperre('karte_gesten'), 'T13: Karte frei').toBeNull();
+        if (T13_FAMILIE.has(a.schritt)) expect(l.tut.sperre('karte_gesten'), `${a.schritt}: Karte frei`).toBeNull();
         else expect(l.tut.sperre('karte_gesten'), `${a.schritt}: Karte steht`).not.toBeNull();
       },
     });
@@ -526,14 +551,19 @@ describe('NR13 Abnahme – Wandstation und Zeiten', () => {
 });
 
 // ═══════════════════════════ D: Wiedereinstieg (DESIGN 13.7) ═══════════════════════════
-type Zeile = { name: string; bis: SchrittId; vorbereiten?: (l: Lauf) => void; spaeter_ms?: number; erwartet: SchrittId; danach?: SchrittId; t13b?: boolean };
+type Zeile = { name: string; bis: SchrittId; vorbereiten?: (l: Lauf) => void; spaeter_ms?: number; erwartet: SchrittId; danach?: SchrittId; t13b?: boolean; text?: string };
 const ZEILEN: Zeile[] = [
   { name: 'kapitel_1_zurueck_auf_t01', bis: 'T05', erwartet: 'T01' },
   { name: 'kein_abschnitt_kapitel_2_t08', bis: 'T10', erwartet: 'T08' },
   { name: 'abschnitt_in_planung_t11', bis: 'T11', spaeter_ms: 4_000, erwartet: 'T11' },
   { name: 'offen_ohne_striche_t12', bis: 'T12', erwartet: 'T12', danach: 'T13' },
-  { name: 'offen_ein_haus_t12_dann_t13b', bis: 'T13', vorbereiten: (l) => { for (const [x, y] of SPUR.slice(0, 4)) { l.s.platzieren(l.leitung, x, y); pumpen(l); } }, erwartet: 'T12', danach: 'T13', t13b: true },
-  { name: 'offen_beide_verbunden_t12_dann_t14', bis: 'T13', vorbereiten: (l) => { for (const [x, y] of SPUR) { l.s.platzieren(l.leitung, x, y); pumpen(l); } }, erwartet: 'T12', danach: 'T14' },
+  // NR20-22 Wiedereinstieg (Tabelle P2): !haupt_ok → T12; fremd → T13h; nicht beide ok → T13w; planungsfehler → T13h; sonst T14
+  { name: 'offen_hauptleitung_halb_t12', bis: 'T13', vorbereiten: (l) => zug(l, l.leitung, HAUPT.slice(0, 1)), erwartet: 'T12', danach: 'T13' },
+  { name: 'offen_hauptleitung_fertig_t13w', bis: 'T13w', erwartet: 'T13w', danach: 'T13h' },
+  { name: 'offen_ein_haus_t13w_dann_zwischenstand', bis: 'T13h', vorbereiten: (l) => zug(l, l.anschluss, ANSCHLUSS_1), erwartet: 'T13w', danach: 'T13h', t13b: true },
+  { name: 'offen_eigener_abgang_t13h', bis: 'T13h', vorbereiten: (l) => { zug(l, l.anschluss, ANSCHLUSS_1); zug(l, l.anschluss, [[12, 12], [12, 13]]); }, erwartet: 'T13h',
+    text: 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.' },
+  { name: 'offen_beide_verbunden_t14', bis: 'T13h', vorbereiten: (l) => { zug(l, l.anschluss, ANSCHLUSS_1); zug(l, l.anschluss, ANSCHLUSS_2); }, erwartet: 'T14' },
   { name: 'bestellen_haus1_ohne_station_t15', bis: 'T17', erwartet: 'T15' },
   { name: 'nur_haus2_ohne_station_t18', bis: 'T19', erwartet: 'T18' },
   { name: 'beide_stationen_t20', bis: 'T21', erwartet: 'T20' },
@@ -564,8 +594,10 @@ describe('NR13 Abnahme – Neu laden nach Tabelle 13.7', () => {
       expect(a.schritt).toBe(zeile.erwartet);
       expect(a.wiedereinstieg).toBe(false);
       if (zeile.erwartet === 'T11') expect(a.warte_bis_ms, 'Restzeit läuft weiter').toBe(planEnde);
+      if (zeile.text) expect(ohneMarken(a.text)).toBe(zeile.text);
       if (zeile.danach) {
-        tippen(n, 'leitungskarte', { typ: n.leitung });
+        if (zeile.erwartet === 'T13w') tippen(n, 'farbknopf', { typ: n.anschluss });
+        else tippen(n, 'leitungskarte', { typ: n.leitung });
         expect(jetzt(n).schritt).toBe(zeile.danach);
         if (zeile.t13b) expect(ohneMarken(jetzt(n).text)).toBe(T13B);
       }
@@ -618,11 +650,13 @@ describe('NR13 Abnahme – Zahlen aus dem Spiel und Textlängen', () => {
     const alt = KATALOG.d25.kapazitaet_kw;
     try {
       KATALOG.d25.kapazitaet_kw = 14;
+      // NR20-22 E2: Hauptleitung ist die benannte 32er; der Hausanschluss trägt mit 14 kW weiter 7,5 kW → bleibt 25er
       const l = await neuesSpiel({ leitung: 'd32' });
-      expect(kern(l.s, 'tutorialWerte')().leitung).toBe('d32');
+      expect(kern(l.s, 'tutorialWerte')().haupt).toBe('d32');
+      expect(kern(l.s, 'tutorialWerte')().anschluss).toBe('d25');
       let t12 = '';
       laufen(l, { bei: (a) => { if (a.schritt === 'T12') t12 = ohneMarken(a.text); } });
-      expect(t12).toBe(`Fertig geplant! Nimm die 32er – sie trägt im Spiel bis 25${NB}kW, genug für beide Häuser.`);
+      expect(t12).toBe(TEXTE(NAME).T12);
       expect(l.log.filter((e) => e.art === 'engstelle')).toEqual([]);
       expect(warmeHaeuser(l.s)).toEqual([l.h1.id, l.h2.id].sort((a, b) => a - b));
     } finally { KATALOG.d25.kapazitaet_kw = alt; }
@@ -656,17 +690,29 @@ describe('NR13 Abnahme – Zahlen aus dem Spiel und Textlängen', () => {
           pruefen(`${a.schritt} sperre ${b}`, sp.satz);
           l.tut.gesperrtGetippt(b); pruefen(`${a.schritt} blase ${b}`, jetzt(l).text); l.tut.handlung();
         }
-        if (['T03', 'T06', 'T07', 'T17'].includes(a.schritt)) {
-          // schlechtester Fall K1: 7 Zeichen je Leistung (17,5 kW / 13,1 kW), 999 kW Kessel
+        if (['T03', 'T06', 'T07', 'T13w', 'T17'].includes(a.schritt)) {
+          // Schlechtester Fall K1 im festen Tutorialdorf (Entscheidung P5 e): W1 „32er trägt 25 kW“ muss halten, also
+          // 2 × Verbrauch ÷ 2.000 h ≤ 25 kW → höchstens 25.000 kWh je Einfamilienhaus (25.001 kWh wirft W1).
+          // 25.000 kWh: Grenze selbst (16,7 kW / 12,5 kW, Summe 25 kW). 24.880 kWh: jede Leistung mit Nachkommastelle,
+          // also 7 Zeichen je Leistung auch in der Summe (24,9 kW / 16,6 kW / 12,4 kW). Dazu 999 kW Kessel als lange Zahl.
+          const FAELLE: Array<{ kwh: number; t17: string; t06: string; t13w: string }> = [
+            { kwh: 25_000, t17: `12,5${NB}kW statt 16,7${NB}kW`, t06: `25.000${NB}kWh im Jahr · bis 16,7${NB}kW`,
+              t13w: `Bis hier fließen 25${NB}kW für beide Häuser, ab hier je Haus nur 12,5${NB}kW.` },
+            { kwh: 24_880, t17: `12,4${NB}kW statt 16,6${NB}kW`, t06: `24.880${NB}kWh im Jahr · bis 16,6${NB}kW`,
+              t13w: `Bis hier fließen 24,9${NB}kW für beide Häuser, ab hier je Haus nur 12,4${NB}kW.` },
+          ];
           const altV = efh.verbrauch_kwh_a, altK = kessel[0];
-          try {
-            efh.verbrauch_kwh_a = 26_250; kessel[0] = 999; l.s.neuBerechnen();
-            const v = jetzt(l);
-            pruefen(`${a.schritt} gross`, v.text); pruefen(`${a.schritt} gross kapsel`, v.info_kapsel);
-            if (a.schritt === 'T17') expect(ohneMarken(v.text)).toContain(`13,1${NB}kW statt 17,5${NB}kW`);
-            if (a.schritt === 'T06') expect(v.info_kapsel).toBe(`26.250${NB}kWh im Jahr · bis 17,5${NB}kW`);
-            if (a.schritt === 'T03') expect(ohneMarken(v.text)).toContain(`999${NB}kW.`);
-          } finally { efh.verbrauch_kwh_a = altV; kessel[0] = altK; l.s.neuBerechnen(); }
+          for (const f of FAELLE) {
+            try {
+              efh.verbrauch_kwh_a = f.kwh; kessel[0] = 999; l.s.neuBerechnen();
+              const v = jetzt(l);
+              pruefen(`${a.schritt} gross ${f.kwh}`, v.text); pruefen(`${a.schritt} gross ${f.kwh} kapsel`, v.info_kapsel);
+              if (a.schritt === 'T17') expect(ohneMarken(v.text)).toContain(f.t17);
+              if (a.schritt === 'T06') expect(v.info_kapsel).toBe(f.t06);
+              if (a.schritt === 'T13w') expect(ohneMarken(v.text)).toContain(f.t13w);
+              if (a.schritt === 'T03') expect(ohneMarken(v.text)).toContain(`999${NB}kW.`);
+            } finally { efh.verbrauch_kwh_a = altV; kessel[0] = altK; l.s.neuBerechnen(); }
+          }
         }
         if (!W_SCHRITTE.has(a.schritt)) { for (let i = 0; i < 3; i++) tippen(l, 'daneben'); pruefen(`${a.schritt} hilfe`, jetzt(l).text); }
       },
@@ -733,52 +779,58 @@ describe('NR13 Abnahme – manipulierte Merke', () => {
 describe('NR13 Abnahme – Abschließen gesperrt', () => {
   it('test_nr13_a_t13_haeuser_fehlen_satz_in_der_blase', async () => {
     const l = await neuesSpiel();
-    laufen(l, { bis: 'T13' });
-    for (const [x, y] of SPUR.slice(0, 2)) { expect(l.s.platzieren(l.leitung, x, y).ok).toBe(true); pumpen(l); }
+    laufen(l, { bis: 'T13h' }); // NR20-22: Hauptleitung liegt, noch kein Hausanschluss
     expect(l.tut.sperre('abschliessen')).toEqual({ kurz: `2${NB}Häuser fehlen`, satz: HAEUSER_SATZ });
     expect(l.tut.sperre('blatt_schliessen')?.satz).toBe(LEISTE_SATZ);
-    for (const [x, y] of SPUR.slice(2, 4)) { expect(l.s.platzieren(l.leitung, x, y).ok).toBe(true); pumpen(l); }
+    zug(l, l.anschluss, ANSCHLUSS_1);
     expect(l.tut.sperre('abschliessen')).toEqual({ kurz: `noch 1${NB}Haus fehlt`, satz: HAEUSER_SATZ });
     for (let i = 0; i < 3; i++) tippen(l, 'daneben');
     l.tut.gesperrtGetippt('abschliessen');
     expect(ohneMarken(jetzt(l).text), 'Sperr-Satz geht allem vor (K4)').toBe(HAEUSER_SATZ);
     l.tut.handlung();
     expect(ohneMarken(jetzt(l).text)).not.toBe(HAEUSER_SATZ);
-    for (const [x, y] of SPUR.slice(4)) { expect(l.s.platzieren(l.leitung, x, y).ok).toBe(true); pumpen(l); }
+    zug(l, l.anschluss, ANSCHLUSS_2);
     expect(jetzt(l).schritt).toBe('T14');
     expect(l.tut.sperre('abschliessen'), 'beide erreicht, Geld reicht → frei').toBeNull();
   });
 
   it('test_nr13_a_zu_viel_gezeichnet_geld_sperre_bis_leitungen_weg', async () => {
+    // Geld von Hand (NR20-22 E1, Kopfkommentar): nach der Planung 14.000 €; zwei Puffer-Stationen 2 × 5.570 = 11.140 €;
+    // 32er 560 € je Feld, 25er 400 € je Feld. Spur E1 = 2 × 560 + 4 × 400 = 2.720 € → 13.860 € ≤ 14.000 €, Rest 140 €.
+    // Zu viel gezeichnet: vier 25er-Felder als Stummel an der Heizzentrale nach Norden, (12|9) → (15|9). Probe (V0 Teil 2c,
+    // berechneNetz auf 41b1c4a): kein Haus hängt daran, die Stummel liegen an keinem Spurfeld (kein Ring), keine Reduzierung,
+    // Aufteilung oder Engpass, Haus 1 an (9|12), Haus 2 an (11|14); kein Hausweg läuft über sie (kein eigener Abgang nach E3).
+    expect((KATALOG.d32.kosten_eur as number[])[0], 'Feldpreis 32er (Handwert)').toBe(560);
+    expect((KATALOG.d25.kosten_eur as number[])[0], 'Feldpreis 25er (Handwert)').toBe(400);
+    const STUMMEL: ReadonlyArray<readonly [number, number]> = [[12, 9], [13, 9], [14, 9], [15, 9]];
     const l = await neuesSpiel({ geld_eur: 16_000 });
-    laufen(l, { bis: 'T13' });
+    laufen(l, { bis: 'T13h' }); // Hauptleitung (2 × 32er) liegt
     expect(l.s.stand.geld_eur).toBe(14_000);
-    const zeichne = (felder: ReadonlyArray<readonly [number, number]>): void => {
-      for (const [x, y] of felder) { expect(l.s.platzieren(l.leitung, x, y).ok, `(${x}|${y})`).toBe(true); pumpen(l); }
-    };
-    zeichne(SPUR.slice(0, 4));
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(0);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '1.120 + 11.140 ≤ 14.000').toBe(0);
+    zug(l, l.anschluss, ANSCHLUSS_1);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '1.520 + 11.140 ≤ 14.000').toBe(0);
     expect(l.tut.sperre('abschliessen')?.kurz).toBe(`noch 1${NB}Haus fehlt`);
-    zeichne([[9, 12], [8, 12], [7, 12], [9, 11]]); // vier Felder neben der Spur
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '8 Felder + 2 Stationen − 14.000 €').toBe(340);
+    zug(l, l.anschluss, STUMMEL);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '3.120 + 11.140 − 14.000').toBe(260);
     expect(l.tut.sperre('abschliessen'), 'Geld-Sperre vor Häuser-Sperre').toEqual({ kurz: GELD_KURZ, satz: GELD_SATZ });
     l.tut.gesperrtGetippt('abschliessen');
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     l.tut.handlung();
-    zeichne(SPUR.slice(4));
+    zug(l, l.anschluss, ANSCHLUSS_2);
     l.tut.zustandPruefen();
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(1_140);
-    // Weg b (ENTSCHEIDUNGEN 2026-11-06, DESIGN 13.15 K12, Bauplan F3 Punkt 11): beide Häuser erreicht, Geld fehlt → T13 bleibt
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '4.320 + 11.140 − 14.000').toBe(1_460);
+    // Weg b (ENTSCHEIDUNGEN 2026-11-06, DESIGN 13.15 K12): beide Häuser angeschlossen, Geld fehlt → T13h bleibt (NR20-22 P2)
     const a = jetzt(l);
-    expect(a.schritt, 'beide erreicht, Geld fehlt → Schritt bleibt T13 (Weg b)').toBe('T13');
+    expect(a.schritt, 'beide angeschlossen, Geld fehlt → Schritt bleibt T13h (Weg b)').toBe('T13h');
     expect(ohneMarken(a.text), 'Blase zeigt den Geld-Satz (K7)').toBe(GELD_SATZ);
-    expect(a.finger, 'kein Finger auf einem gesperrten Knopf').toBe('aus');
+    expect(a.ziele, 'kein Ziel auf dem gesperrten [Abschnitt abschließen]').toEqual([]);
+    expect(a.finger, 'T13h: Finger wie in der Schritt-Tabelle P2, nie Tippen auf den gesperrten Knopf').toBe('spur');
     expect(l.tut.sperre('abschliessen')).toEqual({ kurz: GELD_KURZ, satz: GELD_SATZ });
     // K12 Muss: alle Häuser-Sätze weichen dem Geld-Satz – Hilfe nach drei Fehltipps, Sperr-Satz bei [X], Sperr-Satz Abschließen
     for (let i = 0; i < 3; i++) tippen(l, 'daneben');
-    expect(jetzt(l).schritt).toBe('T13');
+    expect(jetzt(l).schritt).toBe('T13h');
     expect(ohneMarken(jetzt(l).text), 'Hilfe-Satz nach drei Fehltipps weicht dem Geld-Satz (K12)').toBe(GELD_SATZ);
-    expect(l.tut.sperre('blatt_schliessen'), 'Leiste bleibt in T13 offen').not.toBeNull();
+    expect(l.tut.sperre('blatt_schliessen'), 'Leiste bleibt in T13h offen').not.toBeNull();
     expect(l.tut.sperre('blatt_schliessen')?.satz, 'Sperr-Satz bei [X] sagt nicht „bis beide Häuser erreicht“ (K12)').not.toBe(LEISTE_SATZ);
     l.tut.gesperrtGetippt('blatt_schliessen');
     expect(ohneMarken(jetzt(l).text), 'Sperr-Satz bei [X] weicht dem Geld-Satz (K12)').toBe(GELD_SATZ);
@@ -787,19 +839,19 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
     l.tut.gesperrtGetippt('abschliessen');
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     l.tut.handlung();
-    // Zurück/Radieren: erst zwei Felder (Geld fehlt noch) → weiter T13 mit Geld-Satz
-    for (const [x, y] of [[9, 11], [7, 12]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
+    // Zurück/Radieren vom Stummel-Ende her: erst drei Felder (Geld fehlt noch) → weiter T13h mit Geld-Satz
+    for (const [x, y] of [[15, 9], [14, 9], [13, 9]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
     l.tut.zustandPruefen();
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')()).toBe(340);
-    expect(jetzt(l).schritt, '340 € fehlen noch → T13').toBe('T13');
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '3.120 + 11.140 − 14.000').toBe(260);
+    expect(jetzt(l).schritt, '260 € fehlen noch → T13h').toBe('T13h');
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     expect(l.tut.sperre('abschliessen')?.kurz).toBe(GELD_KURZ);
-    // drittes Feld weg → Geld reicht → T14
-    expect(l.s.geplanteLeitungEntfernen(8, 12).ok).toBe(true); pumpen(l);
+    // viertes Feld weg → genau die Spur E1 → Geld reicht → T14
+    expect(l.s.geplanteLeitungEntfernen(12, 9).ok).toBe(true); pumpen(l);
     l.tut.zustandPruefen();
-    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '7 Felder: 13.940 € ≤ 14.000 €').toBe(0);
+    expect(kern(l.s, 'tutorialGeldFehlt_eur')(), 'Spur E1: 2.720 + 11.140 = 13.860 € ≤ 14.000 €').toBe(0);
     const b = jetzt(l);
-    expect(b.schritt, 'beide erreicht und Geld reicht → T14').toBe('T14');
+    expect(b.schritt, 'beide angeschlossen und Geld reicht → T14').toBe('T14');
     expect(l.tut.sperre('abschliessen')).toBeNull();
     expect(ohneMarken(b.text)).toBe(TEXTE(NAME).T14);
     expect(b.finger).toBe('tippen');

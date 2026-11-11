@@ -7,8 +7,9 @@ import {
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { ortHolen } from './orte';
 import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
-import type { Schritt, TutorialWerte } from './tutorial-vertrag';
-import { ERSTE_HAEUSER } from './start';
+import type { Feld, Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
+import { ERSTE_HAEUSER, TUTORIAL_HAUPTLEITUNG } from './start';
+import { tutorialLeitungsLage } from './tutorial-netz';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
@@ -97,16 +98,32 @@ export class Spiel {
   /** NR13: Ids der Häuser und Großabnehmer, die über gebaute und eingezeichnete Leitungen mit der Heizzentrale verbunden sind
    *  (mit oder ohne Station), aufsteigend. Dieselbe Probe-Rechnung wie die Warnprüfung (AE-NR18-3). */
   erreichteHaeuser(): number[] { return this.erreichteIn(this.probeNetz()); }
-  /** NR13: Zahlen für die Tutorial-Texte, aus denselben Rechnungen wie das Spiel (AE-NR18-3: keine zweite Netzrechnung). */
+  /** NR13/NR21: Zahlen für die Tutorial-Texte, aus denselben Rechnungen wie das Spiel (AE-NR18-3: keine zweite Netzrechnung).
+   *  E2: `haupt` ist die feste Vorgabe TUTORIAL_HAUPTLEITUNG, `anschluss` die kleinste Leitung für ein Haus mit Puffer. Passt der
+   *  Katalog nicht zu dieser Spur, wirft sie: Das Tutorial hätte dann keinen richtigen Satz (W1, W2). */
   tutorialWerte(): TutorialWerte {
     const [h1, h2] = this.tutorialHaeuser();
     const kw_puffer = bedarfKw({ ...h1, hauspuffer: true });
-    const leitung = this.passendeLeitung(kw_puffer + bedarfKw({ ...h2, hauspuffer: true }));
-    if (!leitung) throw new Error('NR13: keine Leitung freigeschaltet');
+    const kw_summe = kw_puffer + bedarfKw({ ...h2, hauspuffer: true });
+    const haupt = TUTORIAL_HAUPTLEITUNG;
+    const anschluss = this.passendeLeitung(kw_puffer);
+    if (!anschluss) throw new Error('NR21: keine Leitung freigeschaltet');
+    const kap = (t: TypId): number => KATALOG[t].kapazitaet_kw as number;
+    if (!freigeschaltet(this.stand, haupt)) throw new Error(`NR21 W1: Die Hauptleitung (${KATALOG[haupt].name}) ist nicht freigeschaltet`);
+    if (kap(haupt) < kw_summe) throw new Error(`NR21 W1: Die Hauptleitung (${KATALOG[haupt].name}) trägt ${kap(haupt)} kW, gebraucht werden ${kw_summe} kW`);
+    if (kap(anschluss) >= kap(haupt)) throw new Error(`NR21 W1: Der Hausanschluss (${KATALOG[anschluss].name}) ist nicht dünner als die Hauptleitung`);
+    const duenner = LEITUNGEN.find((l) => freigeschaltet(this.stand, l) && kap(l) < kap(anschluss));
+    if (duenner) throw new Error(`NR21 W2: ${KATALOG[duenner].name} ist dünner als der Hausanschluss (${KATALOG[anschluss].name})`);
     return {
       kessel_kw: this.netz.verfuegbar_kw, kwh: this.jahresverbrauch_kwh(h1), kw_ohne: bedarfKw({ ...h1, hauspuffer: false }), kw_puffer,
-      leitung, kap_kw: KATALOG[leitung].kapazitaet_kw as number,
+      kw_summe, haupt, anschluss,
     };
+  }
+  /** NR21 (E3): Rollenprüfung der Tutorial-Leitungen im Probe-Netz (gebaut + eingezeichnet). */
+  tutorialLeitungen(): TutorialLeitungsLage {
+    const [h1, h2] = this.tutorialHaeuser();
+    const w = this.tutorialWerte();
+    return tutorialLeitungsLage(this.probeNetz(), this.stand.objekte, h1.id, h2.id, w.haupt, w.anschluss);
   }
   /** NR13 (Weg b): Was bis zum Material noch fehlt – eingezeichnete Leitungen plus die Puffer-Stationen der Tutorial-Häuser, die noch
    *  keine haben, zum Preis, den stationKaufen abbucht. 0 ohne Tutorial und außerhalb der Phasen offen/bestellen. */
@@ -613,15 +630,25 @@ export class Spiel {
     delete gebaut.ersatz;
     return ok();
   }
-  /** A47: Zuletzt eingezeichnete Leitung des offenen Bauabschnitts zurücknehmen. */
-  letzteLeitungZurueck(): Ergebnis {
-    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false };
-    // Leitungs-Ids und Ersatz-Nummern kommen beide aus naechste_id: die größere Zahl ist das zuletzt Gezeichnete.
+  /** A47: Was Zurück als Nächstes nimmt: Leitungs-Ids und Ersatz-Nummern kommen beide aus naechste_id, die größere Zahl ist das
+   *  zuletzt Gezeichnete. Nur im offenen Bauabschnitt, sonst undefined. */
+  private zuletztGezeichnet(): Objekt | undefined {
+    if (this.stand.abschnitt?.phase !== 'offen') return undefined;
     let letzte: Objekt | undefined, nr = -Infinity;
     for (const a of this.stand.objekte) {
       const n = a.geplant ? a.id : a.ersatz ? a.ersatz.nr : -Infinity;
       if (n > nr) { nr = n; letzte = a; }
     }
+    return letzte;
+  }
+  /** NR21: Feld des Objekts, das letzteLeitungZurueck() als Nächstes entfernen würde; null außerhalb von offen oder ohne Leitung. */
+  letzteLeitungFeld(): Feld | null {
+    const o = this.zuletztGezeichnet();
+    return o ? [o.x, o.y] : null;
+  }
+  /** A47: Zuletzt eingezeichnete Leitung des offenen Bauabschnitts zurücknehmen. */
+  letzteLeitungZurueck(): Ergebnis {
+    const letzte = this.zuletztGezeichnet();
     if (!letzte) return { ok: false };
     if (letzte.geplant) {
       const weg = letzte;
@@ -777,10 +804,14 @@ export class Spiel {
     return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur() + this.bohrung_eur()
       + this.vorsehungen_eur() + this.anbohrung_eur() + this.ersatz_eur();
   }
-  /** NR18 (E1): je Ersatz Neupreis minus 50 % des alten Typs, im Fluss dazu die Spülbohrung; eine Gestattung fällt nicht an. */
+  /** NR18 (E1): Summe aller geplanten Ersatz-Leitungen. */
   ersatz_eur(): number {
-    return this.stand.objekte.reduce((summe, o) => !o.ersatz ? summe
-      : summe + (KATALOG[o.ersatz.typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0), 0);
+    return this.stand.objekte.reduce((summe, o) => !o.ersatz ? summe : summe + this.ersatzPreis_eur(o, o.ersatz.typ), 0);
+  }
+  /** NR18 (E1): Ersatz einer gebauten Leitung durch `typ` – Neupreis minus 50 % des alten Typs, im Fluss dazu die Spülbohrung;
+   *  eine Gestattung fällt nicht an (die Querung gibt es schon). */
+  ersatzPreis_eur(o: Objekt, typ: TypId): number {
+    return (KATALOG[typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0);
   }
   /** A69: geplante Vorsehungen (T-Stück mit verschlossenem Abgang) im Abschnitt. */
   vorsehungen_eur(): number { return this.stand.objekte.filter((o) => o.geplant && o.vorsehung).length * KONSTANTEN.vorsehung_eur; }
@@ -837,6 +868,44 @@ export class Spiel {
     o.ersatz = { typ: neu, nr: this.stand.naechste_id++ };
     this.schritt('leitung_gezeichnet', o.id);
     return ok();
+  }
+  /** NR22 (AE-NR22-3): überlastete Stücke im gebauten Netz – Saum, Dreiecke, Blatt und Knopf lesen nur dieses Ergebnis.
+   *  Eingezeichnete Leitungen fehlen im gebauten Netz und bekommen deshalb kein Stück. */
+  ueberlastStuecke(): Engstelle[] { return this.engstellenIn(this.netz); }
+  /** NR22 (E6): Felder des Stücks um `feld`, die für `typ` noch einen Ersatz brauchen. Felder, deren Ersatz (oder Leitung)
+   *  schon so dick ist, zählen nicht; ein dünnerer Ersatz wird abgelöst. Kein Stück an `feld` → [].
+   *  `stuecke`: Ergebnis von ueberlastStuecke() zum selben Netz-Stand. Wer es schon hat (Szene je Bild, Blatt), reicht es
+   *  durch und spart die zweite Suche über das ganze Netz. */
+  stueckOffeneFelder(feld: number, typ: TypId, stuecke: Engstelle[] = this.ueberlastStuecke()): number[] {
+    const stueck = stuecke.find((e) => e.felder.includes(feld));
+    if (!stueck) return [];
+    const kap = KATALOG[typ].kapazitaet_kw as number;
+    return stueck.felder.filter((f) => {
+      const o = this.leitungImNetz(f);
+      return kap > (KATALOG[o.ersatz?.typ ?? o.typ].kapazitaet_kw as number);
+    });
+  }
+  /** NR22 (E6, Simon F-NR22-2): das ganze überlastete Stück auf `typ` vergrößern – ganz oder gar nicht. Keine Geld-Sperre:
+   *  bezahlt wird mit der Materialbestellung (DESIGN 13.17.3). */
+  stueckVergroessern(feld: number, typ: TypId): Ergebnis {
+    if (!this.ueberlastStuecke().some((e) => e.felder.includes(feld))) return { ok: false };
+    if (this.stand.abschnitt?.phase !== 'offen') return { ok: false, hinweis: ERSATZ_NUR_IM_ABSCHNITT };
+    const sperre = this.sperrText(typ);
+    if (sperre) return { ok: false, hinweis: sperre };
+    const offen = this.stueckOffeneFelder(feld, typ);
+    if (!offen.length) return { ok: false };
+    for (const f of offen) {
+      // Phase, Sperre und Größe sind oben für alle Felder geprüft; scheitert ein Feld trotzdem, ist der Kern inkonsistent.
+      const r = this.ersatzPlanen(this.leitungImNetz(f).id, typ);
+      if (!r.ok) throw new Error(`Ersatz auf Feld ${f} abgelehnt, obwohl vorgeprüft: ${r.hinweis ?? 'ohne Grund'}`);
+    }
+    return ok();
+  }
+  /** Gebaute Leitung auf einem Feld des gebauten Netzes; ein Stück aus engstellenFinden besteht nur aus solchen Feldern. */
+  private leitungImNetz(f: number): Objekt {
+    const o = this.objekt(this.netz.belegung[f]);
+    if (!o || !istLeitung(o.typ)) throw new Error(`Feld ${f} trägt keine gebaute Leitung`);
+    return o;
   }
   /** NR18: eingezeichnete Leitung im offenen Bauabschnitt bekommt einen anderen Typ (die Leitungsgrenze ändert sich nicht). */
   geplanteLeitungTyp(id: number, neu: TypId): Ergebnis {

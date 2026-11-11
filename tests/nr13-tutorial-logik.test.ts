@@ -1,36 +1,73 @@
 import { describe, expect, it } from 'vitest';
 import { neuesSpielMitTutorial } from '../src/core/start';
-import { KATALOG, istLeitung } from '../src/core/katalog';
+import { KATALOG, istLeitung, type TypId } from '../src/core/katalog';
 import type { Objekt, Spielstand } from '../src/core/typen';
-import type { Bedienung, Schritt, Tipp, TutorialSchrittId, TutorialWerte } from '../src/core/tutorial-vertrag';
+import type {
+  Bedienung, Schritt, Tipp, TutorialLeitungsLage, TutorialSchrittId, TutorialWerte,
+} from '../src/core/tutorial-vertrag';
 import { einstieg, Tutorial, TUTORIAL_SCHRITTE, TUTORIAL_TEXT_MAX, TUTORIAL_ZURUFE, type TutorialLage } from '../src/core/tutorial';
 
 // Bauplan docs/bauplaene/NR13-tutorial.md (Fassung 3.1), Paket P1: Schrittlogik ohne Grafik. Die Lage ist ein einfaches Objekt,
-// das der Test von Hand stellt (Häuser erreicht, Geld, Abschnitt); erwartete Texte stehen wörtlich aus DESIGN 13.5/13.15.
+// das der Test von Hand stellt (Leitungslage, Geld, Abschnitt); erwartete Texte stehen wörtlich aus DESIGN 13.5/13.15.
+// NR21 (Bauplan NR20-22 Fassung 2.2, §8 V0 / P2): Kapitel 3 hat die Schritte T12, T13, T13w, T13h, T14. Die Schritte hängen an der
+// Leitungslage `tutorialLeitungen()` (haupt_ok, haus1_ok, haus2_ok …), nicht an `erreichteHaeuser()`. Texte nach Bauplan E8
+// (= DESIGN 13.17.2 Fassung 2 und 13.17.8); T13b entfällt und wird zum Zwischenstand-Satz von T13h.
 const T0 = 1_000_000_000_000;
 const NB = ' ';
 const NAME20 = 'Abcdefghijklmnopqrst';
-const WERTE: TutorialWerte = { kessel_kw: 60, kwh: 15000, kw_ohne: 10, kw_puffer: 7.5, leitung: 'd25', kap_kw: 15 };
+const WERTE: TutorialWerte = { kessel_kw: 60, kwh: 15000, kw_ohne: 10, kw_puffer: 7.5, kw_summe: 15, haupt: 'd32', anschluss: 'd25' };
 
 const TEXT = {
   T01: 'Hallo Chef! Ich bin Simon und zeige dir, wie dein Dorf warm wird. Tippe auf die Heizzentrale.',
   T02: 'Hier steht dein **Wärmeerzeuger**, ein **Hackschnitzelkessel**. Er verbrennt Holzreste und macht damit Wasser heiß.',
-  T13: 'Zieh die Leitung mit dem Finger von der Heizzentrale bis an beide Häuser. Folge der gelben Spur.',
-  T13b: 'Das erste Haus ist erreicht. Jetzt weiter bis zum zweiten.',
+  T12: 'Fertig geplant! Zuerst die **Hauptleitung**: Nimm die dicke 32er, sie trägt die Wärme für beide Häuser.',
+  T13: 'Zieh die 32er von der Heizzentrale bis zur Abzweigung. Folge der Spur.',
+  T13w: `Bis hier fließen 15${NB}kW für beide Häuser, ab hier **je Haus nur** 7,5${NB}kW. Dafür reicht die 25er.`,
+  T13h: 'Jedes Haus bekommt seinen eigenen **Hausanschluss**. Zieh die 25er bis ans erste Haus.',
+  zwischenstand: 'Das erste Haus hat seinen Hausanschluss. Jetzt zieh die 25er zum zweiten Haus.',
   T14: 'Beide Häuser sind erreicht. Tippe auf Abschnitt abschließen.',
   T15: 'Damit ein Haus die Wärme nehmen kann, braucht es eine **Übergabestation**. Tippe auf das erste Haus.',
   T18: 'Prima! Jetzt bekommt das zweite Haus auch eine. Tippe darauf.',
   T24: 'Geschafft, Chef! Beide Häuser heizen jetzt mit Wärme aus deinem Netz statt mit Öl.',
   geld: 'Dann reicht dein Geld nicht mehr für die Stationen. Nimm mit Zurück ein paar Leitungen weg.',
   leisteOffen: 'Die Leiste bleibt offen, bis beide Häuser erreicht sind.',
-  zuFrueh: 'Zieh die Leitung bis an beide Häuser – folge der gelben Spur.',
+  zuFrueh: 'Zieh die Leitung bis an beide Häuser – folge der Spur.',
+  zuDuenn: 'Hier fließt Wärme für beide Häuser, die 25er wäre randvoll. Nimm die 32er und zieh drüber.',
+  zuDick: 'Für ein Haus reicht die 25er. Tippe auf 25 und zieh noch mal über dieses Stück.',
+  groesse: 'Ein Stück passt nicht zum Plan. Zieh mit der richtigen Größe noch mal drüber.',
+  eigenerAbgang: 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.',
+  // DESIGN 13.17.10 G3: beide Häuser richtig, nur noch ein gestreifter Rest → nur der erste Satz (55 Zeichen)
+  eigenerAbgangRest: 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.',
   hilfeT01: 'Tippe auf das große Gebäude, das gelb leuchtet.',
-  hilfeT13: 'Leg den Finger auf die Heizzentrale und zieh ihn die gelbe Spur entlang.',
+  hilfeT13: 'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.',
+  hilfeT13w: 'Tippe rechts in der Leiste auf 25.',
 };
+
+/** Spurfelder in Zugrichtung (Bauplan NR20-22 E1): Hauptleitung, Hausanschluss Haus 1, Hausanschluss Haus 2. */
+const SPUR: ReadonlyArray<readonly [number, number, 'haupt' | 'haus1' | 'haus2']> = [
+  [10, 11, 'haupt'], [10, 12, 'haupt'], [9, 12, 'haus1'], [10, 13, 'haus2'], [10, 14, 'haus2'], [11, 14, 'haus2'],
+];
+/** Ziel der Lage-Attrappe: welche Stücke richtig liegen; alles Übrige der Lage kann überschrieben werden. */
+interface Ziel { haupt?: boolean; haus1?: boolean; haus2?: boolean }
+/** Leitungslage von Hand: richtige Stücke sind mit der Sollgröße belegt (32er Haupt, 25er Hausanschluss), die übrigen leer.
+ *  planungsfehler ist im normalen Zwischenstand (Hauptleitung und genau ein Haus) wahr, wie die Probe im Bauplan §2 zeigt. */
+function leitungsLage(z: Ziel = {}, extra: Partial<TutorialLeitungsLage> = {}): TutorialLeitungsLage {
+  const ok = { haupt: !!z.haupt, haus1: !!z.haus1, haus2: !!z.haus2 };
+  const soll = (st: 'haupt' | 'haus1' | 'haus2'): TypId => (st === 'haupt' ? 'd32' : 'd25');
+  const spur = SPUR.map(([x, y, stueck]) => ({ x, y, stueck, belegt: ok[stueck] ? soll(stueck) : null, richtig: ok[stueck] }));
+  const felder = SPUR.filter(([, , st]) => ok[st]).map(([x, y, st]) => ({ x, y, rolle: st === 'haupt' ? 'haupt' as const : 'anschluss' as const, typ: soll(st), richtig: true }));
+  return {
+    haupt_ok: ok.haupt, haus1_ok: ok.haus1, haus2_ok: ok.haus2, haupt_zu_duenn: false, anschluss_zu_dick: false,
+    planungsfehler: ok.haupt && ok.haus1 !== ok.haus2, fremd: [], fremd_haus: null, felder, spur, ...extra,
+  };
+}
 
 interface Testlage extends TutorialLage {
   stand: Spielstand; netz: { warm: Set<number> }; spielerName: string;
+  /** Häuser, die über irgendeine Leitung verbunden sind – zählt für Kapitel 3 nicht mehr (Bauplan NR20-22 P2 erreichtZahl). */
   erreicht: number[]; geldFehlt: number; werte: TutorialWerte; kapitelGesetzt: number[]; beendet: number;
+  leitungen: TutorialLeitungsLage;
+  erreichteHaeuser(): number[];
 }
 
 function lageBauen(werte: Partial<TutorialWerte> = {}, name = 'Chef'): Testlage {
@@ -38,9 +75,10 @@ function lageBauen(werte: Partial<TutorialWerte> = {}, name = 'Chef'): Testlage 
   stand.namen_gefragt = true;
   return {
     stand, netz: { warm: new Set<number>() }, spielerName: name, erreicht: [], geldFehlt: 0,
-    werte: { ...WERTE, ...werte }, kapitelGesetzt: [], beendet: 0,
+    werte: { ...WERTE, ...werte }, kapitelGesetzt: [], beendet: 0, leitungen: leitungsLage(),
     erreichteHaeuser() { return [...this.erreicht]; },
     tutorialWerte() { return this.werte; },
+    tutorialLeitungen() { return this.leitungen; },
     tutorialGeldFehlt_eur() { return this.geldFehlt; },
     tutorialKapitelSetzen(k: number) { this.kapitelGesetzt.push(k); this.stand.tutorial = { kapitel: k }; },
     tutorialBeenden() { this.beendet++; delete this.stand.tutorial; },
@@ -50,7 +88,30 @@ const bei = (l: Testlage, x: number, y: number): Objekt => l.stand.objekte.find(
 const h1 = (l: Testlage): Objekt => bei(l, 9, 13);
 const h2 = (l: Testlage): Objekt => bei(l, 12, 14);
 const hz = (l: Testlage): Objekt => l.stand.objekte.find((o) => o.typ === 'hz')!;
-const tipp = (t: Tutorial, w: Tipp, extra: { objekt_id?: number; typ?: 'd25' | 'd32' | 'd40' } = {}): void => t.tipp({ art: 'tipp', tipp: w, ...extra });
+/** Lage setzen; `erreicht` folgt den richtig angeschlossenen Häusern (ein Test weicht davon bewusst ab). */
+function setze(l: Testlage, z: Ziel, extra: Partial<TutorialLeitungsLage> = {}): void {
+  l.leitungen = leitungsLage(z, extra);
+  l.erreicht = [...(l.leitungen.haus1_ok ? [h1(l).id] : []), ...(l.leitungen.haus2_ok ? [h2(l).id] : [])];
+}
+/** Ein Spurfeld mit falscher Größe belegt (Rolle falsch, Bauplan NR20-22 E3): Feld in `felder` und `spur` auf `typ`, nicht richtig. */
+function mitFalscherGroesse(basis: TutorialLeitungsLage, x: number, y: number, typ: TypId, extra: Partial<TutorialLeitungsLage>): TutorialLeitungsLage {
+  const hier = (f: { x: number; y: number }): boolean => f.x === x && f.y === y;
+  return {
+    ...basis,
+    felder: basis.felder.map((f) => (hier(f) ? { ...f, typ, richtig: false } : f)),
+    spur: basis.spur.map((f) => (hier(f) ? { ...f, belegt: typ, richtig: false } : f)),
+    ...extra,
+  };
+}
+/** Hauptleitung (10|11) als 25er: Rolle haupt falsch → haupt_ok false, haupt_zu_duenn („Hauptleitung zu dünn“). */
+const lageZuDuenn = (extra: Partial<TutorialLeitungsLage> = {}): TutorialLeitungsLage =>
+  mitFalscherGroesse(leitungsLage({ haupt: true }), 10, 11, 'd25', { haupt_ok: false, haupt_zu_duenn: true, ...extra });
+/** Hausanschluss Haus 2 mit 32er auf (10|14): Rolle anschluss falsch → Haus 2 nicht ok, anschluss_zu_dick („Hausanschluss zu dick“). */
+const lageZuDick = (extra: Partial<TutorialLeitungsLage> = {}): TutorialLeitungsLage =>
+  mitFalscherGroesse(leitungsLage({ haupt: true, haus1: true, haus2: true }), 10, 14, 'd32', { haus2_ok: false, anschluss_zu_dick: true, ...extra });
+/** Eigener Abgang zu Haus 2 über (12|12)→(12|13) (Bauplan NR20-22 P1 `test_nr21_eigener_abgang` (a)). */
+const FREMD_HAUS2: Partial<TutorialLeitungsLage> = { fremd: [[12, 13], [12, 12]], fremd_haus: 2 };
+const tipp = (t: Tutorial, w: Tipp, extra: { objekt_id?: number; typ?: TypId } = {}): void => t.tipp({ art: 'tipp', tipp: w, ...extra });
 const schritt = (t: Tutorial, s: Schritt, objekt_id?: number): void => t.schritt(objekt_id === undefined ? { schritt: s } : { schritt: s, objekt_id });
 const jetzt = (t: Tutorial): TutorialSchrittId => t.ansicht(T0)!.schritt;
 const leitungLegen = (l: Testlage, x: number, y: number, geplant: boolean): Objekt => {
@@ -72,10 +133,14 @@ function richtig(t: Tutorial, l: Testlage): void {
     case 'T11':
       l.stand.abschnitt = { phase: 'offen', bau: null };
       schritt(t, 'abschnitt_offen'); tipp(t, 'weiter'); return;
-    case 'T12': tipp(t, 'leitungskarte', { typ: l.werte.leitung as 'd25' }); return;
+    case 'T12': tipp(t, 'leitungskarte', { typ: l.werte.haupt }); return;
     case 'T13':
-      l.erreicht = [h1(l).id]; schritt(t, 'haus_erreicht', h1(l).id);
-      l.erreicht = [h1(l).id, h2(l).id]; schritt(t, 'haus_erreicht', h2(l).id); return;
+      // Zug mit der Hauptleitung bis zum Abzweig; der Wechsel nach T13w kommt erst beim Abheben (Bauplan NR20-22 P2).
+      setze(l, { haupt: true }); schritt(t, 'leitung_gezeichnet'); tipp(t, 'abgehoben'); return;
+    case 'T13w': tipp(t, 'farbknopf', { typ: l.werte.anschluss }); return;
+    case 'T13h':
+      setze(l, { haupt: true, haus1: true }); schritt(t, 'haus_erreicht', h1(l).id);
+      setze(l, { haupt: true, haus1: true, haus2: true }); schritt(t, 'haus_erreicht', h2(l).id); return;
     case 'T14':
       l.stand.abschnitt = { phase: 'bestellen', bau: null };
       schritt(t, 'abschnitt_abgeschlossen'); return;
@@ -94,12 +159,14 @@ function richtig(t: Tutorial, l: Testlage): void {
   }
 }
 function bis(t: Tutorial, l: Testlage, ziel: TutorialSchrittId): void {
-  for (let i = 0; i < 40 && jetzt(t) !== ziel; i++) richtig(t, l);
+  for (let i = 0; i < 45 && jetzt(t) !== ziel; i++) richtig(t, l);
   expect(jetzt(t)).toBe(ziel);
 }
-const ALLE: TutorialSchrittId[] = Array.from({ length: 26 }, (_, i) => `T${String(i + 1).padStart(2, '0')}` as TutorialSchrittId);
+const NUMMERN: TutorialSchrittId[] = Array.from({ length: 26 }, (_, i) => `T${String(i + 1).padStart(2, '0')}` as TutorialSchrittId);
+/** Reihenfolge Bauplan NR20-22 §5: … T12, T13, T13w, T13h, T14 … */
+const ALLE: TutorialSchrittId[] = NUMMERN.flatMap((s) => (s === 'T13' ? ['T13', 'T13w', 'T13h'] as TutorialSchrittId[] : [s]));
 const KAPITEL: Record<TutorialSchrittId, number> = Object.fromEntries(ALLE.map((s) => {
-  const n = Number(s.slice(1));
+  const n = Number(s.slice(1, 3));
   return [s, n <= 7 ? 1 : n <= 11 ? 2 : n <= 14 ? 3 : n <= 19 ? 4 : n <= 23 ? 5 : 6];
 })) as Record<TutorialSchrittId, number>;
 const KAPITEL_NAME = ['', 'Die Heizzentrale', 'Planen mit Philipp', 'Leitung ziehen', 'Übergabestationen', 'Bauen', 'Warm!'];
@@ -147,7 +214,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
   });
 
   it('test_nr13_jeder_schritt_wartet – falsche Tipps, fremde Ereignisse und falsche Objekte schalten nicht', () => {
-    const TIPPS: Tipp[] = ['heizzentrale', 'baumenue', 'reiter_leitungen', 'leitungskarte', 'haus', 'weiter', 'daneben'];
+    const TIPPS: Tipp[] = ['heizzentrale', 'baumenue', 'reiter_leitungen', 'leitungskarte', 'haus', 'weiter', 'daneben', 'farbknopf', 'abgehoben'];
     const SCHRITTE: Schritt[] = ['abschnitt_geplant', 'abschnitt_offen', 'leitung_gezeichnet', 'haus_erreicht', 'haus_getrennt',
       'station_gekauft', 'abschnitt_abgeschlossen', 'material_bestellt', 'abschnitt_gebaut', 'haus_warm'];
     const RICHTIG: Partial<Record<TutorialSchrittId, Tipp>> = { T01: 'heizzentrale', T08: 'baumenue', T09: 'reiter_leitungen',
@@ -164,7 +231,9 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
         expect([ziel, w, jetzt(t)]).toEqual([ziel, w, ziel]);
       }
       for (const s of SCHRITTE) { schritt(t, s, 999_999); expect(jetzt(t)).toBe(ziel); }
-      if (ziel === 'T12') { tipp(t, 'leitungskarte', { typ: 'd40' }); tipp(t, 'leitungskarte'); }
+      if (ziel === 'T12') { tipp(t, 'leitungskarte', { typ: 'd40' }); tipp(t, 'leitungskarte', { typ: 'd25' }); tipp(t, 'leitungskarte'); }
+      // NR21: Farbknopf mit anderem Typ (oder ohne Typ) schaltet T13w nicht weiter (Bauplan NR20-22 P2 „Übergänge“)
+      if (ziel === 'T13w') { tipp(t, 'farbknopf', { typ: 'd32' }); tipp(t, 'farbknopf', { typ: 'd40' }); }
       if (ziel === 'T15') { tipp(t, 'haus', { objekt_id: h2(l).id }); tipp(t, 'haus'); }
       if (ziel === 'T18') { tipp(t, 'haus', { objekt_id: h1(l).id }); tipp(t, 'haus'); }
       expect(jetzt(t)).toBe(ziel);
@@ -203,29 +272,50 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(jetzt(t)).toBe('T24');
   });
 
-  it('test_nr13_t13_beide_haeuser – ein Haus → T13b, getrennt → T13-Text, beide → T14', () => {
+  it('test_nr13_t13_beide_haeuser – T13h: Haus 1 → Zwischenstand, getrennt → T13h-Text, nur Haus 2 → T13h-Text mit Ring auf Haus 1, beide → T14; zählt die Lage, nicht erreichteHaeuser', () => {
     const l = lageBauen();
     const t = new Tutorial(l);
     bis(t, l, 'T13');
     expect(t.ansicht(T0)!.text).toBe(TEXT.T13);
-    l.erreicht = [h1(l).id]; schritt(t, 'haus_erreicht', h1(l).id);
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.T13b });
-    l.erreicht = []; schritt(t, 'haus_getrennt', h1(l).id);
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.T13 });
-    l.erreicht = [h2(l).id]; schritt(t, 'haus_erreicht', h2(l).id);
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.T13b });
-    l.erreicht = [h2(l).id, h1(l).id]; schritt(t, 'haus_erreicht', h1(l).id);
+    bis(t, l, 'T13w');
+    expect(t.ansicht(T0)!.text).toBe(TEXT.T13w);
+    bis(t, l, 'T13h');
+    expect(t.ansicht(T0)!.text).toBe(TEXT.T13h);
+    setze(l, { haupt: true, haus1: true }); schritt(t, 'haus_erreicht', h1(l).id);
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.zwischenstand });
+    setze(l, { haupt: true }); schritt(t, 'haus_getrennt', h1(l).id);
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.T13h });
+    // Nur Haus 2 richtig: Bauplan NR20-22 P2 Textvorrang [2.3] – Zwischenstand nur bei haus1_ok && !haus2_ok,
+    // hier also Grundtext T13h; ziel_ring = erstes nicht-ok Haus (Haus 1), Raute (naechstes_feld) auf dessen Stück (9|12).
+    setze(l, { haupt: true, haus2: true }); schritt(t, 'haus_erreicht', h2(l).id);
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.T13h, ziel_ring: h1(l).id, naechstes_feld: [9, 12] });
+    // Beide Häuser über irgendeine Leitung verbunden, aber Haus 1 nicht richtig angeschlossen → kein T14
+    l.erreicht = [h1(l).id, h2(l).id]; schritt(t, 'haus_erreicht', h1(l).id);
+    expect(jetzt(t)).toBe('T13h');
+    setze(l, { haupt: true, haus1: true, haus2: true }); schritt(t, 'haus_erreicht', h1(l).id);
     expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T14', text: TEXT.T14, finger: 'tippen', ziele: ['abschliessen'] });
   });
 
-  it('test_nr13_viele_striche_schalten_hoechstens_einmal – Wischen mit vielen leitung_gezeichnet', () => {
+  it('test_nr13_viele_striche_schalten_hoechstens_einmal – Wischen mit vielen leitung_gezeichnet; T13 wechselt erst beim Abheben', () => {
     const l = lageBauen();
     const t = new Tutorial(l);
     bis(t, l, 'T13');
     for (let i = 0; i < 10; i++) schritt(t, 'leitung_gezeichnet', 500 + i);
     expect(jetzt(t)).toBe('T13');
-    l.erreicht = [h1(l).id, h2(l).id];
+    setze(l, { haupt: true });
     for (let i = 0; i < 10; i++) schritt(t, 'leitung_gezeichnet', 600 + i);
+    expect(jetzt(t)).toBe('T13');
+    tipp(t, 'abgehoben');
+    expect(jetzt(t)).toBe('T13w');
+    tipp(t, 'farbknopf', { typ: 'd25' });
+    expect(jetzt(t)).toBe('T13h');
+    setze(l, { haupt: true, haus1: true, haus2: true });
+    for (let i = 0; i < 10; i++) schritt(t, 'leitung_gezeichnet', 700 + i);
+    // Bauplan NR20-22 P2 [2.3]: T13h → T14 erst nach dem Abheben, mitten im Zug bleibt T13h (auch beim Prüfen).
+    expect(jetzt(t)).toBe('T13h');
+    t.zustandPruefen();
+    expect(jetzt(t)).toBe('T13h');
+    tipp(t, 'abgehoben');
     expect(jetzt(t)).toBe('T14');
     expect(l.kapitelGesetzt).toEqual([2, 3]);
   });
@@ -260,9 +350,19 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     bis(t, l, 'T13');
     for (let i = 0; i < 3; i++) tipp(t, 'daneben');
     expect(t.ansicht(T0)!.text).toBe(TEXT.hilfeT13);
-    l.erreicht = [h1(l).id]; schritt(t, 'haus_erreicht', h1(l).id);
-    expect(t.ansicht(T0)!.text).toBe(TEXT.T13b);
-    l.erreicht = []; schritt(t, 'haus_getrennt', h1(l).id);
+    bis(t, l, 'T13w');
+    for (let i = 0; i < 2; i++) tipp(t, 'daneben');
+    expect(t.ansicht(T0)!.text).toBe(TEXT.T13w);
+    tipp(t, 'daneben');
+    expect(t.ansicht(T0)!.text).toBe(TEXT.hilfeT13w);
+    bis(t, l, 'T13h');
+    expect(t.ansicht(T0)!.text).toBe(TEXT.T13h);
+    for (let i = 0; i < 3; i++) tipp(t, 'daneben');
+    expect(t.ansicht(T0)!.text).toBe(TEXT.hilfeT13);
+    // Vorrang T13h (Bauplan NR20-22 P2): Hilfe vor Zwischenstand
+    setze(l, { haupt: true, haus1: true }); schritt(t, 'haus_erreicht', h1(l).id);
+    expect(t.ansicht(T0)!.text).toBe(TEXT.hilfeT13);
+    setze(l, { haupt: true }); schritt(t, 'haus_getrennt', h1(l).id);
     expect(t.ansicht(T0)!.text).toBe(TEXT.hilfeT13);
   });
 
@@ -272,7 +372,8 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       T08: 'Der Knopf Bauen ist unten rechts – er leuchtet gelb.', T20: 'Der Knopf Bauen ist unten rechts – er leuchtet gelb.',
       T09: 'Leitungen ist der Reiter mit dem Rohr – oben im Blatt.',
       T10: 'Tippe auf den leuchtenden Knopf im Blatt.', T21: 'Tippe auf den leuchtenden Knopf im Blatt.',
-      T12: 'Tippe auf die leuchtende Leitungs-Karte.', T13: TEXT.hilfeT13, T14: 'Unten in der Leiste: Abschnitt abschließen.',
+      T12: 'Tippe auf die leuchtende Leitungs-Karte.', T13: TEXT.hilfeT13, T13w: TEXT.hilfeT13w, T13h: TEXT.hilfeT13,
+      T14: 'Unten in der Leiste: Abschnitt abschließen.',
       T15: 'Tippe auf das leuchtende Haus.', T18: 'Tippe auf das leuchtende Haus.',
       T17: 'Tippe auf Puffer-Übergabestation.', T19: 'Tippe auf Puffer-Übergabestation.',
     };
@@ -282,7 +383,8 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       bis(t, l, id);
       for (let i = 0; i < 3; i++) tipp(t, 'daneben');
       expect([id, t.ansicht(T0)!.text]).toEqual([id, satz]);
-      expect(TUTORIAL_SCHRITTE.find((s) => s.id === id)!.hilfe).toBe(satz);
+      // T13w setzt {anschluss_zahl} ein; dort zählt nur der fertige Text
+      if (id !== 'T13w') expect(TUTORIAL_SCHRITTE.find((s) => s.id === id)!.hilfe).toBe(satz);
     }
     for (const s of TUTORIAL_SCHRITTE.filter((x) => x.art === 'W')) expect(s.hilfe).toBe('Tippe auf Weiter.');
   });
@@ -301,8 +403,8 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       T09: 'Hier ist alles für dein Netz. Tippe auf Leitungen.',
       T10: 'Philipp plant, wo die Leitung in der Straße liegen soll. Tippe auf seinen Knopf.',
       T11: 'Je mehr Häuser an einer Leitung hängen, desto mehr kW muss sie tragen – und desto dicker muss sie sein.',
-      T12: `Fertig geplant! Nimm die 25er – sie trägt im Spiel bis 15${NB}kW, genug für beide Häuser.`,
-      T13: TEXT.T13, T14: TEXT.T14, T15: TEXT.T15,
+      T12: TEXT.T12,
+      T13: TEXT.T13, T13w: TEXT.T13w, T13h: TEXT.T13h, T14: TEXT.T14, T15: TEXT.T15,
       T16: 'Sie holt die Wärme aus dem Netz ins Haus. Ein **Wärmetauscher** trennt dabei das Netzwasser vom Heizwasser im Haus.',
       T17: `Nimm die mit **Pufferspeicher**. Ihr Tank sammelt Wärme vorab, so reichen 7,5${NB}kW statt 10${NB}kW aus dem Netz – genauso warm.`,
       T18: TEXT.T18,
@@ -325,7 +427,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
   });
 
   it('test_nr13_texte_laenge – alle Blasen-, Hilfe-, Sperr- und Wiedereinstiegs-Sätze ≤ 120 Zeichen, ≤ 2 Sätze (K2)', () => {
-    const werte = { kwh: 99_999, kw_ohne: 17.5, kw_puffer: 12.5, kessel_kw: 999, leitung: 'd110' as const, kap_kw: 999 };
+    const werte = { kwh: 99_999, kw_ohne: 17.5, kw_puffer: 12.5, kessel_kw: 999, kw_summe: 1_234.5, haupt: 'd110' as const, anschluss: 'd110' as const };
     const texte: string[] = [];
     const sammle = (t: Tutorial): void => {
       const a = t.ansicht(T0)!;
@@ -343,17 +445,40 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       sammle(tx);
       const b: Bedienung[] = ['zoom', 'doerfer', 'auftrag', 'blatt_schliessen', 'verwerfen', 'sofort', 'express', 'weiter_einzeichnen', 'abschliessen', 'karte_gesten'];
       for (const x of b) { const s = tx.sperre(x); if (s) { expect(s.kurz.length).toBeLessThanOrEqual(18); if (s.satz) texte.push(s.satz); } }
-      if (id === 'T13') {
-        lx.erreicht = [h1(lx).id]; schritt(tx, 'haus_erreicht', h1(lx).id); sammle(tx);
-        lx.geldFehlt = 1; tx.zustandPruefen(); sammle(tx);
-        texte.push(tx.sperre('abschliessen')!.satz);
-      }
     }
-    for (const [k, l6] of wiedereinstiegsLagen(werte, NAME20)) {
+    // Kapitel 3 mit Lagen (Bauplan NR20-22 P2 Textvorrang und Sperre): Größen-Sätze, eigener Abgang, Planungsfehler-Sperre,
+    // Zwischenstand, Geld. Jeder Fall muss seinen Satz wirklich zeigen (Kennwort), sonst prüft die Länge nichts.
+    const lk = lageBauen(werte, NAME20);
+    const tk = new Tutorial(lk);
+    const nimm = (lage: TutorialLeitungsLage, kennwort: RegExp, geld = 0): void => {
+      lk.leitungen = lage; lk.geldFehlt = geld; tk.zustandPruefen();
+      const a = tk.ansicht(T0)!;
+      const s = tk.sperre('abschliessen');
+      expect(s).not.toBeNull();
+      expect(s!.kurz.length).toBeLessThanOrEqual(18);
+      texte.push(a.text, s!.satz);
+      expect([a.schritt, kennwort.test(a.text) || kennwort.test(s!.satz)]).toEqual([a.schritt, true]);
+    };
+    bis(tk, lk, 'T13');
+    nimm(lageZuDuenn(), /randvoll/);
+    nimm(lageZuDuenn(), /passt nicht zum Plan/);
+    bis(tk, lk, 'T13w');
+    nimm(leitungsLage({ haupt: true }, FREMD_HAUS2), /gestreifte Stück/);
+    bis(tk, lk, 'T13h');
+    nimm(leitungsLage({ haupt: true, haus1: true }), /zweiten Haus/);
+    nimm(lageZuDick(), /Für ein Haus reicht/);
+    nimm(leitungsLage({ haupt: true, haus1: true }, FREMD_HAUS2), /gestreifte Stück/);
+    nimm(leitungsLage({ haupt: true, haus1: true, haus2: true }, { planungsfehler: true }), /passt nicht zum Plan/);
+    nimm(leitungsLage({ haupt: true, haus1: true }), /Geld/, 1);
+    expect(jetzt(tk)).toBe('T13h');
+    for (const [k, s, l6] of wiedereinstiegsLagen(werte, NAME20)) {
       const tw = new Tutorial(l6, { wiedereinstieg: true });
       const a = tw.ansicht(T0)!;
-      expect(a.kapitel).toBe(k);
+      expect([s, a.schritt, a.kapitel]).toEqual([s, s, k]);
       texte.push(a.text);
+      tipp(tw, 'weiter');
+      expect([s, jetzt(tw)]).toEqual([s, s]);
+      texte.push(tw.ansicht(T0)!.text);
     }
     expect(texte.length).toBeGreaterThan(60);
     for (const s of texte) {
@@ -388,7 +513,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(() => t03(Number.NaN)).toThrow();
     expect(() => t03(Number.POSITIVE_INFINITY)).toThrow();
 
-    const l = lageBauen({ leitung: 'd32', kap_kw: 30 });
+    const l = lageBauen({ haupt: 'd40', anschluss: 'd32', kw_summe: 22.5 });
     const t = new Tutorial(l);
     bis(t, l, 'T06');
     expect(t.ansicht(T0)!.info_kapsel).toBe(`15.000${NB}kWh im Jahr · bis 10${NB}kW`);
@@ -396,12 +521,21 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(t.ansicht(T0)!.info_kapsel).toBe(`15.000${NB}kWh im Jahr · bis 10${NB}kW`);
     bis(t, l, 'T12');
     const a = t.ansicht(T0)!;
-    expect(a.text).toBe(`Fertig geplant! Nimm die 32er – sie trägt im Spiel bis 30${NB}kW, genug für beide Häuser.`);
-    expect(a.leitung_typ).toBe('d32');
-    tipp(t, 'leitungskarte', { typ: 'd25' });
-    expect(jetzt(t)).toBe('T12');
+    expect(a.text).toBe('Fertig geplant! Zuerst die **Hauptleitung**: Nimm die dicke 40er, sie trägt die Wärme für beide Häuser.');
+    expect(a.leitung_typ).toBe('d40');
     tipp(t, 'leitungskarte', { typ: 'd32' });
+    expect(jetzt(t)).toBe('T12');
+    tipp(t, 'leitungskarte', { typ: 'd40' });
     expect(jetzt(t)).toBe('T13');
+    expect(t.ansicht(T0)!.text).toBe('Zieh die 40er von der Heizzentrale bis zur Abzweigung. Folge der Spur.');
+    bis(t, l, 'T13w');
+    expect(t.ansicht(T0)!.text).toBe(`Bis hier fließen 22,5${NB}kW für beide Häuser, ab hier **je Haus nur** 7,5${NB}kW. Dafür reicht die 32er.`);
+    for (let i = 0; i < 3; i++) tipp(t, 'daneben');
+    expect(t.ansicht(T0)!.text).toBe('Tippe rechts in der Leiste auf 32.');
+    tipp(t, 'farbknopf', { typ: 'd25' });
+    expect(jetzt(t)).toBe('T13w');
+    tipp(t, 'farbknopf', { typ: 'd32' });
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: 'Jedes Haus bekommt seinen eigenen **Hausanschluss**. Zieh die 32er bis ans erste Haus.' });
     bis(t, l, 'T17');
     expect(t.ansicht(T0)!.text).toContain(`reichen 7,5${NB}kW statt 10${NB}kW aus dem Netz`);
     l.werte = { ...l.werte, kw_puffer: 12.5, kw_ohne: 17.5 };
@@ -428,9 +562,19 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       T09: { art: 'H', ziele: ['reiter_leitungen'], finger: 'tippen' },
       T10: { ziele: ['philipp'], finger: 'tippen' },
       T11: { art: 'W', ziele: ['kasten_abschnitt'], finger: 'aus', weiter: 'wartet' },
-      T12: { ziele: ['leitungskarte'], finger: 'tippen', leitung_typ: 'd25', kamera_ziele: HZ3, abdunkeln: 'alles' },
-      T13: { ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true, leitung_typ: undefined },
-      T14: { ziele: ['abschliessen'], finger: 'tippen', abdunkeln: 'alles', kamera: 'steht', kamera_grenze: false, spur: false, erreicht_zeigen: false },
+      T12: { ziele: ['leitungskarte'], finger: 'tippen', leitung_typ: 'd32', kamera_ziele: HZ3, abdunkeln: 'alles', ruhe: true },
+      // NR20/NR21 Schritt-Tabelle Bauplan NR20-22 P2 (B6) und §5
+      T13: { ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true, leitung_typ: undefined,
+        zielscheibe: [10, 12], naechstes_feld: [10, 11], finger_weg: [[10, 11], [10, 12]], ziel_ring: null, zeichenleiste: { typ: 'd32' },
+        zeichnen_ruht: false, kompakt: true, ruhe: true, farbknopf_ring: null },
+      T13w: { ziele: [], finger: 'tippen', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
+        zielscheibe: [10, 12], naechstes_feld: [10, 12], finger_weg: [], ziel_ring: null, zeichenleiste: { typ: 'd32' }, zeichnen_ruht: true,
+        kompakt: true, ruhe: true, farbknopf_ring: 'd25' },
+      T13h: { ziele: [], finger: 'spur', abdunkeln: 'nur_hud', kamera: 'frei', kamera_ziele: HZ3, kamera_grenze: true, spur: true, erreicht_zeigen: true,
+        // Bauplan NR20-22 P2: finger_weg = ab naechstes_feld (9|12) das Stück zu Haus 1, dann Hausmitte K2 [x + (g − 1) / 2, y + (g − 1) / 2];
+        // Haus 1 = efh (Größe 1) auf (9|13) → (9|13). ziel_ring = erstes nicht-ok Haus = Haus 1 (Id, unten in der Schleife gesetzt).
+        zielscheibe: null, naechstes_feld: [9, 12], finger_weg: [[9, 12], [9, 13]], zeichenleiste: { typ: 'd25' }, zeichnen_ruht: false, kompakt: true, ruhe: true, farbknopf_ring: null },
+      T14: { ziele: ['abschliessen'], finger: 'tippen', abdunkeln: 'alles', kamera: 'steht', kamera_grenze: false, spur: false, erreicht_zeigen: false, ruhe: true },
       T15: { ziele: ['haus1'], finger: 'tippen', kamera_ziele: ['haus1'], normale_aktion: true },
       T16: { art: 'W', ziele: ['kasten_station'], finger: 'aus', kamera_ziele: ['haus1'], normale_aktion: false },
       T17: { art: 'H', ziele: ['puffer_knopf', 'haus1'], finger: 'tippen', kamera_ziele: ['haus1'], nach_handlung_schliessen: 'blatt' },
@@ -445,20 +589,27 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
       T26: { ziele: [], abdunkeln: 'nichts', weiter: 'los', wusstest_du: false },
     };
     const AUS = { finger: 'aus', abdunkeln: 'alles', kamera: 'steht', kamera_ziele: [], kamera_grenze: false, spur: false,
-      erreicht_zeigen: false, normale_aktion: false, wusstest_du: false, wiedereinstieg: false };
+      erreicht_zeigen: false, normale_aktion: false, wusstest_du: false, wiedereinstieg: false,
+      band: [], zielscheibe: null, naechstes_feld: null, finger_weg: [], fremd: [], ziel_stecker: [], ziel_ring: null, zeichenleiste: null,
+      zeichnen_ruht: false, kompakt: false, ruhe: false, farbknopf_ring: null };
+    const K3 = ['T13', 'T13w', 'T13h'];
     for (const id of ALLE) {
       bis(t, l, id);
       const a = t.ansicht(T0)! as unknown as Record<string, unknown>;
-      const soll = { ...AUS, ...erwartet[id] };
+      const soll: Record<string, unknown> = { ...AUS, ...erwartet[id] };
+      if (K3.includes(id)) { delete soll.band; soll.ziel_stecker = [h1(l).id, h2(l).id]; }
+      if (id === 'T13h') soll.ziel_ring = h1(l).id;
       for (const [k, v] of Object.entries(soll)) expect([id, k, a[k]]).toEqual([id, k, v]);
       if (!['T06', 'T07'].includes(id)) expect([id, a.info_kapsel]).toEqual([id, undefined]);
       if (!['T02', 'T03'].includes(id)) expect([id, a.effekt]).toEqual([id, undefined]);
       if (!['T17', 'T19', 'T21'].includes(id)) expect([id, a.nach_handlung_schliessen]).toEqual([id, undefined]);
       if (id !== 'T12') expect([id, a.leitung_typ]).toEqual([id, undefined]);
       expect(a.objekt_ids).toMatchObject({ heizzentrale: hz(l).id, haus1: h1(l).id, haus2: h2(l).id });
-      if (id === 'T13') {
-        schritt(t, 'leitung_gezeichnet', 777);
-        expect(t.ansicht(T0)!.finger).toBe('aus');
+      if (id === 'T13h') {
+        // Hausmitte nach Bauplan NR20-22 P2 K2: [x + (g − 1) / 2, y + (g − 1) / 2]
+        const g = KATALOG[h1(l).typ].groesse ?? 1;
+        expect(a.finger_weg).toEqual([[9, 12], [h1(l).x + (g - 1) / 2, h1(l).y + (g - 1) / 2]]);
+        expect(a.ziel_ring).toBe(h1(l).id);
       }
     }
   });
@@ -517,9 +668,6 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(einstieg(fall((l) => kap(l, 2)))).toBe('T08');
     expect(einstieg(fall((l) => kap(l, 3)))).toBe('T08');
     expect(einstieg(fall((l) => { kap(l, 2); l.stand.abschnitt = { phase: 'planung', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 5000 } }; }))).toBe('T11');
-    expect(einstieg(fall((l) => { kap(l, 3); l.stand.abschnitt = { phase: 'offen', bau: null }; l.erreicht = [h1(l).id]; }))).toBe('T12');
-    const beide = fall((l) => { kap(l, 3); l.stand.abschnitt = { phase: 'offen', bau: null }; l.erreicht = [h1(l).id, h2(l).id]; });
-    expect(einstieg(beide)).toBe('T12');
     expect(einstieg(fall((l) => { kap(l, 3); l.stand.abschnitt = { phase: 'bestellen', bau: null }; }))).toBe('T15');
     expect(einstieg(fall((l) => { kap(l, 4); l.stand.abschnitt = { phase: 'bestellen', bau: null }; h1(l).station = 'p'; }))).toBe('T18');
     expect(einstieg(fall((l) => { kap(l, 4); l.stand.abschnitt = { phase: 'bestellen', bau: null }; h1(l).station = 'p'; h2(l).station = 'p'; }))).toBe('T20');
@@ -528,15 +676,49 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(einstieg(fall((l) => { kap(l, 6); l.netz.warm = new Set([h1(l).id, h2(l).id]); }))).toBe('T24');
     expect(einstieg(fall((l) => { kap(l, 5); l.netz.warm = new Set([h1(l).id]); }))).toBe('T08');
 
-    // „offen, beide verbunden“: T12 → Tipp auf die Karte → T13 schaltet sofort auf T14 (Geld reicht) bzw. bleibt T13 (Geld fehlt).
-    const t = new Tutorial(beide);
-    expect(jetzt(t)).toBe('T12');
-    tipp(t, 'leitungskarte', { typ: 'd25' });
-    expect(jetzt(t)).toBe('T14');
-    const arm = fall((l) => { kap(l, 3); l.stand.abschnitt = { phase: 'offen', bau: null }; l.erreicht = [h1(l).id, h2(l).id]; l.geldFehlt = 300; });
+    // Phase offen (Bauplan NR20-22 P2 „Wiedereinstieg“, fünf Zeilen in dieser Reihenfolge): !haupt_ok → T12; fremd ≠ [] → T13h;
+    // nicht beide Häuser ok → T13w; planungsfehler → T13h; sonst T14. Es zählt die Leitungslage, nicht erreichteHaeuser.
+    const offen = (z: Ziel, extra: Partial<TutorialLeitungsLage> = {}): Testlage =>
+      fall((l) => { kap(l, 3); l.stand.abschnitt = { phase: 'offen', bau: null }; setze(l, z, extra); });
+    const ALLE_OK: Ziel = { haupt: true, haus1: true, haus2: true };
+    // Zeile 1: ohne richtige Hauptleitung T12 – auch wenn sonst alles da ist oder ein eigener Abgang liegt.
+    expect(einstieg(offen({}))).toBe('T12');
+    expect(einstieg(offen({ haus1: true, haus2: true }))).toBe('T12');
+    expect(einstieg(offen({}, { haupt_zu_duenn: true, ...FREMD_HAUS2 }))).toBe('T12');
+    // Zeile 2: eigener Abgang → T13h, vor „nicht beide Häuser ok“ (sonst wäre es T13w) und auch bei beiden ok (Vierer-Ring).
+    expect(einstieg(offen({ haupt: true, haus1: true }, FREMD_HAUS2))).toBe('T13h');
+    expect(einstieg(offen({ haupt: true }, { fremd: [[11, 13], [11, 12]], fremd_haus: 2 }))).toBe('T13h');
+    expect(einstieg(offen(ALLE_OK, { planungsfehler: true, fremd: [[11, 13]], fremd_haus: null }))).toBe('T13h');
+    // Zeile 3: nicht beide Häuser richtig → T13w, auch mit Planungsfehler (normaler Zwischenstand) und auch, wenn beide nur „verbunden“ sind.
+    expect(einstieg(offen({ haupt: true }))).toBe('T13w');
+    expect(einstieg(offen({ haupt: true, haus1: true }))).toBe('T13w');
+    expect(einstieg(offen({ haupt: true, haus2: true }))).toBe('T13w');
+    expect(einstieg(offen({ haupt: true }, { planungsfehler: true }))).toBe('T13w');
+    const nurVerbunden = offen({ haupt: true, haus1: true });
+    nurVerbunden.erreicht = [h1(nurVerbunden).id, h2(nurVerbunden).id];
+    expect(einstieg(nurVerbunden)).toBe('T13w');
+    expect(einstieg(offen({ haupt: true, haus1: true }, lageZuDick()))).toBe('T13w');
+    // Zeile 4: beide richtig, aber Planungsfehler → T13h, nie T14.
+    expect(einstieg(offen(ALLE_OK, { planungsfehler: true }))).toBe('T13h');
+    // Zeile 5: sonst T14.
+    const beide = offen(ALLE_OK);
+    expect(einstieg(beide)).toBe('T14');
+
+    // T13w mit haus1_ok: nach dem Farbknopf gleich der Zwischenstand.
+    const halb = offen({ haupt: true, haus1: true });
+    const th = new Tutorial(halb);
+    expect(jetzt(th)).toBe('T13w');
+    tipp(th, 'farbknopf', { typ: 'd25' });
+    expect(th.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.zwischenstand });
+    // Eigener Abgang: Satz sofort.
+    expect(new Tutorial(offen({ haupt: true, haus1: true }, FREMD_HAUS2)).ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.eigenerAbgang });
+    // Beide richtig ohne Fehler: gleich T14; fehlt Geld, fällt T14 beim Prüfen auf T13h mit Geld-Satz zurück (P2 „Rückwärts“).
+    expect(new Tutorial(beide).ansicht(T0)!).toMatchObject({ schritt: 'T14', text: TEXT.T14 });
+    const arm = offen(ALLE_OK);
+    arm.geldFehlt = 300;
     const ta = new Tutorial(arm);
-    tipp(ta, 'leitungskarte', { typ: 'd25' });
-    expect(ta.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.geld });
+    ta.zustandPruefen();
+    expect(ta.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.geld });
   });
 
   it('test_nr13_wiedereinstieg_blase – „Weiter geht’s …“ mit Kapitel des berechneten Schritts, dann der Schritt', () => {
@@ -562,7 +744,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(new Tutorial(w).ansicht(T0)!).toMatchObject({ schritt: 'T24', wiedereinstieg: false, text: TEXT.T24 });
   });
 
-  it('test_nr13_sperren – Grundzustand gesperrt, Gesten nur in T13, Abschließen-Sperre in T13, außerhalb nichts', () => {
+  it('test_nr13_sperren – Grundzustand gesperrt, Gesten nur in T13–T13h, Abschließen-Sperre in T13–T13h nach Reihenfolge P2, außerhalb nichts', () => {
     const IMMER: Bedienung[] = ['zoom', 'doerfer', 'auftrag', 'verwerfen', 'sofort', 'express', 'weiter_einzeichnen', 'blatt_schliessen'];
     // DESIGN 13.16 K4: Aktionen, die das Tutorial nie freigibt, zeigen „nach dem Tutorial“; alle übrigen Sperren „später wählbar“
     const NACH_TUTORIAL: Bedienung[] = ['verwerfen', 'sofort', 'express', 'weiter_einzeichnen'];
@@ -578,13 +760,55 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     for (const b of IMMER) expect([b, t.sperre(b) !== null]).toEqual([b, true]);
     expect(t.sperre('karte_gesten')).toBeNull();
     expect(t.sperre('blatt_schliessen')!.satz).toBe(TEXT.leisteOffen);
-    expect(t.sperre('abschliessen')).toEqual({ kurz: `2${NB}Häuser fehlen`, satz: TEXT.zuFrueh });
-    l.erreicht = [h2(l).id]; schritt(t, 'haus_erreicht', h2(l).id);
-    expect(t.sperre('abschliessen')).toEqual({ kurz: `noch 1${NB}Haus fehlt`, satz: TEXT.zuFrueh });
-    l.geldFehlt = 1;
-    expect(t.sperre('abschliessen')).toEqual({ kurz: 'Geld reicht nicht', satz: TEXT.geld });
+    // Abschließen-Sperre in T13, T13w, T13h (Bauplan NR20-22 P2, Schritt-Tabelle): Geld > Stück muss weg (fremd) >
+    // Größe passt nicht (Rolle falsch) > Häuser fehlen > Größe passt nicht (Planungsfehler, Fachprüfer-Satz).
+    const ZWEI = { kurz: `2${NB}Häuser fehlen`, satz: TEXT.zuFrueh };
+    const EINS = { kurz: `noch 1${NB}Haus fehlt`, satz: TEXT.zuFrueh };
+    const GROESSE = { kurz: 'Größe passt nicht', satz: TEXT.groesse };
+    const WEG = { kurz: 'Stück muss weg', satz: TEXT.eigenerAbgang };
+    const GELD = { kurz: 'Geld reicht nicht', satz: TEXT.geld };
+    const pruefe = (s: TutorialSchrittId, lage: TutorialLeitungsLage, geld: number, erwartet: { kurz: string; satz: string } | null): void => {
+      l.leitungen = lage; l.geldFehlt = geld; t.zustandPruefen();
+      expect([s, jetzt(t), t.sperre('abschliessen')]).toEqual([s, s, erwartet]);
+    };
+    pruefe('T13', leitungsLage(), 0, ZWEI);
+    pruefe('T13', leitungsLage({}, { planungsfehler: true }), 0, ZWEI);
+    pruefe('T13', lageZuDuenn(), 0, GROESSE);
+    pruefe('T13', lageZuDuenn(FREMD_HAUS2), 0, WEG);
+    pruefe('T13', lageZuDuenn(FREMD_HAUS2), 1, GELD);
+    pruefe('T13', leitungsLage(), 1, GELD);
+    // In T13w und T13h dieselbe Reihenfolge (Lagen mit richtiger Hauptleitung, nie beide Häuser richtig).
+    const reihe = (s: TutorialSchrittId): void => {
+      expect([s, t.sperre('karte_gesten')]).toEqual([s, null]);
+      // Haus 1 mit 32er (9|12) und eigener Abgang zu Haus 2: alles zugleich falsch
+      const allesFalsch = mitFalscherGroesse(leitungsLage({ haupt: true, haus1: true }), 9, 12, 'd32',
+        { haus1_ok: false, anschluss_zu_dick: true, planungsfehler: true, ...FREMD_HAUS2 });
+      pruefe(s, allesFalsch, 1, GELD);
+      pruefe(s, allesFalsch, 0, WEG);
+      pruefe(s, leitungsLage({ haupt: true, haus1: true }, FREMD_HAUS2), 0, WEG);
+      pruefe(s, lageZuDick({ planungsfehler: true }), 0, GROESSE);
+      pruefe(s, lageZuDick(), 0, GROESSE);
+      pruefe(s, leitungsLage({ haupt: true, haus1: true }, { planungsfehler: true }), 0, EINS);
+      pruefe(s, leitungsLage({ haupt: true, haus2: true }, { planungsfehler: true }), 0, EINS);
+      pruefe(s, leitungsLage({ haupt: true }, { planungsfehler: true }), 0, ZWEI);
+      pruefe(s, leitungsLage({ haupt: true }), 0, ZWEI);
+      pruefe(s, leitungsLage({ haupt: true, haus1: true }), 1, GELD);
+    };
     l.geldFehlt = 0;
-    l.erreicht = [h1(l).id, h2(l).id]; schritt(t, 'haus_erreicht', h1(l).id);
+    bis(t, l, 'T13w');
+    reihe('T13w');
+    tipp(t, 'farbknopf', { typ: 'd25' });
+    expect(jetzt(t)).toBe('T13h');
+    reihe('T13h');
+    // Nur in T13h erreichbar: beide Häuser richtig. Planungsfehler sperrt mit dem Fachprüfer-Satz und hält T13h fest;
+    // ein Abseits-Stück (Vierer-Ring, fremd_haus null) sperrt mit „Stück muss weg“; Geld geht weiter vor.
+    // DESIGN 13.17.10 G3: Sind beide Häuser richtig, nennt der Satz nur noch das Wegnehmen (erster Satz).
+    const ALLE_OK: Ziel = { haupt: true, haus1: true, haus2: true };
+    const WEG_REST = { kurz: 'Stück muss weg', satz: TEXT.eigenerAbgangRest };
+    pruefe('T13h', leitungsLage(ALLE_OK, { planungsfehler: true }), 0, GROESSE);
+    pruefe('T13h', leitungsLage(ALLE_OK, { planungsfehler: true, fremd: [[11, 13]], fremd_haus: null }), 0, WEG_REST);
+    pruefe('T13h', leitungsLage(ALLE_OK, { planungsfehler: true }), 1, GELD);
+    l.leitungen = leitungsLage(ALLE_OK); l.geldFehlt = 0; t.zustandPruefen();
     expect(jetzt(t)).toBe('T14');
     expect(t.sperre('abschliessen')).toBeNull();
     expect(t.sperre('karte_gesten')!.kurz).toBe('später wählbar');
@@ -635,13 +859,13 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(t.ansicht(T0)!.text).toBe(TEXT.T02);
   });
 
-  it('test_nr13_k12_haeuser_saetze_weichen_dem_geld_satz – beide erreicht, Geld fehlt', () => {
+  it('test_nr13_k12_haeuser_saetze_weichen_dem_geld_satz – beide angeschlossen, Geld fehlt (T13h)', () => {
     const l = lageBauen();
     const t = new Tutorial(l);
-    bis(t, l, 'T13');
+    bis(t, l, 'T13h');
     l.geldFehlt = 200;
-    l.erreicht = [h1(l).id, h2(l).id]; schritt(t, 'haus_erreicht', h2(l).id);
-    expect(jetzt(t)).toBe('T13');
+    setze(l, { haupt: true, haus1: true, haus2: true }); schritt(t, 'haus_erreicht', h2(l).id);
+    expect(jetzt(t)).toBe('T13h');
     t.gesperrtGetippt('blatt_schliessen');
     expect(t.ansicht(T0)!.text).toBe(TEXT.geld);
     t.handlung();
@@ -649,43 +873,46 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(t.ansicht(T0)!.text).toBe(TEXT.geld);
   });
 
-  it('test_nr13_t13_weg_b_geldmangel – Geld fehlt: bleibt T13 mit Geld-Satz; T14 nur bei beiden Häusern und genug Geld', () => {
+  it('test_nr13_t13_weg_b_geldmangel – Geld fehlt: bleibt T13h mit Geld-Satz; T14 nur bei beiden Häusern und genug Geld', () => {
     const l = lageBauen();
     const t = new Tutorial(l);
-    bis(t, l, 'T13');
+    bis(t, l, 'T13h');
     schritt(t, 'leitung_gezeichnet', 1);
     l.geldFehlt = 500;
-    l.erreicht = [h1(l).id, h2(l).id]; schritt(t, 'haus_erreicht', h2(l).id);
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.geld });
+    setze(l, { haupt: true, haus1: true, haus2: true }); schritt(t, 'haus_erreicht', h2(l).id);
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.geld });
     expect(t.sperre('abschliessen')!.kurz).toBe('Geld reicht nicht');
     l.geldFehlt = 0; t.zustandPruefen();
+    // Der Zug von Z. „leitung_gezeichnet“ läuft noch: kein T14 vor dem Abheben (Bauplan NR20-22 P2 [2.3]).
+    expect(jetzt(t)).toBe('T13h');
+    tipp(t, 'abgehoben');
     expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T14', text: TEXT.T14, finger: 'tippen' });
     l.geldFehlt = 1; t.zustandPruefen();
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.geld, finger: 'aus' });
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.geld, finger: 'spur' });
     l.geldFehlt = 0; t.zustandPruefen();
     expect(jetzt(t)).toBe('T14');
-    l.erreicht = [h1(l).id]; t.zustandPruefen();
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.T13b, finger: 'aus' });
+    setze(l, { haupt: true, haus1: true }); t.zustandPruefen();
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.zwischenstand, finger: 'spur' });
     l.geldFehlt = 10;
     expect(t.ansicht(T0)!.text).toBe(TEXT.geld);
     expect(l.kapitelGesetzt).toEqual([2, 3]);
 
-    // Rückfall T14 → T13 ist ein Schrittwechsel: Fehltipps beginnen bei 0.
-    l.geldFehlt = 0; l.erreicht = [h1(l).id, h2(l).id]; t.zustandPruefen();
+    // Rückfall T14 → T13h ist ein Schrittwechsel: Fehltipps beginnen bei 0.
+    l.geldFehlt = 0; setze(l, { haupt: true, haus1: true, haus2: true }); t.zustandPruefen();
     for (let i = 0; i < 3; i++) tipp(t, 'daneben');
     expect(t.ansicht(T0)!.text).toBe('Unten in der Leiste: Abschnitt abschließen.');
-    l.erreicht = []; t.zustandPruefen();
-    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13', text: TEXT.T13 });
+    setze(l, { haupt: true }); t.zustandPruefen();
+    expect(t.ansicht(T0)!).toMatchObject({ schritt: 'T13h', text: TEXT.T13h });
     tipp(t, 'daneben'); tipp(t, 'daneben');
-    expect(t.ansicht(T0)!.text).toBe(TEXT.T13);
+    expect(t.ansicht(T0)!.text).toBe(TEXT.T13h);
 
     // Die Bedingung gilt auch bei Tipp und handlung().
-    l.erreicht = [h1(l).id, h2(l).id];
+    setze(l, { haupt: true, haus1: true, haus2: true });
     t.handlung();
     expect(jetzt(t)).toBe('T14');
     l.geldFehlt = 3;
     tipp(t, 'daneben');
-    expect(jetzt(t)).toBe('T13');
+    expect(jetzt(t)).toBe('T13h');
 
     // zustandPruefen außerhalb von T13/T14 ändert nichts.
     const a = lageBauen();
@@ -738,15 +965,25 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
   });
 });
 
-/** Je Kapitel eine Lage, deren Zustand im Wiedereinstieg einen Schritt dieses Kapitels ergibt. */
-function wiedereinstiegsLagen(werte: Partial<TutorialWerte>, name: string): Array<[number, Testlage]> {
-  const mit = (k: number, f: (l: Testlage) => void): [number, Testlage] => { const l = lageBauen(werte, name); l.stand.tutorial = { kapitel: k }; f(l); return [k, l]; };
+/** Je Kapitel mindestens eine Lage, deren Zustand im Wiedereinstieg den genannten Schritt ergibt; Kapitel 3 mit allen fünf Zeilen
+ *  der Wiedereinstieg-Tabelle (Bauplan NR20-22 P2): T12, T13h (fremd), T13w, T13h (Planungsfehler), T14. */
+function wiedereinstiegsLagen(werte: Partial<TutorialWerte>, name: string): Array<[number, TutorialSchrittId, Testlage]> {
+  const mit = (k: number, s: TutorialSchrittId, f: (l: Testlage) => void): [number, TutorialSchrittId, Testlage] => {
+    const l = lageBauen(werte, name); l.stand.tutorial = { kapitel: k }; f(l); return [k, s, l];
+  };
+  const offen = (z: Ziel, extra: Partial<TutorialLeitungsLage> = {}) => (l: Testlage): void => {
+    l.stand.abschnitt = { phase: 'offen', bau: null }; setze(l, z, extra);
+  };
   return [
-    mit(1, () => {}),
-    mit(2, () => {}),
-    mit(3, (l) => { l.stand.abschnitt = { phase: 'offen', bau: null }; }),
-    mit(4, (l) => { l.stand.abschnitt = { phase: 'bestellen', bau: null }; }),
-    mit(5, (l) => { l.stand.abschnitt = { phase: 'bau', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 1 } }; }),
-    mit(6, (l) => { l.netz.warm = new Set([h1(l).id, h2(l).id]); }),
+    mit(1, 'T01', () => {}),
+    mit(2, 'T08', () => {}),
+    mit(3, 'T12', offen({})),
+    mit(3, 'T13h', offen({ haupt: true, haus1: true }, FREMD_HAUS2)),
+    mit(3, 'T13w', offen({ haupt: true, haus1: true })),
+    mit(3, 'T13h', offen({ haupt: true, haus1: true, haus2: true }, { planungsfehler: true })),
+    mit(3, 'T14', offen({ haupt: true, haus1: true, haus2: true })),
+    mit(4, 'T15', (l) => { l.stand.abschnitt = { phase: 'bestellen', bau: null }; }),
+    mit(5, 'T22', (l) => { l.stand.abschnitt = { phase: 'bau', bau: { art: 'neu', start_ms: T0, ende_ms: T0 + 1 } }; }),
+    mit(6, 'T24', (l) => { l.netz.warm = new Set([h1(l).id, h2(l).id]); }),
   ];
 }
