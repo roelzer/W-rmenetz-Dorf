@@ -714,3 +714,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 10:10 | ■ 🟡 | designer | 🟡 Aus Sicht der Gestaltung kann veröffentlicht werden. Es gibt zwei kleine Befunde (B1, B2), beide schnell behoben und nicht blockierend.  ([Bericht](docs/pruefberichte/20261111-101016-designer-a25e3d03481f9cd65.md)) |
 | 2026-11-11 10:10 | ▶ | tester | Tester Teil 4: main-Planungsfehler, B1, B2 |
 | 2026-11-11 10:10 | ▶ | reviewer | Review: Teststrenge nach Merge |
+| 2026-11-11 10:23 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig: zwei Prüfungen sind bei der Anpassung weggefallen, und für beide gibt es keinen Ersatz.** Die übrigen Anpassungen in den drei Te ([Bericht](docs/pruefberichte/20261111-102309-reviewer-a2e84ce3e35eadbfe.md)) |

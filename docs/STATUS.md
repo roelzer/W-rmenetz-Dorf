@@ -134,3 +134,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 Entwickler c3239cf (nr20-mm-dev2): 1883 grün, Texte + Figur 96. Browser nr20 68/0; nr13 'T13h Zurück' scheitert nur mit neuer Figur (vermutl. Zeitrennen im Skript) → Designer prüft von Hand. Review und Designer laufen.
 - 2026-11-11 Review Merge 🔴 (W1 HUD hell, W2 Planungsfehler entgegen Simons main-Änderung). Entschieden: main gilt. Nächster Schritt Tester Teil 4 → Entwickler → Test-Review + Nachprüfung. Designer-Fotos laufen noch.
 - 2026-11-11 Designer 🟡. Tester Teil 4 (Planungsfehler wie main, saum_px, B1, B2) und Test-Review laufen parallel.
+- 2026-11-11 Test-Review 🔴: zwei Prüfungen ersatzlos weg (K-b Hauptleitung nicht fremd; Schleier-Maske weiß), Fehlerproben NICHT ERKANNT → an Tester Teil 4 nachgereicht, dazu K1/K3/K5. K2 (Rohrfaktor 0,62 in DESIGN) später an Designer.
