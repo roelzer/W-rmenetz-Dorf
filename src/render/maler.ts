@@ -1,4 +1,6 @@
 import { KONTUR, schatten } from './farben';
+import { grafikZeichnen } from './grafiken';
+import { blatt, istHerbst, LAUB, SCHNEE, type Jahreszeit } from './jahreszeiten';
 
 export type Punkt = [number, number];
 const ALLES = Math.PI * 2;
@@ -16,6 +18,7 @@ export class Maler {
   zeit_s = 0;
   /** „Weniger Bewegung“: Animationen stehen still; das Überlast-Warndreieck erscheint ohne Federn (DESIGN 13.17.3) */
   reduziert = false;
+  jahreszeit: Jahreszeit = 'sommer';
   constructor(public X: CanvasRenderingContext2D) {}
 
   /** Bildvektoren für einen Feldschritt in x- und y-Richtung (gedreht, isometrisch). */
@@ -72,10 +75,13 @@ export class Maler {
     X.restore();
   }
   /** O1: Umriss eines Quaders (optional mit Satteldach der Höhe rh; First entlang der Welt-x-Achse wie in `dach`). */
-  quaderUmriss(cx: number, cy: number, s: number, hp: number, rh = 0): void {
+  quaderUmriss(cx: number, cy: number, s: number, hp: number, rh = 0, firstQuer = false): void {
     const g = this.ecken(cx, cy, s), u = (p: Punkt): Punkt => [p[0], p[1] - hp];
     const pkt: Punkt[] = [...g, ...g.map(u)];
-    if (rh) pkt.push([(g[0][0] + g[3][0]) / 2, (g[0][1] + g[3][1]) / 2 - hp - rh], [(g[1][0] + g[2][0]) / 2, (g[1][1] + g[2][1]) / 2 - hp - rh]);
+    if (rh) {
+      const [p1, p2] = dachfirst(g.map(u), rh, firstQuer);
+      pkt.push(p1, p2);
+    }
     this.silhouette(pkt);
   }
   kreis(x: number, y: number, r: number, fuell: string | CanvasGradient, rand = false): void {
@@ -123,30 +129,39 @@ export class Maler {
   }
 
   /** Satteldach auf einem Quader; der First läuft entlang der Welt-x-Achse und dreht mit der Karte. */
-  dach(t: ReturnType<Maler['quader']>, rh: number, farbe: string): { P1: Punkt; P2: Punkt } {
-    const X = this.X, tw = this.tw, [c0, c1, c2, c3] = t.welt;
-    const mitte = (a: Punkt, b: Punkt): Punkt => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-    const P1 = mitte(c0, c3), P2 = mitte(c1, c2);
-    P1[1] -= rh; P2[1] -= rh;
+  dach(t: ReturnType<Maler['quader']>, rh: number, farbe: string, firstQuer = false): { P1: Punkt; P2: Punkt } {
+    const X = this.X, tw = this.tw;
+    const [c0, c1, c2, c3] = dachEcken(t.welt, firstQuer);
+    const [P1, P2] = dachfirst(t.welt, rh, firstQuer);
     const giebel = t.wandR || schatten('#e8dcc4', -0.16);
-    // Flächen von hinten nach vorn (Tiefe = Bildhöhe der Traufkante)
-    const hinten = mitte(c0, c1)[1], vorn = mitte(c3, c2)[1];
-    const flaechen: Array<[number, Punkt[], string]> = [
-      [hinten, [c0, c1, P2, P1], schatten(farbe, hinten < vorn ? -0.18 : 0.06)],
-      [vorn, [c3, c2, P2, P1], schatten(farbe, vorn <= hinten ? -0.18 : 0.06)],
-      [mitte(c1, c2)[1], [c1, c2, P2], giebel],
-      [mitte(c0, c3)[1], [c0, c3, P1], giebel],
-    ];
-    flaechen.sort((a, b) => a[0] - b[0]);
-    for (const [, p, f] of flaechen) this.flaeche(p, f);
-    const [ka, kb] = vorn >= hinten ? [c3, c2] : [c0, c1];
-    X.strokeStyle = 'rgba(0,0,0,.07)'; X.lineWidth = Math.max(0.75, tw * 0.008);
-    for (let i = 1; i < 4; i++) {
-      const f = i / 4;
+    const hinten = c0[1] + c1[1], vorn = c2[1] + c3[1];
+
+    // Im Uhrzeigersinn projizierte Flächen zeigen zum Betrachter. Bei einem
+    // konvexen Dach überdecken die sichtbaren Flächen einander dadurch nicht.
+    const sichtbar = ([a, b, c]: Punkt[]): boolean =>
+      (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) > 1e-6;
+    for (const form of [[c1, c2, P2], [c3, c0, P1]]) {
+      if (sichtbar(form)) this.flaeche(form, giebel);
+    }
+
+    const reihen = tw >= 42 ? 6 : 3;
+    for (const [a, b, f1, f2, hell] of [
+      [c0, c1, P1, P2, hinten >= vorn],
+      [c2, c3, P2, P1, vorn > hinten],
+    ] as const) {
+      const form = [a, b, f2, f1];
+      if (!sichtbar(form)) continue;
+      this.flaeche(form, schatten(this.jahreszeit === 'winter' ? SCHNEE : farbe, hell ? 0.06 : -0.18));
+      X.strokeStyle = 'rgba(53,31,24,.22)'; X.lineWidth = Math.max(0.75, tw * 0.008);
       X.beginPath();
-      X.moveTo(ka[0] + (P1[0] - ka[0]) * f, ka[1] + (P1[1] - ka[1]) * f);
-      X.lineTo(kb[0] + (P2[0] - kb[0]) * f, kb[1] + (P2[1] - kb[1]) * f);
+      for (let i = 1; i < reihen; i++) {
+        const f = i / reihen;
+        X.moveTo(a[0] + (f1[0] - a[0]) * f, a[1] + (f1[1] - a[1]) * f);
+        X.lineTo(b[0] + (f2[0] - b[0]) * f, b[1] + (f2[1] - b[1]) * f);
+      }
       X.stroke();
+      X.strokeStyle = 'rgba(54,35,26,.44)'; X.lineWidth = Math.max(1, tw * 0.015);
+      X.beginPath(); X.moveTo(...a); X.lineTo(...b); X.stroke();
     }
     X.strokeStyle = 'rgba(255,255,255,.55)'; X.lineWidth = Math.max(1.2, tw * 0.025);
     X.beginPath(); X.moveTo(P1[0], P1[1]); X.lineTo(P2[0], P2[1]); X.stroke();
@@ -179,16 +194,49 @@ export class Maler {
   }
 
   baum(cx: number, cy: number, k: number, variante = 0): void {
-    const X = this.X, tw = this.tw;
+    const X = this.X, skala = this.tw * k;
     this.schatten(cx, cy, 0.5 * k);
-    X.fillStyle = '#6b4b30'; X.fillRect(cx - tw * 0.03 * k, cy - tw * 0.16 * k, tw * 0.06 * k, tw * 0.16 * k);
-    const cs = variante % 2 ? ['#2f7a35', '#3f9a43', '#6cc35a'] : ['#2b6e3a', '#3a8f4a', '#62b85f'];
-    for (const [dx, dy, r] of [[-0.1, -0.3, 0.15], [0.1, -0.3, 0.15], [0, -0.42, 0.17]]) {
-      const x = cx + tw * dx * k, y = cy + tw * dy * k, rr = tw * r * k;
-      const g = X.createRadialGradient(x - rr * 0.3, y - rr * 0.4, rr * 0.1, x, y, rr);
-      g.addColorStop(0, cs[2]); g.addColorStop(0.5, cs[1]); g.addColorStop(1, cs[0]);
-      X.fillStyle = g; X.beginPath(); X.arc(x, y, rr, 0, ALLES); X.fill();
-      X.strokeStyle = KONTUR; X.lineWidth = Math.max(1, tw * 0.016); X.stroke();
+    const saison = this.jahreszeit, herbst = istHerbst(saison);
+    if (saison === 'sommer' && grafikZeichnen(X, 'baum', cx, cy, skala * .72)) return;
+    const kahl = saison === 'winter' || saison === 'spaetherbst';
+    const punkt = (x: number, y: number): Punkt => [cx + x * skala, cy + y * skala];
+    this.flaeche([punkt(-.035, 0), punkt(.035, 0), punkt(.015, -.45), punkt(-.02, -.46)], '#765039', false);
+    if (kahl) {
+      X.strokeStyle = '#6b503e'; X.lineWidth = Math.max(.85, skala * .024);
+      X.beginPath();
+      for (const [x, y, dx, dy] of [[-.01, -.22, -.19, -.36], [-.01, -.29, .17, -.43], [-.08, -.27, -.13, -.43], [.08, -.36, .1, -.49], [0, -.4, -.048, -.53]]) {
+        X.moveTo(...punkt(x, y)); X.lineTo(...punkt(dx, dy));
+      }
+      X.stroke();
+      if (saison === 'winter') {
+        const [x, y] = punkt(-.10, -.35);
+        this.kreis(x, y, skala * .037, SCHNEE);
+        return;
+      }
+    }
+    const cs = herbst
+      ? variante % 2 ? ['#a95127', '#dc7d2d', '#ffbd54'] : ['#a34529', '#cb622d', '#f59a41']
+      : saison === 'fruehling' ? ['#43883b', '#75b94a', '#bcdf74']
+        : ['#2b6e3a', '#3a8f4a', '#62b85f'];
+    for (const [dx, dy, r] of [[-.1, -.30, .15], [.1, -.33, .15], [0, -.42, .17]]) {
+      const [x, y] = punkt(dx, dy), rr = skala * r * (kahl ? .46 : 1);
+      const g = X.createRadialGradient(x - rr * .3, y - rr * .4, rr * .1, x, y, rr);
+      g.addColorStop(0, cs[2]); g.addColorStop(.52, cs[1]); g.addColorStop(1, cs[0]);
+      this.kreis(x, y, rr, g);
+    }
+    if (saison === 'fruehling' && variante % 2 === 0) {
+      for (const [x, y] of [[-.11, -.34], [.05, -.46], [.14, -.32]]) this.kreis(...punkt(x, y), skala * .025, '#ffe1da');
+    }
+  }
+
+  /** Leichte, wiederkehrende Fallbewegung einzelner Blätter, ohne die Bodenebene neu zu zeichnen. */
+  blattfall(cx: number, cy: number, k: number, variante: number): void {
+    const skala = this.tw * k;
+    for (let i = 0; i < (k < .5 ? 1 : 3); i++) {
+      const f = (this.zeit_s * (.25 + i * .035) + variante * .173 + i * .34) % 1;
+      const welle = Math.sin(f * 8 + i);
+      blatt(this, cx + skala * (f * .3 + welle * .12), cy - skala * (.43 - f * .46),
+        Math.max(1.2, skala * .029), LAUB[(variante + i) % LAUB.length], welle * .75);
     }
   }
 
@@ -250,4 +298,16 @@ export function huelle(punkte: Punkt[]): Punkt[] {
   for (const q of p) { while (unten.length >= 2 && kreuz(unten[unten.length - 2], unten[unten.length - 1], q) <= 0) unten.pop(); unten.push(q); }
   for (const q of [...p].reverse()) { while (oben.length >= 2 && kreuz(oben[oben.length - 2], oben[oben.length - 1], q) <= 0) oben.pop(); oben.push(q); }
   return [...unten.slice(0, -1), ...oben.slice(0, -1)];
+}
+
+function dachEcken(ecken: Punkt[], quer: boolean): Punkt[] {
+  return quer ? [ecken[1], ecken[2], ecken[3], ecken[0]] : ecken;
+}
+
+function dachfirst(ecken: Punkt[], hoehe: number, quer: boolean): [Punkt, Punkt] {
+  const [a, b, c, d] = dachEcken(ecken, quer);
+  return [
+    [(a[0] + d[0]) / 2, (a[1] + d[1]) / 2 - hoehe],
+    [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2 - hoehe],
+  ];
 }

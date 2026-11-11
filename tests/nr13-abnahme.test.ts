@@ -98,9 +98,9 @@ const TEXTE = (n: string): Record<SchrittId, string> => ({
   T02: 'Hier steht dein Wärmeerzeuger, ein Hackschnitzelkessel. Er verbrennt Holzreste und macht damit Wasser heiß.',
   T03: `Wie viel Wärme er in jedem Moment schafft, misst man in Kilowatt (kW). Dein Kessel schafft 60${NB}kW.`,
   T04: 'Das heiße Wasser fließt durch Rohre unter der Straße zu den Häusern. Das nennt man Wärmenetz oder Nahwärme.',
-  T05: 'Diese Häuser heizen noch mit Öl – siehst du den grauen Rauch? Du willst die ersten zwei anschließen.',
+  T05: 'Diese Häuser heizen noch mit Öl. Du willst die ersten zwei anschließen.',
   T06: `Ein Haus braucht im Jahr 15.000${NB}kWh Wärme. An den kältesten Tagen braucht es bis zu 10${NB}kW gleichzeitig.`,
-  T07: 'kW ist, wie viel Wasser gerade aus dem Hahn läuft. kWh ist, wie voll der Eimer am Ende ist.',
+  T07: 'Nur ein Bild, das Netz bringt Wärme, kein Leitungswasser: kW ist, was gerade aus dem Hahn läuft, kWh, was im Eimer ist.',
   T08: 'Leitungen baust du in Bauabschnitten. Tippe auf Bauen.',
   T09: 'Hier ist alles für dein Netz. Tippe auf Leitungen.',
   T10: 'Philipp plant, wo die Leitung in der Straße liegen soll. Tippe auf seinen Knopf.',
@@ -324,7 +324,7 @@ describe('NR13 Abnahme – Start', () => {
       const { stand, befund } = ladenMitBefund(text, T0 + 1_000);
       expect(befund).not.toBe('defekt');
       expect(merke(stand)).toBeUndefined();
-      expect(stand.objekte, 'Dorf unverändert').toEqual(JSON.parse(text).objekte);
+      expect(stand.objekte).toEqual(alt.objekte.filter((o) => o.x !== 13 || o.y !== 12));
       const s = new Spiel(stand, () => T0 + 1_000);
       expect(kern(s, 'tutorialAktiv')()).toBe(false);
       expect(kern(s, 'wandstationFrei')()).toBe(true);
@@ -458,7 +458,7 @@ describe('NR13 Abnahme – kompletter Ablauf', () => {
     for (const id of T13_FAMILIE) {
       expect(gesehen[id].kamera_grenze, `K5 Kamera-Grenze in ${id}`).toBe(true);
       expect(gesehen[id].spur, id).toBe(true);
-      expect(gesehen[id].abdunkeln, id).toBe('nur_hud');
+      expect(gesehen[id].abdunkeln, `${id}: Karte beim Leitungsziehen hell (main 9918f8d)`).toBe('nichts');
     }
     for (const id of FOLGE.filter((x) => !T13_FAMILIE.has(x))) { expect(gesehen[id].kamera_grenze, id).toBe(false); expect(gesehen[id].spur, id).toBe(false); }
     expect(gesehen.T15.normale_aktion && gesehen.T18.normale_aktion, 'T15/T18 Tipp aufs Haus öffnet das Hausblatt').toBe(true);
@@ -797,12 +797,13 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
   it('test_nr13_a_zu_viel_gezeichnet_geld_sperre_bis_leitungen_weg', async () => {
     // Geld von Hand (NR20-22 E1, Kopfkommentar): nach der Planung 14.000 €; zwei Puffer-Stationen 2 × 5.570 = 11.140 €;
     // 32er 560 € je Feld, 25er 400 € je Feld. Spur E1 = 2 × 560 + 4 × 400 = 2.720 € → 13.860 € ≤ 14.000 €, Rest 140 €.
-    // Zu viel gezeichnet: vier 25er-Felder als Stummel an der Heizzentrale nach Norden, (12|9) → (15|9). Probe (V0 Teil 2c,
-    // berechneNetz auf 41b1c4a): kein Haus hängt daran, die Stummel liegen an keinem Spurfeld (kein Ring), keine Reduzierung,
-    // Aufteilung oder Engpass, Haus 1 an (9|12), Haus 2 an (11|14); kein Hausweg läuft über sie (kein eigener Abgang nach E3).
+    // Zu viel gezeichnet: vier 25er-Felder als Stummel an der Heizzentrale. Früher nach Norden (12|9) → (15|9); die Nordseite ist
+    // seit main 4d2aecd Ausbaureserve (11..13|9..11), daher jetzt ab der Südseite (12|12) → (14|12) und (14|11). Von Hand
+    // geprüft: kein Haus und kein Spurfeld grenzt an die Stummel (Haus 2 (12|14) liegt zwei Felder tiefer, (11|12) bleibt frei),
+    // also kein Ring, kein Hausweg über sie (kein eigener Abgang nach E3); Preis und Zahl der Felder wie vorher (4 × 25er).
     expect((KATALOG.d32.kosten_eur as number[])[0], 'Feldpreis 32er (Handwert)').toBe(560);
     expect((KATALOG.d25.kosten_eur as number[])[0], 'Feldpreis 25er (Handwert)').toBe(400);
-    const STUMMEL: ReadonlyArray<readonly [number, number]> = [[12, 9], [13, 9], [14, 9], [15, 9]];
+    const STUMMEL: ReadonlyArray<readonly [number, number]> = [[12, 12], [13, 12], [14, 12], [14, 11]];
     const l = await neuesSpiel({ geld_eur: 16_000 });
     laufen(l, { bis: 'T13h' }); // Hauptleitung (2 × 32er) liegt
     expect(l.s.stand.geld_eur).toBe(14_000);
@@ -840,14 +841,14 @@ describe('NR13 Abnahme – Abschließen gesperrt', () => {
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     l.tut.handlung();
     // Zurück/Radieren vom Stummel-Ende her: erst drei Felder (Geld fehlt noch) → weiter T13h mit Geld-Satz
-    for (const [x, y] of [[15, 9], [14, 9], [13, 9]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
+    for (const [x, y] of [[14, 11], [14, 12], [13, 12]] as const) { expect(l.s.geplanteLeitungEntfernen(x, y).ok).toBe(true); pumpen(l); }
     l.tut.zustandPruefen();
     expect(kern(l.s, 'tutorialGeldFehlt_eur')(), '3.120 + 11.140 − 14.000').toBe(260);
     expect(jetzt(l).schritt, '260 € fehlen noch → T13h').toBe('T13h');
     expect(ohneMarken(jetzt(l).text)).toBe(GELD_SATZ);
     expect(l.tut.sperre('abschliessen')?.kurz).toBe(GELD_KURZ);
     // viertes Feld weg → genau die Spur E1 → Geld reicht → T14
-    expect(l.s.geplanteLeitungEntfernen(12, 9).ok).toBe(true); pumpen(l);
+    expect(l.s.geplanteLeitungEntfernen(12, 12).ok).toBe(true); pumpen(l);
     l.tut.zustandPruefen();
     expect(kern(l.s, 'tutorialGeldFehlt_eur')(), 'Spur E1: 2.720 + 11.140 = 13.860 € ≤ 14.000 €').toBe(0);
     const b = jetzt(l);
@@ -910,3 +911,4 @@ describe('NR13 Abnahme – Oberfläche', () => {
     expect(r.nachher, 'Gegenprobe: dieselben Gesten bewegen die Karte').not.toEqual(r.vorher);
   });
 });
+

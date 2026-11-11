@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { domAttrappe, El, sichtbar, sichtbarerText, TextKnoten, type DomAttrappe } from './hilfen/dom-attrappe';
 import type { TutorialAnsicht } from '../src/core/tutorial-vertrag';
+import type { AnleiterPlatz } from '../src/ui/anleiter';
 
 type Ereignis = Record<string, unknown> & { type: string };
 interface Eintrag { typ: string; f: (ev: unknown) => void; opt: unknown }
@@ -41,7 +42,7 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', matchMedia);
   vi.stubGlobal('window', fenster);
   vi.stubGlobal('requestAnimationFrame', (f: () => void) => { f(); return 1; });
-  // Fotos der Figuren gibt es hier nicht: das Bild lädt nie, die gezeichnete Figur bleibt
+  // Die Attrappe lädt keine Fotos. Auch ohne Ladeereignis darf keine Ersatzzeichnung erscheinen.
   vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; });
   animiert.length = 0;
   // Die Attrappe merkt sich keine Keyframes – hier werden sie mitgeschrieben, damit der Test die Fingerbewegung lesen kann.
@@ -68,6 +69,8 @@ function ansicht(teil: Partial<TutorialAnsicht> = {}): TutorialAnsicht {
   };
 }
 const PLATZ = { links: 12, unten: 12, breite: 432, figur_px: 112 as const };
+/** Kleine Figur: 96 px seit Auftrag 2026-11-11 (vorher 72). Über `number`, damit der Test auch vor der Typänderung übersetzt. */
+const FIGUR_KLEIN = 96 as number as AnleiterPlatz['figur_px'];
 const karte = (): El => a.doc.getElementById('anleiter') as El;
 
 describe('NR13 Anleiter-Platz (DESIGN 13.3)', () => {
@@ -83,13 +86,13 @@ describe('NR13 Anleiter-Platz (DESIGN 13.3)', () => {
     const { anleiterPlatz } = await anleiter();
     // Seitenfläche 388 bzw. 306,8: frei 456 − 24 = 432; frei 360,2 − 24 = 336,2 → 336; Figur klein, weil 360,2 < 400
     expect(anleiterPlatz({ x: 0, y: 0, b: 456, h: 390 }, null, { breite: 844, hoehe: 390 })).toEqual({ links: 12, unten: 12, breite: 432, figur_px: 112 });
-    expect(anleiterPlatz({ x: 0, y: 0, b: 360.2, h: 375 }, null, { breite: 667, hoehe: 375 })).toEqual({ links: 12, unten: 12, breite: 336, figur_px: 72 });
+    expect(anleiterPlatz({ x: 0, y: 0, b: 360.2, h: 375 }, null, { breite: 667, hoehe: 375 })).toEqual({ links: 12, unten: 12, breite: 336, figur_px: 96 });
     // Zeichenleiste 216: frei 628 − 24 = 604 → 460; frei 451 − 24 = 427
     expect(anleiterPlatz({ x: 0, y: 0, b: 628, h: 390 }, null, { breite: 844, hoehe: 390 }).breite).toBe(460);
     expect(anleiterPlatz({ x: 0, y: 0, b: 451, h: 375 }, null, { breite: 667, hoehe: 375 })).toEqual({ links: 12, unten: 12, breite: 427, figur_px: 112 });
     // Grenze der kleinen Figur: genau 400 frei → groß, 399 → klein
     expect(anleiterPlatz({ x: 0, y: 0, b: 400, h: 375 }, null, { breite: 667, hoehe: 375 }).figur_px).toBe(112);
-    expect(anleiterPlatz({ x: 0, y: 0, b: 399, h: 375 }, null, { breite: 667, hoehe: 375 }).figur_px).toBe(72);
+    expect(anleiterPlatz({ x: 0, y: 0, b: 399, h: 375 }, null, { breite: 667, hoehe: 375 }).figur_px).toBe(96);
     // Freie Fläche nicht am linken Rand: links = frei.x + 12
     expect(anleiterPlatz({ x: 100, y: 0, b: 456, h: 390 }, null, { breite: 844, hoehe: 390 }).links).toBe(112);
   });
@@ -116,6 +119,8 @@ describe('NR13 Anleiter-Karte', () => {
     expect(k.getAttribute('role')).toBe('status');
     expect(k.getAttribute('aria-live')).toBe('polite');
     expect(k.querySelectorAll('button')).toHaveLength(0);
+    expect(k.klassen()).toContain('handlung');
+    expect(k.querySelector('.anleiter-knopfzeile')).toBeNull();
     expect(k.style.left).toBe('12px');
     expect(k.style.width).toBe('432px');
     expect(sichtbarerText(k)).toContain('Simon');
@@ -126,6 +131,7 @@ describe('NR13 Anleiter-Karte', () => {
 
     // Warten: Wartetext mit Restzeit (10 000 − 2 500 ms = 7,5 s → aufgerundet „8s“), kein Knopf
     anleiterZeigen(ansicht({ weiter: 'wartet', warte_text: 'Philipp plant noch {Restzeit}.', warte_bis_ms: 10000 }), PLATZ, { weiter }, 2500);
+    expect(karte().klassen()).not.toContain('handlung');
     expect(karte().querySelectorAll('button')).toHaveLength(0);
     expect(karte().querySelector('.anleiter-knopfzeile .gedaempft')!.textContent).toBe('Philipp plant noch 8s.');
     // Restzeit läuft ab: nach dem Ende 0s, nie negativ
@@ -145,7 +151,7 @@ describe('NR13 Anleiter-Karte', () => {
     expect(weiter).toHaveBeenCalledTimes(1);
 
     // [Los geht’s] und „Wusstest du?“-Chip
-    anleiterZeigen(ansicht({ weiter: 'los', wusstest_du: true }), { links: 12, oben: 64, breite: 336, figur_px: 72 }, { weiter }, 0);
+    anleiterZeigen(ansicht({ weiter: 'los', wusstest_du: true }), { links: 12, oben: 64, breite: 336, figur_px: FIGUR_KLEIN }, { weiter }, 0);
     expect((a.doc.getElementById('anleiter-weiter') as El).textContent).toBe('Los geht’s');
     expect(karte().querySelector('.chip.gold')!.textContent).toBe('Wusstest du?');
     expect(karte().style.top).toBe('64px');
@@ -172,30 +178,24 @@ describe('NR13 Anleiter-Karte', () => {
     expect(text.kinder.filter((k) => k instanceof TextKnoten).map((k) => k.textContent)).toEqual(['Das ist ein ', ' mit <b>x</b> und **offen']);
   });
 
-  it('test_nr13_simon_figur_platzhalter', async () => {
+  it('verwendet bei Simon und Philipp von Anfang an nur das Foto', async () => {
     vi.useFakeTimers();
     const { sprecherZeigen, sprecherAktiv } = await import('../src/ui/sprecher');
     expect(sprecherAktiv()).toBe(false);
     sprecherZeigen('Simon', 'Hallo!');
     expect(sprecherAktiv()).toBe(true);
-    const svg = a.doc.querySelector('#sprecher .sprecher-bild svg')!;
-    const quelle = svg.getAttribute('quelle')!;
-    expect(quelle).toContain('#ff8a1f'); // Jacke Heat-Orange (naht_vorlauf)
-    expect(quelle).toContain('#3a92ea'); // Kragen ville-Blau (naht_ruecklauf)
-    expect(quelle).toContain('stroke-width="6"'); // 6-px-Kragen
-    expect(quelle).not.toContain('#f3c623'); // kein Helm
-    // Philipp bleibt blau ohne Kragen
+    expect(a.doc.querySelector('#sprecher .sprecher-bild.foto img')?.getAttribute('src')).toBe('figuren/simon.webp');
+    expect(a.doc.querySelector('#sprecher .sprecher-bild svg')).toBeNull();
     sprecherZeigen('Philipp', 'Ich plane.');
     vi.advanceTimersByTime(3800 + 6 * 20 + 350);
-    const philipp = a.doc.querySelector('#sprecher .sprecher-bild svg')!.getAttribute('quelle')!;
-    expect(philipp).toContain('#3f6fa8');
-    expect(philipp).not.toContain('#3a92ea');
+    expect(a.doc.querySelector('#sprecher .sprecher-bild.foto img')?.getAttribute('src')).toBe('figuren/philipp.webp');
+    expect(a.doc.querySelector('#sprecher .sprecher-bild svg')).toBeNull();
     vi.advanceTimersByTime(3800 + 10 * 20 + 350);
     expect(sprecherAktiv()).toBe(false);
-    // Die Anleiter-Karte zeigt dieselbe Simon-Figur
     const { anleiterZeigen } = await anleiter();
     anleiterZeigen(ansicht(), PLATZ, { weiter() {} }, 0);
-    expect(karte().querySelector('.sprecher-bild svg')!.getAttribute('quelle')).toContain('#ff8a1f');
+    expect(karte().querySelector('.sprecher-bild.foto img')?.getAttribute('src')).toBe('figuren/simon.webp');
+    expect(karte().querySelector('.sprecher-bild svg')).toBeNull();
   });
 });
 
@@ -547,22 +547,17 @@ describe('NR13 Spotlight', () => {
     zielSichtbarMachen(ziel as unknown as HTMLElement, true, fertig);
     expect(inhalt.scrollTop).toBe(102);
     expect(fertig).toHaveBeenCalledTimes(1);
-    // Über dem sichtbaren Bereich: 80 − 100 − 8 = −28 (von 102 auf 74), weich in 200 ms
-    vi.useFakeTimers();
-    const ziele: unknown[] = [];
-    (inhalt as unknown as { scrollTo(o: unknown): void }).scrollTo = (o: unknown) => { ziele.push(o); };
+    // Über dem sichtbaren Bereich: 80 − 100 − 8 = −28 (von 102 auf 74), auch ohne Animation sofort erreichbar
     ziel.rechteck = { left: 0, top: 80, right: 300, bottom: 124, width: 300, height: 44, x: 0, y: 80 };
     const fertig2 = vi.fn();
     zielSichtbarMachen(ziel as unknown as HTMLElement, false, fertig2);
-    expect(ziele).toEqual([{ top: 74, behavior: 'smooth' }]);
-    expect(fertig2).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(200);
+    expect(inhalt.scrollTop).toBe(74);
     expect(fertig2).toHaveBeenCalledTimes(1);
     // Schon sichtbar (mit 8 px Abstand genau auf der Grenze): kein Scrollen, sofort fertig
     ziel.rechteck = { left: 0, top: 108, right: 300, bottom: 292, width: 300, height: 184, x: 0, y: 108 };
     const fertig3 = vi.fn();
     zielSichtbarMachen(ziel as unknown as HTMLElement, false, fertig3);
-    expect(ziele).toHaveLength(1);
+    expect(inhalt.scrollTop).toBe(74);
     expect(fertig3).toHaveBeenCalledTimes(1);
     // Kein scrollender Vorfahr: sofort fertig
     const frei = a.doc.createElement('div'); a.app.append(frei);

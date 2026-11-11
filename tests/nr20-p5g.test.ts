@@ -25,10 +25,13 @@ const ZIEL = '#ffe08a', HAKEN_SCHEIBE = 'fillStyle=#d3f0c6';
 const SATZ_VOLL = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg. Zieh die 25er von der Abzweigung.';
 const SATZ_REST = 'Nimm das gestreifte Stück mit Zurück oder Radierer weg.';
 const EIGENER_ABGANG: ReadonlyArray<readonly [number, number]> = [[12, 12], [12, 13]];
-/** Eigener Abgang zu Haus 1 (9|13), von Hand aus dem Startdorf gesucht: von der Nordseite der Heizzentrale (11|9) nach Westen bis
- *  (6|9), um die Büsche (7|10)–(8|11) herum nach Süden und über (8|12) ans Leitungsende (8|13) neben Haus 1. Kein Feld liegt
- *  neben Spur oder Hauptleitung, also läuft der Hausweg nicht über den Abzweig (fremd_haus 1, Vorprobe in den Tests). */
-const ABGANG_HAUS1: ReadonlyArray<readonly [number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [6, 10], [6, 11], [6, 12], [7, 12], [8, 12], [8, 13]];
+/** Eigener Abgang zu Haus 1 (9|13), von Hand aus dem Startdorf gesucht. Seit main 4d2aecd sind Nord- und Ostseite der
+ *  Heizzentrale Ausbaureserve (11..13|9..11), und (10|10)/(11|12) liegen neben der Hauptleitung – frei bleibt nur der Abgang
+ *  (12|12) an der Südseite. Von dort nach Osten bis (14|12), an der Reserve vorbei nach Norden bis (14|8), auf Reihe 8 nach
+ *  Westen bis (6|8), über Spalte 6 nach Süden bis (6|12) und über (7|12), (8|12) ans Leitungsende (8|13) neben Haus 1.
+ *  Kein Feld liegt neben Hauptleitung oder Haus-2-Spur, also läuft der Hausweg nicht über den Abzweig (fremd_haus 1, Vorprobe). */
+const ABGANG_HAUS1: ReadonlyArray<readonly [number, number]> = [[12, 12], [13, 12], [14, 12], [14, 11], [14, 10], [14, 9], [14, 8],
+  [13, 8], [12, 8], [11, 8], [10, 8], [9, 8], [8, 8], [7, 8], [6, 8], [6, 9], [6, 10], [6, 11], [6, 12], [7, 12], [8, 12], [8, 13]];
 
 // ---------------------------------------------------------------- Hilfen: Canvas-Aufnahme (wie tests/nr20-darstellung.test.ts)
 function aufnahme(): { X: CanvasRenderingContext2D; befehle: string[] } {
@@ -411,8 +414,10 @@ describe('P5g mit der echten Steuerung', () => {
     }, { uhr: () => uhr.t });
   });
 
-  it('test_g6_abdunkeln_nur_anzeigenreihe: in T13h liegt die Abdunkel-Fläche nicht über Karte und Zeichenleiste', async () => {
-    // Fehler: Rechteck des ganzen HUD-Behälters (so groß wie der Bildschirm) als Abdunkel-Fläche (steuerung.ts ~1036).
+  // Vorrang main (Commit 9918f8d, ENTSCHEIDUNGEN 2026-11-11): Beim Leitungsziehen ist die ganze Karte hell – in T13h liegt keine
+  // Abdunkel-Fläche über Karte, Zeichenleiste oder Anzeigenreihe (ersetzt G6 „nur Anzeigenreihe“ für diesen Schritt).
+  // Fehler, der ihn rot macht: T13h dunkelt weiter ab ('nur_hud'/'alles') oder die Abdunkel-Ebene bleibt sichtbar.
+  it('test_g6_abdunkeln_t13h_nichts: in T13h liegt keine Abdunkel-Fläche über dem Bildschirm', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
       // Lage wie im Browser (Foto 844×390): HUD-Behälter über den ganzen Bildschirm, die Anzeigenreihe oben links/mitte
@@ -426,19 +431,10 @@ describe('P5g mit der echten Steuerung', () => {
       setze(u.dom.html.querySelector('.pillen'), 300, 8, 230, 40);
       bisT13h(u, spiel, uhr);
       uhr.t += 16; st(u).tick(uhr.t);
-      expect(st(u).anleitungAnsicht()!.abdunkeln, 'Vorprobe: T13h dunkelt nur das HUD ab').toBe('nur_hud');
+      expect(st(u).anleitungAnsicht()!.abdunkeln, 'T13h ohne Abdunkeln').toBe('nichts');
       const dunkel = u.dom.html.querySelector('.spot-dunkel');
-      expect(dunkel, 'Vorprobe: Abdunkel-Ebene da').not.toBeNull();
-      const pfad = /path\(evenodd, '([^']*)'\)/.exec(String(dunkel!.style.clipPath))?.[1];
-      expect(pfad, `Umriss lesbar: ${String(dunkel!.style.clipPath)}`).toBeDefined();
-      const innen = (px: number, py: number): boolean => imUmriss(pfad!, px, py);
-      const [zx, zy] = st(u).kamera.mitte(10, 12);
-      expect(innen(zx, zy), 'Zielscheibe (10|12) auf der Karte nicht abgedunkelt').toBe(false);
-      expect(innen(300, 250), 'Kartenmitte unten nicht abgedunkelt').toBe(false);
-      expect(innen(780, 200), 'Zeichenleiste rechts nicht abgedunkelt').toBe(false);
-      expect(innen(60, 30), 'Dorfschild abgedunkelt').toBe(true);
-      // Review P5g (Nachtrag Tester P7et): auch die Pillen gehören zur Anzeigenreihe (Rechteck 300…530 × 8…48 oben gesetzt)
-      expect(innen(400, 25), 'Pillen abgedunkelt').toBe(true);
+      expect(dunkel, 'Vorprobe: Abdunkel-Ebene da (Tutorial läuft)').not.toBeNull();
+      expect(dunkel!.hidden, 'Abdunkel-Ebene unsichtbar').toBe(true);
     }, { uhr: () => uhr.t });
   });
 
@@ -468,27 +464,3 @@ describe('P5g mit der echten Steuerung', () => {
     }, { uhr: () => uhr.t });
   });
 });
-
-/** Gerade-ungerade-Regel für einen Umriss aus M/L/H/V/Z (auch mit Leerzeichen); Bögen (A) sind hier nicht erwartet. */
-function imUmriss(d: string, px: number, py: number): boolean {
-  if (/[AaCcQq]/.test(d)) throw new Error(`Umriss mit Bögen nicht auswertbar: ${d}`);
-  const zuege = d.match(/[MLHVZmlhvz]|-?[\d.]+/g) ?? [];
-  const ringe: Array<Array<[number, number]>> = [];
-  let ring: Array<[number, number]> = [], x = 0, y = 0, befehl = '';
-  for (let i = 0; i < zuege.length; i++) {
-    const z = zuege[i];
-    if (/[A-Za-z]/.test(z)) { befehl = z.toUpperCase(); if (befehl === 'Z') { if (ring.length) ringe.push(ring); ring = []; } continue; }
-    if (befehl === 'M') { if (ring.length) ringe.push(ring); x = Number(z); y = Number(zuege[++i]); ring = [[x, y]]; befehl = 'L'; }
-    else if (befehl === 'L') { x = Number(z); y = Number(zuege[++i]); ring.push([x, y]); }
-    else if (befehl === 'H') { x = Number(z); ring.push([x, y]); }
-    else if (befehl === 'V') { y = Number(z); ring.push([x, y]); }
-  }
-  if (ring.length) ringe.push(ring);
-  let drin = false;
-  for (const r of ringe) for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
-    const [xi, yi] = r[i], [xj, yj] = r[j];
-    if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) drin = !drin;
-  }
-  return drin;
-}
-

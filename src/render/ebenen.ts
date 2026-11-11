@@ -57,6 +57,7 @@ export class BodenEbene {
     X.save();
     X.setTransform(1, 0, 0, 1, 0, 0);
     X.globalAlpha = 1;
+    X.globalCompositeOperation = 'copy';
     X.drawImage(this.flaeche as unknown as CanvasImageSource, x, y);
     X.restore();
   }

@@ -45,12 +45,12 @@ export function stufenSperre(sp: Spiel, m: Merkmal, name?: string): Sperre | nul
 
 /** Fehlt nur Geld: Preis bleibt in Zeile 2, kein Schloss; der Fehlbetrag wird erst beim Antippen berechnet. */
 export function geldSperre(sp: Spiel, preis_eur: number): Sperre | null {
-  return sp.stand.geld_eur < preis_eur ? { grund: null, schloss: false, hinweis: () => geldHinweis(preis_eur - sp.stand.geld_eur) } : null;
+  return sp.verfuegbareEuro < preis_eur ? { grund: null, schloss: false, hinweis: () => geldHinweis(preis_eur - sp.verfuegbareEuro) } : null;
 }
 
 /** Fehlen Taler: wie Geld; der Preis kann beim Tippen ein anderer sein (Sofort fertig wird mit der Zeit billiger). */
 export function talerSperre(sp: Spiel, preis: () => number): Sperre | null {
-  return sp.stand.taler < preis() ? { grund: null, schloss: false, hinweis: () => talerHinweis(preis() - sp.stand.taler) } : null;
+  return sp.verfuegbareTaler < preis() ? { grund: null, schloss: false, hinweis: () => talerHinweis(preis() - sp.verfuegbareTaler) } : null;
 }
 
 const restText = (ende_ms: number, jetzt_ms: number): string => zeitText(Math.ceil(Math.max(0, ende_ms - jetzt_ms) / 1000));

@@ -1,7 +1,7 @@
 import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
-import { bedarfKw, groesse, heizzentrale, leitungsNachbarn } from '../core/netz';
+import { bedarfKw, groesse, heizzentrale, leitungsNachbarn, trassenUebergang } from '../core/netz';
 import type { Spiel } from '../core/spiel';
 import { bandVorgaenger } from '../core/tutorial-band';
 import type { Feld, TutorialBandFeld } from '../core/tutorial-vertrag';
@@ -11,6 +11,7 @@ import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
+import { blatt, istHerbst, LANDSCHAFT, LAUB, schneefall, type Jahreszeit } from './jahreszeiten';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 import { bodenSchluessel, fremdEinblendungMerken } from './szene-schluessel';
@@ -21,8 +22,32 @@ export { blase };
 
 const N = KONSTANTEN.feldanzahl;
 
+/** Nächste Straßenseite pro Grundstück. Bei Ecklagen gewinnt die erste gleich nahe Seite. */
+const strassenseiten = new WeakMap<NonNullable<Szene['strassen']>, Map<string, number>>();
+function strassenseite(o: Objekt, strassen: Szene['strassen']): number | undefined {
+  if (!strassen?.length || KATALOG[o.typ].kategorie !== 'haus') return undefined;
+  let cache = strassenseiten.get(strassen);
+  if (!cache) { cache = new Map(); strassenseiten.set(strassen, cache); }
+  const k = groesse(o), key = `${o.x},${o.y},${k}`;
+  const bekannt = cache.get(key);
+  if (bekannt !== undefined) return bekannt;
+  const x = o.x + (k - 1) / 2, y = o.y + (k - 1) / 2;
+  let seite = 0, abstand = Infinity;
+  const seiten = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+  for (let i = 0; i < seiten.length; i++) {
+    const [dx, dy] = seiten[i];
+    for (const [sx, sy] of strassen) {
+      const d = (sx - x - dx * k / 2) ** 2 + (sy - y - dy * k / 2) ** 2;
+      if (d < abstand) { abstand = d; seite = i; }
+    }
+  }
+  cache.set(key, seite);
+  return seite;
+}
+
 /** Alles, was die Szene zum Zeichnen braucht. `spiel` fehlt beim Besuch im Nachbardorf (keine Blasen, keine Kasse). */
 export interface Szene {
+  saison?: Jahreszeit;
   objekte: Objekt[];
   innen: InnenQuelle[];
   netz: Netz;
@@ -35,6 +60,7 @@ export interface Szene {
   stempel: { x: number; y: number; ok: boolean } | null;
   jetzt_ms: number;
   /** Straßenfelder des Ortes (nur Optik) */
+  kartenHoehe?: number;
   strassen?: ReadonlyArray<readonly [number, number]>;
   fluss?: ReadonlyArray<readonly [number, number]>;
   /** Verbrauchsschilder (kW) der Häuser anzeigen; Standard: ja */
@@ -66,7 +92,7 @@ export interface Szene {
 interface Gras { n: Punkt[]; blume: number; hell: number }
 const GRAS: Gras[] = (() => {
   const r = zufall(3), a: Gras[] = [];
-  for (let i = 0; i < N * N; i++) {
+  for (let i = 0; i < N * KONSTANTEN.neubau_hoehe; i++) {
     const n: Punkt[] = [];
     for (let j = 0; j < 3; j++) n.push([r() - 0.5, r() - 0.5]);
     a.push({ n, blume: r() < 0.07 ? Math.floor(r() * 3) : -1, hell: r() });
@@ -75,32 +101,54 @@ const GRAS: Gras[] = (() => {
 })();
 
 const KARTE = tokens.farbe.karte;
+const WIESENRAND = 2;
 const NACHBARN: Punkt[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m;
   const tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
   X.setTransform(k.pixelverhaeltnis, 0, 0, k.pixelverhaeltnis, 0, 0);
-  X.fillStyle = KARTE.hintergrund_rand; X.fillRect(0, 0, W, H);
+  X.clearRect(0, 0, W, H);
 
-  // Boden
-  for (let y = -3; y < N + 3; y++) {
-    for (let x = -3; x < N + 3; x++) {
+  const hoehe = s.kartenHoehe ?? N;
+  const saison = s.saison ?? 'sommer', farben = LANDSCHAFT[saison];
+  const winter = saison === 'winter', herbst = istHerbst(saison);
+  for (let y = -WIESENRAND; y < hoehe + WIESENRAND; y++) {
+    for (let x = -WIESENRAND; x < N + WIESENRAND; x++) {
       const [cx, cy] = k.mitte(x, y);
       if (cx < -tw || cx > W + tw || cy < -th || cy > H + tw) continue;
-      const innen = x >= 0 && y >= 0 && x < N && y < N;
       m.raute(cx, cy, 1.02);
-      if (innen) {
-        const g = GRAS[y * N + x];
-        X.fillStyle = (x + y) % 2 ? KARTE.wiese_a : KARTE.wiese_b; X.fill();
-        if (g.hell > 0.8) { X.fillStyle = 'rgba(255,255,255,.05)'; X.fill(); }
-        if (tw > (tokens as unknown as { karte: { grashalme_ab_kachelbreite: number } }).karte.grashalme_ab_kachelbreite) {
-          X.strokeStyle = KARTE.halm; X.lineWidth = 1; X.beginPath();
-          for (const [a, b] of g.n) { const px = cx + a * tw * 0.6, py = cy + b * th * 0.6; X.moveTo(px, py); X.lineTo(px - 1.5, py - tw * 0.05); X.moveTo(px, py); X.lineTo(px + 1.5, py - tw * 0.045); }
-          X.stroke();
-          if (g.blume >= 0) m.kreis(cx + g.n[0][0] * tw * 0.4, cy + g.n[0][1] * th * 0.4, Math.max(1.2, tw * 0.022), KARTE.blumen[g.blume]);
+      if (x < 0 || y < 0 || x >= N || y >= hoehe) {
+        X.fillStyle = farben.wiese[0]; X.fill();
+        continue;
+      }
+      const g = GRAS[y * N + x];
+      X.fillStyle = farben.wiese[(x + y) % 2]; X.fill();
+      if (g.hell > 0.8) { X.fillStyle = 'rgba(255,255,255,.08)'; X.fill(); }
+      if (winter) {
+        if (tw >= 25 && g.hell > 0.66) {
+          const [a, b] = g.n[0];
+          m.kreis(cx + a * tw * .55, cy + b * th * .6, Math.max(1.2, tw * .044), '#f7fbfd');
         }
-      } else { X.fillStyle = (x + y) % 2 ? KARTE.aussen_a : KARTE.aussen_b; X.fill(); }
+        continue;
+      }
+      const details = tw > tokens.karte.grashalme_ab_kachelbreite;
+      if (details) {
+        X.strokeStyle = farben.halm; X.lineWidth = 1; X.beginPath();
+        for (const [a, b] of g.n) { const px = cx + a * tw * 0.6, py = cy + b * th * 0.6; X.moveTo(px, py); X.lineTo(px - 1.5, py - tw * 0.05); X.moveTo(px, py); X.lineTo(px + 1.5, py - tw * 0.045); }
+        X.stroke();
+      }
+      if (!details && (tw < 28 || saison === 'sommer')) continue;
+      const bx = cx + g.n[0][0] * tw * 0.4, by = cy + g.n[0][1] * th * 0.4;
+      if (herbst) {
+        if (g.hell > .74) blatt(m, bx, by, Math.max(1.3, tw * .03), LAUB[(x + y) % LAUB.length], .35);
+      } else if (g.blume >= 0 || (saison === 'fruehling' && g.hell > .91)) {
+        const r = Math.max(1.2, tw * 0.022);
+        m.kreis(bx + r, by + r, r * 1.4, 'rgba(52,76,30,.20)');
+        m.kreis(bx - r, by, r, KARTE.blumen[Math.max(0, g.blume)]);
+        m.kreis(bx + r, by - r, r * 0.8, KARTE.blumen[Math.max(0, g.blume)]);
+        m.kreis(bx, by - r * 0.4, r * 0.45, '#fff0a0');
+      }
     }
   }
   // Fluss (A46): Wasserfelder mit Uferlinie; Brücken entstehen, wo eine Straße darüber liegt
@@ -140,6 +188,18 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       const [cx, cy] = k.mitte(sx, sy);
       if (!sichtbar(cx, cy)) continue;
       m.raute(cx, cy, 1.03); X.fillStyle = KARTE.gehweg; X.fill();
+      // Pflasterfugen liegen unter dem Asphalt; dadurch bleiben Kreuzungen frei.
+      if (tw >= 28) {
+        X.strokeStyle = 'rgba(78,72,58,.22)'; X.lineWidth = Math.max(0.55, tw * 0.008); X.beginPath();
+        for (let i = -2; i <= 2; i++) {
+          const f = i / 4;
+          for (const [a, b] of [
+            [k.mitte(sx + f, sy - 0.5), k.mitte(sx + f, sy + 0.5)],
+            [k.mitte(sx - 0.5, sy + f), k.mitte(sx + 0.5, sy + f)],
+          ]) { X.moveTo(...a); X.lineTo(...b); }
+        }
+        X.stroke();
+      }
     }
     // 2. Asphalt: Mitte plus Arme zu Nachbarstraßen; Bordsteinlinie als etwas hellerer Rand
     const asphalt = (breite: number, farbe: string): void => {
@@ -158,7 +218,23 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       }
     };
     asphalt(BR + 0.035, KARTE.bordstein);
+    asphalt(BR + 0.012, '#7b817c');
     asphalt(BR, KARTE.strasse);
+    // Statische Asphaltkörnung und gelegentliche eingelassene Schachtdeckel.
+    // Im Boden-Cache, ohne zusätzliche Animation oder Zufallswerte pro Bild.
+    if (tw >= 32) for (const [sx, sy] of s.strassen) {
+      const [cx, cy] = k.mitte(sx, sy);
+      if (!sichtbar(cx, cy)) continue;
+      X.fillStyle = 'rgba(215,222,216,.14)';
+      for (let i = 0; i < 7; i++) {
+        const [px, py] = k.mitte(sx + (hash(sx + i * 3, sy) - 0.5) * 0.55, sy + (hash(sy + i * 7, sx) - 0.5) * 0.55);
+        X.fillRect(px, py, Math.max(0.65, tw * 0.011), Math.max(0.45, tw * 0.006));
+      }
+      if (hash(sx, sy) < 0.07 && arme(sx, sy) === 2) {
+        X.beginPath(); X.ellipse(cx + tw * 0.12, cy, tw * 0.055, th * 0.055, 0, 0, Math.PI * 2);
+        X.fillStyle = '#555c5d'; X.fill(); X.strokeStyle = '#929b97'; X.lineWidth = Math.max(0.6, tw * 0.008); X.stroke();
+      }
+    }
     // 3. Markierungen, Zebrastreifen, Risse
     for (const [sx, sy] of s.strassen) {
       const [cx, cy] = k.mitte(sx, sy);
@@ -191,50 +267,58 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       } // A66: keine Autos mehr (Simon 2026-11-05)
     }
   }
-  // Hausanschlussweg und Garten (A53): Plattenweg vom Haus zur nächsten Straße, abgesetzter Garten mit Zaun
-  if (s.strassen?.length) {
-    const feld = new Set(s.strassen.map(([sx, sy]) => sy * N + sx));
-    for (const o of s.objekte) {
-      const kat = KATALOG[o.typ].kategorie;
-      if (kat !== 'haus' || o.bau) continue;
-      const kk = groesse(o);
-      let weg: [number, number, number, number] | null = null;
-      for (let i = 0; i < kk && !weg; i++) {
-        if (feld.has((o.y - 1) * N + o.x + i)) weg = [o.x + i, o.y, 0, -1];
-        else if (feld.has((o.y + kk) * N + o.x + i)) weg = [o.x + i, o.y + kk - 1, 0, 1];
-        else if (feld.has((o.y + i) * N + o.x - 1)) weg = [o.x, o.y + i, -1, 0];
-        else if (feld.has((o.y + i) * N + o.x + kk)) weg = [o.x + kk - 1, o.y + i, 1, 0];
-      }
-      const [gcx, gcy] = k.mitte(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2);
-      if (gcx < -tw || gcx > W + tw || gcy < -th || gcy > H + tw) continue;
-      if (weg) {
-        const [wx, wy, dx, dy] = weg, hw = 0.12;
-        const pts: Array<[number, number]> = dx === 0
-          ? [[-hw, 0], [hw, 0], [hw, 0.55 * dy], [-hw, 0.55 * dy]]
-          : [[0, -hw], [0, hw], [0.55 * dx, hw], [0.55 * dx, -hw]];
-        X.beginPath(); pts.forEach(([gx, gy], i) => { const [px, py] = k.mitte(wx + gx, wy + gy); if (i) X.lineTo(px, py); else X.moveTo(px, py); }); X.closePath();
-        X.fillStyle = KARTE.gehweg; X.fill(); X.strokeStyle = KARTE.bordstein; X.lineWidth = 1; X.stroke();
-      }
+  const feld = new Set((s.strassen ?? []).map(([x, y]) => y * N + x));
+  const anStrasse = (x: number, y: number): boolean => x >= 0 && x < N && y >= 0 && y < hoehe && feld.has(y * N + x);
+  for (const haus of s.objekte) {
+    if (KATALOG[haus.typ].kategorie !== 'haus') continue;
+    const { x, y } = haus, kk = groesse(haus);
+    const [cx, cy] = k.mitte(x, y);
+    if (cx < -tw * 2 || cx > W + tw * 2 || cy < -tw * 2 || cy > H + tw * 2) continue;
+    let weg: [number, number, number, number] | undefined;
+    for (let i = 0; i < kk && !weg; i++) {
+      if (anStrasse(x + i, y - 1)) weg = [x + i, y, 0, -1];
+      else if (anStrasse(x + i, y + kk)) weg = [x + i, y + kk - 1, 0, 1];
+      else if (anStrasse(x - 1, y + i)) weg = [x, y + i, -1, 0];
+      else if (anStrasse(x + kk, y + i)) weg = [x + kk - 1, y + i, 1, 0];
     }
+    if (!weg) continue;
+    const [wx, wy, dx, dy] = weg, hw = .12;
+    const pts: Punkt[] = dx === 0
+      ? [[-hw, 0], [hw, 0], [hw, .55 * dy], [-hw, .55 * dy]]
+      : [[0, -hw], [0, hw], [.55 * dx, hw], [.55 * dx, -hw]];
+    m.flaeche(pts.map(([gx, gy]) => k.mitte(wx + gx, wy + gy)), KARTE.gehweg, false);
   }
-  // Waldrand
-  for (let i = -3; i < N + 3; i++) {
-    for (const [x, y] of [[i, -2], [-2, i], [i, -3], [-3, i]]) {
-      const [cx, cy] = k.mitte(x + ((i * 7) % 3) * 0.2, y);
-      if (cx < -tw || cx > W + tw || cy < -tw || cy > H + tw) continue;
-      m.baum(cx, cy, 1.25, i);
-    }
-  }
-  // Zaun um das Dorf
-  { const a = k.mitte(-0.5, -0.5), b = k.mitte(N - 0.5, -0.5), c = k.mitte(N - 0.5, N - 0.5), d = k.mitte(-0.5, N - 0.5);
-    X.strokeStyle = '#c9a76a'; X.lineWidth = Math.max(2, tw * 0.06); X.beginPath();
-    X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); X.lineTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.closePath(); X.stroke(); }
+  wolkenrand(m, k, hoehe);
   if (s.modus !== 'normal') {
     X.strokeStyle = 'rgba(255,255,255,.25)'; X.lineWidth = 1;
-    for (let i = 0; i <= N; i++) {
-      const a = k.mitte(i - 0.5, -0.5), b = k.mitte(i - 0.5, N - 0.5), c = k.mitte(-0.5, i - 0.5), d = k.mitte(N - 0.5, i - 0.5);
-      X.beginPath(); X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
+    for (let i = 0; i <= hoehe; i++) {
+      const a = k.mitte(i - 0.5, -0.5), b = k.mitte(i - 0.5, hoehe - 0.5), c = k.mitte(-0.5, i - 0.5), d = k.mitte(N - 0.5, i - 0.5);
+      X.beginPath(); if (i <= N) { X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); } X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
     }
+  }
+}
+
+/** Wolken liegen um die freigeschalteten Felder. Die gekachelte Decke dahinter reicht über den Bildschirm hinaus. */
+function wolkenrand(m: Maler, k: Kamera, hoehe: number): void {
+  const { X } = m, tw = k.tw;
+  const bausch = (x: number, y: number, i: number): void => {
+    const [cx, cy] = k.mitte(x, y);
+    const r = tw * (.59 + ((i * 17) % 7) * .038);
+    if (cx < -r || cx > k.breite + r || cy < -r || cy > k.hoehe + r) return;
+    const g = X.createRadialGradient(cx, cy, r * .22, cx, cy, r);
+    g.addColorStop(0, 'rgba(245,249,251,.96)');
+    g.addColorStop(.56, 'rgba(233,240,243,.75)');
+    g.addColorStop(1, 'rgba(221,232,237,0)');
+    m.kreis(cx, cy, r, g);
+  };
+  const abstand = WIESENRAND + .85;
+  for (let x = -WIESENRAND; x < N + WIESENRAND; x++) {
+    bausch(x, -abstand, x + WIESENRAND);
+    bausch(x + .25, hoehe - 1 + abstand, x + WIESENRAND + 3);
+  }
+  for (let y = -WIESENRAND; y < hoehe + WIESENRAND; y++) {
+    bausch(-abstand, y, y + WIESENRAND + 2);
+    bausch(N - 1 + abstand, y + .2, y + WIESENRAND + 6);
   }
 }
 
@@ -275,17 +359,18 @@ export function bodenEbeneVerwerfen(): void {
 /** `finger_auf_karte`: liegt gerade ein Finger (oder die gedrückte Mitteltaste) auf der Karte – liefert die Steuerung. */
 export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt_s: number, finger_auf_karte = false): void {
   const { X } = m;
+  m.jahreszeit = s.saison ?? 'sommer';
   m.tw = k.tw; m.th = k.th; m.dreh_cos = Math.cos(k.winkel_rad); m.dreh_sin = Math.sin(k.winkel_rad);
   const tw = k.tw, th = k.th;
   bodenAuflegen(m, k, s, dt_s, finger_auf_karte);
   zeichneGlitzern(m, k, s);
 
-  zeichneLeitungen(m, k, s);
-  // NR20 (DESIGN 13.17.1 B2, K10): Band, Streifen, Zielscheibe und Raute über den eingezeichneten Leitungen, unter den Gebäuden –
-  // nie in der zwischengespeicherten Bodenebene
-  const tutorial = tutorialLage(m, s);
-  // A37: Beim Planen zeichnet der zweite Leitungs-Durchgang über den Gebäuden – die Streifen (F3) müssen dann darüber liegen
+  // A37: Beim Planen zeichnet erst der zweite Leitungs-Durchgang über den Gebäuden die Leitungen – ohne Planen nur dieser hier
   const durchsicht = istDurchsichtig(s.modus, s.spiel?.abschnitt?.phase);
+  if (!durchsicht) zeichneLeitungen(m, k, s);
+  // NR20 (DESIGN 13.17.1 B2, K10): Band, Streifen, Zielscheibe und Raute über den eingezeichneten Leitungen, unter den Gebäuden –
+  // nie in der zwischengespeicherten Bodenebene. Beim Planen müssen die Streifen (F3) über dem zweiten Durchgang liegen.
+  const tutorial = tutorialLage(m, s);
   zeichneTutorialUnten(m, k, s, tutorial, !durchsicht);
 
   // Auswahlring
@@ -308,6 +393,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     const [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
     const angeschlossen = s.netz.anschluss.has(o.id);
     const st = {
+      strassenseite: strassenseite(o, s.strassen),
       warm: s.netz.warm.has(o.id), laeuft: s.netz.genutzt_kw > 0, innen: s.innen,
       oel: (kat === 'haus' && (!angeschlossen || !!o.gekuendigt)) || (kat === 'gross' && o.zustand !== 'vertrag' && o.typ !== 'gewerbe'),
     };
@@ -378,7 +464,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     const vorlage: Objekt = bewegt ? { ...bewegt, x: g.x, y: g.y, bau: null, _pop: 0 }
       : { id: 0, typ: g.typ, x: g.x, y: g.y, stufe: 1, bau: null, kasse_eur: 0 };
     X.globalAlpha = 0.9;
-    zeichneObjekt(m, vorlage, cx, cy, { warm: true, laeuft: false, innen: s.innen, oel: false }, s.jetzt_ms);
+    zeichneObjekt(m, vorlage, cx, cy, { warm: true, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(vorlage, s.strassen) }, s.jetzt_ms);
     X.globalAlpha = 1;
     oben.push(() => m.symbol('pfeil', cx, cy - tw * (g.kante > 1 ? 1.1 : 0.8) + Math.sin(m.zeit_s * 4) * 3, tw * 0.15, g.ok ? '#9be36a' : '#ff6a5a'));
   }
@@ -392,6 +478,16 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   zeichneTutorialOben(m, k, tutorial);
   // DESIGN 13.17.3: Warndreiecke in der Ebene der Blasen, damit kein Haus davor sie verdeckt
   oben.push(() => zeichneWarndreiecke(m, k, s));
+  if (!m.reduziert && !durchsicht) {
+    if (m.jahreszeit === 'winter') schneefall(m, k, N, s.kartenHoehe ?? N);
+    else if (istHerbst(m.jahreszeit)) {
+      for (const o of sortiert) {
+        if (o.typ !== 'baum') continue;
+        const [x, y] = k.mitte(o.x, o.y);
+        if (x >= -tw && x <= k.breite + tw && y >= -tw && y <= k.hoehe + tw) m.blattfall(x, y, 1, o.id);
+      }
+    }
+  }
   oben.forEach((f) => f());
   // 13.17.9 F1: Zielscheibe als oberste Kartenebene über Gebäuden, Blasen und Ziel-Steckern
   if (s.zielscheibe) { const [x, y] = k.mitte(s.zielscheibe[0], s.zielscheibe[1]); zielscheibeImBand(m, x, y); }
@@ -404,7 +500,7 @@ const PLANRAUTE_LINIE_PX = 1.5;
 const feldText = ([x, y]: Feld): string => `${x},${y}`;
 
 /** Rohrbreite einer Leitung in px – dieselbe Formel für das Rohr und die Hülle der Streifen. */
-const rohrBreite = (tw: number, typ: TypId): number => Math.max(2, tw * (KATALOG[typ].breite ?? 0.1));
+const rohrBreite = (tw: number, typ: TypId): number => Math.max(1.5, tw * (KATALOG[typ].breite ?? 0.06) * 0.62);
 
 /** WCAG-Kontrast von Weiß auf einer Farbe `#rrggbb` (DESIGN 13.17.1 B2: weiße Pfeile ab 3:1). */
 function kontrastZuWeiss(hex: string): number {
@@ -703,7 +799,9 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const { X } = m, tw = k.tw, netz = s.netz;
   const nachFeld = new Map<number, Objekt>();
   for (const o of s.objekte) { const kante = groesse(o); for (let dy = 0; dy < kante; dy++) for (let dx = 0; dx < kante; dx++) nachFeld.set((o.y + dy) * N + o.x + dx, o); }
-  const rohrNachbarn = (x: number, y: number): number => leitungsNachbarn(x, y, (f) => { const n = nachFeld.get(f); return !!n && istLeitung(n.typ); });
+  const verbunden = (o: Objekt, n: Objekt | undefined): boolean =>
+    !!n && istLeitung(n.typ) && trassenUebergang(o, n) !== false;
+  const rohrNachbarn = (o: Objekt): number => leitungsNachbarn(o.x, o.y, (f) => verbunden(o, nachFeld.get(f)));
   const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
   const ueberlastFelder = new Set((s.ueberlast ?? []).flatMap((u) => u.felder));
   const vorschau = s.ueberlast_vorschau, vorschauFelder = new Set(vorschau?.felder ?? []);
@@ -711,26 +809,27 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
   const planRaute = (cx: number, cy: number, farbe = '#2a6fb0', breite_px = PLANRAUTE_LINIE_PX): void => {
-    X.setLineDash([tw * 0.08, tw * 0.06]); X.strokeStyle = farbe; X.lineWidth = breite_px; m.raute(cx, cy, 0.6); X.stroke(); X.setLineDash([]);
+    X.setLineDash([tw * 0.07, tw * 0.05]); X.strokeStyle = farbe; X.lineWidth = breite_px; m.raute(cx, cy, 0.48); X.stroke(); X.setLineDash([]);
   };
   for (const o of rohre) {
     const key = o.y * N + o.x, [cx, cy] = k.mitte(o.x, o.y), an = netz.tiefe.has(key), seg: Punkt[] = [];
     for (const [dx, dy] of NACHBARN) {
       const nx = o.x + dx, ny = o.y + dy;
-      if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+      if (nx < 0 || ny < 0 || nx >= N || ny >= (s.kartenHoehe ?? N)) continue;
       const n = nachFeld.get(ny * N + nx);
       if (!n) continue;
       const c = KATALOG[n.typ].kategorie;
       // A57: Zu einem Gebäude nur abknicken, wenn genau dieses Leitungsfeld sein Anschluss ist (oder ein geplantes Leitungsende)
       const gebaeude = c === 'haus' || c === 'waerme' || c === 'gross';
       if (gebaeude) {
-        if (n.ohne_station && !o.geplant) continue; // Haus ohne Station ist nicht angeschlossen
+        if (n.typ !== 'gewerbe' && n.ohne_station && !o.geplant) continue; // Haus ohne Station ist nicht angeschlossen
         const a = netz.anschluss.get(n.id);
-        if (a ? a.feld !== key : !(o.geplant && rohrNachbarn(o.x, o.y) <= 1)) continue;
+        if (a ? a.feld !== key : !(o.geplant && rohrNachbarn(o) <= 1)) continue;
       }
       // A65: Treffen zwei verschieden dicke Leitungen, läuft die dünnere in ihrer Farbe bis in die dickere hinein
       // (Abzweig schließt an die Hauptleitung an); die dicke Leitung zeichnet keinen eigenen Stummel zum Abzweig.
       if (istLeitung(n.typ)) {
+        if (!verbunden(o, n)) continue;
         const art = abzweigZeichnen(o.typ, n.typ);
         if (art === 'nichts') continue;
         const [a, b] = k.mitte(nx, ny);
@@ -742,7 +841,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
         // A65: Liegt das Haus direkt an einer dicken Leitung, führt ein eigener, dünner Hausanschluss
         // (kleinste passende Leitung) vom Haus bis an die Hauptleitung – kein Stummel in der Farbe der Hauptleitung.
         const [a, b] = k.mitte(nx, ny), mx = (cx + a) / 2, my = (cy + b) / 2;
-        const eigen = KATALOG[n.typ].kategorie !== 'waerme' ? eigenerHausanschluss(o.typ, bedarfKw(n)) : null;
+        const eigen = KATALOG[n.typ].kategorie !== 'waerme' && n.typ !== 'gewerbe' ? eigenerHausanschluss(o.typ, bedarfKw(n)) : null;
         if (eigen) stummel.push({ von: [cx, cy], bis: [mx, my], typ: eigen, an });
         else seg.push([mx, my]);
       }
@@ -750,26 +849,41 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     const plan = !!o.geplant;
     if (plan) { X.save(); X.globalAlpha = 0.6; }
     const D = KATALOG[o.typ], w = rohrBreite(tw, o.typ);
-    m.raute(cx, cy, 0.55); X.fillStyle = 'rgba(140,100,55,.35)'; X.fill();
     X.lineCap = 'round';
     // NR22 (DESIGN 13.17.3): Die Rohrfarbe bleibt auch bei Überlast; das überlastete Stück zeigt stattdessen den gelben Saum.
-    // 13.17.11 H1: Der Saum ersetzt nur die dunkle Kante (saum_px = 1 je Seite, keine Außenlinie), damit eine überlastete
+    // 13.17.11 H1: Der Saum ersetzt nur die dunkle Kante in genau deren Breite (keine Außenlinie), damit eine überlastete
     // Leitung nicht dicker wirkt als eine größere daneben.
     const rohr = plan || an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
-    const kante: readonly [number, string] = ueberlastFelder.has(key) ? [w + 2 * SAUM.saum_px, MF.ueberlast_zeichen] : [w + 2, 'rgba(40,34,26,.4)'];
+    const kanteBreite = w + 1.25;
+    const kante: readonly [number, string] = ueberlastFelder.has(key) ? [kanteBreite, MF.ueberlast_zeichen] : [kanteBreite, 'rgba(35,40,35,.42)'];
     for (const [lw, c] of [kante, [w, rohr] as const]) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();
       for (const [mx, my] of seg) { X.moveTo(cx, cy); X.lineTo(mx, my); }
       if (!seg.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
       X.stroke();
     }
-    X.strokeStyle = 'rgba(255,255,255,.45)'; X.lineWidth = Math.max(1, w * 0.3); X.beginPath();
-    for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
-    X.stroke();
+    if (w >= 3 && seg.length) {
+      X.strokeStyle = 'rgba(255,255,255,.32)'; X.lineWidth = w * 0.19; X.beginPath();
+      for (const [mx, my] of seg) { X.moveTo(cx, cy - w * 0.22); X.lineTo(mx, my - w * 0.22); }
+      X.stroke();
+    }
+    // Dezente Muffen auf den tatsächlich gezeichneten Rohrarmen. Freie Nachbartrassen
+    // erhalten keine optische Verbindung. Bei kleinem Zoom entfallen die Details.
+    if (!plan && tw >= 36 && w >= 2) {
+      for (const [mx, my] of seg) {
+        const dx = mx - cx, dy = my - cy, len = Math.hypot(dx, dy);
+        if (len < w * 3) continue;
+        const x = cx + dx * 0.65, y = cy + dy * 0.65, nx = -dy / len, ny = dx / len;
+        X.strokeStyle = 'rgba(37,46,49,.75)'; X.lineWidth = Math.max(1, w * 0.3);
+        X.beginPath(); X.moveTo(x - nx * w * 0.55, y - ny * w * 0.55); X.lineTo(x + nx * w * 0.55, y + ny * w * 0.55); X.stroke();
+        X.strokeStyle = 'rgba(230,239,232,.65)'; X.lineWidth = Math.max(0.55, w * 0.12);
+        X.beginPath(); X.moveTo(x - nx * w * 0.4, y - ny * w * 0.4 - w * 0.12); X.lineTo(x + nx * w * 0.4, y + ny * w * 0.4 - w * 0.12); X.stroke();
+      }
+    }
     // A69: T-Stück mit Vorsehung: kurzer Abgang quer zur Leitung mit dunkler Verschlusskappe
     if (o.vorsehung) {
-      const quer = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !(n && istLeitung(n.typ)); });
-      const lauf = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !!n && istLeitung(n.typ); });
+      const quer = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !verbunden(o, n); });
+      const lauf = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return verbunden(o, n); });
       // A74: An einer Ecke zeigt der Abgang geradeaus (Fortsetzung der Zuleitung), sonst quer zur Leitung, bevorzugt zu einem freien Feld
       const p = netz.eltern.get(key), px = p !== undefined && p >= 0 ? p % N - o.x : null, py = p !== undefined && p >= 0 ? Math.floor(p / N) - o.y : null;
       const geradeaus = quer.filter(([dx, dy]) => px === null ? lauf.some(([lx, ly]) => lx === -dx && ly === -dy) : px === -dx && py === -dy);
@@ -777,15 +891,12 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       const frei = (r: readonly [number, number]): boolean => !nachFeld.has((o.y + r[1]) * N + o.x + r[0]);
       const [rx, ry] = geradeaus[0] ?? senkrecht.find(frei) ?? senkrecht[0] ?? quer[0] ?? [0, 1];
       const [ax, ay] = k.mitte(o.x + rx, o.y + ry), ex = cx + (ax - cx) * 0.32, ey = cy + (ay - cy) * 0.32;
-      for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, rohr]] as const) { X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(cx, cy); X.lineTo(ex, ey); X.stroke(); }
-      X.beginPath(); X.arc(ex, ey, Math.max(2.5, w * 0.75), 0, Math.PI * 2); X.fillStyle = '#2d2a26'; X.fill();
+      for (const [lw, c] of [[w + 1.25, 'rgba(35,40,35,.42)'], [w, rohr]] as const) { X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(cx, cy); X.lineTo(ex, ey); X.stroke(); }
+      X.beginPath(); X.arc(ex, ey, Math.max(1.5, w * 0.55), 0, Math.PI * 2); X.fillStyle = '#2d2a26'; X.fill();
       X.strokeStyle = 'rgba(255,255,255,.7)'; X.lineWidth = 1; X.stroke();
     }
-    if (netz.engpass.has(key) || netz.reduzierung.has(key) || netz.aufteilung.has(key)) {
-      m.bahn([[cx, cy - tw * 0.32], [cx + tw * 0.13, cy - tw * 0.07], [cx - tw * 0.13, cy - tw * 0.07]]);
-      X.fillStyle = '#d8392f'; X.strokeStyle = 'rgba(32,28,22,.5)'; X.lineWidth = 2; X.fill(); X.stroke();
-      m.symbol('ausruf', cx, cy - tw * 0.14, tw * 0.07);
-    }
+    // NR22 (DESIGN 13.17.3): Überlast zeigt das gelbe Warndreieck (zeichneWarndreiecke). Ein rotes Planungsfehler-Dreieck gibt es im
+    // freien Spiel nicht mehr (Simon, main c4335c9).
     if (plan) {
       planRaute(cx, cy);
       X.restore();
@@ -808,13 +919,14 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   // A65: eigene dünne Hausanschlüsse von der Hauptleitung bis ans Haus (beginnen am Rand der Hauptleitung)
   X.lineCap = 'round';
   for (const st of stummel) {
-    const D = KATALOG[st.typ], w = Math.max(2, tw * (D.breite ?? 0.06));
+    const D = KATALOG[st.typ], w = rohrBreite(tw, st.typ);
     const v: Punkt = [st.von[0] + (st.bis[0] - st.von[0]) * 0.3, st.von[1] + (st.bis[1] - st.von[1]) * 0.3];
-    for (const [lw, c] of [[w + 2, 'rgba(40,34,26,.4)'], [w, st.an ? (D.farbe ?? '#d8392f') : '#9aa4ab']] as const) {
+    for (const [lw, c] of [[w + 1.25, 'rgba(35,40,35,.42)'], [w, st.an ? (D.farbe ?? '#d8392f') : '#9aa4ab']] as const) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath(); X.moveTo(v[0], v[1]); X.lineTo(st.bis[0], st.bis[1]); X.stroke();
     }
   }
   // Wärmepunkte fließen vom Heizhaus zum Kunden
+  if (m.reduziert) return;
   const hz = heizzentrale(s.objekte);
   X.fillStyle = '#fff';
   for (const [key] of netz.tiefe) {
@@ -824,7 +936,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     if (p === -1 || p === undefined) { const kante = groesse(hz); a = k.mitte(hz.x + (kante - 1) / 2, hz.y + (kante - 1) / 2); }
     else a = k.mitte(p % N, (p - (p % N)) / N);
     const b = k.mitte(x, y), f = (m.zeit_s * 0.6 + key * 0.37) % 1;
-    X.globalAlpha = 0.9; X.beginPath(); X.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, Math.max(1.5, tw * 0.028), 0, Math.PI * 2); X.fill();
+    X.globalAlpha = 0.8; X.beginPath(); X.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, Math.max(0.8, tw * 0.013), 0, Math.PI * 2); X.fill();
   }
   X.globalAlpha = 1;
 }
@@ -859,11 +971,10 @@ function bodenAuflegen(m: Maler, k: Kamera, s: Szene, dt_s: number, finger_auf_k
       // Kamera vorübergehend um den Rand vergrößern (Felder direkt, nicht groesseSetzen – das würde tw ändern):
       // der Ursprung rückt genau um den Rand, und die Sichtbarkeitsprüfungen behalten den Randstreifen.
       const X = m.X, breite = k.breite, hoehe = k.hoehe;
-      // Erst die ganze Fläche in Gerätepixeln füllen: bei gebrochener CSS-Größe deckt die Hintergrundfläche von zeichneBoden
-      // den aufgerundeten letzten Pixelstreifen nur teilweise, er bliebe sonst halb durchsichtig.
+      // Auch den aufgerundeten letzten Pixelstreifen der wiederverwendeten Fläche löschen.
       const flaeche = flaechenGroesse(breite_px, hoehe_px, rand_x_px, rand_y_px);
-      FX.setTransform(1, 0, 0, 1, 0, 0); FX.fillStyle = KARTE.hintergrund_rand;
-      FX.fillRect(0, 0, flaeche.breite_px, flaeche.hoehe_px);
+      FX.setTransform(1, 0, 0, 1, 0, 0);
+      FX.clearRect(0, 0, flaeche.breite_px, flaeche.hoehe_px);
       m.X = FX; k.breite += (2 * rand_x_px) / pv; k.hoehe += (2 * rand_y_px) / pv;
       try { zeichneBoden(m, k, s); } finally { m.X = X; k.breite = breite; k.hoehe = hoehe; }
     });
@@ -891,3 +1002,4 @@ function zeichneGlitzern(m: Maler, k: Kamera, s: Szene): void {
     if (glitzer > 0.6) { X.strokeStyle = 'rgba(255,255,255,.35)'; X.lineWidth = 1; X.beginPath(); X.moveTo(cx - tw * 0.12, cy); X.lineTo(cx + tw * 0.12, cy); X.stroke(); }
   }
 }
+

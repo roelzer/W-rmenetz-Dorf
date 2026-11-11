@@ -43,6 +43,8 @@ export interface Objekt {
   vorsehung?: boolean;
   /** A41: Leitung gehört zum laufenden Bauabschnitt und ist erst nach dem Bau Teil des Netzes */
   geplant?: boolean;
+  /** Übergänge zu vorhandenen Rohrfeldern, nach Objekt-ID. Ohne Eintrag gilt die bisherige Verbindung. */
+  trassenUebergaenge?: Record<number, boolean>;
   /** Sekunden als warmer Kunde / Sekunden dauerhaft sehr zufrieden (A34, Aufstockung) */
   warm_s?: number;
   voll_s?: number;
@@ -70,6 +72,8 @@ export interface Objekt {
 
 /** Wärmequelle im Heizhaus. */
 export interface InnenQuelle {
+  /** Kaufpreis eines festen Modells. Altanlagen behalten ihren bisherigen Rückkaufswert. */
+  kaufpreis_eur?: number;
   typ: TypId;
   stufe: number;
   bau: Bau | null;
@@ -97,6 +101,8 @@ export interface Spielstand {
   /** gewählter Ort (A21); fehlt bei alten Spielständen */
   ort?: string;
   geld_eur: number;
+  entwickler_kasse_gefuellt?: true;
+  entwickler_unbegrenzt?: true;
   taler: number;
   objekte: Objekt[];
   naechste_id: number;
@@ -108,6 +114,9 @@ export interface Spielstand {
   abschnitt?: Abschnitt;
   /** A43: Baugebiet bereits erschlossen */
   baugebiet?: boolean;
+  neubaugebiet?: boolean;
+  neubaugebiet_layout?: 2;
+  garten_layout?: 1;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
   gestattungen?: number[];
   /** Version des Kartenlayouts (Straßen, Fluss); ältere Spielstände werden beim Laden angepasst (A46) */
@@ -132,6 +141,8 @@ export interface Spielstand {
   abrechnung_monat?: number;
   /** A81: Ergebnis der letzten Monatsabrechnung */
   letzte_abrechnung?: Abrechnung;
+  helfer_pause_bis_ms?: Record<string, number>;
+  andi?: { anteil_pct: number; budget_eur: number; aufgabe: 'pause' | 'abgleich' | 'verbessern' };
   antraege: Partial<Record<TypId, Foerderantrag>>;
   zuletzt_ms: number;
   erledigt: Record<string, boolean>;
@@ -185,4 +196,6 @@ export interface Abrechnung {
   waerme_eur: number;
   grund_eur: number;
   summe_eur: number;
+  eingang_eur?: number;
 }
+

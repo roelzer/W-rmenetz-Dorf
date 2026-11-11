@@ -110,5 +110,6 @@ export function engstelleText(e: Engstelle, empfohlenAbStufe: number | null): st
     : empfohlenAbStufe === null
       ? `Zeichne eine ${kurzname(e.empfohlen)} darüber.`
       : `Die ${kurzname(e.empfohlen)} gibt es ab Stufe ${empfohlenAbStufe}.`;
-  return `${satz1} ${satz2}`;
+  const text = `${satz1} ${satz2}`;
+  return text.length <= 90 ? text : `${satz1} ${satz2.replace('gibt es ', '').replace(' darüber.', ' ein.')}`;
 }

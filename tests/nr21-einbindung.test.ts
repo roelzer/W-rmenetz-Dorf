@@ -92,16 +92,18 @@ describe('NR21 Einbindung: eigener Abgang in der Steuerung', () => {
       expect(ringe).not.toContainEqual(ZURUECK_MITTE);
     }, { uhr: () => uhr.t });
   });
-  it('test_nr21_ring_an_radierer_gleiche_spalte: Abgang (11|12)→(11|13), dann (11|14) zum Haus 2 – gleiche Spalte wie das Stück, aber Spurfeld → Ring um den Radierer', async () => {
+  // Früher Abgang (11|12)→(11|13); (11|12) zwischen Heizzentrale und Hauptleitung schließt seit main 859dda7 einen Ring und wird
+  // abgelehnt. Ohne Ring: loses fremdes Stück (11|13), dann (11|14) zum Haus 2 – dieselbe Spalte, aber ein Spurfeld.
+  it('test_nr21_ring_an_radierer_gleiche_spalte: fremdes Stück (11|13), dann (11|14) zum Haus 2 – gleiche Spalte wie das Stück, aber Spurfeld → Ring um den Radierer', async () => {
     const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
       spiel.stand.geld_eur = 30_000;
       bisT13h(u, spiel, uhr);
       wischeFelder(u, ZUG_HAUS1); st(u).tick(uhr.t);
-      wischeFelder(u, [[11, 12], [11, 13]]); st(u).tick(uhr.t);
+      wischeFelder(u, [[11, 13]]); st(u).tick(uhr.t);
       wischeFelder(u, [[11, 13], [11, 14], [12, 14]]); st(u).tick(uhr.t);
       expect(spiel.letzteLeitungFeld()).toEqual([11, 14]);
-      expect(st(u).anleitungAnsicht()!.fremd).toEqual([[11, 13], [11, 12]]);
+      expect(st(u).anleitungAnsicht()!.fremd).toEqual([[11, 13]]);
       const ringe = ringeNachBild(u, uhr.t);
       expect(ringe).toContainEqual(RADIERER_MITTE);
       expect(ringe).not.toContainEqual(ZURUECK_MITTE);

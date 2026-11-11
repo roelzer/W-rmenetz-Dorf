@@ -16,7 +16,7 @@ import { leeresDorf } from './hilfen/nr22';
 // Bauplan docs/bauplaene/NR20-22.md, P7 (Leitungsblatt, E5, E6) und DESIGN 13.17.3 „Leitungsblatt beim Antippen“ und
 // „Zustände des Blatts“. Echte Steuerung mit echtem Blatt (tests/hilfen/echte-steuerung.ts), echter Kern.
 //
-// Lage, von Hand aus dem Startdorf (neuerSpielstand) hergeleitet: Heizzentrale 2×2 ab (11|10). Eine 25er läuft von (11|9)
+// Lage, von Hand aus dem Startdorf (neuerSpielstand) hergeleitet: Heizzentrale 2×2 ab (11|10). Eine 25er läuft vom Abgang (10|10) westlich der Heizzentrale über (10|9)
 // nach Westen bis (3|9) und dann nach Norden bis (3|7) – 11 Felder. Einziger Kunde ist das Reihenhaus (4|7) mit 16 kW
 // (ohne Puffer); es hängt am Leitungsende (3|7). Alle 11 Felder tragen 16 kW, die 25er schafft 15 kW (Katalog, 20 K
 // Spreizung) → ein Stück mit 11 Feldern. Die 32er schafft 25 kW ≥ 16 kW → empfohlen 32er.
@@ -24,7 +24,7 @@ import { leeresDorf } from './hilfen/nr22';
 // → 11 Felder 3.960 €, 10 Felder 3.600 €, 9 Felder 3.240 €, 4 Felder 1.440 €, 1 Feld 360 €.
 const T0 = 1_000_000_000_000;
 const N = KONSTANTEN.feldanzahl;
-const WEG: ReadonlyArray<[number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
+const WEG: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9], [5, 9], [4, 9], [3, 9], [3, 8], [3, 7]];
 const KUNDE: [number, number] = [4, 7];
 const norm = (t: string): string => t.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 const SATZ = 'Hier sollen 16 kW durch, die 25er schafft 15 kW. Häuser dahinter bleiben kalt.';
@@ -100,7 +100,7 @@ describe('NR22 P7 Leitungsblatt: Kasten „Überlastet“ und Hauptaktion', () =
   it('test_nr22_blatt_titel: Tipp auf eine andere Leitung des Stücks zeigt denselben Kasten', async () => {
     const { s, z } = gebautOffen();
     await echteSteuerung(s, (u) => {
-      for (const [x, y] of [[11, 9], [3, 7]] as const) {
+      for (const [x, y] of [[10, 10], [3, 7]] as const) {
         oeffne(u, s, x, y);
         expect(kastenTeile(u), `(${x}|${y})`).toEqual(['Überlastet', 'Hier auf 32er vergrößern', `${SATZ} Das Stück ist 11 Felder lang.`]);
         expect(mit(u, 'Auf 32er vergrößern').map(zeile2), `(${x}|${y})`).toEqual(['3.960 €']);
@@ -170,7 +170,7 @@ describe('NR22 P7 Leitungsblatt: Kasten „Überlastet“ und Hauptaktion', () =
       // die letzten Felder schon auf 32er geplant (Ersatz ≥ empfohlen zählt nicht mehr, E6)
       for (const o of wegLeitungen(s).slice(11 - f.geplant)) expect(s.ersatzPlanen(o.id, 'd32').ok).toBe(true);
       await echteSteuerung(s, (u) => {
-        oeffne(u, s, 11, 9);
+        oeffne(u, s, 10, 10);
         expect(kastenTeile(u), `${f.geplant} geplant`).toEqual(['Überlastet', 'Hier auf 32er vergrößern', `${SATZ}${f.satzZusatz}`]);
         const k = mit(u, 'Auf 32er vergrößern');
         expect(k.map(zeile2), `${f.geplant} geplant`).toEqual([f.zeile]);
@@ -182,15 +182,19 @@ describe('NR22 P7 Leitungsblatt: Kasten „Überlastet“ und Hauptaktion', () =
 });
 
 describe('NR22 P7 Leitungsblatt: Zusammenspiel', () => {
-  it('test_nr22_blatt_planungsfehler_zuerst: Feld mit Planungsfehler und Überlast → „Planungsfehler“ zuerst, darunter „Überlastet“, beide oben', async () => {
+  // Merge W2 (ENTSCHEIDUNGEN 2026-11-11, main c4335c9): Im freien Spiel gibt es keinen Kasten „Planungsfehler“ mehr, nur noch
+  // „Überlastet“. Fehler, der ihn rot macht: Ein Feld mit Engpass-, Aufteilungs- oder Reduzierungs-Kennung bekommt wieder den
+  // Kasten „Planungsfehler“ (vor oder nach „Überlastet“), oder „Überlastet“ entfällt deshalb.
+  it('test_mm_w2_blatt_nur_ueberlastet: Feld mit Planungsfehler-Kennungen und Überlast → nur „Überlastet“, oben', async () => {
     const { s, z } = gebautOffen();
     const key = 9 * N + 8;
     await echteSteuerung(s, (u) => {
-      // Reduzierung auf (8|9) nachgestellt: die Lage selbst ist für den Kern kein Planungsfehler, geprüft wird nur die Reihenfolge im Blatt
-      s.netz.reduzierung.add(key);
+      // Alle drei Kennungen auf (8|9) nachgestellt: die Lage selbst ist für den Kern kein Planungsfehler, geprüft wird nur das Blatt
+      s.netz.reduzierung.add(key); s.netz.engpass.add(key); s.netz.aufteilung.add(key);
       oeffne(u, s, 8, 9);
       const titel = blatt(u).querySelectorAll('.kasten').map((k) => norm(k.querySelector('h3')?.textContent ?? ''));
-      expect(titel).toEqual(['Planungsfehler', 'Überlastet']);
+      expect(titel).toEqual(['Überlastet']);
+      expect(blattText(u)).not.toContain('Planungsfehler');
       expect(blattText(u).indexOf('Überlastet')).toBeLessThan(blattText(u).indexOf('Hauptleitung:'));
     }, { uhr: () => z.t });
   });
@@ -308,7 +312,7 @@ describe('NR22 P7t: Nacharbeit P7d (rot bis P7d)', () => {
     for (const i of DICK) expect(s.ersatzPlanen(wegLeitungen(s)[i].id, 'd40').ok, `40er auf Feld ${i}`).toBe(true);
     const mitDick = <T>(sonst: T): Array<TypId | T> => WEG.map((_, i) => (DICK.includes(i) ? 'd40' : sonst));
     await echteSteuerung(s, (u) => {
-      oeffne(u, s, 11, 9);
+      oeffne(u, s, 10, 10);
       // 8 offene Felder × 360 € = 2.880 €; „8 Felder · 2.880 €“ hat 18 Zeichen → passt in Zeile 2
       expect(mit(u, 'Auf 32er vergrößern').map(zeile2)).toEqual(['8 Felder · 2.880 €']);
       mit(u, 'Auf 32er vergrößern')[0].click();

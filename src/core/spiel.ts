@@ -1,14 +1,14 @@
 import {
-  KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istLeitung, istQuelle, type Station, type TypId,
+  ABGLEICH_PAUSE_MS, ANDI_BUDGET_SCHRITT, KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istAltanlage, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht,
+  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
-import { ortHolen } from './orte';
-import { abStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
+import { neubaugebietAnlegen, spielOrt } from './neubaugebiet';
+import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
 import type { Feld, Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
-import { ERSTE_HAEUSER, TUTORIAL_HAUPTLEITUNG } from './start';
+import { ERSTE_HAEUSER, TUTORIAL_HAUPTLEITUNG, ursprungskarte } from './start';
 import { tutorialLeitungsLage } from './tutorial-netz';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
@@ -45,7 +45,15 @@ export const START_TIPP = `Tipp ein Haus an – ${ABSCHNITT_HELFER.planung} plan
 export const WANDSTATION_TUTORIAL = 'Im Tutorial nimmst du den Standard. Die Wandstation kannst du später wählen.';
 const ERSATZ_NUR_IM_ABSCHNITT = `Dickere Leitungen entstehen nur im Bauabschnitt – lass ${ABSCHNITT_HELFER.planung} einen planen.`;
 const ERSATZ_IM_BAU = 'Diese Leitung wird gerade ersetzt – warte, bis der Abschnitt gebaut ist.';
+const RINGSCHLUSS = 'Diese Verbindung würde einen Ringschluss erzeugen. Baue die Trasse als Abzweig weiter.';
 const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
+const brauchtFestenPlatz = (typ: TypId): boolean =>
+  istLeitung(typ) || ['haus', 'gross', 'hindernis'].includes(KATALOG[typ].kategorie);
+type Ausbauplatz = { x: number; y: number };
+
+function ueberlapptAusbau(x: number, y: number, kante: number, platz: Ausbauplatz): boolean {
+  return x < platz.x + 3 && platz.x < x + kante && y < platz.y + 3 && platz.y < y + kante;
+}
 
 export { neuerSpielstand } from './start';
 
@@ -68,6 +76,7 @@ export class Spiel {
   private erreicht: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
     this.stand = stand;
+    if (this.hzStufe >= KONSTANTEN.heizzentrale_hoechststufe) neubaugebietAnlegen(stand, stand.zuletzt_ms);
     this.anfragenPruefen();
     this.neuBerechnen();
     // Beim Laden nur merken, nichts melden: sonst kündigt jedes Laden alle erreichten Häuser neu an.
@@ -135,7 +144,7 @@ export class Spiel {
       if (!st) throw new Error(`NR13: keine Puffer-Station für ${KATALOG[h.typ].name}`);
       return summe + this.stationspreis_eur(h, st);
     }, 0);
-    return Math.max(0, this.abschnittKosten_eur() + stationen_eur - this.stand.geld_eur);
+    return Math.max(0, this.abschnittKosten_eur() + stationen_eur - this.verfuegbareEuro);
   }
   /** NR13: zuletzt begonnenes Kapitel merken (Wiedereinstieg); nur im laufenden Tutorial und nur Kapitel 1–6. */
   tutorialKapitelSetzen(kapitel: number): void {
@@ -250,32 +259,74 @@ export class Spiel {
     return ok();
   }
 
-  /** Helfer, der gerade keinen Auftrag hat (A40). */
-  freierHelfer(): string | undefined {
+  /** Helfer ohne Auftrag oder laufende Pause (A40). */
+  freierHelfer(zeit_ms = this.uhr()): string | undefined {
     const belegt = new Set(this.stand.objekte.filter((o) => o.upgrade_auftrag).map((o) => o.upgrade_auftrag!.helfer));
-    return HELFER.find((h) => !belegt.has(h));
+    return HELFER.find((h) => !belegt.has(h) && this.helferPauseBis_ms(h) <= zeit_ms);
   }
   /** Was der Helfer gerade tut (für die Anzeige). */
   helferAuftrag(name: string): { objekt: Objekt; ende_ms: number } | undefined {
     const o = this.stand.objekte.find((x) => x.upgrade_auftrag?.helfer === name);
     return o ? { objekt: o, ende_ms: o.upgrade_auftrag!.ende_ms } : undefined;
   }
+  helferPauseBis_ms(name: string): number {
+    return this.stand.helfer_pause_bis_ms?.[name] ?? 0;
+  }
+
+  helferFreiAb_ms(name: string): number {
+    const a = this.helferAuftrag(name);
+    if (!a) return this.helferPauseBis_ms(name);
+    return a.ende_ms + ((a.objekt.upgrade ?? 0) === 0 ? ABGLEICH_PAUSE_MS : 0);
+  }
+
   /** Nächstes Hausupgrade beauftragen: Ein freier Helfer senkt den Rücklauf; das kostet Geld und Zeit (A33/A40). */
-  upgradeKaufen(id: number, helfer?: string): Ergebnis {
+  upgradeKaufen(id: number, helfer?: string, zeit_ms = this.uhr()): Ergebnis {
     const o = this.objekt(id), n = o?.upgrade ?? 0;
     if (!o || !(KATALOG[o.typ].kategorie === 'haus' || KATALOG[o.typ].kategorie === 'gross') || n >= UPGRADES.length) return { ok: false };
     const sperre = this.gesperrt('ruecklauf_helfer');
     if (sperre) return sperre;
     if (o.ohne_station) return this.nein('Erst eine Übergabestation einbauen');
     if (o.upgrade_auftrag) return this.nein('Hier arbeitet schon ein Helfer');
-    const wer = helfer ?? this.freierHelfer();
-    if (!wer || !HELFER.includes(wer) || this.helferAuftrag(wer)) return this.nein('Alle Helfer sind beschäftigt');
+    const wer = helfer ?? this.freierHelfer(zeit_ms);
+    if (!wer || !HELFER.includes(wer) || this.helferAuftrag(wer) || this.helferPauseBis_ms(wer) > zeit_ms) return this.nein('Alle Helfer sind beschäftigt');
     const b = this.bezahlen({ eur: UPGRADES[n].kosten_eur });
     if (!b.ok) return b;
-    o.upgrade_auftrag = { helfer: wer, ende_ms: this.uhr() + UPGRADES[n].dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
+    o.upgrade_auftrag = { helfer: wer, ende_ms: zeit_ms + UPGRADES[n].dauer_s * KONSTANTEN.bauzeit_faktor * 1000 };
     this.sagt(wer, `Alles klar, ${this.spielerName}, ich kümmere mich drum: ${UPGRADES[n].name}.`);
     return ok();
   }
+  andiEinstellen(): void {
+    if (this.freigeschaltet('andi') && !this.stand.andi) this.stand.andi = { anteil_pct: 10, budget_eur: 0, aufgabe: 'pause' };
+  }
+
+  andiKonfigurieren(anteil: number, aufgabe: NonNullable<Spielstand['andi']>['aufgabe']): void {
+    const andi = this.stand.andi;
+    if (!andi || !this.freigeschaltet('andi') || !Number.isFinite(anteil)) return;
+    andi.anteil_pct = Math.max(0, Math.min(100, Math.round(anteil / ANDI_BUDGET_SCHRITT) * ANDI_BUDGET_SCHRITT));
+    andi.aufgabe = aufgabe;
+  }
+
+  private andiBeauftragen(eingang_eur: number, zeit_ms: number): void {
+    const andi = this.stand.andi;
+    if (!andi || !this.freigeschaltet('andi')) return;
+    const zuteilung = Math.floor(Math.max(0, eingang_eur) * andi.anteil_pct / 100);
+    const verguetung = zuteilung * 0.10;
+    this.stand.geld_eur -= verguetung;
+    andi.budget_eur = Math.round((andi.budget_eur + zuteilung - verguetung) * 100) / 100;
+    if (andi.aufgabe === 'pause' || andi.anteil_pct === 0) return;
+    for (const o of this.stand.objekte) {
+      const helfer = this.freierHelfer(zeit_ms);
+      if (!helfer) break;
+      if (KATALOG[o.typ].kategorie !== 'haus' || o.bau || o.ohne_station || o.upgrade_auftrag || !this.netz.anschluss.has(o.id)) continue;
+      const stufe = o.upgrade ?? 0;
+      if (andi.aufgabe === 'abgleich' && stufe > 0) continue;
+      const upgrade = UPGRADES[stufe];
+      if (!upgrade || upgrade.kosten_eur > Math.min(andi.budget_eur, this.verfuegbareEuro)) continue;
+      if (!this.upgradeKaufen(o.id, helfer, zeit_ms).ok) continue;
+      andi.budget_eur -= upgrade.kosten_eur;
+    }
+  }
+
   /** Spreizung des Netzes (Vorlauf minus Rücklauf): Grundwert plus Upgrades, nach Bedarf gewichtet; der Rücklauf fällt nie unter 40 °C (A73), bei niedrigem Vorlauf schrumpft sie also. */
   spreizung_k(): number { return mittlereSpreizung_k(this.stand.objekte, this.netz.warm, this.vorlauf_c); }
   /** Bedingungen für die nächste Heizzentralen-Stufe (A39). */
@@ -283,7 +334,7 @@ export class Spiel {
     const z = HZ_ZIELE.find((x) => x.stufe === this.hzStufe + 1);
     if (!z) return [];
     const anschluesse = this.versorgteHaeuser();
-    const liste = [{ text: 'Angeschlossene Häuser', ist: anschluesse, soll: z.anschluesse }];
+    const liste = [{ text: 'Warm versorgte Häuser', ist: anschluesse, soll: z.anschluesse }];
     if (z.absatz_kw) liste.push({ text: 'Wärmeabsatz in kW', ist: Math.round(this.netz.genutzt_kw), soll: z.absatz_kw });
     if (z.spreizung_k) liste.push({ text: 'Spreizung in K', ist: Math.round(this.spreizung_k()), soll: z.spreizung_k });
     return liste.map((x) => ({ ...x, erreicht: x.ist >= x.soll }));
@@ -324,7 +375,7 @@ export class Spiel {
   private probeGespeichert(): Netz {
     const schluessel = this.stand.objekte
       .filter((o) => o.geplant || o.ersatz)
-      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}`).join('|');
+      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}:${JSON.stringify(o.trassenUebergaenge ?? {})}`).join('|');
     const sp = this.probeSpeicher;
     if (sp && sp.zu === this.netz && sp.schluessel === schluessel) return sp.netz;
     const netz = this.probeNetz();
@@ -360,17 +411,21 @@ export class Spiel {
     return stuecke;
   }
   get hz(): Objekt { return heizzentrale(this.stand.objekte); }
+  get kartenHoehe(): number { return this.stand.neubaugebiet ? KONSTANTEN.neubau_hoehe : N; }
   get hzStufe(): number { return this.hz.stufe; }
   anzahl(t: TypId): number {
     return KATALOG[t].kategorie === 'innen'
       ? this.stand.innen.filter((k) => k.typ === t).length
       : this.stand.objekte.filter((o) => o.typ === t && !o.landschaft && !o.bestand).length;
   }
-  grenze(t: TypId): number { return KATALOG[t].grenze ? KATALOG[t].grenze![this.hzStufe - 1] : 0; }
+  grenze(t: TypId): number { return KATALOG[t].grenze ? KATALOG[t].grenze![Math.min(this.hzStufe, KATALOG[t].grenze!.length) - 1] : 0; }
   leitungsanzahl(): number { return this.stand.objekte.filter((o) => istLeitung(o.typ)).length; }
   monteure(): number { return this.anzahl('huette'); }
+  istNeubau(o: Objekt): boolean {
+    return !!o.bestand && o.y >= N && KATALOG[o.typ].kategorie === 'haus';
+  }
   beschaeftigt(): number {
-    return this.stand.objekte.filter((o) => o.bau).length + this.stand.innen.filter((k) => k.bau).length;
+    return this.stand.objekte.filter((o) => o.bau && !this.istNeubau(o)).length + this.stand.innen.filter((k) => k.bau).length;
   }
   kassengrenze_eur(): number {
     return KONSTANTEN.grundkasse_eur + this.stand.objekte
@@ -385,10 +440,56 @@ export class Spiel {
   dorfwert(): number { return dorfwert(this.stand.objekte, this.stand.innen); }
   objekt(id: number): Objekt | undefined { return this.stand.objekte.find((o) => o.id === id); }
 
+  /** Mögliche 3×3-Flächen, die den bisherigen 2×2-Grundriss vollständig enthalten. */
+  private hzAusbauFlaechen(hz: Objekt): Ausbauplatz[] {
+    const { x, y } = hz;
+    // Nach Norden zuerst, damit auf der Standardkarte der Anschluss nach Süden frei bleibt.
+    return [{ x, y: y - 1 }, { x, y }, { x: x - 1, y: y - 1 }, { x: x - 1, y }].filter((platz) => {
+      if (platz.x < 0 || platz.y < 0 || platz.x + 3 > N || platz.y + 3 > N) return false;
+      for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) {
+        if (this.istStrasse(platz.x + dx, platz.y + dy) || this.istFluss(platz.x + dx, platz.y + dy)) return false;
+      }
+      return true;
+    });
+  }
+
+  /** Eine Fläche für den Ausbau reservieren. Bei alten Ständen die mit den wenigsten festen Blockern wählen. */
+  private hzAusbauReserve(hz = this.hz): { platz: Ausbauplatz; blocker: Objekt[] } | undefined {
+    if (groesse(hz) !== 2) return;
+    let beste: { platz: Ausbauplatz; blocker: Objekt[] } | undefined;
+    let festeMin = Infinity;
+    for (const platz of this.hzAusbauFlaechen(hz)) {
+      const blocker = this.stand.objekte.filter((o) => o.id !== hz.id && ueberlapptAusbau(o.x, o.y, groesse(o), platz));
+      const feste = blocker.filter((o) => brauchtFestenPlatz(o.typ) || o.bestand).length;
+      if (feste < festeMin) { beste = { platz, blocker }; festeMin = feste; }
+      if (!feste) break;
+    }
+    return beste;
+  }
+
+  hzAusbauBlocker(): Objekt[] { return this.hzAusbauReserve()?.blocker ?? []; }
+
+  /** Feste Gebäude dürfen aus einer bereits blockierten Ausbaufläche heraus umgesetzt werden. */
+  istAusbauUmzug(o: Objekt): boolean {
+    return !istLeitung(o.typ) && !o.bau && (brauchtFestenPlatz(o.typ) || !!o.bestand) && this.hzAusbauBlocker().includes(o);
+  }
+
+  sperrtAusbaureserve(t: TypId, x: number, y: number, kante = KATALOG[t].groesse ?? 1, bestand = false): boolean {
+    if (!brauchtFestenPlatz(t) && !bestand) return false;
+    const reserve = this.hzAusbauReserve();
+    return !!reserve && ueberlapptAusbau(x, y, kante, reserve.platz);
+  }
+
   kannPlatzieren(t: TypId, x: number, y: number, ohneId = 0, kante?: number): boolean {
     const s = kante ?? KATALOG[t].groesse ?? 1;
-    if (x < 0 || y < 0 || x + s > N || y + s > N) return false;
-    const belegung = belegungskarte(this.stand.objekte, this.objekt(ohneId));
+    if (x < 0 || y < 0 || x + s > N || y + s > this.kartenHoehe) return false;
+    const alt = this.objekt(ohneId);
+    if (t === 'hz' && alt && s === 2 && (x !== alt.x || y !== alt.y)) {
+      const reserve = this.hzAusbauReserve({ ...alt, x, y });
+      if (!reserve || reserve.blocker.some((o) => brauchtFestenPlatz(o.typ) || o.bestand)) return false;
+    }
+    if (this.sperrtAusbaureserve(t, x, y, s, alt?.bestand)) return false;
+    const belegung = belegungskarte(this.stand.objekte, alt);
     for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) {
       if (belegung[(y + dy) * N + x + dx]) return false;
       // A46: Auf Straßen steht nichts (außer Leitungen, Laternen, Bänke); im Fluss nur Leitungen (per Spülbohrung)
@@ -406,7 +507,24 @@ export class Spiel {
     return { eur: k[Math.min(stufe - 1, k.length - 1)] };
   }
 
+  get testwaehrungUnbegrenzt(): boolean { return this.stand.entwickler_unbegrenzt === true; }
+  get verfuegbareEuro(): number { return this.testwaehrungUnbegrenzt ? Infinity : this.stand.geld_eur; }
+  get verfuegbareTaler(): number { return this.testwaehrungUnbegrenzt ? Infinity : this.stand.taler; }
+
+  entwicklerhilfeAnwenden(art: 'kasse' | 'unbegrenzt'): Ergebnis {
+    if (art === 'unbegrenzt') {
+      this.stand.entwickler_unbegrenzt = true;
+      return { ok: true, hinweis: 'Unbegrenzte Euro und Dorftaler sind aktiv.' };
+    }
+    if (this.stand.entwickler_kasse_gefuellt === true)
+      return { ok: false, hinweis: 'Die einmalige Kassenfüllung wurde in diesem Spielstand schon verwendet.' };
+    this.stand.geld_eur = Math.max(this.stand.geld_eur, this.kassengrenze_eur());
+    this.stand.entwickler_kasse_gefuellt = true;
+    return { ok: true, hinweis: 'Der Geldspeicher ist voll.' };
+  }
+
   private bezahlen(c: { taler?: number; eur?: number }): Ergebnis {
+    if (this.testwaehrungUnbegrenzt) return ok();
     if (c.taler != null) {
       if (this.stand.taler < c.taler) return this.nein('Zu wenig Dorftaler');
       this.stand.taler -= c.taler;
@@ -467,6 +585,7 @@ export class Spiel {
     const D = KATALOG[t];
     const sperre = this.gesperrt(t);
     if (sperre) return sperre;
+    if (this.sperrtAusbaureserve(t, x, y)) return this.nein('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
     if (!this.kannPlatzieren(t, x, y)) return this.nein('Hier ist kein Platz');
     if (istLeitung(t) && this.istFluss(x, y) && !freigeschaltet(this.stand, 'spuelbohrung')) return this.nein(this.flussGesperrt());
     if (istLeitung(t)) {
@@ -476,8 +595,13 @@ export class Spiel {
     if (istLeitung(t)) {
       // A41: Leitungen entstehen nur in einem Bauabschnitt, bezahlt wird erst bei der Materialbestellung.
       if (this.stand.abschnitt?.phase !== 'offen') return this.nein(this.stand.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : `Leitungen entstehen in Bauabschnitten – erst mit ${ABSCHNITT_HELFER.planung} einen Abschnitt planen`);
+      const nachbarn = this.stand.objekte.filter((o) => istLeitung(o.typ) && Math.abs(o.x - x) + Math.abs(o.y - y) === 1);
+      const geplant = nachbarn.filter((o) => o.geplant);
+      if (geplant.length && this.schliesstLeitungsring(geplant, x, y)) return this.nein(RINGSCHLUSS);
       const id = this.stand.naechste_id++;
-      this.stand.objekte.push({ id, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr() });
+      const trassenUebergaenge = Object.fromEntries(nachbarn.filter((o) => !o.geplant).map((o) => [o.id, false]));
+      this.stand.objekte.push({ id, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr(),
+        ...(Object.keys(trassenUebergaenge).length ? { trassenUebergaenge } : {}) });
       this.schritt('leitung_gezeichnet', id);
       this.erreichtAbgleichen();
       return ok();
@@ -499,7 +623,7 @@ export class Spiel {
     return { ok: true };
   }
 
-  maxStufe(o: Objekt): number { return o.typ === 'hz' ? KONSTANTEN.hoechststufe : Math.min(KONSTANTEN.hoechststufe, this.hzStufe); }
+  maxStufe(o: Objekt): number { return o.typ === 'hz' ? KONSTANTEN.heizzentrale_hoechststufe : Math.min(KONSTANTEN.hoechststufe, this.hzStufe); }
 
   ausbauen(id: number): Ergebnis {
     const o = this.objekt(id);
@@ -507,37 +631,66 @@ export class Spiel {
     const D = KATALOG[o.typ];
     if (o.stufe >= this.maxStufe(o)) return this.nein(o.typ === 'hz' ? 'Höchste Stufe' : 'Erst die Heizzentrale ausbauen');
     if (o.typ === 'hz' && !this.hzZiele().every((z) => z.erreicht)) return this.nein('Die Ziele für die nächste Stufe sind noch nicht erreicht');
-    if (o.typ === 'hz' && o.stufe === 2 && !this.kannPlatzieren('hz', o.x, o.y, o.id, 3))
-      return this.nein('Für den Anbau auf 3×3 müssen die Felder rechts und unten frei sein');
+    // Alle vier 3×3-Flächen enthalten den bisherigen 2×2-Grundriss.
+    let ausbauplatz: { x: number; y: number } | undefined;
+    if (o.typ === 'hz' && o.stufe === 2) {
+      ausbauplatz = this.hzAusbauFlaechen(o).find(({ x, y }) => this.kannPlatzieren('hz', x, y, o.id, 3));
+      if (!ausbauplatz) {
+        const namen = [...new Set(this.hzAusbauBlocker().map((blocker) => KATALOG[blocker.typ].name))];
+        return this.nein(namen.length
+          ? `Keine freie 3×3-Fläche. Räum die Ausbaureserve frei: ${namen.join(', ')}`
+          : 'Rund um die Heizzentrale ist keine freie 3×3-Fläche für den Ausbau');
+      }
+    }
     if (!this.braucheMonteur()) return { ok: false };
     const c = { eur: (D.kosten_eur as number[])[o.stufe] };
     const b = this.bezahlen(c);
     if (!b.ok) return b;
     if (istQuelle(o.typ) && this.foerderungNutzen(o.typ)) o.foerderung_eur = c.eur;
+    if (ausbauplatz) {
+      o.x = ausbauplatz.x;
+      o.y = ausbauplatz.y;
+    }
     o.bau = this.neuerBau('ausbau', (D.bauzeit_s as number[])[o.stufe]);
     this.neuBerechnen();
     return ok();
   }
 
+  erzeugerSperrgrund(t: TypId, modell: number): string | null {
+    if (modell === 1 || istAltanlage(t)) return this.sperrgrund(t);
+    const ab = erzeugerAbStufe(t, modell);
+    return this.hzStufe < ab ? `ab Heizzentrale Stufe ${ab}` : null;
+  }
+
   /** Quelle ins Heizhaus einbauen. gratis = Startquelle. */
-  innenEinbauen(t: TypId, gratis = false): Ergebnis {
+  innenEinbauen(t: TypId, gratis = false, modell = 1): Ergebnis {
     const D = KATALOG[t];
+    if (D.kategorie !== 'innen' || !Number.isInteger(modell) || modell < 1 || modell > (D.kosten_eur?.length ?? 0)) return { ok: false };
+    const preis = D.kosten_eur![modell - 1];
     if (this.stand.innen.length >= (KATALOG.hz.plaetze as number[])[this.hzStufe - 1])
       return this.nein('Kein Platz mehr im Heizhaus – erst die Heizzentrale ausbauen');
-    if (!gratis) { const sperre = this.gesperrt(t); if (sperre) return sperre; }
+    if (!gratis || modell > 1 || istAltanlage(t)) {
+      const grund = this.erzeugerSperrgrund(t, modell);
+      if (grund) return this.nein(`Dieses Modell gibt es ${grund}`);
+    }
     if (!gratis) {
       if (!this.braucheMonteur()) return { ok: false };
-      const b = this.bezahlen({ eur: (D.kosten_eur as number[])[0] });
+      const b = this.bezahlen({ eur: preis });
       if (!b.ok) return b;
     }
-    const k: InnenQuelle = { typ: t, stufe: 1, bau: gratis ? null : this.neuerBau('neu', (D.bauzeit_s as number[])[0]) };
-    if (!gratis && this.foerderungNutzen(t)) k.foerderung_eur = (D.kosten_eur as number[])[0];
+    const k: InnenQuelle = { typ: t, stufe: modell, bau: gratis ? null : this.neuerBau('neu', D.bauzeit_s![modell - 1]) };
+    if (!gratis) k.kaufpreis_eur = preis;
+    if (!gratis && this.foerderungNutzen(t)) k.foerderung_eur = preis;
     this.stand.innen.push(k);
     this.neuBerechnen();
     return ok();
   }
 
   ersteQuelleWaehlen(t: TypId): Ergebnis {
+    if (istAltanlage(t)) {
+      const sperre = this.gesperrt(t);
+      if (sperre) return sperre;
+    }
     this.stand.innen = [];
     const r = this.innenEinbauen(t, true);
     if (!r.ok) return r;
@@ -548,23 +701,6 @@ export class Spiel {
     return ok();
   }
 
-  innenAusbauen(i: number): Ergebnis {
-    const k = this.stand.innen[i];
-    if (!k || k.bau || k.stufe >= KONSTANTEN.hoechststufe) return { ok: false };
-    const D = KATALOG[k.typ];
-    if (k.stufe >= this.hzStufe) return this.nein(`Stufe ${k.stufe + 1} passt erst in die Heizzentrale Stufe ${k.stufe + 1}`);
-    if (!this.braucheMonteur()) return { ok: false };
-    const b = this.bezahlen({ eur: (D.kosten_eur as number[])[k.stufe] });
-    if (!b.ok) return b;
-    if (this.foerderungNutzen(k.typ)) k.foerderung_eur = (D.kosten_eur as number[])[k.stufe];
-    k.bau = this.neuerBau('ausbau', (D.bauzeit_s as number[])[k.stufe]);
-    this.neuBerechnen();
-    return ok();
-  }
-
-  beschleunigungskosten_taler(bau: Bau): number {
-    return Math.max(1, Math.ceil((bau.ende_ms - this.uhr()) / 1000 / KONSTANTEN.beschleunigen_s_je_taler));
-  }
   /** „Gefällt mir“ für ein Nachbardorf – ändert nur den eigenen Spielstand, einmal je Dorf. */
   moegen(name: string): boolean {
     if (this.stand.gemocht[name]) return false;
@@ -572,11 +708,15 @@ export class Spiel {
     return true;
   }
 
+  beschleunigungskosten_taler(bau: Bau): number {
+    return Math.max(1, Math.ceil((bau.ende_ms - this.uhr()) / 1000 / KONSTANTEN.beschleunigen_s_je_taler));
+  }
+
   beschleunigen(bau: Bau | null | undefined): Ergebnis {
     if (!bau) return { ok: false };
     const c = this.beschleunigungskosten_taler(bau);
-    if (this.stand.taler < c) return this.nein('Zu wenig Dorftaler');
-    this.stand.taler -= c;
+    const b = this.bezahlen({ taler: c });
+    if (!b.ok) return b;
     bau.ende_ms = this.uhr();
     this.bis(this.uhr());
     return ok();
@@ -756,11 +896,17 @@ export class Spiel {
     return ok();
   }
 
-  /** Quelle im Heizhaus (z. B. zweiten Kessel) verkaufen: 50 % des Einkaufspreises; die letzte Quelle bleibt. */
+  innenRueckkauf_eur(k: InnenQuelle): number {
+    return Number.isFinite(k.kaufpreis_eur) && k.kaufpreis_eur! >= 0
+      ? Math.round(k.kaufpreis_eur! * KONSTANTEN.rueckkauf_anteil) : this.rueckkauf_eur(k.typ, k.stufe);
+  }
+
+  /** Fertige Heizhaus-Quelle verkaufen. Während des Tutorials bleibt die Startversorgung gesichert. */
   innenVerkaufen(i: number): Ergebnis {
     const k = this.stand.innen[i];
-    if (!k || k.bau || this.stand.innen.length <= 1) return this.nein('Die letzte Wärmequelle kann nicht verkauft werden');
-    const betrag = this.rueckkauf_eur(k.typ, k.stufe);
+    if (!k || k.bau) return { ok: false };
+    if (this.stand.tutorial && this.stand.innen.length <= 1) return this.nein('Im Tutorial bleibt die letzte Wärmequelle im Heizhaus');
+    const betrag = this.innenRueckkauf_eur(k);
     this.stand.geld_eur += betrag;
     this.stand.innen.splice(i, 1);
     this.hinweis(`${KATALOG[k.typ].name} verkauft: +${betrag.toLocaleString('de-DE')} €`);
@@ -768,13 +914,59 @@ export class Spiel {
     return ok();
   }
 
+  /** Der Gartenumbau speicherte keine Ursprungskoordinaten. Feste Ortspläne liefern die alten Positionen. */
+  gartenumbauRueckgaengig(): void {
+    const s = this.stand;
+    if (s.garten_layout !== 1 || s.tutorial) return;
+    const ursprung = ursprungskarte(s.ort);
+    const original = new Map(ursprung.objekte.map((o) => [o.id, o]));
+    if (s.neubaugebiet) {
+      const komplett: Spielstand = { ...s, objekte: [], naechste_id: 1, neubaugebiet: false, neubaugebiet_layout: undefined };
+      neubaugebietAnlegen(komplett, 0);
+      const nachtrag: Spielstand = { ...komplett, objekte: [], naechste_id: 1, neubaugebiet: true, neubaugebiet_layout: undefined };
+      neubaugebietAnlegen(nachtrag, 0);
+      const alt = komplett.objekte.slice(0, komplett.objekte.length - nachtrag.objekte.length);
+      const nachId = new Map(s.objekte.map((o) => [o.id, o]));
+      for (const reihe of [alt, nachtrag.objekte]) {
+        const anfaenge = s.objekte.filter((o) => o.bestand && o.y >= N - 2 && o.id > ursprung.naechste_id - 1
+          && reihe.every((platz, i) => {
+            const haus = nachId.get(o.id + i);
+            return haus?.bestand && haus.typ === platz.typ && Math.abs(haus.x - platz.x) + Math.abs(haus.y - platz.y) <= 2;
+          }));
+        if (anfaenge.length === 1) reihe.forEach((platz, i) => original.set(anfaenge[0].id + i, platz));
+      }
+    }
+    const leitungen = new Set(s.objekte.filter((o) => istLeitung(o.typ)).map((o) => o.y * N + o.x));
+    const beruehrt = (o: Objekt): number[] => randFelder(o).map(([x, y]) => y * N + x).filter((f) => leitungen.has(f)).sort((a, b) => a - b);
+    const anschluesse = this.probeNetz().anschluss;
+    let umgezogen = false;
+    for (const o of s.objekte) {
+      const alt = original.get(o.id);
+      if (!alt?.bestand || !o.bestand || alt.typ !== o.typ || KATALOG[o.typ].kategorie !== 'haus') continue;
+      if (ERSTE_HAEUSER.some(([x, y]) => alt.x === x && alt.y === y)) continue;
+      const abstand = Math.abs(alt.x - o.x) + Math.abs(alt.y - o.y);
+      if (!abstand || abstand > 2 || o.bau || o.upgrade_auftrag || !this.kannPlatzieren(o.typ, alt.x, alt.y, o.id, groesse(o))) continue;
+      const ziel = { ...o, x: alt.x, y: alt.y };
+      if (beruehrt(o).join(',') !== beruehrt(ziel).join(',')) continue;
+      const vorher = anschluesse.get(o.id);
+      const nachher = this.probeNetz((a) => a === o ? ziel : a).anschluss.get(o.id);
+      if (vorher?.feld !== nachher?.feld) continue;
+      o.x = alt.x;
+      o.y = alt.y;
+      umgezogen = true;
+    }
+    delete s.garten_layout;
+    if (umgezogen) { this.neuBerechnen(); this.erreichtAbgleichen(); }
+  }
+
   verschieben(id: number, x: number, y: number): Ergebnis {
     const o = this.objekt(id);
     if (!o) return { ok: false };
-    if (['gross', 'hindernis', 'haus'].includes(KATALOG[o.typ].kategorie) || o.bestand) return this.nein('Gebäude stehen fest und lassen sich nicht verschieben');
+    if ((brauchtFestenPlatz(o.typ) || o.bestand) && !this.istAusbauUmzug(o)) return this.nein('Gebäude stehen fest und lassen sich nicht verschieben');
     if (!this.kannPlatzieren(o.typ, x, y, id, groesse(o))) return this.nein('Hier ist kein Platz');
     o.x = x; o.y = y; o._pop = this.uhr();
     this.neuBerechnen();
+    this.erreichtAbgleichen();
     return ok();
   }
 
@@ -782,11 +974,11 @@ export class Spiel {
   get abschnitt() { return this.stand.abschnitt; }
   /** Liegt das Feld auf der öffentlichen Straße des Ortes? */
   istStrasse(x: number, y: number): boolean {
-    this.strassenSet ??= new Set(ortHolen(this.stand.ort).strassen.map(([sx, sy]) => sy * N + sx));
+    this.strassenSet ??= new Set(spielOrt(this.stand).strassen.map(([sx, sy]) => sy * N + sx));
     return this.strassenSet.has(y * N + x);
   }
   istFluss(x: number, y: number): boolean {
-    this.flussSet ??= new Set(ortHolen(this.stand.ort).fluss.map(([sx, sy]) => sy * N + sx));
+    this.flussSet ??= new Set(spielOrt(this.stand).fluss.map(([sx, sy]) => sy * N + sx));
     return this.flussSet.has(y * N + x);
   }
   /** A45: Geplante Leitungen abseits der Straße, für die noch keine Gestattung geklärt ist (Flussfelder zählen zur Spülbohrung). */
@@ -817,9 +1009,12 @@ export class Spiel {
   vorsehungen_eur(): number { return this.stand.objekte.filter((o) => o.geplant && o.vorsehung).length * KONSTANTEN.vorsehung_eur; }
   anbohrung_eur(): number { return this.anbohrungsFelder().length * KONSTANTEN.anbohrung_eur; }
   /** Gebaute Leitungsnachbarn eines Feldes (die Heizzentrale zählt mit). */
-  private gebauteNachbarn(f: number): number {
+  private gebauteNachbarn(rohr: Objekt): number {
     const bel = belegungskarte(this.stand.objekte);
-    return leitungsNachbarn(f % N, Math.floor(f / N), (n) => { const o = this.objekt(bel[n]); return !!o && ((istLeitung(o.typ) && !o.geplant) || o.typ === 'hz'); });
+    return leitungsNachbarn(rohr.x, rohr.y, (n) => {
+      const o = this.objekt(bel[n]);
+      return !!o && (o.typ === 'hz' || (istLeitung(o.typ) && !o.geplant && trassenUebergang(rohr, o) !== false));
+    });
   }
   /** A69: Muss hier an eine laufende Leitung angebohrt werden? Ja, wenn sie durchläuft (kein Leitungsende) und keine Vorsehung hat. */
   private brauchtAnbohrung(o: Objekt): boolean {
@@ -828,8 +1023,122 @@ export class Spiel {
   }
   /** Gebaute Leitung, die hier durchläuft (kein Leitungsende) und keine Vorsehung hat. */
   private laeuftDurch(o: Objekt): boolean {
-    return istLeitung(o.typ) && !o.geplant && !o.vorsehung && this.gebauteNachbarn(o.y * N + o.x) >= 2;
+    return istLeitung(o.typ) && !o.geplant && !o.vorsehung && this.gebauteNachbarn(o) >= 2;
   }
+  /** Prüft einen neuen Rohrknoten oder einen einzelnen Übergang gegen vorhandene Wege. */
+  private schliesstLeitungsring(abgaenge: Objekt[], x?: number, y?: number): boolean {
+    const rohre = new Map(this.stand.objekte.filter((o) => istLeitung(o.typ)).map((o) => [o.y * N + o.x, o]));
+    const anschlussfelder = new Set(randFelder(this.hz).map(([fx, fy]) => fy * N + fx));
+    const anHeizzentrale = (o: Objekt): boolean => anschlussfelder.has(o.y * N + o.x);
+
+    const pruefe = (starts: Objekt[], bereitsAnHz: boolean, mitHeizzentrale: boolean): boolean => {
+      const ziele = new Set(starts);
+      const besucht = new Set<Objekt>();
+      for (const start of starts) {
+        const offen = [start];
+        besucht.add(start);
+        let erreichtHz = false;
+        for (const rohr of offen) {
+          if (mitHeizzentrale && anHeizzentrale(rohr)) erreichtHz = true;
+          for (const [fx, fy] of randFelder(rohr)) {
+            const nachbar = rohre.get(fy * N + fx);
+            if (!nachbar || besucht.has(nachbar) || trassenUebergang(rohr, nachbar) === false) continue;
+            if (ziele.has(nachbar)) return true;
+            besucht.add(nachbar);
+            offen.push(nachbar);
+          }
+        }
+        if (erreichtHz && bereitsAnHz) return true;
+        bereitsAnHz ||= erreichtHz;
+      }
+      return false;
+    };
+
+    if (abgaenge.length > 1 && pruefe(abgaenge, false, false)) return true;
+    if (x === undefined || y === undefined) {
+      // Direkte Nachbarfelder am Heizhaus zählen als gemeinsamer Abgang.
+      return !abgaenge.every(anHeizzentrale) && pruefe(abgaenge, false, true);
+    }
+    const direkt = anschlussfelder.has(y * N + x);
+    const weitere = direkt ? abgaenge.filter((o) => !anHeizzentrale(o)) : abgaenge;
+    return weitere.length + Number(direkt) > 1 && pruefe(weitere, direkt, true);
+  }
+
+  /** Benachbarte Rohrenden mit einem manuell schaltbaren Übergang. */
+  trassenNachbarn(o: Objekt): { nachbar: Objekt; verbunden: boolean; kosten: number }[] {
+    if (!istLeitung(o.typ)) return [];
+    const phase = this.stand.abschnitt?.phase;
+    if (phase && phase !== 'offen') return [];
+    return this.stand.objekte.flatMap((nachbar) => {
+      if (!istLeitung(nachbar.typ) || Math.abs(o.x - nachbar.x) + Math.abs(o.y - nachbar.y) !== 1) return [];
+      const verbunden = trassenUebergang(o, nachbar);
+      const geplant = !!(o.geplant || nachbar.geplant);
+      if (verbunden === undefined || (verbunden && !geplant)) return [];
+      const kosten = geplant ? 0 : [o, nachbar].filter((rohr) => this.brauchtAnbohrung(rohr)).length * KONSTANTEN.anbohrung_eur;
+      return [{ nachbar, verbunden, kosten }];
+    });
+  }
+
+  /** Findet den Übergang, der die fertige Leitung am Sägewerk mit dem bestehenden Netz verbinden kann. */
+  saegewerkTrasse(o: Objekt): {
+    rohr?: Objekt;
+    uebergang?: { von: Objekt; nach: Objekt; kosten: number };
+  } {
+    const rohre = new Map(this.stand.objekte.filter((rohr) => istLeitung(rohr.typ)).map((rohr) => [rohr.y * N + rohr.x, rohr]));
+    const amRand = (objekt: Objekt): Objekt[] => randFelder(objekt).flatMap(([x, y]) => {
+      const rohr = rohre.get(y * N + x);
+      return rohr ? [rohr] : [];
+    });
+    const amWerk = amRand(o);
+    const suche = amWerk.filter((rohr) => !rohr.geplant);
+    const rohr = suche[0] ?? amWerk[0];
+    const gesehen = new Set(suche.map((rohr) => rohr.id));
+    const phase = this.abschnitt?.phase;
+    if (phase && phase !== 'offen') return { rohr };
+
+    for (const von of suche) {
+      for (const nach of amRand(von)) {
+        if (nach.geplant || gesehen.has(nach.id)) continue;
+        if (trassenUebergang(von, nach) === false) {
+          if (this.netz.tiefe.has(nach.y * N + nach.x)) {
+            const uebergang = this.trassenNachbarn(von).find(({ nachbar }) => nachbar === nach);
+            if (uebergang) return { rohr, uebergang: { von, nach, kosten: uebergang.kosten } };
+          }
+        } else {
+          gesehen.add(nach.id);
+          suche.push(nach);
+        }
+      }
+    }
+    return { rohr };
+  }
+
+  /** Beim Zeichnen gilt nur das tatsächlich überstrichene Rohrpaar als gewählter Übergang. */
+  trasseBeimZeichnenVerbinden(von: Objekt, nach: Objekt): Ergebnis | null {
+    if (!!von.geplant === !!nach.geplant || trassenUebergang(von, nach) !== false) return null;
+    return this.trassenUmschalten(von.id, nach.id);
+  }
+
+  trassenUmschalten(id: number, nachbarId: number): Ergebnis {
+    const o = this.objekt(id);
+    const uebergang = o && this.trassenNachbarn(o).find(({ nachbar }) => nachbar.id === nachbarId);
+    if (!o || !uebergang) return { ok: false };
+    const { nachbar, verbunden, kosten } = uebergang;
+    if (!verbunden && this.schliesstLeitungsring([o, nachbar])) return this.nein(RINGSCHLUSS);
+    if (kosten) {
+      const bezahlt = this.bezahlen({ eur: kosten });
+      if (!bezahlt.ok) return bezahlt;
+    }
+    if (o.trassenUebergaenge?.[nachbarId] !== undefined) o.trassenUebergaenge[nachbarId] = !verbunden;
+    else nachbar.trassenUebergaenge![id] = !verbunden;
+    if (!o.geplant && !nachbar.geplant) {
+      this.vorsehungenVerbrauchen();
+      this.neuBerechnen();
+    }
+    this.erreichtAbgleichen();
+    return ok();
+  }
+
   /** A69: Gebaute, durchlaufende Leitungen ohne Vorsehung, an die eine geplante Leitung des Abschnitts andockt. */
   anbohrungsFelder(): number[] {
     const bel = belegungskarte(this.stand.objekte), felder = new Set<number>();
@@ -837,9 +1146,9 @@ export class Spiel {
       if (!g.geplant) continue;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = g.x + dx, ny = g.y + dy;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+        if (nx < 0 || ny < 0 || nx >= N || ny >= this.kartenHoehe) continue;
         const o = this.objekt(bel[ny * N + nx]);
-        if (o && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
+        if (o && trassenUebergang(g, o) !== false && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
       }
     }
     return [...felder];
@@ -987,7 +1296,7 @@ export class Spiel {
   /** A69: Nach dem Bau ist eine Vorsehung belegt, wenn an ihr ein Abzweig hängt (drei oder mehr Leitungsnachbarn, Heizzentrale zählt mit).
    *  Erst bei Bauende, damit sie während der Bauzeit weiter als Abzweig zählt (A67); ein bloß verlängertes Leitungsende verbraucht sie nicht. */
   private vorsehungenVerbrauchen(): void {
-    for (const o of this.stand.objekte) if (o.vorsehung && !o.geplant && istLeitung(o.typ) && this.gebauteNachbarn(o.y * N + o.x) >= 3) delete o.vorsehung;
+    for (const o of this.stand.objekte) if (o.vorsehung && !o.geplant && istLeitung(o.typ) && this.gebauteNachbarn(o) >= 3) delete o.vorsehung;
   }
   /** A62: Aufpreis für die Expresslieferung des laufenden Bauabschnitts. */
   expresskosten_eur(): number {
@@ -1182,8 +1491,16 @@ export class Spiel {
         s.geld_eur += zurueck;
         this.hinweis(`${name} fertig · Förderung ausgezahlt: +${zurueck.toLocaleString('de-DE')} €`);
         delete e.foerderung_eur; s.erledigt.funded = true;
-      } else this.hinweis(`${name}${hatStufen(e.typ) ? ' Stufe ' + e.stufe : ''} fertig!`);
-      if (istObjekt && e.typ === 'hz') this.neuFreigeschaltetMelden(e.stufe);
+      } else this.hinweis(`${name}${KATALOG[e.typ].kategorie === 'innen' ? ' · ' + KATALOG[e.typ].leistung_kw![e.stufe - 1] + ' kW' : hatStufen(e.typ) ? ' Stufe ' + e.stufe : ''} fertig!`);
+      if (istObjekt && e.typ === 'hz') {
+        if (e.stufe >= KONSTANTEN.heizzentrale_hoechststufe && !s.neubaugebiet) {
+          neubaugebietAnlegen(s, t);
+          this.strassenSet = undefined;
+          this.flussSet = undefined;
+          this.hinweis('Neubaugebiet Süd erschlossen · Folge der Hauptstraße nach Süden');
+        }
+        this.neuFreigeschaltetMelden(e.stufe);
+      }
       const ziel = istObjekt ? (e as Objekt) : this.hz;
       ziel._pop = t;
       this.ereignisse.push({ art: 'funken', objekt_id: istObjekt ? (e as Objekt).id : 'heizzentrale' });
@@ -1206,6 +1523,9 @@ export class Spiel {
     }
     for (const o of s.objekte) if (o.upgrade_auftrag && o.upgrade_auftrag.ende_ms <= t) {
       const u = UPGRADES[o.upgrade ?? 0], vorher_k = spreizungHaus_k(o, this.vorlauf_c);
+      if ((o.upgrade ?? 0) === 0) {
+        (s.helfer_pause_bis_ms ??= {})[o.upgrade_auftrag.helfer] = o.upgrade_auftrag.ende_ms + ABGLEICH_PAUSE_MS;
+      }
       o.upgrade = (o.upgrade ?? 0) + 1;
       // A73 + Fachprüfung: tatsächlicher Spreizungsgewinn beim aktuellen Vorlauf (Rücklauf nie unter 40 °C)
       const gewinn_k = Math.round(spreizungHaus_k(o, this.vorlauf_c) - vorher_k);
@@ -1234,6 +1554,7 @@ export class Spiel {
     s.geld_eur = Math.min(Math.max(s.geld_eur, grenze), s.geld_eur + summe_eur + rest_kasse);
     const eingang_eur = s.geld_eur - vorher;
     const a: Abrechnung = { monat: nr, kunden, waerme_kwh: Math.round(kwh), waerme_eur: Math.round(waerme_eur), grund_eur: Math.round(grund_eur), summe_eur: Math.round(summe_eur) };
+    a.eingang_eur = eingang_eur;
     s.letzte_abrechnung = a;
     if (kunden > 0) {
       s.erledigt.collect = true; // Auftrag „erste Monatsabrechnung“
@@ -1241,12 +1562,12 @@ export class Spiel {
       const text = `Abrechnung ${this.monatsname(nr)}: ${kunden} Kunden · ${Math.round(kwh).toLocaleString('de-DE')} kWh · +${eingang.toLocaleString('de-DE')} € eingegangen${eingang < Math.round(summe_eur) ? ' – Kasse voll, Abrechnungsbüro ausbauen' : ''}`;
       if (this.abwesend) this.offline_text = text;
       else {
-        this.hinweis(text);
         const hz = this.hz;
         this.ereignisse.push({ art: 'schwebtext', x: hz.x, y: hz.y, text: `+${eingang.toLocaleString('de-DE')} €`, farbe: '#ffd166' });
         if (eingang > 0) this.ereignisse.push({ art: 'muenzen', objekt_id: hz.id, betrag_eur: eingang });
       }
     }
+    this.andiBeauftragen(eingang_eur, s.zuletzt_ms);
     return { ...a, eingang_eur };
   }
   private einnahmen(dt_s: number): void {
@@ -1324,3 +1645,4 @@ export class Spiel {
     return Math.round(brutto - (alt ? alt.kosten_eur * KONSTANTEN.rueckkauf_anteil : 0));
   }
 }
+

@@ -291,9 +291,12 @@ const lochTipp = (s, ort, id) => async () => {
     const karte = ['heizzentrale', 'haus1', 'haus2'].includes(z);
     const typ = z === 'leitungskarte' && a.leitung_typ ? `[data-typ="${a.leitung_typ}"]` : '';
     const ziel = karte ? null : document.querySelector(`[data-ziel="${z}"]${typ}`);
+    const r = ziel && ziel.getBoundingClientRect();
+    const sichtbar = karte || (!!r && r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight);
     const ok = karte ? !!e && e.tagName === 'CANVAS' : !!e && !!ziel && ziel.contains(e);
-    return { z, ok, unter: e ? e.tagName.toLowerCase() + (e.closest('[data-ziel]') ? `[data-ziel=${e.closest('[data-ziel]').getAttribute('data-ziel')}]` : '') : 'nichts' };
+    return { z, ok, sichtbar, unter: e ? e.tagName.toLowerCase() + (e.closest('[data-ziel]') ? `[data-ziel=${e.closest('[data-ziel]').getAttribute('data-ziel')}]` : '') : 'nichts' };
   }, m);
+  pruefe(ort, `${id}: Ziel „${treffer.z}“ liegt vollständig im sichtbaren Bildschirm`, treffer.sichtbar, 'Ziel liegt außerhalb des Viewports');
   pruefe(ort, `${id}: Lochmitte (${r1(m[0])}|${r1(m[1])}) trifft das Ziel „${treffer.z}“`, treffer.ok, `darunter ${treffer.unter}`);
   await tippe(s.p, m);
 };
@@ -420,7 +423,8 @@ async function t13(s, ort) {
 }
 
 async function durchklick844(browser, url, server) {
-  const g = { b: 844, h: 390 }, ort = '844×390';
+  // Exaktes CSS-Format des gemeldeten iPhone-Screenshots (2556×1179 bei DPR 3).
+  const g = { b: 852, h: 393 }, ort = '852×393';
   const s = await seiteOeffnen(browser, url, g);
   const { p } = s;
   const gesehen = [];
@@ -550,7 +554,7 @@ async function main() {
   try {
     const antwort = await fetch(url);
     if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
-    browser = await chromium.launch();
+    browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : undefined);
     console.log(`Browser-Durchklick NR13 · ${url} · ${new Date().toISOString()}`);
     await durchklick844(browser, url, server);
     await kurzlauf667(browser, url);

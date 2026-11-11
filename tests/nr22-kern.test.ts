@@ -9,14 +9,14 @@ import { dreieckFelder, dreieckTreffer } from '../src/render/ueberlast';
 import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
 
 // Bauplan docs/bauplaene/NR20-22.md Fassung 2.4, P6 (E5, E6). Erwartungen von Hand aus dem Startdorf hergeleitet:
-// Heizzentrale 2×2 ab (11|10). Stamm als 25er von (11|9) nach Westen bis (6|9) – 6 Felder –, danach eine 40er bis (3|9),
+// Heizzentrale 2×2 ab (11|10). Stamm als 25er vom Abgang (10|10) westlich der Heizzentrale über (10|9) nach Westen bis (6|9) – 6 Felder; (11|9) gehört seit main 4d2aecd zur Ausbaureserve 11..13|9..11 –, danach eine 40er bis (3|9),
 // (2|9), (2|8). Kunden: Reihenhaus (3|10) 16 kW und EFH (2|7) 10 kW, beide ohne Puffer → 26 kW durch den ganzen Stamm.
 // 25er trägt 15 kW, 32er 25 kW, 40er 40 kW (Katalog, Spreizung 20 K) → der Stamm ist zu dünn, die 32er reicht nicht, die 40er schon.
 // Katalogpreise (kosten_eur[0], mit Kostenfaktor 40): d25 400 €, d32 560 €, d40 800 €; Rückkauf 50 % des alten Typs.
 const T0 = 1_000_000_000_000;
 const N = KONSTANTEN.feldanzahl;
 const feld = (x: number, y: number): number => y * N + x;
-const STAMM: ReadonlyArray<[number, number]> = [[11, 9], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9]];
+const STAMM: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9]];
 const ENDE: ReadonlyArray<[number, number]> = [[5, 9], [4, 9], [3, 9], [2, 9], [2, 8]];
 const STAMM_FELDER = STAMM.map(([x, y]) => feld(x, y));
 const TEXT_ERSATZ_AUSSERHALB = 'Dickere Leitungen entstehen nur im Bauabschnitt – lass Philipp einen planen.';
@@ -137,19 +137,19 @@ describe('NR22 P6 Kern: ganzes Stück vergrößern (E6)', () => {
     expect(s.ersatzPlanen(stamm[2].id, 'd32').ok).toBe(true); // kleinerer Ersatz: wird abgelöst
     const nr1 = stamm[1].ersatz!.nr, nr4 = stamm[4].ersatz!.nr;
     const offen = [STAMM_FELDER[0], STAMM_FELDER[2], STAMM_FELDER[3], STAMM_FELDER[5]];
-    expect(s.stueckOffeneFelder(feld(11, 9), 'd40')).toEqual(offen);
+    expect(s.stueckOffeneFelder(feld(10, 10), 'd40')).toEqual(offen);
     // die 32er-Stufe ist für die schon geplanten Felder erledigt, offen sind nur die drei ohne Ersatz
-    expect(s.stueckOffeneFelder(feld(11, 9), 'd32')).toEqual([STAMM_FELDER[0], STAMM_FELDER[3], STAMM_FELDER[5]]);
+    expect(s.stueckOffeneFelder(feld(10, 10), 'd32')).toEqual([STAMM_FELDER[0], STAMM_FELDER[3], STAMM_FELDER[5]]);
     expect(s.stueckVergroessern(feld(6, 9), 'd40')).toEqual({ ok: true });
     expect(stamm.map((o) => o.ersatz?.typ)).toEqual(['d40', 'd40', 'd40', 'd40', 'd40', 'd40']);
     // schon passende Felder bleiben unverändert (gleiche Ersatz-Nummer)
     expect([stamm[1].ersatz!.nr, stamm[4].ersatz!.nr]).toEqual([nr1, nr4]);
-    expect(s.stueckOffeneFelder(feld(11, 9), 'd40')).toEqual([]);
+    expect(s.stueckOffeneFelder(feld(10, 10), 'd40')).toEqual([]);
   });
 
   it('test_nr22_ganz_oder_gar_nicht: Phase bestellen → nichts geplant, Hinweis ERSATZ_NUR_IM_ABSCHNITT; gesperrte Größe → Sperrsatz', () => {
     const { s } = gebautOffen();
-    zeichne(s, 'd25', [[13, 10]]);
+    zeichne(s, 'd25', [[12, 12]]);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.stueckVergroessern(feld(8, 9), 'd40')).toEqual({ ok: false, hinweis: TEXT_ERSATZ_AUSSERHALB });
     expect(stammLeitungen(s).every((o) => !o.ersatz)).toBe(true);

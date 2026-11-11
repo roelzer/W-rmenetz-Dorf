@@ -718,3 +718,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 10:23 | ■ 🟡 | tester | 🟡 Tester Teil 4 ist fertig. Der Commit liegt auf nr20-mm-tester4, nicht gepusht.  ([Bericht](docs/pruefberichte/20261111-102334-tester-af3e72e4d636e5c81.md)) |
 | 2026-11-11 10:27 | ■ 🟡 | tester | 🟡 Tester Teil 4 mit dem Zusatz aus dem Test-Review ist fertig. Alles steckt in einem Commit auf nr20-mm-tester4. Den früheren Commit ccefeb1 habe ich dafür ([Bericht](docs/pruefberichte/20261111-102734-tester-af3e72e4d636e5c81.md)) |
 | 2026-11-11 10:28 | ▶ | entwickler | Entwickler: Planungsfehler weg, kW-Knopf, Aufräumen |
+| 2026-11-11 08:52 | ▶ | reviewer | Review Tutorial-Fix steuerung.ts |
+| 2026-11-11 08:55 | ■ 🟡 | reviewer | ### Urteil: 🟡 freigegeben mit kleinen Punkten  ([Bericht](docs/pruefberichte/20261111-085551-reviewer-a3d58366076e04f8f.md)) |

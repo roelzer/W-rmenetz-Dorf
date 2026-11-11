@@ -134,8 +134,10 @@ describe('P5f-2 F5: Startfeld an der Heizzentrale und Raute mit Pfeil', () => {
   it('beim Planen (zweiter Leitungs-Durchgang über den Gebäuden) liegen Band und Raute auf (10|11) auch über den Leitungen', () => {
     const mitRohr = [...objekte, neu('d25', 13, 12)];
     const b = bild(szene({ objekte: mitRohr, netz: berechneNetz(mitRohr, [], 1), modus: 'stempel', tutorial_band: T13_BAND, naechstes_feld: [10, 11] }));
-    // Rohrschatten rgba(40,34,26,.4) (zeichneLeitungen): der letzte gehört zum zweiten Durchgang
-    const rohr = b.lastIndexOf('strokeStyle=rgba(40,34,26,.4)');
+    // Schlanke Rohrgrafik aus main (ENTSCHEIDUNGEN 2026-11-11): dunkle Rohrkante rgba(35,40,35,.42) (zeichneLeitungen) statt des
+    // früheren Rohrschattens. Beim Planen liegen die Leitungen über den Gebäuden; die letzte Kante gehört zu diesem Durchgang.
+    const rohr = b.lastIndexOf('strokeStyle=rgba(35,40,35,.42)');
+    expect(rohr, 'Vorprobe: Leitungen gezeichnet').toBeGreaterThan(-1);
     expect(rohr).toBeGreaterThan(b.indexOf(HZ_WAND));
     expect(b.indexOf(`strokeStyle=${D32}`)).toBeGreaterThan(rohr);
     expect(rauteFuellung(b)).toBeGreaterThan(rohr);
@@ -176,19 +178,28 @@ describe('P5f-2 F3: Ebene der Streifen', () => {
     const ruhig = bild(szene({ objekte: mitRohr, netz: n, tutorial_fremd: [[12, 12]] }));
     expect(ruhig.indexOf('clip()')).toBeLessThan(ruhig.indexOf(HZ_WAND));
     const plan = bild(szene({ objekte: mitRohr, netz: n, modus: 'stempel', tutorial_fremd: [[12, 12]] }));
-    expect(plan.indexOf('clip()')).toBeGreaterThan(plan.lastIndexOf('strokeStyle=rgba(40,34,26,.4)'));
+    // Anker: dunkle Rohrkante der schlanken Grafik aus main (rgba(35,40,35,.42)); ohne Vorprobe wäre lastIndexOf = −1 und die
+    // Prüfung immer wahr
+    const kante = plan.lastIndexOf('strokeStyle=rgba(35,40,35,.42)');
+    expect(kante, 'Vorprobe: Leitung beim Planen über der Heizzentrale gezeichnet').toBeGreaterThan(plan.indexOf(HZ_WAND));
+    expect(plan.indexOf('clip()')).toBeGreaterThan(kante);
   });
 });
 
 // P5f-2c: F3 Maße der Hülle – Rohrbreite + 12 px (6 px je Seite), außen 1,5 px Rand je Seite → Außenkante Rohrbreite + 15 px.
+// Rohrbreite nach der schlanken Grafik aus main (szene.ts rohrBreite, gleiche Formel für Rohr und Hülle):
+// max(1,5; Feldbreite × Katalog-`breite` × 0,62), für die 25er also max(1,5; tw × 0,06 × 0,62).
 describe('P5f-2c F3: Breite der Hülle', () => {
   const mitRohr = [...objekte, neu('d25', 12, 12)];
   const n = berechneNetz(mitRohr, [], 1);
   it('Hülle um ein 25er-Feld: innerer Bogen Ø = Rohrbreite + 12, äußerer Bogen Ø = Rohrbreite + 15', () => {
     fremdEinblendungZuruecksetzen();
     const b = bild(szene({ objekte: mitRohr, netz: n, tutorial_fremd: [[12, 12]], jetzt_ms: 90_000 }));
-    // Rohrbreite der 25er: Feldbreite × 0,06 (Katalog d25 `breite`)
-    const rohr = kamera().tw * 0.06;
+    // Rohrbreite der 25er: max(1,5; Feldbreite × 0,06 × 0,62) (Katalog d25 `breite` 0,06, Faktor 0,62 der schlanken Grafik)
+    const rohr = Math.max(1.5, kamera().tw * 0.06 * 0.62);
+    // Die Hülle umschließt das tatsächlich gezeichnete Rohr: ein Strich in 25er-Farbe mit genau dieser Breite existiert
+    const rohrStrich = b.some((x, i) => x === 'strokeStyle=#d8392f' && b.slice(i + 1, i + 3).some((y) => y.startsWith('lineWidth=') && Math.abs(Number(y.slice(10)) - rohr) < 1e-9));
+    expect(rohrStrich, 'Rohr der 25er in der berechneten Breite gezeichnet').toBe(true);
     const iClip = b.indexOf('clip()');
     const radien = b.slice(0, iClip).filter((x) => x.startsWith('arc(')).slice(-2).map((x) => Number(x.slice(4, -1).split(',')[2]));
     expect(radien[1] * 2 - rohr, 'innere Hülle').toBeCloseTo(12, 6);

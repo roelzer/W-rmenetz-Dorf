@@ -15,7 +15,15 @@ const wenigerBewegung = (): boolean => document.body.classList.contains('weniger
 /** Das Tutorial hat sechs Kapitel (DESIGN 13.5). */
 const KAPITEL_ANZAHL = 6;
 
-export interface AnleiterPlatz { links: number; unten?: number; oben?: number; breite: number; figur_px: 112 | 72 }
+export interface AnleiterPlatz { links: number; unten?: number; oben?: number; breite: number; figur_px: 112 | 96 }
+/** Figurgrößen nur aus den Tokens (`anleiter_figur` 112, `anleiter_figur_klein` 96), damit die Zahl nicht mehrfach fest im Code steht. */
+function figurPx(name: 'anleiter_figur' | 'anleiter_figur_klein'): AnleiterPlatz['figur_px'] {
+  const v = M[name];
+  // Geprüft statt per `as`: Bilder und CSS sind auf genau diese beiden Größen gezeichnet, ein anderer Token-Wert fiele sonst still durch
+  if (v === 112 || v === 96) return v;
+  throw new Error(`Token menue.mass_px.${name} = ${v}, erwartet 112 oder 96`);
+}
+const FIGUR_GROSS_PX = figurPx('anleiter_figur'), FIGUR_KLEIN_PX = figurPx('anleiter_figur_klein');
 
 /** Platzregel 13.3: unten links in der freien Fläche; mit offenem Blatt bzw. offener Zeichenleiste (freie Fläche schmaler
  *  als das Bild) freie Breite − 2 × Rand, sonst Bildbreite − 112 (88 px frei für [Bauen] plus Rand), höchstens 460.
@@ -25,7 +33,7 @@ export function anleiterPlatz(frei: Rechteck, ziel: Rechteck | null, bild: { bre
   const blattOffen = frei.x + frei.b < bild.breite;
   const verfuegbar = blattOffen ? frei.b - 2 * rand : bild.breite - M.anleiter_platz_bauen - 2 * rand;
   const breite = Math.floor(Math.min(M.anleiter_karte_max, verfuegbar));
-  const figur_px = frei.b < M.anleiter_figur_klein_unter ? 72 : 112;
+  const figur_px = frei.b < M.anleiter_figur_klein_unter ? FIGUR_KLEIN_PX : FIGUR_GROSS_PX;
   const kartenOben = bild.hoehe - rand - M.anleiter_hoehe;
   const links = frei.x + rand;
   if (ziel && ziel.y + ziel.h > kartenOben - M.anleiter_ziel_abstand) return { links, oben: T.groesse_px.blatt_oben_quer, breite, figur_px };
@@ -113,7 +121,7 @@ function platzSetzen(el: HTMLElement, p: AnleiterPlatz): void {
   // Unten zusätzlich der Sicherheitsabstand des Geräts (13.3)
   el.style.bottom = p.unten !== undefined ? `calc(${p.unten}px + env(safe-area-inset-bottom))` : '';
   el.style.top = p.oben !== undefined ? `${p.oben}px` : '';
-  el.classList.toggle('figur-klein', p.figur_px === 72);
+  el.classList.toggle('figur-klein', p.figur_px === FIGUR_KLEIN_PX);
 }
 
 /** Zeigt die Karte für die Ansicht. Bei gleichem Inhalt wird nur die Restzeit erneuert – so springt der Fokus nicht und der
@@ -123,6 +131,7 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
     wurzel = h('div', { id: 'anleiter', class: 'anleiter', role: 'status', 'aria-live': 'polite' });
     document.getElementById('app')!.append(wurzel);
   }
+  wurzel.classList.toggle('handlung', a.art === 'H' && a.weiter === null);
   platzSetzen(wurzel, platz);
   // Kapitel 3 (DESIGN 13.17.1 B6): kleine Figur und feste Höhe für drei Zeilen, damit die Karte die Spur nicht verdeckt
   wurzel.classList.toggle('kompakt', a.kompakt);
@@ -139,12 +148,13 @@ export function anleiterZeigen(a: TutorialAnsicht, platz: AnleiterPlatz, aktione
     weiterKnopf = knopf(a.weiter === 'los' ? 'Los geht’s' : 'Weiter', () => aktionen.weiter(), 'los', { klein: true });
     weiterKnopf.setAttribute('id', 'anleiter-weiter');
   }
+  const zeileZeigen = weiterKnopf !== null || a.weiter === 'wartet' || !!a.knopf_hinweis;
   const blase = h('div', { class: 'anleiter-blase' },
     h('div', { class: 'anleiter-kopf' }, h('strong', { class: 'anleiter-name' }, 'Simon'), punkte),
     // Sammelliste P5 Punkt 5: kein Chip auf der kompakten Karte – ihre drei Zeilen gehören dem Satz
     !a.kompakt && a.wusstest_du ? h('span', { class: 'chip gold' }, 'Wusstest du?') : null,
     h('p', { class: 'anleiter-text' }, ...mitFett(a.text)),
-    h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf));
+    zeileZeigen ? h('div', { class: 'anleiter-knopfzeile' }, warteZeile, weiterKnopf) : null);
   wurzel.replaceChildren(h('div', { class: 'anleiter-figur' }, sprecherFigur('Simon')), blase);
   // 13.11: Erklär-Schritt → Fokus auf [Weiter], sobald er erscheint
   weiterKnopf?.focus();

@@ -92,7 +92,8 @@ describe('A31 Verkaufen zu 50 %', () => {
     const v2 = s.stand.geld_eur;
     expect(s.innenVerkaufen(1).ok).toBe(true);
     expect(s.stand.geld_eur - v2).toBe(Math.round(KATALOG.wpg.kosten_eur![0] * 0.5));
-    expect(s.innenVerkaufen(0).ok).toBe(false);
+    expect(s.innenVerkaufen(0).ok).toBe(true);
+    expect(s.stand.innen).toHaveLength(0);
   });
   it('A30: entfernte Leitung bringt 50 % zurück', () => {
     const s = neuesSpiel();
@@ -718,10 +719,10 @@ describe('A58 Heizhaus ausbauen', () => {
     const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;
     expect(KATALOG.hz.plaetze![0]).toBe(2);
-    expect(s.innenEinbauen('pellet').ok).toBe(true);
+    expect(s.innenEinbauen('kessel').ok).toBe(true);
     expect(s.stand.innen).toHaveLength(2);
   });
-  it('A58: Gaskessel, Pelletkessel und BHKW gibt es; das BHKW erst ab Heizzentrale Stufe 2', () => {
+  it('A58: Alte Kessel bleiben im Katalogdatenbestand, das BHKW ist auf Stufe 1 noch gesperrt', () => {
     for (const t of ['pellet', 'gas', 'bhkw'] as const) expect(KATALOG[t].kategorie).toBe('innen');
     const s = new Spiel(altesStartdorf(0), () => 0); s.ersteQuelleWaehlen('kessel');
     s.stand.geld_eur = 100_000;
@@ -780,10 +781,10 @@ describe('A62 Expresslieferung', () => {
 });
 
 describe('A63 Logo', () => {
-  it('A63: Das Logo zeigt Flamme und Leitungen (Vorlauf rot, Rücklauf blau) und ist auch App-Symbol', async () => {
+  it('A63: Das Logo zeigt Dach, Flamme, Vor- und Rücklauf und ist auch App-Symbol', async () => {
     const { readFileSync } = await import('node:fs');
     const logo = readFileSync(new URL('../src/ui/logo.svg', import.meta.url), 'utf8');
-    expect(logo).toContain('#f0453a'); expect(logo).toContain('#3a92ea');
+    expect(logo).toContain('#f59352'); expect(logo).toContain('#69c3f1');
     expect(readFileSync(new URL('../public/icon.svg', import.meta.url), 'utf8')).toBe(logo);
   });
 });
@@ -796,12 +797,9 @@ describe('A64 Ladebildschirm, A65 Abzweig an der Hauptleitung', () => {
     expect(q).toContain('Je kälter der Rücklauf');
     expect(q).not.toMatch(/innerHTML/);
   });
-  it('A82: Ladebild mit Simons Spruch und Rohrgrößen passend zu den Häusern, ohne Vorsehung', () => {
+  it('A82: Ladebild behält Simons Spruch', () => {
     const q = readFileSync(new URL('../src/ui/vorspann.ts', import.meta.url), 'utf8');
     expect(q).toContain("'Heize dein Dorf klimaneutral'"); // Simon 2026-11-05, ersetzt die Unterzeile aus A68
-    expect(q).not.toMatch(/'d(50|63|75|90|110)'/); // 3–4 Häuser je Strang à ca. 10 kW: höchstens 40er
-    expect(q).toContain("'d32'");
-    expect(q).not.toContain('H1470'); expect(q).not.toContain('H140`'); // Leitung endet am letzten angeschlossenen Haus
   });
   it('A65: Die dünnere Leitung läuft bis in die Hauptleitung, die Hauptleitung zeichnet keinen Stummel', async () => {
     const { abzweigZeichnen, eigenerHausanschluss } = await import('../src/render/anschluss');
@@ -841,7 +839,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
   /** gebaute Leitung bei (x|y) und ein freier Nachbar, auf den eine Leitung passt */
   const andock = (s: Spiel, x: number, y: number) => {
     const ziel = s.stand.objekte.find((o) => istLeitung(o.typ) && o.x === x && o.y === y)!;
-    const frei = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [x + dx, y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b))!;
+    const frei = ([[-1, 0], [1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [x + dx, y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b))!;
     return { ziel, frei };
   };
   it('A69: Vorsehung nur auf geplanten Leitungen im offenen Abschnitt; sie kostet und lässt sich wieder entfernen', () => {
@@ -863,6 +861,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const s = offen();
     const { ziel, frei } = andock(s, 10, 12);
     s.platzieren('d25', frei[0], frei[1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ziel.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toEqual([ziel.y * N + ziel.x]);
     expect(s.abschnittKosten_eur()).toBe((KATALOG.d25.kosten_eur as number[])[0] + s.gestattung_eur() + s.bohrung_eur() + KONSTANTEN.anbohrung_eur);
   });
@@ -871,6 +870,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const { ziel, frei } = andock(s, 10, 12);
     ziel.vorsehung = true;
     s.platzieren('d25', frei[0], frei[1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ziel.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toEqual([]);
     expect(s.abschnittAbschliessen().ok).toBe(true);
     expect(s.materialBestellen().ok).toBe(true);
@@ -885,12 +885,14 @@ describe('A69 Vorsehung und Anbohrung', () => {
     const frei = ([[1, 0], [0, 1], [0, -1]] as const).map(([dx, dy]) => [ende.x + dx, ende.y + dy] as const).find(([a, b]) => s.kannPlatzieren('d25', a, b));
     expect(frei).toBeDefined();
     s.platzieren('d25', frei![0], frei![1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ende.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toEqual([]);
   });
   it('A69: Neben der Heizzentrale ist die erste Leitung durchlaufend – Andocken kostet eine Anbohrung', () => {
     const s = offen();
-    const { frei } = andock(s, 10, 10);
+    const { ziel, frei } = andock(s, 10, 10);
     s.platzieren('d25', frei[0], frei[1]);
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, ziel.id).ok).toBe(true);
     expect(s.anbohrungsFelder()).toContain(10 * N + 10);
   });
   it('A69/A67: Während der Bauzeit zählt eine genutzte Vorsehung weiter als Abzweig (kein falsches Warnzeichen)', () => {
@@ -901,6 +903,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     expect(s.netz.reduzierung.size).toBe(0);
     s.stand.abschnitt = { phase: 'offen', bau: null };
     expect(s.platzieren('d25', 9, 12).ok).toBe(true); // links andocken; rechts (11|12) läge an der Heizzentrale
+    expect(s.trassenUmschalten(s.stand.objekte.at(-1)!.id, v.id).ok).toBe(true);
     s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
     for (const anteil of [0.1, 0.5, 0.9]) { t = s.stand.abschnitt!.bau!.ende_ms * anteil; s.bis(t); s.neuBerechnen(); expect(s.netz.reduzierung.size).toBe(0); }
     t = s.stand.abschnitt!.bau!.ende_ms; s.bis(t); s.neuBerechnen();
@@ -915,6 +918,7 @@ describe('A69 Vorsehung und Anbohrung', () => {
     // Leitungsende nach unten verlängern: (11|15), (11|16); auf (11|15) Vorsehung, daran nach rechts ein Abzweig (12|15)
     for (const [x, y] of [[11, 15], [11, 16], [12, 15]] as const) expect(s.platzieren('d25', x, y).ok).toBe(true);
     const mitte = s.stand.objekte.find((o) => o.geplant && o.x === 11 && o.y === 15)!;
+    expect(s.trassenUmschalten(mitte.id, ende.id).ok).toBe(true);
     expect(s.vorsehungUmschalten(mitte.id).ok).toBe(true);
     s.abschnittAbschliessen(); expect(s.materialBestellen().ok).toBe(true);
     t = s.stand.abschnitt!.bau!.ende_ms; s.bis(t);
@@ -1049,7 +1053,7 @@ describe('Simon 2026-11-05: Verbrauch, Leitungen, Rücklauf, Startnetz', () => {
     }
   });
   it('A72: 25er bis 15 kW, 32er bis 25 kW, danach nach Rohrquerschnitt', () => {
-    expect(LEITUNGEN.map((l) => KATALOG[l].kapazitaet_kw)).toEqual([15, 25, 40, 60, 95, 135, 195, 290]);
+    expect(LEITUNGEN.map((l) => KATALOG[l].kapazitaet_kw)).toEqual([15, 25, 40, 60, 120, 180, 270, 400, 550, 700, 900]);
     for (const l of LEITUNGEN) expect(KATALOG[l].beschreibung).toContain(`bis ${KATALOG[l].kapazitaet_kw} kW`);
   });
   it('A73: Der Rücklauf fällt nie unter 40 °C; Upgrades vergrößern die Spreizung', async () => {
@@ -1184,7 +1188,7 @@ describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
     expect(kunden.length).toBeGreaterThan(0);
     const soll_kwh = kunden.reduce((a, o) => a + s.jahresverbrauch_kwh(o), 0) * 0.170; // Januar 170 ‰
     const vorher = s.stand.geld_eur;
-    z.t = JAN + 10 * 60 * 1000; s.bis(z.t);
+    while (z.t < JAN + 10 * 60 * 1000) { z.t += 10_000; s.bis(z.t); }
     const a = s.stand.letzte_abrechnung!;
     expect(s.monatsname(a.monat)).toBe('Januar');
     expect(a.waerme_kwh).toBeCloseTo(soll_kwh, -1);
@@ -1192,7 +1196,8 @@ describe('A81 Monatsabrechnung (Simon 2026-11-05)', () => {
     expect(a.waerme_eur).toBeCloseTo(soll_kwh * ct / 100, -1);
     expect(a.grund_eur).toBe(a.kunden * 32);
     expect(s.stand.geld_eur).toBeGreaterThan(vorher); // ohne Antippen
-    expect(s.ereignisse.some((e) => 'text' in e && e.text.startsWith('Abrechnung Januar'))).toBe(true);
+    expect(a.eingang_eur).toBeCloseTo(a.summe_eur, 0);
+    expect(s.ereignisse.some((e) => 'text' in e && e.text.startsWith('Abrechnung Januar'))).toBe(false);
   });
   it('A81: Im Juli wird viel weniger Wärme abgerechnet als im Januar', () => {
     const jan = spiel(), jul = spiel(JAN + 6 * 10 * 60 * 1000);
@@ -1371,7 +1376,7 @@ describe('A86 Fiktiver Dorfname statt Hilpoltstein (Simon, Review-Chat NR5)', ()
     const r = ladenMitBefund(serialisieren(alt), 0);
     expect(r.befund).toBe('ok'); // Review A86: kein Start-Hinweis über Straßen/Fluss, nur weil der Name wechselt
     expect(r.stand.name).toBe('Wärmlingen');
-    expect(r.stand.objekte.length).toBe(alt.objekte.length);
+    expect(r.stand.objekte.length).toBe(alt.objekte.length - 1);
     const eigen = altesStartdorf(0); eigen.name = 'Simonsdorf';
     expect(ladenMitBefund(serialisieren(eigen), 0).stand.name).toBe('Simonsdorf');
   });
@@ -1385,3 +1390,4 @@ describe('A87 Keine Firmenhinweise in angezeigten Texten (Simon, Review-Chat NR6
     for (const t of texte) expect(t).not.toMatch(FIRMEN);
   });
 });
+

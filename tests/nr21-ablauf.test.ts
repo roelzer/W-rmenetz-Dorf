@@ -283,7 +283,11 @@ describe('NR21 Ablauf: Haus 2 zuerst und eigener Abgang (DESIGN 13.17.8)', () =>
     }, { uhr: () => uhr.t });
   });
 
-  it('test_nr21_spalte_11_nur_11_12_radiert (11): 25er über Spalte 11 zu Haus 2, Spur (10|13)→(10|14) dazu, Radierer nur auf (11|12) → beide Häuser ok, Streifen (11|13) bleibt, kein T14; Radierer auf (11|13) → T14 erst nach dem Abheben; Bau → warm', async () => {
+  // Früher: 25er über Spalte 11 (11|12)→(11|14) zu Haus 2. Seit main 859dda7 schließt (11|12) zwischen Heizzentrale und
+  // Hauptleitung (10|12) einen Ring über die Heizzentrale und wird abgelehnt; danach wäre auch (11|13) neben der Spur ein
+  // Vierer-Ring. Die Absichten des Tests (G3: beide Häuser richtig + Rest → nur der erste Satz, keine Zielscheibe; T14 erst
+  // nach dem Abheben; Bau → warm) prüft er jetzt mit dem ringfreien eigenen Abgang (12|12),(12|13).
+  it('test_nr21_spalte_11_nur_11_12_radiert (11): Spalte 11 → Ring abgelehnt, Tutorial unverändert; eigener Abgang (12|12),(12|13) + Spur zu Haus 2, Radierer nur auf (12|13) → beide Häuser ok, nur erster Satz, keine Zielscheibe, Streifen (12|12) bleibt, kein T14; Radierer auf (12|12) → T14 erst nach dem Abheben; Bau → warm', async () => {
     const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
       // Startgeld laut tests/nr13-kern.test.ts:11; 30.000 € reichen für Planung, beide Puffer-Stationen und alle Felder (Bauplan P5 [2.3])
@@ -291,23 +295,29 @@ describe('NR21 Ablauf: Haus 2 zuerst und eigener Abgang (DESIGN 13.17.8)', () =>
       bisT13h(u, spiel, uhr);
       expect(spiel.tutorialGeldFehlt_eur()).toBe(0);
       wischeFelder(u, ZUG_HAUS1); st(u).tick(uhr.t);
-      wischeFelder(u, [[11, 12], [11, 13], [11, 14], ERSTE_HAEUSER[1]]); st(u).tick(uhr.t);
-      expect(text(u)).toBe(SATZ_EIGENER_ABGANG);
-      wischeFelder(u, [[10, 13], [10, 14]]); st(u).tick(uhr.t);
-      knopfMitId(u, 'radierer')!.click(); st(u).tick(uhr.t);
+      expect(text(u)).toBe(ZWISCHENSTAND);
       wischeFelder(u, [[11, 12]]); st(u).tick(uhr.t);
+      expect(typAuf(spiel, [11, 12]), 'Ring über die Heizzentrale: kein Rohr auf (11|12)').toBeUndefined();
+      expect(u.meldungen.some((m) => m.startsWith('Diese Verbindung würde einen Ringschluss erzeugen.')), 'Ring-Hinweis').toBe(true);
+      expect([schritt(u), text(u)], 'Tutorial läuft unverändert weiter').toEqual(['T13h', ZWISCHENSTAND]);
+      expect(st(u).szene().tutorial_fremd ?? []).toEqual([]);
+      wischeFelder(u, [[12, 12], [12, 13], ERSTE_HAEUSER[1]]); st(u).tick(uhr.t);
+      expect(text(u)).toBe(SATZ_EIGENER_ABGANG);
+      wischeFelder(u, ZUG_HAUS2); st(u).tick(uhr.t);
+      knopfMitId(u, 'radierer')!.click(); st(u).tick(uhr.t);
+      wischeFelder(u, [[12, 13]]); st(u).tick(uhr.t);
       const lg = spiel.tutorialLeitungen();
       expect([lg.haus1_ok, lg.haus2_ok]).toEqual([true, true]);
       expect(schritt(u)).toBe('T13h');
       // DESIGN 13.17.10 G3: beide Häuser richtig + Rest → nur der erste Satz, keine Zielscheibe
       expect(text(u)).toBe('Nimm das gestreifte Stück mit Zurück oder Radierer weg.');
       expect(st(u).szene().zielscheibe).toBeUndefined();
-      expect(st(u).szene().tutorial_fremd).toEqual([[11, 13]]);
+      expect(st(u).szene().tutorial_fremd).toEqual([[12, 12]]);
       expect(abschliessenText(u)).toContain(KURZ_WEG);
-      wischeFelder(u, [[11, 13]], false); st(u).tick(uhr.t);
-      expect(st(u).szene().tutorial_fremd ?? [], 'Streifen weg, sobald (11|13) radiert ist').toEqual([]);
+      wischeFelder(u, [[12, 12]], false); st(u).tick(uhr.t);
+      expect(st(u).szene().tutorial_fremd ?? [], 'Streifen weg, sobald (12|12) radiert ist').toEqual([]);
       expect(schritt(u), 'Finger liegt noch: kein Wechsel unter dem Finger').toBe('T13h');
-      abheben(u, [11, 13]); st(u).tick(uhr.t);
+      abheben(u, [12, 12]); st(u).tick(uhr.t);
       expect(schritt(u)).toBe('T14');
       abT14Bauen(u, spiel, uhr);
       nachDemBau(spiel);
@@ -379,8 +389,8 @@ describe('NR21 Ablauf: Texte von Kapitel 3 höchstens 96 Zeichen', () => {
   const HILFE = ['Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.', 'Tippe rechts in der Leiste auf 25.',
     'Leg den Finger auf das leuchtende Feld und zieh ihn die Spur entlang.', 'Unten in der Leiste: Abschnitt abschließen.'];
 
-  // Sammelliste P5 Punkte 4 und 5: Auf der kompakten Karte ist die Knopfzeile ausgeblendet (stil.css `#anleiter.kompakt
-  // .anleiter-knopfzeile`), also darf in T13/T13w/T13h kein Text am Knopf-Hinweis hängen; einen Chip hat die Karte nicht.
+  // Sammelliste P5 Punkte 4 und 5: Auf der kompakten Karte gibt es keine Knopfzeile (seit main entfällt die leere Zeile ganz),
+  // also darf in T13/T13w/T13h kein Text am Knopf-Hinweis hängen; einen Chip hat die Karte nicht.
   it('test_nr21_kompakte_karte_ohne_knopf_hinweis_und_chip: T13, T13w nach drei Fehlzügen (Hilfe-Satz in der Blase), T13h', async () => {
     const uhr = { t: 1_000_000 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
@@ -389,7 +399,9 @@ describe('NR21 Ablauf: Texte von Kapitel 3 höchstens 96 Zeichen', () => {
         const a = st(u).anleitungAnsicht()!, karte = u.dom.doc.getElementById('anleiter')!;
         expect([a.schritt, a.kompakt, a.knopf_hinweis, a.text]).toEqual([soll, true, undefined, satz]);
         expect(karte.classList.contains('kompakt')).toBe(true);
-        expect(karte.querySelector('.anleiter-knopfzeile')!.textContent).toBe('');
+        // main (tests/nr13-bausteine.test.ts): ohne Knopf und ohne Hinweis gibt es keine leere Knopfzeile – also auch keinen Text dort
+        expect(karte.querySelector('.anleiter-knopfzeile'), 'keine Knopfzeile, kein Knopf-Hinweis').toBeNull();
+        expect(karte.querySelectorAll('button'), 'kein Knopf auf der kompakten Karte').toHaveLength(0);
         expect(karte.querySelectorAll('.chip')).toEqual([]);
       };
       bisT13(u, spiel, uhr); pruefe('T13', 'Zieh die 32er von der Heizzentrale bis zur Abzweigung. Folge der Spur.');

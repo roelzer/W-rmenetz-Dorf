@@ -272,7 +272,8 @@ describe('NR19 Puffer-Übergabestation – Netz und Kauf', () => {
 
 describe('NR19 Puffer-Übergabestation – Spielstand und Freischaltung', () => {
   it('NR19 test_nr19_spielstand_reparatur: Puffer-Station ohne Puffer-Merkmal und am Großabnehmer', () => {
-    const s = altesDorf(2), h = ohneStation(s), w = mitWand(s);
+    const s = altesDorf(2), w = mitWand(s);
+    const h = bei(s, 12, 14);
     const g = s.stand.objekte.find((o) => KATALOG[o.typ].kategorie === 'gross' && o.ohne_station)!;
     h.station = 'hp_800'; delete h.ohne_station;
     g.station = 'up_1000'; delete g.ohne_station;

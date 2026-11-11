@@ -206,3 +206,5 @@ Ein zweiter Prüflauf ergab bei Z8/Z9 ebenfalls „erfüllt“ (JS 1× 10,2 ms, 
 | 2026-11-06 16:53 | f009a2b | projektleiter | 🟢 | 1448 | 0 | – |
 | 2026-11-07 18:02 | 749ea27 | projektleiter | 🟢 | 1454 | 0 | – |
 | 2026-11-07 18:26 | 967e9f9 | projektleiter | 🟢 | 1454 | 0 | – |
+| 2026-11-11 08:52 | b389b68 | solo | 🔴 | 1526 | 1 | – |
+| 2026-11-11 08:54 | b389b68 | entwickler | 🔴 | 1526 | 1 | – |

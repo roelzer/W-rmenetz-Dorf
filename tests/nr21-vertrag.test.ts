@@ -79,7 +79,7 @@ describe('NR21 Vertrag (P0)', () => {
     expect(m.faktor).toMatchObject({ geist_deckkraft: 0.75, geist_ruhend: 0.35, naechstes_feld: 0.92 });
     expect(m.zeit_ms).toMatchObject({ finger_je_feld: 400, finger_aufdruecken: 200, finger_wieder: 4000 });
     expect(tokens.karte.ueberlast).toEqual({
-      zeichen_faktor: 0.34, zeichen_min: 16, zeichen_max: 28, pfosten_faktor: 0.18, saum_px: 1, // saum_px 1 seit DESIGN 13.17.11 H1 (Tester P7e)
+      zeichen_faktor: 0.34, zeichen_min: 16, zeichen_max: 28, pfosten_faktor: 0.18, // saum_px entfällt (ENTSCHEIDUNGEN 2026-11-11 Review Merge: Token unbenutzt)
       wiederholen_felder: 8, abstand_ende_min: 4, geplant_deckkraft: 0.5,
     });
     expect(tokens.karte.fremd).toEqual({

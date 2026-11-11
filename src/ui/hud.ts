@@ -14,16 +14,17 @@ export interface HudAktionen {
   besuchen(): void;
   einstellungen(): void;
   auftrag(): void;
+  geldfluss?(): void;
   kwUmschalten(): boolean;
   kwAn(): boolean;
 }
 
 interface Pille { wurzel: HTMLElement; wert: HTMLElement; fuell: HTMLElement; }
 
-function pille(art: string, sym: SymbolName, etikett: string): Pille {
+function pille(art: string, sym: SymbolName, etikett: string, bei?: () => void): Pille {
   const wert = h('span', { class: 'wert umriss' });
   const fuell = h('i');
-  const wurzel = h('div', { class: `pille ${art}`, role: 'group', 'data-res': art },
+  const wurzel = h(bei ? 'button' : 'div', { class: `pille ${art}`, role: bei ? null : 'group', type: bei ? 'button' : null, onclick: bei ?? null, 'data-res': art },
     symbol(sym), h('span', { class: 'etikett' }, etikett), wert, h('span', { class: 'fuell' }, fuell));
   return { wurzel, wert, fuell };
 }
@@ -31,7 +32,7 @@ function pille(art: string, sym: SymbolName, etikett: string): Pille {
 /** Obere Anzeigen, Rundbuttons und Zoom. Liest nur vom Spiel, ändert nichts. */
 export class Hud {
   readonly wurzel = h('div', { id: 'hud' });
-  private geld = pille('geld', 'geld', 'Geld');
+  private geld: Pille;
   private waerme = pille('waerme', 'waerme', 'Wärme');
   private ruf = pille('ruf', 'ruf', 'Ruf');
   private taler = pille('taler', 'taler', 'Taler');
@@ -53,6 +54,7 @@ export class Hud {
   private tutorialModusAn = false;
 
   constructor(private readonly spiel: () => Spiel, a: HudAktionen) {
+    this.geld = pille('geld', 'geld', 'Geld', a.geldfluss);
     const schild = h('button', { type: 'button', class: 'dorfschild', 'aria-label': 'Dorf-Einstellungen', onclick: a.einstellungen }, this.name, this.unter, symbol('zahnrad', 'zahnrad'));
     this.auftragKarte = h('button', { type: 'button', class: 'auftrag pergament', onclick: a.auftrag },
       h('span', { class: 'marker', 'aria-hidden': 'true' }, '!'), this.auftragText, this.auftragLohn);
@@ -76,16 +78,17 @@ export class Hud {
   /** Ein- und Ausblenden für Startwahl und Besuch (S1, S7). */
   sichtbar(teile: { alles?: boolean; eigene?: boolean }): void {
     this.wurzel.classList.toggle('versteckt', teile.alles === false);
-    // Schaltet nur die Gruppen; die Tutorial-Verstecke sitzen an Auftragskarte und [Dörfer] selbst und bleiben davon unberührt.
+    // Schaltet nur die Gruppen; die Tutorial-Verstecke sitzen an Auftragskarte, [Dörfer] und kW-Schalter selbst und bleiben davon unberührt.
     for (const e of [this.links, this.pillen, this.zoom, this.runde]) e.classList.toggle('versteckt', teile.eigene === false);
   }
 
-  /** NR13 (Bauplan §6): Im Tutorial sind nur Auftragskarte und [Dörfer] weg; [Bauen], Pillen, Dorfschild und kW-Schalter bleiben. */
+  /** NR13 (Bauplan §6), Merge B1: Im Tutorial sind Auftragskarte, [Dörfer] und der kW-Schalter weg; [Bauen], Pillen und Dorfschild bleiben. */
   tutorialModus(an: boolean): void {
     this.tutorialModusAn = an;
     // Außerhalb des Tutorials ist die Auftragskarte immer da (ohne Auftrag mit „Alle Aufträge erledigt“), daher zeigt `false` beide
     this.auftragKarte.classList.toggle('versteckt', an);
     this.besuch.classList.toggle('versteckt', an);
+    this.kwKnopf.classList.toggle('versteckt', an);
   }
 
   geldPillePunkt(): [number, number] {
@@ -101,22 +104,25 @@ export class Hud {
       if (!this.tutorialModusAn) this.auftragKarte.classList.remove('versteckt');
       this.auftragText.textContent = auftrag.text;
       this.auftragLohn.textContent = `+${auftrag.taler}`;
-      this.auftragKarte.setAttribute('aria-label', `Auftrag: ${auftrag.text}. Belohnung ${auftrag.taler} Dorftaler`);
+      this.auftragKarte.setAttribute('aria-label', `Ziele öffnen. Auftrag: ${auftrag.text}. Belohnung ${auftrag.taler} Dorftaler`);
     } else {
       this.auftragText.textContent = 'Alle Aufträge erledigt';
       this.auftragLohn.textContent = '★';
+      this.auftragKarte.setAttribute('aria-label', 'Ziele öffnen. Alle Dorfaufträge erledigt.');
     }
     // A81: Keine Münzen mehr an den Häusern – der Balken zeigt, wie voll das Konto im Verhältnis zum Kassenspeicher ist
     const grenze = sp.kassengrenze_eur(), voll = s.geld_eur >= grenze - 0.5;
-    this.setze(this.geld, `${zahl(s.geld_eur)} €`, s.geld_eur / grenze, `Geld ${zahl(s.geld_eur)} Euro von höchstens ${zahl(grenze)} Euro im Kassenspeicher${voll ? ' – Kasse voll' : ''}. Die Kunden zahlen am Monatsende automatisch`);
+    if (sp.testwaehrungUnbegrenzt) this.setze(this.geld, '∞ €', 1, 'Unbegrenzt Euro');
+    else this.setze(this.geld, `${zahl(s.geld_eur)} €`, s.geld_eur / grenze, `Geld ${zahl(s.geld_eur)} Euro von höchstens ${zahl(grenze)} Euro im Kassenspeicher${voll ? ' – Kasse voll' : ''}. Die Kunden zahlen am Monatsende automatisch`);
     this.geld.wurzel.classList.toggle('mangel', voll);
+    if (this.geld.wurzel.tagName === 'BUTTON') this.geld.wurzel.setAttribute('aria-label', `Geldfluss öffnen. Kontostand: ${sp.testwaehrungUnbegrenzt ? 'unbegrenzt' : zahl(s.geld_eur)} Euro`);
     const da = n.verfuegbar_kw, gebraucht = n.genutzt_kw;
     this.setze(this.waerme, `${zahl(gebraucht)}/${zahl(da)} kW`, da > 0 ? gebraucht / da : 0, `Wärme: ${zahl(gebraucht)} von ${zahl(da)} Kilowatt genutzt. Bedarf ${zahl(n.bedarf_kw)} Kilowatt`);
     this.waerme.wurzel.classList.toggle('mangel', n.bedarf_kw > da + 0.01);
     const ruf = sp.ruf_pct();
     this.setze(this.ruf, `${zahl(ruf)} %`, ruf / 100, `Ruf ${zahl(ruf)} Prozent`);
     this.ruf.wurzel.classList.toggle('schlecht', ruf < 45);
-    this.setze(this.taler, zahl(s.taler), 0, `${zahl(s.taler)} Dorftaler`);
+    this.setze(this.taler, zahl(sp.verfuegbareTaler), 0, sp.testwaehrungUnbegrenzt ? 'Unbegrenzt Dorftaler' : `${zahl(s.taler)} Dorftaler`);
     const frei = Math.max(0, sp.monteure() - sp.beschaeftigt());
     const kurz = typeof matchMedia === 'function' && matchMedia('(max-width:699px)').matches;
     this.setze(this.monteure, monteurText(frei, sp.monteure(), kurz), sp.monteure() ? (sp.monteure() - frei) / sp.monteure() : 0, `Monteure: ${frei} von ${sp.monteure()} frei`);
@@ -130,3 +136,4 @@ export class Hud {
     p.wurzel.setAttribute('aria-label', label);
   }
 }
+
