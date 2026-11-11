@@ -922,7 +922,9 @@ export class Steuerung implements Ui {
       if (r.width > 0 || r.height > 0) {
         // Nach dem Scrollen komplett neu vermessen. Das alte Loch darf nicht anschließend mit den Koordinaten von vor
         // dem Scrollen wieder eingesetzt werden – sonst ist das sichtbare Ziel auf dem Handy trotzdem nicht anklickbar.
-        zielSichtbarMachen(el, ruhig, () => this.anleitungAnwenden());
+        // Der Schlüssel wird dafür geleert: Musste nichts gescrollt werden, wäre er unverändert, der zweite Durchlauf endete
+        // sofort, und Karte, Loch und Sperre blieben auf dem alten Schritt stehen (Fehler T11/T14 auf dem Handy).
+        zielSichtbarMachen(el, ruhig, () => { if (this.angewendet) this.angewendet = { ...this.angewendet, schluessel: '' }; this.anleitungAnwenden(); });
         return;
       }
     }
