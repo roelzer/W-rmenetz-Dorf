@@ -365,6 +365,8 @@ describe('NR21 P1 Kern: Randfälle', () => {
     // Haus 2 hängt an (12|13) (Leitungsende); sein gezählter Hausweg (12|13),(11|13),(10|13),Abzweig gäbe (11|13) und (12|13)
     // die Rolle Anschluss. Beide Felder liegen aber abseits der Spur → fremd (DESIGN 13.17.9 F3) hat Vorrang (Entscheidung PL).
     // Früher mit E1 + (11|13),(12|13) – das schließt seit main 859dda7 einen Ring; ohne (10|14),(11|14) gibt es keinen.
+    // Darum auch kein Planungsfehler mehr: Die frühere Aufteilung entstand erst durch den Ring (zwei gleich dicke Abgänge am
+    // Ringknoten); im ringfreien Baum wird keine Leitung ohne Abzweig dünner und keiner teilt sich gleich dick.
     const { s, h2, lage } = lageMit([...HAUPT, ...ANSCHLUSS_1, ['d25', 10, 13], ['d25', 11, 13], ['d25', 12, 13]]);
     expect(anschlussFeld(s, h2)).toEqual([12, 13]);
     expect(kurz(lage)).toEqual({ ...ALLES_OK, fremd: [[11, 13], [12, 13]] });
@@ -398,6 +400,21 @@ describe('NR21 P1 Kern: Randfälle', () => {
     const mitEngpass = { ...netz, engpass: new Set([nr(11, 12)]) };
     const rein = tutorialLeitungsLage(mitEngpass, s.stand.objekte, h1.id, h2.id, 'd32', 'd25');
     expect(kurz(rein)).toEqual({ ...ALLES_OK, planungsfehler: true });
+  });
+
+  // Kritiker-Fall K-b ohne Ring (früher: E1 mit umgehängtem Elternfeld, das seit main 859dda7 einen Ring schloss). Fehler, der
+  // ihn rot macht: Ein Feld des echten Hauptwegs abseits der Spur (11|12) wird als Teil eines eigenen Abgangs fremd gestreift.
+  it('test_nr21_eigener_abgang_ueber_hauptweg: K-a-Netz + (11|13),(11|14) → Haus 2 eigener Abgang, nur (11|13) fremd, (11|12) nie (K-b)', () => {
+    const { s, h2, lage } = lageMit([['d32', 11, 12], ['d32', 10, 12], ...ANSCHLUSS_1, ['d25', 11, 13], ['d25', 11, 14]]);
+    const netz = netzVon(s);
+    // Testaufbau: Hauptleitung läuft über (11|12), Haus 2 hängt an (11|14), sein Weg (11|14),(11|13),(11|12) – ein Baum ohne Ring
+    expect(netz.eltern.get(nr(10, 12))).toBe(nr(11, 12));
+    expect(netz.eltern.get(nr(11, 13))).toBe(nr(11, 12));
+    expect(netz.eltern.get(nr(11, 14))).toBe(nr(11, 13));
+    expect(anschlussFeld(s, h2)).toEqual([11, 14]);
+    expect(lage.fremd).toEqual([[11, 13]]);
+    expect(lage.fremd_haus).toBe(2);
+    expect(lage.fremd).not.toContainEqual([11, 12]);
   });
 
   it('test_nr21_haus_fehlt: fehlt ein Tutorial-Haus, wirft die Prüfung (wie heute)', () => {

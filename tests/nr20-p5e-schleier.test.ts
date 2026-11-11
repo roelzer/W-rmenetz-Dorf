@@ -15,6 +15,10 @@ const schleier = (u: U): El | null => u.dom.doc.getElementById('schleier') as El
 const quelle = (u: U): string => (schleier(u)!.querySelector('svg') as El).attrs.quelle;
 const maske = (u: U): string => /<mask[^>]*>(.*)<\/mask>/.exec(quelle(u))![1];
 const schwarzePfade = (u: U): number => (maske(u).match(/<path [^>]*fill="#000"/g) ?? []).length;
+/** Ellipsen-Löcher der Maske (spotlight.ts lochPfad: `M{x} {cy}A{rx} {ry} 0 1 0 {x + 2rx} {cy}…`) als Mitte und Halbachsen. */
+const ellipsen = (u: U): Array<{ cx: number; cy: number; rx: number; ry: number }> =>
+  [...maske(u).matchAll(/<path d="M([-\d.]+) ([-\d.]+)A([\d.]+) ([\d.]+) 0 1 0 ([-\d.]+) [-\d.]+/g)]
+    .map((m) => ({ cx: (Number(m[1]) + Number(m[5])) / 2, cy: Number(m[2]), rx: Number(m[3]), ry: Number(m[4]) }));
 
 describe('NR20-22 P5e Schleier mit Gang in der echten Steuerung', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('Image', class { src = ''; alt = ''; onload: (() => void) | null = null; onerror: (() => void) | null = null; }); });
@@ -54,7 +58,8 @@ describe('NR20-22 P5e Schleier mit Gang in der echten Steuerung', () => {
 
   // Die Karte ist hell, die Eingaberegel bleibt wie beim früheren HUD-Spotlight (main, steuerung.ts sperrLage). Fehler, der ihn
   // rot macht: mit abdunkeln 'nichts' lässt die Sperre auch Tipps auf die Anzeigenreihe durch, oder die Karte wird gesperrt.
-  it('test_nr20_leitungsziehen_hell_aber_hud_gesperrt: in T13 und T13h Karte frei, Anzeigenreihe gesperrt', async () => {
+  // Merge W1 (ENTSCHEIDUNGEN 2026-11-11): auch T13w (Farbknopf-Schritt) gehört dazu – Anzeigenreihe hell, aber gesperrt.
+  it('test_nr20_leitungsziehen_hell_aber_hud_gesperrt: in T13, T13w und T13h Karte frei, Anzeigenreihe nicht abgedunkelt, aber gesperrt', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, async (u) => {
       const { eingabeErlaubt } = await import('../src/ui/spotlight');
@@ -65,17 +70,25 @@ describe('NR20-22 P5e Schleier mit Gang in der echten Steuerung', () => {
         const [zx, zy] = st(u).kamera.mitte(10, 12);
         expect(eingabeErlaubt(zx, zy, false), `${id}: Karte (10|12) frei`).toBe(true);
         expect(eingabeErlaubt(60, 30, true), `${id}: Ziel in der Anzeigenreihe gesperrt`).toBe(false);
+        const dunkel = u.dom.html.querySelector('.spot-dunkel');
+        expect(dunkel !== null && dunkel.hidden, `${id}: Anzeigenreihe nicht abgedunkelt (Abdunkel-Ebene unsichtbar)`).toBe(true);
       };
       pruefe('T13');
       wischeFelder(u, TUTORIAL_HAUPT); uhr.t += 16; st(u).tick(uhr.t);
+      pruefe('T13w');
       farbknopf(u, spiel.tutorialWerte().anschluss).click(); uhr.t += 16; st(u).tick(uhr.t);
       pruefe('T13h');
     }, { uhr: () => uhr.t });
   });
 
-  it('test_nr20_schleier_folgt_kamera: Kamera verschoben → Schleier neu, Löcher wandern mit (T12)', async () => {
+  // Fehler, die ihn rot machen: Der Schleier baut nach der Kamerabewegung nicht neu auf, oder das Heizzentralen-Loch steht nicht
+  // an der neuen Bildschirmlage der Heizzentrale. Heizzentrale 2×2 ab (11|10) → Mitte (11,5|10,5); Loch = Raute über die
+  // Grundfläche (steuerung.ts rautenLoch, Kante 2) als Ellipse: Halbachsen 2 · tw / 2 + 12 = tw + 12 bzw. th + 12
+  // (spotlight.ts umriss, spot_abstand_karte 12). Pfadzahlen auf 0,01 gerundet → Toleranz 0,01.
+  it('test_nr20_schleier_folgt_kamera: Kamera verschoben → Schleier neu, Heizzentralen-Loch an der neuen Mitte (T12)', async () => {
     const uhr = { t: T0 }, spiel = neuesSpiel(uhr);
     await echteSteuerung(spiel, (u) => {
+      expect([spiel.hz.x, spiel.hz.y], 'Testaufbau: Heizzentrale ab (11|10)').toEqual([11, 10]);
       bisT12(u, spiel, uhr);
       const vorher = maske(u);
       expect(schwarzePfade(u), 'Vorprobe: Heizzentrale und beide Häuser ausgespart').toBe(3);
@@ -84,6 +97,11 @@ describe('NR20-22 P5e Schleier mit Gang in der echten Steuerung', () => {
       const nachher = maske(u);
       expect(nachher).not.toBe(vorher);
       expect(schwarzePfade(u)).toBe(3);
+      const k = st(u).kamera, [mx, my] = k.mitte(11.5, 10.5);
+      const hz = ellipsen(u).filter((e) => Math.abs(e.rx - (k.tw + 12)) <= 0.01 && Math.abs(e.ry - (k.th + 12)) <= 0.01);
+      expect(hz, 'genau ein Loch in Größe der Heizzentralen-Raute').toHaveLength(1);
+      expect(Math.abs(hz[0].cx - mx), `Mitte x ${hz[0].cx} statt ${mx}`).toBeLessThanOrEqual(0.01);
+      expect(Math.abs(hz[0].cy - my), `Mitte y ${hz[0].cy} statt ${my}`).toBeLessThanOrEqual(0.01);
     }, { uhr: () => uhr.t });
   });
 
@@ -96,6 +114,8 @@ describe('NR20-22 P5e Schleier mit Gang in der echten Steuerung', () => {
       bisT12(u, spiel, uhr);
       expect(schleier(u)).not.toBeNull();
       expect(schwarzePfade(u)).toBe(3);
+      // Die Fläche der Maske ist weiß, nur die Löcher sind schwarz
+      expect(maske(u)).toMatch(/^<rect [^>]*fill="#fff"\/>/);
       spiel.tutorialBeenden(); uhr.t += 16; st(u).tick(uhr.t);
       expect(schleier(u)).toBeNull();
     }, { uhr: () => uhr.t });

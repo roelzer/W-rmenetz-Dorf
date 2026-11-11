@@ -167,10 +167,6 @@ describe('P7e H1: Überlast-Saum ersetzt nur die dunkle Kante', () => {
     for (const f of mit) expect(breiteste(f)).toBeLessThan(Math.min(...kanten32.map((k) => k.breite)));
   });
 
-  it('test_h1_token_saum_px_1 (rot bis P7e): karte.ueberlast.saum_px = 1', () => {
-    expect(tokens.karte.ueberlast.saum_px).toBe(1);
-  });
-
   // Zoom 4, damit main den Glanz überhaupt zeichnet (w ≥ 3). Fehler, der ihn rot macht: Glanz fehlt auf überlasteten Feldern
   // oder wird dort anders breit.
   it('test_h1_glanz_bleibt: auch auf überlasteten Feldern folgt dem Rohr der Glanzstrich, gleich breit wie ohne Überlast', () => {

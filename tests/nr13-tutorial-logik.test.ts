@@ -446,7 +446,7 @@ describe('NR13 Tutorial-Schrittlogik (P1)', () => {
     expect(t07.replace(/\*\*/g, '').length).toBeLessThanOrEqual(120);
   });
 
-  it('test_nr13_texte_laenge – alle Blasen-,Hilfe-, Sperr- und Wiedereinstiegs-Sätze ≤ 120 Zeichen, ≤ 2 Sätze (K2)', () => {
+  it('test_nr13_texte_laenge – alle Blasen-, Hilfe-, Sperr- und Wiedereinstiegs-Sätze ≤ 120 Zeichen, ≤ 2 Sätze (K2)', () => {
     const werte = { kwh: 99_999, kw_ohne: 17.5, kw_puffer: 12.5, kessel_kw: 999, kw_summe: 1_234.5, haupt: 'd110' as const, anschluss: 'd110' as const };
     const texte: string[] = [];
     const sammle = (t: Tutorial): void => {

@@ -182,15 +182,19 @@ describe('NR22 P7 Leitungsblatt: Kasten „Überlastet“ und Hauptaktion', () =
 });
 
 describe('NR22 P7 Leitungsblatt: Zusammenspiel', () => {
-  it('test_nr22_blatt_planungsfehler_zuerst: Feld mit Planungsfehler und Überlast → „Planungsfehler“ zuerst, darunter „Überlastet“, beide oben', async () => {
+  // Merge W2 (ENTSCHEIDUNGEN 2026-11-11, main c4335c9): Im freien Spiel gibt es keinen Kasten „Planungsfehler“ mehr, nur noch
+  // „Überlastet“. Fehler, der ihn rot macht: Ein Feld mit Engpass-, Aufteilungs- oder Reduzierungs-Kennung bekommt wieder den
+  // Kasten „Planungsfehler“ (vor oder nach „Überlastet“), oder „Überlastet“ entfällt deshalb.
+  it('test_mm_w2_blatt_nur_ueberlastet: Feld mit Planungsfehler-Kennungen und Überlast → nur „Überlastet“, oben', async () => {
     const { s, z } = gebautOffen();
     const key = 9 * N + 8;
     await echteSteuerung(s, (u) => {
-      // Reduzierung auf (8|9) nachgestellt: die Lage selbst ist für den Kern kein Planungsfehler, geprüft wird nur die Reihenfolge im Blatt
-      s.netz.reduzierung.add(key);
+      // Alle drei Kennungen auf (8|9) nachgestellt: die Lage selbst ist für den Kern kein Planungsfehler, geprüft wird nur das Blatt
+      s.netz.reduzierung.add(key); s.netz.engpass.add(key); s.netz.aufteilung.add(key);
       oeffne(u, s, 8, 9);
       const titel = blatt(u).querySelectorAll('.kasten').map((k) => norm(k.querySelector('h3')?.textContent ?? ''));
-      expect(titel).toEqual(['Planungsfehler', 'Überlastet']);
+      expect(titel).toEqual(['Überlastet']);
+      expect(blattText(u)).not.toContain('Planungsfehler');
       expect(blattText(u).indexOf('Überlastet')).toBeLessThan(blattText(u).indexOf('Hauptleitung:'));
     }, { uhr: () => z.t });
   });
