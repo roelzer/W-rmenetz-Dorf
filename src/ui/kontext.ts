@@ -482,7 +482,11 @@ export class Kontext {
     // E6: „geplant“ erst, wenn kein Feld mehr offen ist; gebaut wird es mit dem Abschnitt
     if (!offen.length) {
       if (phase === 'bau') { c.append(ueberlastKasten(titel('Wird gerade vergrößert'))); return; }
-      c.append(ueberlastKasten(titel(`Wird auf ${groesse_kurz} vergrößert`), h('p', {}, 'Der Tausch kommt mit dem Bauabschnitt. Bis dahin bleibt es hier zu eng.')));
+      // 13.17.11 H3: Der Titel nennt die tatsächlich geplante Größe; sind verschiedene Größen geplant (auch die empfohlene
+      // neben einer von Hand gewählten), nennt er keine (Auslegung wörtlich, ENTSCHEIDUNGEN 2026-11-11)
+      const geplant = new Set(e.felder.flatMap((f) => this.leitungAuf(f).ersatz?.typ ?? []));
+      const groesseGeplant = geplant.size === 1 ? kurzname([...geplant][0]) : null;
+      c.append(ueberlastKasten(titel(groesseGeplant ? `Wird auf ${groesseGeplant} vergrößert` : 'Wird vergrößert'), h('p', {}, 'Der Tausch kommt mit dem Bauabschnitt. Bis dahin bleibt es hier zu eng.')));
       // Zurückgenommen wird nur, was „Auf {Größe} vergrößern“ geplant hätte: Ersatz in genau der empfohlenen Größe. Von Hand
       // dicker geplante Felder bleiben; gibt es keinen solchen Ersatz, gibt es nichts zurückzunehmen (Entscheidung PL 2026-11-08).
       // Beim Tippen neu gelesen, damit ein seit dem Zeichnen geänderter Ersatz nicht falsch entfernt wird.
