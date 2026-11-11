@@ -34,3 +34,6 @@ Entschieden vom Projektleiter aus den Reviews von P1, P2, P3 und P4 (2026-11-07)
 
 ## Nach P7e
 - Test fehlt: eingezeichnete Leitungen mit Deckkraft 0,6 (src/render/szene.ts:751) – Review P7e, klein
+- Browser-Skript tests/browser/nr13-tutorial.browser.cjs:128 `/\s+/g` frisst geschützte Leerzeichen → T13w-Erklärsatz immer FEHLT; Vorschlag `/[ \t\n\r\f]+/g` (Tester)
+- T13h „Zurück“ im nr13-Browser-Skript: Zeitrennen, auf Knopf warten (Tester)
+- Rohrfaktor 0,62 und Kante w+1,25 in DESIGN/Tokens eintragen (Designer)
