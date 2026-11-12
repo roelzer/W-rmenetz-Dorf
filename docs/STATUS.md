@@ -150,6 +150,7 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 NR26 fertig inkl. Review-Befunde, Schranke 1898 grün, auf main.
 - 2026-11-11 NR23 (Neubaugebiet breiter, Layout 3, Umzug alter Stände) gebaut, 1907 Tests grün, auf main.
 - 2026-11-12 Simon per Sprache: Reihenfolge A (erst NR24, dann NR25). NR24 Rohrgrößen-Vorschau gebaut, 1924 Tests grün, auf main.
+- 2026-11-12 Zweiter Jack-Auftrag mit derselben Antwort (J-f7yx8b) lief parallel und baute NR24 ein zweites Mal; auf main bleibt die Fassung von J-u7in95, die zweite liegt nur zur Ansicht auf Zweig claude/nr24-zweitfassung (kann gelöscht werden).
 
 ## Ampel
 🟡 NR24 ist fertig, als Nächstes kommt NR25. Nicht eilig für Simon: Sollen die Neubauhäuser weniger Wärme brauchen als die alten Häuser im Dorf (ja oder nein)?
