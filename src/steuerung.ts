@@ -1,5 +1,6 @@
 import { pruefeAuftraege, type Auftrag } from './core/auftraege';
 import type { Engstelle } from './core/engstelle';
+import { rohrVorschauText } from './core/rohrvorschau';
 import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/katalog';
 import { groesse, leitungsNachbarn } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
@@ -72,6 +73,8 @@ export class Steuerung implements Ui {
   /** A69: Werkzeug „T-Stück mit Vorsehung“: Tippen auf eine geplante Leitung setzt/entfernt die Vorsehung */
   private vorsehen = false;
   private modusBlatt: Blatt | null = null;
+  /** NR24: Zeile „Hier nötig: …“ in der Zeichenleiste */
+  private vorschauEl: HTMLElement | null = null;
   /** Offene Zeichenleiste (DESIGN.md 12.18): [?] im Kopf, Aktionsleiste unter dem scrollenden Inhalt */
   private leiste: { blatt: Blatt; frage: HTMLButtonElement; aktion: HTMLElement } | null = null;
   /** Erklärtext statt Werkzeug im Mittelteil der Zeichenleiste */
@@ -390,9 +393,11 @@ export class Steuerung implements Ui {
     // enge Leiste: kurzer Grund „ab Stufe X“ (DESIGN.md 12.15); der Hinweis beim Antippen erklärt ausführlich
     const tStueck = umschalter(knopf('T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, id: 'tstueck', unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, muenze: true, hinweis: tStueckHinweis() }), this.vorsehen);
     tStueck.classList.add('t-stueck');
+    this.vorschauEl = h('div', { class: 'rohrvorschau', role: 'status', 'data-ziel': 'rohrvorschau', hidden: true });
     const werkzeug = h('div', { class: 'zeichen-werkzeug', hidden: this.hilfeOffen },
       h('div', { class: 'farbknoepfe' }, ...farben, dicker),
       h('p', { class: 'kennzeile' }, kennzeile),
+      this.vorschauEl,
       h('div', { class: 'zeichen-reihe' },
         umschalter(knopf('Radierer', () => this.stempeln(typ, !this.radieren), this.radieren ? 'gewaehlt' : '', { klein: true, id: 'radierer' }), this.radieren),
         zurueck),
@@ -407,6 +412,27 @@ export class Steuerung implements Ui {
     abschliessen.setAttribute('data-ziel', 'abschliessen');
     l.aktion.replaceChildren(abschliessen);
     if (fokus) [...l.blatt.wurzel.querySelectorAll<HTMLElement>('button')].find((b) => b.getAttribute('data-id') === fokus)?.focus();
+    this.vorschauAktualisieren();
+  }
+  /** NR24: Vorschau der nötigen Leitungsgröße am Feld unter dem Finger (zuletzt gezeichnetes bzw. berührtes Feld). Nur beim
+   *  Zeichnen (nicht Radierer, nicht T-Stück) und nicht im Tutorial – dort erklärt Simon die Größen selbst (Annahme NR24).
+   *  Der Farbknopf der nötigen Größe bekommt data-noetig="ja" (Rahmen über stil.css). */
+  private vorschauAktualisieren(): void {
+    const el = this.vorschauEl, l = this.leiste, f = this.stempelLetzte;
+    if (!el || !l) return;
+    const v = f && !this.radieren && !this.vorsehen && !this.anleitung ? this.spiel.rohrVorschau(f[0], f[1]) : null;
+    for (const k of l.blatt.wurzel.querySelectorAll<HTMLElement>('.farbknopf')) {
+      if (v?.noetig && v.haeuser > 0 && k.getAttribute('data-id') === `farbe-${v.noetig}`) k.setAttribute('data-noetig', 'ja');
+      else k.removeAttribute('data-noetig');
+    }
+    if (!v) { el.hidden = true; el.replaceChildren(); return; }
+    const t = rohrVorschauText(v, this.stempelTyp, v.frei_ab_stufe);
+    el.replaceChildren(
+      h('b', {}, t.zeile),
+      ...(t.klein ? [h('small', {}, t.klein)] : []),
+      ...(t.warnung ? [h('span', { class: 'warnung' }, t.warnung)] : []),
+    );
+    el.hidden = false;
   }
   private leisteAbschliessen(): void {
     const r = this.spiel.abschnittAbschliessen();
@@ -615,7 +641,7 @@ export class Steuerung implements Ui {
       if (o && this.spiel.vorsehungUmschalten(o.id).ok) this.geaendert(); else this.hinweiseZeigen();
       return;
     }
-    if (gesteStart && this.leitungAuf(x, y)) { this.stempelStart = [x, y]; this.stempelLetzte = [x, y]; return; }
+    if (gesteStart && this.leitungAuf(x, y)) { this.stempelStart = [x, y]; this.stempelLetzte = [x, y]; this.vorschauAktualisieren(); return; }
     const s = this.stempelStart;
     if (s) {
       if (x === s[0] && y === s[1]) return;
@@ -664,7 +690,7 @@ export class Steuerung implements Ui {
       this.stempelLetzte = [fx, fy];
       if (verbunden && !verbunden.ok) { this.hinweiseZeigen(); break; }
     }
-    if (geaendert) this.geaendert();
+    if (geaendert) this.geaendert(); else this.vorschauAktualisieren();
   }
   private leitungAuf(x: number, y: number): Objekt | undefined {
     return this.spiel.stand.objekte.find((a) => istLeitung(a.typ) && a.x === x && a.y === y);

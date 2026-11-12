@@ -10,6 +10,7 @@ import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, spe
 import type { Feld, Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
 import { ERSTE_HAEUSER, TUTORIAL_HAUPTLEITUNG, ursprungskarte } from './start';
 import { tutorialLeitungsLage } from './tutorial-netz';
+import { rohrVorschau, type RohrVorschau } from './rohrvorschau';
 import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
@@ -1245,6 +1246,14 @@ export class Spiel {
     o.ersatz = { typ: neu, nr: this.stand.naechste_id++ };
     this.schritt('leitung_gezeichnet', o.id);
     return ok();
+  }
+  /** NR24: nötige Leitungsgröße auf Feld (x|y) im Netz „wie nach dem Bau“ (eingezeichnete Leitungen zählen). `frei_ab_stufe`:
+   *  Stufe, ab der die nötige Leitung frei ist, null = schon frei. null, wenn dort keine verbundene Leitung liegt. */
+  rohrVorschau(x: number, y: number): (RohrVorschau & { frei_ab_stufe: number | null }) | null {
+    if (x < 0 || y < 0 || x >= N || y >= this.kartenHoehe) return null;
+    const v = rohrVorschau(this.probeGespeichert(), this.stand.objekte, y * N + x);
+    if (!v) return null;
+    return { ...v, frei_ab_stufe: v.noetig === null || freigeschaltet(this.stand, v.noetig) ? null : abStufe(v.noetig) };
   }
   /** NR22 (AE-NR22-3): überlastete Stücke im gebauten Netz – Saum, Dreiecke, Blatt und Knopf lesen nur dieses Ergebnis.
    *  Eingezeichnete Leitungen fehlen im gebauten Netz und bekommen deshalb kein Stück. */

@@ -434,6 +434,12 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .knopf.farbknopf .farb-sperre .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein)}
 /* 12 px Abstand unter den Farbknöpfen (13.17.9 F7): 8 px Lücke der Spalte + 4 px Rand – Platz für den Ring am Farbknopf */
 .blatt.zeichenleiste .kennzeile{margin:4px 0 0;line-height:16px;font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* NR24: Vorschau der nötigen Leitungsgröße unter dem Finger; der Farbknopf der nötigen Größe bekommt einen grünen Rahmen */
+.blatt.zeichenleiste .rohrvorschau{display:flex;flex-direction:column;gap:2px;line-height:16px;font-size:12px;color:var(--menue-farbe-text)}
+.blatt.zeichenleiste .rohrvorschau[hidden]{display:none}
+.blatt.zeichenleiste .rohrvorschau small{font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft)}
+.blatt.zeichenleiste .rohrvorschau .warnung{font-weight:800;color:var(--menue-knopf-gefahr-1)}
+.knopf.farbknopf[data-noetig="ja"]{outline:3px solid var(--menue-farbe-schalter-an);outline-offset:1px}
 .zeichen-reihe{display:grid;grid-template-columns:1fr 1fr;gap:var(--abstand-px-1)}
 .zeichen-reihe .knopf{min-width:0;padding:0 var(--menue-mass-px-zeichen-knopf-innen-seite)}
 .zeichen-reihe .mit-sym{display:inline-flex;align-items:center;gap:4px}
