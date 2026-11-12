@@ -19,8 +19,8 @@ import { tokensAnwenden } from './ui/tokens';
 import { sprecherFotosVorladen } from './ui/sprecher';
 import { vorspannZeigen } from './ui/vorspann';
 import { hinweisMitKnopf } from './ui/toast';
-import { beiEinstellungsAenderung, einstellungenLesen, type Einstellungen } from './ui/einstellungen';
-import { tempoSpeichern, uhr } from './tempo';
+import { beiEinstellungsAenderung, einstellungenLesen, istEntwickler, type Einstellungen } from './ui/einstellungen';
+import { tempoBegrenzen, tempoSpeichern, uhr } from './tempo';
 import { installationStarten } from './ui/installation';
 
 tokensAnwenden();
@@ -58,6 +58,8 @@ try {
   startHinweis = 'Dein alter Spielstand ließ sich nicht öffnen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).';
   spiel = new Spiel(neuesSpielMitTutorial(uhr()), uhr);
 }
+
+tempoBegrenzen(istEntwickler(spiel.stand));
 
 const leinwand = document.getElementById('karte') as HTMLCanvasElement;
 const maler = new Maler(leinwand.getContext('2d')!);

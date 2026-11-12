@@ -34,6 +34,16 @@ export function tempoSpeichern(): void {
   uhr();
   try { localStorage.setItem(SCHLUESSEL, JSON.stringify({ faktor, offset_ms: virtuell - Date.now() })); } catch (fehler) { console.warn('Tempo ließ sich nicht speichern', fehler); }
 }
+/** Höchstes Tempo ohne Entwicklercode (Simon 2026-11-12: „nur 10x, nicht 60“). */
+export const TEMPO_MAX_SPIELER = 10;
+/** Wählbare Stufen: ×60 nur im Entwicklermodus. */
+export function tempoStufen(entwickler: boolean): ReadonlyArray<{ faktor: number; name: string }> {
+  return entwickler ? TEMPO_STUFEN : TEMPO_STUFEN.filter((t) => t.faktor <= TEMPO_MAX_SPIELER);
+}
+/** Ein früher gespeichertes ×60 fällt ohne Entwicklercode auf ×10 zurück. */
+export function tempoBegrenzen(entwickler: boolean): void {
+  if (!entwickler && faktor > TEMPO_MAX_SPIELER) tempoSetzen(TEMPO_MAX_SPIELER);
+}
 export function tempoSetzen(f: number): void {
   if (!TEMPO_STUFEN.some((t) => t.faktor === f)) return;
   uhr(); faktor = f; tempoSpeichern();

@@ -3,7 +3,7 @@ import { knopf } from './bausteine';
 import { blattOeffnen } from './blatt';
 import { h } from './dom';
 import { logoElement, schriftzug } from './vorspann';
-import { tempo, tempoSetzen, TEMPO_STUFEN } from '../tempo';
+import { tempo, tempoSetzen, tempoStufen } from '../tempo';
 import type { Ui } from './schnittstelle';
 import { installationsKasten } from './installation';
 
@@ -60,7 +60,7 @@ export function einstellungenOeffnen(ui: Ui, e: Einstellungen, geaendert: (e: Ei
     h('p', { class: 'gedaempft' }, '30 Bilder/s, keine Hintergrund-Animationen, etwas geringere Schärfe – für ältere Handys'),
     h('div', { class: 'kasten' }, h('h3', {}, 'Spieltempo'),
       h('p', { class: 'gedaempft' }, 'Für Vorführungen: Die Spielzeit läuft schneller. Normal ist das vorgesehene Tempo.'),
-      h('div', { class: 'knopfreihe' }, ...TEMPO_STUFEN.map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'gewaehlt' : '', { klein: true })))),
+      h('div', { class: 'knopfreihe' }, ...tempoStufen(istEntwickler(ui.spiel.stand)).map((t) => knopf(t.name, () => { tempoSetzen(t.faktor); ui.toast(`Tempo: ${t.name}`); b.zu(); }, tempo() === t.faktor ? 'gewaehlt' : '', { klein: true })))),
     installationsKasten(),
     sicherungKasten(ui),
     entwicklerKasten(ui),
@@ -95,6 +95,11 @@ function sicherungKasten(ui: Ui): HTMLElement {
   return h('div', { class: 'kasten' }, h('h3', {}, 'Sicherung'),
     h('p', { class: 'gedaempft' }, 'Speichere dein Dorf als Datei, z. B. vor einem Handywechsel. Beim Laden wird der jetzige Spielstand ersetzt.'),
     h('div', { class: 'knopfreihe' }, sichern, laden), datei);
+}
+
+/** Entwicklermodus = einer der Testcodes wurde in diesem Spielstand angewendet. */
+export function istEntwickler(stand: { entwickler_kasse_gefuellt?: true; entwickler_unbegrenzt?: true }): boolean {
+  return stand.entwickler_kasse_gefuellt === true || stand.entwickler_unbegrenzt === true;
 }
 
 /** Lokale Testcodes. Die Prüfsummen sind kein Zugriffsschutz für das öffentliche Spiel. */
