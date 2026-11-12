@@ -1,12 +1,14 @@
 # Status
 
-**Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-11
+**Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-12
 
 
-**Jetzt:** NR23 fertig: Das Neubaugebiet ist breiter (drei Wohnstraßen, ein Feld Luft zwischen allen Häusern, Karte 6 Zeilen länger). Alte Spielstände ziehen beim Laden um, Häuser mit Anschluss bleiben stehen. 1907 Tests grün, auf main.
-**Als Nächstes:** NR24 Vorschau der nötigen Rohrgröße beim Leitungsziehen, dann NR25 schaltbare kW-Anzeige auf der Karte. Designer-Fotoprüfung NR23.
-**Fortschritt:** NR20–NR23 und NR26 fertig, offen NR24 und NR25
+**Jetzt:** NR24 fertig: Beim Leitungsziehen zeigt die Zeichenleiste, welche Rohrgröße an dieser Stelle nötig ist, damit alle Häuser dahinter warm werden (z. B. „Nötig hier: 32er · 20 kW“, rot wenn die gewählte Leitung zu dünn ist, Punkt am passenden Farbknopf). 1920 Tests grün, auf main.
+**Als Nächstes:** NR25 schaltbare kW-Anzeige auf der Karte. Designer-Fotoprüfung NR23 und NR24, Fachprüfer-Blick auf die NR24-Zahl.
+**Fortschritt:** NR20–NR24 und NR26 fertig, offen NR25
 **App:** https://heatville.pages.dev
+
+Annahme NR24 (2026-11-12): Die Vorschau zählt alle Häuser, die nach dem Bau an der Leitung hängen, auch wenn sie noch keine Übergabestation haben – sonst zeigte sie beim Planen fast immer zu wenig. Im Tutorial bleibt sie aus.
 
 Annahme NR23 (2026-11-11): Häuser mit Anschluss ziehen nicht um, damit keine Leitung verloren geht; steht so eines auf einer neuen Straße, fehlt dort das Straßenstück.
 
@@ -148,6 +150,7 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-11 NR26 (Blatt am Laptop rechts) gebaut, Commit 014f5ff, Schranke grün (1896), auf Arbeitsbranch. Review läuft; danach main. Offen: Simons Antwort Neubau-Verbrauch (NR23).
 - 2026-11-11 NR26 fertig inkl. Review-Befunde, Schranke 1898 grün, auf main.
 - 2026-11-11 NR23 (Neubaugebiet breiter, Layout 3, Umzug alter Stände) gebaut, 1907 Tests grün, auf main.
+- 2026-11-12 Simon per Sprache: erst NR24, dann NR25. NR24 (Rohrgrößen-Vorschau in der Zeichenleiste) gebaut, 1920 Tests grün, auf main.
 
 ## Ampel
-🟡 NR23 ist fertig, NR24 und NR25 folgen. Nicht eilig für Simon: Sollen die Neubauhäuser weniger Wärme brauchen als die alten Häuser im Dorf (ja oder nein)?
+🟡 NR24 ist fertig, als Nächstes kommt NR25. Nicht eilig für Simon: Sollen die Neubauhäuser weniger Wärme brauchen als die alten Häuser im Dorf (ja oder nein)?
