@@ -434,6 +434,11 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .knopf.farbknopf .farb-sperre .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein)}
 /* 12 px Abstand unter den Farbknöpfen (13.17.9 F7): 8 px Lücke der Spalte + 4 px Rand – Platz für den Ring am Farbknopf */
 .blatt.zeichenleiste .kennzeile{margin:4px 0 0;line-height:16px;font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* NR24: Vorschau der nötigen Rohrgröße am zuletzt gezogenen Feld; darf umbrechen (zwei Zeilen), rot, wenn der Stempel zu dünn ist */
+.blatt.zeichenleiste .vorschau{margin:0;padding:4px 8px;border-radius:8px;line-height:16px;font-size:12px;font-weight:700;color:var(--menue-farbe-text);background:var(--menue-farbe-tafel-innen)}
+.blatt.zeichenleiste .vorschau.zu-duenn{color:var(--menue-chip-rot-1);background:var(--menue-chip-rot-0)}
+/* NR24: Farbknopf der nötigen Größe bekommt einen Punkt oben rechts */
+.knopf.farbknopf[data-noetig]::before{content:"";position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--menue-farbe-text);box-shadow:0 0 0 2px var(--menue-farbe-tafel)}
 .zeichen-reihe{display:grid;grid-template-columns:1fr 1fr;gap:var(--abstand-px-1)}
 .zeichen-reihe .knopf{min-width:0;padding:0 var(--menue-mass-px-zeichen-knopf-innen-seite)}
 .zeichen-reihe .mit-sym{display:inline-flex;align-items:center;gap:4px}

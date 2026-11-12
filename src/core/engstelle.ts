@@ -113,3 +113,38 @@ export function engstelleText(e: Engstelle, empfohlenAbStufe: number | null): st
   const text = `${satz1} ${satz2}`;
   return text.length <= 90 ? text : `${satz1} ${satz2.replace('gibt es ', '').replace(' darüber.', ' ein.')}`;
 }
+
+/** NR24: Bedarf eines Leitungsfelds – Last dahinter und kleinste Leitung des Katalogs, die sie trägt. */
+export interface RohrBedarf {
+  /** Last in kW, die durch das Feld fließen muss (alle Kunden dahinter im Netzbaum) */
+  last_kw: number;
+  /** kleinste Leitung des Katalogs, deren Kapazität (× Spreizungsfaktor) die Last trägt; null = keine reicht oder nicht verbunden */
+  noetig: TypId | null;
+  /** Feld hat einen Weg zur Heizzentrale */
+  verbunden: boolean;
+}
+
+/**
+ * NR24: Was braucht das Leitungsfeld `feld` im Netz `netz`? Rein; der Spielkern reicht dafür ein Netz „wie nach dem Bau“.
+ * Gleiche Kapazitätsregel wie die Netzrechnung und `empfohlen` der Engstelle (Katalog × Spreizungsfaktor). null = keine Leitung.
+ */
+export function rohrBedarf(netz: Netz, feld: number): RohrBedarf | null {
+  if (leitungsTyp(netz, feld) === null) return null;
+  if (!netz.tiefe.has(feld)) return { last_kw: 0, noetig: null, verbunden: false };
+  const last_kw = netz.last_kw.get(feld) ?? 0;
+  return { last_kw, noetig: LEITUNGEN.find((l) => kapazitaet(netz, l) >= last_kw) ?? null, verbunden: true };
+}
+
+/**
+ * NR24: Vorschau-Zeile der Zeichenleiste. `gewaehlt` = Leitung im Stempel; `noetigAbStufe`: null = die nötige Leitung ist frei,
+ * sonst die Stufe, ab der es sie gibt. `zu_duenn`: der Stempel ist dünner als nötig (die Zeile wird zur Warnung).
+ * kW aufgerundet, damit die Anzeige nie weniger verspricht, als gebraucht wird.
+ */
+export function rohrVorschauText(b: RohrBedarf, gewaehlt: TypId, noetigAbStufe: number | null): { text: string; zu_duenn: boolean } {
+  if (!b.verbunden) return { text: 'Noch nicht mit der Heizzentrale verbunden.', zu_duenn: false };
+  const kw = Math.ceil(b.last_kw - 1e-9);
+  if (kw <= 0) return { text: 'Noch kein Haus hinter dieser Stelle.', zu_duenn: false };
+  if (b.noetig === null) return { text: `Hier ${kw} kW – mehr als jede Leitung. Leg einen getrennten Abgang.`, zu_duenn: true };
+  const stufe = noetigAbStufe === null ? '' : ` (ab Stufe ${noetigAbStufe})`;
+  return { text: `Nötig hier: ${kurzname(b.noetig)} · ${kw} kW${stufe}`, zu_duenn: LEITUNGEN.indexOf(gewaehlt) < LEITUNGEN.indexOf(b.noetig) };
+}

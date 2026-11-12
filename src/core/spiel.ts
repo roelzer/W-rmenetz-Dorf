@@ -10,7 +10,7 @@ import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, spe
 import type { Feld, Schritt, TutorialLeitungsLage, TutorialWerte } from './tutorial-vertrag';
 import { ERSTE_HAEUSER, TUTORIAL_HAUPTLEITUNG, ursprungskarte } from './start';
 import { tutorialLeitungsLage } from './tutorial-netz';
-import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, type Engstelle } from './engstelle';
+import { ENGPASS_ERSATZ, engstelleText, mehrereStellenText, engstellenFinden, rohrBedarf, type Engstelle, type RohrBedarf } from './engstelle';
 
 const N = KONSTANTEN.feldanzahl;
 /** A38: So lange wird eine Abwesenheit höchstens nachgerechnet (7 Tage). */
@@ -72,6 +72,8 @@ export class Spiel {
   private warnliste: string[] = [];
   /** NR18-W: zuletzt gerechnetes Probe-Netz zum Abgleich der wartenden Häuser und der Schlüssel, für den es gilt. */
   private probeSpeicher: { netz: Netz; zu: Netz; schluessel: string } | null = null;
+  /** NR24: zuletzt gerechnetes Vorschau-Netz (wie nach dem Bau, Häuser ohne Station zählen mit) und sein Schlüssel. */
+  private vorschauSpeicher: { netz: Netz; zu: Netz; schluessel: string } | null = null;
   /** AE-NR13-2: zuletzt erreichte Häuser; Grundlage für haus_erreicht/haus_getrennt. */
   private erreicht: Set<number>;
   constructor(stand: Spielstand, private readonly uhr: () => number) {
@@ -373,14 +375,36 @@ export class Spiel {
    * im gebauten Netz, das jede Änderung über neuBerechnen neu anlegt; dessen Identität plus die Abschnittsteile ist der Schlüssel.
    */
   private probeGespeichert(): Netz {
-    const schluessel = this.stand.objekte
-      .filter((o) => o.geplant || o.ersatz)
-      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}:${JSON.stringify(o.trassenUebergaenge ?? {})}`).join('|');
+    const schluessel = this.abschnittSchluessel();
     const sp = this.probeSpeicher;
     if (sp && sp.zu === this.netz && sp.schluessel === schluessel) return sp.netz;
     const netz = this.probeNetz();
     this.probeSpeicher = { netz, zu: this.netz, schluessel };
     return netz;
+  }
+  /** Schlüssel der Abschnittsteile (eingezeichnete Leitungen, Ersatz), die das gebaute Netz noch nicht kennt. */
+  private abschnittSchluessel(): string {
+    return this.stand.objekte
+      .filter((o) => o.geplant || o.ersatz)
+      .map((o) => `${o.id}:${o.typ}:${o.x}:${o.y}:${o.geplant ? 1 : 0}:${o.ersatz?.typ ?? ''}:${o.vorsehung ? 1 : 0}:${JSON.stringify(o.trassenUebergaenge ?? {})}`).join('|');
+  }
+  /**
+   * NR24: Rohrgrößen-Vorschau für das Leitungsfeld (x|y) beim Leitungsziehen. Gerechnet im Netz „wie nach dem Bau“; Häuser,
+   * die dort an der Leitung hängen, zählen auch ohne Übergabestation mit (die kommt später) – Simon: „um alle Häuser
+   * versorgen zu können“. Gekündigte Häuser und Großabnehmer ohne Vertrag zählen nicht. null = keine Leitung auf dem Feld.
+   * `noetig_ab_stufe`: null = die nötige Leitung ist frei, sonst die Stufe, ab der es sie gibt.
+   */
+  rohrVorschau(x: number, y: number): (RohrBedarf & { noetig_ab_stufe: number | null }) | null {
+    if (x < 0 || y < 0 || x >= N) return null;
+    const schluessel = this.abschnittSchluessel();
+    let sp = this.vorschauSpeicher;
+    if (!sp || sp.zu !== this.netz || sp.schluessel !== schluessel) {
+      const netz = this.probeNetz((o) => (o.ohne_station && KATALOG[o.typ].kategorie === 'haus' ? { ...o, ohne_station: undefined } : o));
+      sp = this.vorschauSpeicher = { netz, zu: this.netz, schluessel };
+    }
+    const b = rohrBedarf(sp.netz, y * N + x);
+    if (!b) return null;
+    return { ...b, noetig_ab_stufe: b.noetig === null || freigeschaltet(this.stand, b.noetig) ? null : abStufe(b.noetig) };
   }
   private erreichteIn(netz: Netz): number[] {
     return this.stand.objekte.filter((o) => istHausOderGross(o) && netz.anschluss.has(o.id)).map((o) => o.id).sort((x, y) => x - y);

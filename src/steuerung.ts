@@ -1,5 +1,5 @@
 import { pruefeAuftraege, type Auftrag } from './core/auftraege';
-import type { Engstelle } from './core/engstelle';
+import { rohrVorschauText, type Engstelle } from './core/engstelle';
 import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/katalog';
 import { groesse, leitungsNachbarn } from './core/netz';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
@@ -74,6 +74,8 @@ export class Steuerung implements Ui {
   private modusBlatt: Blatt | null = null;
   /** Offene Zeichenleiste (DESIGN.md 12.18): [?] im Kopf, Aktionsleiste unter dem scrollenden Inhalt */
   private leiste: { blatt: Blatt; frage: HTMLButtonElement; aktion: HTMLElement } | null = null;
+  /** NR24: Vorschau-Zeile „Nötig hier: …“ in der Zeichenleiste (neu bei jedem Aufbau der Leiste). */
+  private vorschauEl: HTMLElement | null = null;
   /** Erklärtext statt Werkzeug im Mittelteil der Zeichenleiste */
   private hilfeOffen = false;
   private katalogUi: Katalog;
@@ -383,6 +385,9 @@ export class Steuerung implements Ui {
       return k;
     });
     const dicker = dickereFarbknopf(sp);
+    // NR24: Vorschau der nötigen Rohrgröße am zuletzt gezogenen Feld; Inhalt füllt vorschauFuellen (auch ohne Neuaufbau)
+    const vorschau = h('p', { class: 'vorschau', 'aria-live': 'polite', hidden: true });
+    this.vorschauEl = vorschau;
     const kennzeile = this.radieren ? 'Leitung antippen = löschen' : this.vorsehen ? 'Geplante Leitung antippen' : `bis ${D.kapazitaet_kw} kW · ${eur(D.kosten_eur![0])}/Feld`;
     const zurueck = knopf(h('span', { class: 'mit-sym' }, symbol('zurueck'), 'Zurück'), () => { sp.letzteLeitungZurueck(); this.stempelLetzte = null; this.geaendert(); this.anleitung?.handlung(); }, '', { klein: true, id: 'zurueck', sperre: () => (sp.abschnittLeitungen() ? null : NICHTS_ZURUECK), neuAufbau });
     zurueck.setAttribute('aria-label', 'Letzte Leitung zurück');
@@ -393,6 +398,7 @@ export class Steuerung implements Ui {
     const werkzeug = h('div', { class: 'zeichen-werkzeug', hidden: this.hilfeOffen },
       h('div', { class: 'farbknoepfe' }, ...farben, dicker),
       h('p', { class: 'kennzeile' }, kennzeile),
+      vorschau,
       h('div', { class: 'zeichen-reihe' },
         umschalter(knopf('Radierer', () => this.stempeln(typ, !this.radieren), this.radieren ? 'gewaehlt' : '', { klein: true, id: 'radierer' }), this.radieren),
         zurueck),
@@ -401,12 +407,30 @@ export class Steuerung implements Ui {
       h('p', {}, 'Zieh die Leitung mit dem Finger: Sie läuft gerade durch, ein Knick entsteht nur, wenn du zur Seite ziehst. ' + HAUSANSCHLUSS_KURZ + ' Bezahlt wird erst, wenn Laura das Material bestellt.'),
       knopf('Verstanden', () => this.hilfeZeigen(false), '', { id: 'verstanden' }));
     l.blatt.inhalt.replaceChildren(werkzeug, hilfe);
+    this.vorschauFuellen();
     // B1–B4 vor B6 (12.21 Punkt 1); beim Tippen werden alle Gründe neu gelesen (Punkt 3)
     // 13.7: die Gründe des Spiels (B1–B6) zuerst, dann die Sperre des Tutorials
     const abschliessen = knopf('Abschnitt abschließen', () => this.leisteAbschliessen(), 'los', { id: 'abschliessen', sperre: () => ersteSperre(abschnittSperreKurz(sp, this.uhr), sp.abschnittLeitungen() ? null : NICHTS_GEZEICHNET_KURZ, this.sperreKnopf('abschliessen', this.abschliessenSperre())), neuAufbau });
     abschliessen.setAttribute('data-ziel', 'abschliessen');
     l.aktion.replaceChildren(abschliessen);
     if (fokus) [...l.blatt.wurzel.querySelectorAll<HTMLElement>('button')].find((b) => b.getAttribute('data-id') === fokus)?.focus();
+  }
+  /**
+   * NR24: Vorschau-Zeile und Markierung des passenden Farbknopfs. Nur beim normalen Zeichnen (nicht Radierer, T-Stück, Hilfe)
+   * und nicht im Tutorial (dort führt Simon Schritt für Schritt). Gilt für das zuletzt gezogene oder berührte Leitungsfeld.
+   */
+  private vorschauFuellen(): void {
+    const el = this.vorschauEl, l = this.leiste, typ = this.stempelTyp, f = this.stempelLetzte;
+    if (!el || !l || !typ) return;
+    const v = !f || this.anleitung || this.radieren || this.vorsehen || this.hilfeOffen ? null : this.spiel.rohrVorschau(f[0], f[1]);
+    for (const k of l.blatt.inhalt.querySelectorAll<HTMLElement>('.farbknopf')) {
+      if (v?.noetig && v.last_kw > 0 && k.getAttribute('data-id') === `farbe-${v.noetig}`) k.setAttribute('data-noetig', ''); else k.removeAttribute('data-noetig');
+    }
+    if (!v) { el.hidden = true; el.textContent = ''; el.classList.remove('zu-duenn'); return; }
+    const t = rohrVorschauText(v, typ, v.noetig_ab_stufe);
+    el.textContent = t.text;
+    el.classList.toggle('zu-duenn', t.zu_duenn);
+    el.hidden = false;
   }
   private leisteAbschliessen(): void {
     const r = this.spiel.abschnittAbschliessen();
@@ -615,7 +639,7 @@ export class Steuerung implements Ui {
       if (o && this.spiel.vorsehungUmschalten(o.id).ok) this.geaendert(); else this.hinweiseZeigen();
       return;
     }
-    if (gesteStart && this.leitungAuf(x, y)) { this.stempelStart = [x, y]; this.stempelLetzte = [x, y]; return; }
+    if (gesteStart && this.leitungAuf(x, y)) { this.stempelStart = [x, y]; this.stempelLetzte = [x, y]; this.vorschauFuellen(); return; }
     const s = this.stempelStart;
     if (s) {
       if (x === s[0] && y === s[1]) return;
@@ -664,7 +688,7 @@ export class Steuerung implements Ui {
       this.stempelLetzte = [fx, fy];
       if (verbunden && !verbunden.ok) { this.hinweiseZeigen(); break; }
     }
-    if (geaendert) this.geaendert();
+    if (geaendert) this.geaendert(); else this.vorschauFuellen();
   }
   private leitungAuf(x: number, y: number): Objekt | undefined {
     return this.spiel.stand.objekte.find((a) => istLeitung(a.typ) && a.x === x && a.y === y);
