@@ -81,3 +81,6 @@ Q2: 10 m · Q3: 40 °C Mindest-Rücklauf (A73) · Q4: passt · Q5: ja, weiter so
 
 ## 2026-11-11 – NR23 Verbrauch Neubauhäuser (Fachregel, nur Simon)
 Neubaugebiet nutzt dieselben Werte wie das Altdorf (EFH 15.000 kWh/a = 10 kW, Spielbalance A71). Fachprüfer (Sicherheit ~75) und Designer: für Neubau zu hoch. Frage an Simon: Sollen Neubauhäuser eigene, niedrigere Werte bekommen (Recherche Q-A: GEG/KfW-55/40-Bedarf je Haustyp; Q-B: Wärmebelegungsdichte Neubau)? Folge: weniger kW je Haus, Neubaugebiet wirtschaftlich schwächer.
+
+## 2026-11-12 – Reihenfolge NR24/NR25
+- Frage (aus STATUS „Als Nächstes“): Erst Rohrgrößen-Vorschau (NR24) oder erst kW-Anzeige (NR25)? → Simon per Sprache 2026-11-12: „A ist okay“ = erst NR24, dann NR25. NR24 gebaut. Erledigt.
