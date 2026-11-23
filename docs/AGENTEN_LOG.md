@@ -778,3 +778,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 10:20 | ■ 🔴 | entwickler | 🔴 **BLOCKIERT (Kontext voll).** Ich habe einen Zwischenstand committet. Von P5b ist nur der Fahrplan des Zugs gebaut, dazu die zwei Nachtragstests aus dem P4 ([Bericht](docs/pruefberichte/20261123-102052-entwickler-a5f764b7b5caf127a.md)) |
 | 2026-11-23 10:22 | ▶ | entwickler | Entwickler P5a2 UI-Rest |
 | 2026-11-23 10:22 | ▶ | entwickler | Entwickler P5b2 statische Bahn |
+| 2026-11-23 10:31 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, Kontext voll.** Nur Punkt 1 von 6 ist fertig und committet. Die Punkte 2–6 sind nicht gebaut, die genauen nächsten Schritte stehen  ([Bericht](docs/pruefberichte/20261123-103124-entwickler-aaf5857282c6766a8.md)) |
+| 2026-11-23 10:32 | ▶ | tester | Tester-Vorarbeit NR27 P5a3 |
