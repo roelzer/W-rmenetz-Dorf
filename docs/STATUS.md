@@ -159,3 +159,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-23: P2 gemergt (Review 🟡 → Kleinpunkte erledigt), 2030 Tests grün. Läuft: P1.
 - 2026-11-23: P1 gemergt (Review 🟢), 2307 Tests grün, typecheck+build grün. Weiter: P3‖P4.
 - 2026-11-23: P3 gebaut (Review läuft), P4 Zwischenstand (Kontext voll) → frischer Entwickler nach P3-Merge. Dann P5. Details docs/SITZUNGSUEBERGABE.md
+- 2026-11-23: P1–P4 gemergt (2351 Tests grün). Läuft: Review P4, danach P5a/P5b. Stand: docs/SITZUNGSUEBERGABE.md
