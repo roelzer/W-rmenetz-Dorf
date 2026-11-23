@@ -743,3 +743,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:35 | ■ 🟢 | designer | 🟢 Abschnitt 14 (NR27) in DESIGN.md ist auf Fassung 2 umgestellt. Das umfasst die Kritiker-Befunde 1 und 2, deinen Zusatz zu den Fachprüfer-Befunden und die  ([Bericht](docs/pruefberichte/20261123-083531-designer-ab0cd91f6c8e2ba97.md)) |
 | 2026-11-23 08:43 | ■ 🟡 | architekt | 🟡 **Bauplan NR27 Fassung 3 ist fertig. Alle 7 Kritiker-Befunde und die 6 Fachprüfer-Punkte sind eingearbeitet, die Rückfragen beantwortet.**  ([Bericht](docs/pruefberichte/20261123-084355-architekt-aa71b0bfbe87fccc3.md)) |
 | 2026-11-23 08:44 | ▶ | kritiker | Kritiker: Nachprüfung Bauplan F3 |
+| 2026-11-23 08:45 | ■ 🟢 | designer | 🟢 Die Nacharbeit an DESIGN.md ist fertig: Abschnitt 14.6 ist neu, in 14.15 sind die Punkte 10 und 20 ergänzt. Andere Abschnitte habe ich nicht angefasst. `g ([Bericht](docs/pruefberichte/20261123-084558-designer-ab0cd91f6c8e2ba97.md)) |

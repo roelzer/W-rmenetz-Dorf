@@ -1702,36 +1702,54 @@ Die Spalte x = 10 ist die **Sichtachse**: Hauptstraße – Schranke – Querung 
 
 **Blatt beim Antippen der fertigen Querung:** das normale Leitungsblatt, dazu eine Zeile T20 und – nur bei freigegebenem Text – der Kasten „Warum so teuer?“ mit (i). [Ersetzen] zeigt den Preis mit Aufpreis (Bauplan P3 Regel 3), sonst keine Sonderknöpfe.
 
-### 14.6 Texttabelle NR27 (die einzige; ersetzt alle Texte in Bauplan P2 `nordInfo`, P3 Regeln 1, 5, 6)
-Du-Form, alle Texte ≤ 90 Zeichen (per Skript gezählt, Platzhalter mit Beispielwert). `{…}` kommt aus dem Kern, nie fest im Text. Teilstrings, die Bauplan-Tests prüfen, sind erhalten („ab Heizzentrale Stufe 6“, „nur quer“, „erst weiter, wenn eine Bahnquerung gebaut ist“; der Brücken-Test muss auf „Bahnbrücke“ prüfen, weil „Brücke“ groß geschrieben nicht im Text steht). Spielmechanik-Texte brauchen keine Fachfreigabe; Zeilen mit **[F]** stammen vom Fachprüfer (`docs/recherche/bahnquerung-texte.md`) und erscheinen **nur**, wenn der Schalter „Text freigegeben“ an ist.
-| Nr | Wo / wann | Text | Zeichen |
+### 14.6 Texte NR27 – Verweis auf die Kennungen (Fassung 3)
+**Die einzige Texttabelle steht im Bauplan** `docs/bauplaene/NR27-bahnquerung-entwurf.md` Abschnitt 3 („Texttabelle `src/core/nord-texte.ts`“, AE-NR27-12). Wortlaute stehen nur dort. Hier steht nur, welche Kennung wo im Bild erscheint. Regeln: Meldungen ≤ 90 Zeichen (12.20), Blasen im Mini-Tutorial ≤ 120 Zeichen (13.13). Kennungen mit `fach = ja` erscheinen nur bei `NORD_FACHTEXTE_FREIGEGEBEN = true` (Standard aus, 14.7).
+Bei Variante A entfallen Q1, Q3, Q6, Q7. Q5 steht ohne Restzeit da (die Restzeit zeigt der Bauabschnitt).
+
+**Zuordnung** (die Nummern T01–T22 aus Fassung 2 werden in 14.4–14.13 weiter benutzt):
+| T (Fassung 2) | Kennung im Bauplan | Wo |
+|---|---|---|
+| T01 | `sperrgrund('bahnquerung')` (freischaltung.ts) | Zeile 2, Freischaltliste |
+| T02 | `KATALOG_ZEILE` | Infozeile Kasten Bauabschnitt vor Stufe 6, mit Schloss |
+| T03 | `KATALOG_PREIS` | Infozeile ab Stufe 6 |
+| T04 | **neu** `KOSTEN_ZUSATZ` | Zusatz Kostenzeile, Abschnitt mit Bahnfeld |
+| T05 | `N1` | Antippen Bahnfeld/Kulissenhaus vor Stufe 6 |
+| T06 | `N2` | dito ab Stufe 6 |
+| T07 | `Q5` | dito während Querung im Bau; auch Ziehen hinter die Bahn während des Baus |
+| T08, T12 | `STELLE` | Ziehen über die Bahn neben x = 10; Antippen eines leeren Bahnfelds nach der Erschließung |
+| T09 | `Q2` | Ziehen aufs Bahnfeld vor Stufe 6 |
+| T10 | `Q4` | Ziehen längs |
+| T11 | `HINTER` | Ziehen hinter die Bahn vor der Erschließung |
+| T13 | `BRUECKE` | Ziehen auf die Bahnbrücke |
+| T14 | `GLEISE` | anderer Baustein auf ein Bahnfeld |
+| T15 | `EXPRESS` + `SOFORT_GRUND` | Meldung bzw. Zeile 2 an [Express]/[Sofort fertig] |
+| T16 | `F1` | Erschließung (Erfolgsmoment) |
+| T17 | **neu** `TUTORIAL_BEDIEN` | Mini-Tutorial, wenn der Schalter aus ist |
+| T18 | `TUTORIAL_1` (fach), `TUTORIAL_2` | Mini-Tutorial |
+| T19 | `WISSEN_A`, `WISSEN_B` (fach) | Sprecherblase beim ersten Bahnfeld |
+| T20 | **neu** `BLATT_ZEILE` | Zeile im Leitungsblatt der Querung |
+| T21 | **neu** `KARTE_TITEL`, `KARTE_ALT`; Chip-Zusatz = `KARTE_5` | Erklärkarte |
+| T22 | `KARTE_1` … `KARTE_4` (fach) | Erklärkarte |
+| – | **neu** `CHIP` | Chip in der Zeichenleiste |
+
+**Wortlaut-Meldung an den Bauplan** (Designer prüft die A-Texte und schlägt neue Kennungen vor; Zeichen per Skript gezählt, mit Beispielwerten). Der Projektleiter trägt das in den Bauplan ein; danach gilt nur noch der Bauplan.
+| Kennung | Vorschlag | Zeichen | Grund |
 |---|---|---|---|
-| T01 | Sperrgrund kurz (`sperrgrund('bahnquerung')`, Zeile 2, Freischaltliste) | „ab Heizzentrale Stufe 6“ | 23 |
-| T02 | Infozeile Kasten Bauabschnitt, vor Stufe 6, mit Schloss | „Bahnquerung ab Heizzentrale Stufe 6“ | 35 |
-| T03 | Infozeile, ab Stufe 6, Abschnitt ohne Bahnfeld | „Über die Bahn kommst du nur mit einer Bahnquerung ({eur_je_feld} je Bahnfeld).“ | 73 (Beispiel 45.000 €), ≤ 80 |
-| T04 | Zusatz Kostenzeile, Abschnitt mit Bahnfeld | „dazu eine Bahnquerung ({querung_eur}) · Bauzeit +{querung_zeit}“ | 50 (Beispiel), ≤ 62 |
-| T05 | Antippen Bahnfeld oder Kulissenhaus, vor Stufe 6 (`nordInfo`) | „Hinter der Bahn liegt ein Wohngebiet. Hin kommst du ab Heizzentrale Stufe 6.“ | 76 |
-| T06 | dito, ab Stufe 6, keine Querung im Bau (`nordInfo`) | „Zeichne im Bauabschnitt eine Leitung über die Bahn – am Ende der Hauptstraße.“ | 77 |
-| T07 | dito, Querung im Bau (`nordInfo`, liest `mit_querung`) | „Die Bahnquerung wird gebaut. Danach erreichst du das Wohngebiet dahinter.“ | 73 |
-| T08 | Antippen Bahnfeld ohne Leitung nach der Erschließung (`nordInfo`) | = T12 | – |
-| T09 | Ziehen auf ein Bahnfeld, vor Stufe 6 | „Über die Bahn geht es erst mit einer Bahnquerung – ab Heizzentrale Stufe 6.“ | 75 |
-| T10 | Ziehen längs auf einem Bahnfeld oder Abzweig darin (Fachprüfer Q4) | „Unter der Bahn geht es im Spiel nur quer hindurch, nicht an den Gleisen entlang.“ | 80 |
-| T11 | Ziehen hinter die Bahn (y ≤ −4), Viertel noch nicht erschlossen | „Hinter der Bahn geht es erst weiter, wenn eine Bahnquerung gebaut ist.“ | 70 |
-| T12 | Ziehen über die Bahn an einer anderen Stelle als x = 10 | „Unter der Bahn durch geht es nur an einer Stelle: am Ende der Hauptstraße.“ | 74 |
-| T13 | Ziehen auf die Bahnbrücke (Fachprüfer) | „Über die Bahnbrücke führt im Spiel keine Leitung.“ | 49 |
-| T14 | anderer Baustein (Haus, Baum, Solar …) auf ein Bahnfeld | „Auf den Gleisen kann nichts gebaut werden.“ | 42 |
-| T15 | [Express] bei Abschnitt mit Querung (Fachprüfer) | „Eine Bahnquerung lässt sich nicht beschleunigen.“ | 48 |
-| T16 | Querung fertig, Viertel angelegt (Meldung im Erfolgsmoment, nach der Abschnitts-Meldung) | „Bahnquerung fertig! Das Wohngebiet hinter der Bahn ist jetzt erreichbar.“ | 72 |
-| T17 | Mini-Tutorial bei Freischaltung, Bedien-Blase (immer) | „Neu: Bahnquerung. Zieh am Ende der Hauptstraße eine Leitung über die Bahn.“ | 74 |
-| T18 | Mini-Tutorial, Wissens-Blasen 1–2 **[F]** | Platz – Wortlaut `bahnquerung-texte.md` Abschnitt 4 | – |
-| T19 | Sprecherblase bei der ersten Leitung auf einem Bahnfeld (`QUERUNG_WISSEN`) **[F]** | Platz – Wortlaut `bahnquerung-texte.md` Abschnitt 2 (A, B) | – |
-| T20 | Zeile im Leitungsblatt der Querung | „Bahnquerung · unter den Gleisen · {laenge_m} m“ | ≤ 46 |
-| T21 | Erklärkarte: Titel / Chip-Zusatz / Bild-Alt | „Warum so teuer?“ / „im Spiel vereinfacht“ / „Skizze: zwei Gruben, Leitung unter zwei Gleisen“ | 15 / 20 / 47 |
-| T22 | Erklärkarte, Sätze 1–5 **[F]** | Platz – Wortlaut `bahnquerung-texte.md` Abschnitt 1 | – |
-- Der Fachprüfer-Ersatzsatz für das alte Q3 („… nur quer über die Gleise – ab Heizzentrale Stufe 6.“) wird nicht verwendet: denselben Fall (vor Stufe 6) deckt T09 ab, ein zweiter Text dafür wäre ein Widerspruch.
-- Neue Prüfregel für den Kern (Bitte an Projektleiter, fehlt im Bauplan): T12 „nur bei x = 10“ (Entscheidung 2026-11-23).
-- `freischaltung.ts`: `bahnquerung: 6`, Name „Bahnquerung“ (Bauplan P2) – dann stimmen `stufenSperre`, `stufenHinweis` und T01 ohne Sondertext.
-- **Mini-Tutorial** bei der Freischaltung nach 13.13 A: Blase T17 mit Loch um den Kasten „Bauabschnitt“; bei freigegebenem Text davor die Blasen T18. [Zeig’s mir] fährt die Kamera auf die Querungsstelle (10|−2,5) und öffnet das Baumenü im Reiter „Leitungen“.
+| `GLEISE` | unverändert: „Auf den Gleisen kann nichts gebaut werden.“ | 42 | klar |
+| `STELLE` | „Über die Gleise geht es nur an einer Stelle: in Verlängerung der Hauptstraße.“ | 77 | Im Spiel heißt x = 10 „Hauptstraße“ (orte.ts, Meldung „Folge der Hauptstraße nach Süden“); „Dorfstraße“ gibt es nicht |
+| `HINTER` | unverändert: „Hinter der Bahn geht es erst weiter, wenn die Bahnquerung gebaut ist.“ | 69 | klar; Test-Teilstring bleibt |
+| `SOFORT_GRUND` | unverändert: „nicht bei Bahnquerung“ | 21 | ≤ 28 |
+| `KATALOG_PREIS` | „Über die Gleise nur per Bahnquerung an der Hauptstraße: {preis} je Gleisfeld.“ | 78 | Mit `{aktuell}` wären es 96 Zeichen (über 90). Die aktuelle Summe zeigt `KOSTEN_ZUSATZ`; „im Spiel vereinfacht“ sagt `KARTE_5` |
+| `N2` | „Zeichne im Bauabschnitt eine Leitung über die Gleise – in Verlängerung der Hauptstraße.“ | 87 | „Bauen → Leitungen“ zeigt bei Variante A auf keinen Kasten „Bahnquerung“ mehr |
+| `Q5` | unverändert: „Die Bahnquerung wird noch gebaut. Danach geht es hinter der Bahn weiter.“ | 72 | passt auch beim Antippen |
+| neu `KOSTEN_ZUSATZ` | „dazu eine Bahnquerung ({querung_eur}) · Bauzeit +{querung_zeit}“ | 50 | Aufrufer übergibt die Werte |
+| neu `TUTORIAL_BEDIEN` | „Neu: Bahnquerung. Zieh an der Hauptstraße eine Leitung über die Gleise.“ | 71 | reine Bedienung, kein Fachtext |
+| neu `BLATT_ZEILE` | „Bahnquerung · unter den Gleisen · {laenge_m} m“ | 38 | – |
+| neu `KARTE_TITEL` | „Warum so teuer?“ | 15 | – |
+| neu `KARTE_ALT` | „Skizze: zwei Gruben, Leitung unter zwei Gleisen“ | 47 | enthält „Gleis“, darum in nord-texte.ts |
+| neu `CHIP` | „+ Bahnquerung“ | 13 | – |
+`N1` (89), `F1`, `Q2`, `Q4`, `BRUECKE`, `EXPRESS`, `KATALOG_ZEILE` (84) und alle F-Texte bleiben wie im Bauplan. `TUTORIAL_1` (94) und `TUTORIAL_2` (116) sind Blasen und halten die 120er-Grenze ein.
+Prüfreihenfolge beim Ziehen (ein Hinweis je Fingerzug): `BRUECKE` → `Q2` → `Q4` → `STELLE` → `HINTER`/`Q5` → `GLEISE`.
 
 ### 14.7 Erklärkarte „Warum so teuer?“
 **Schalter „Text freigegeben“** (Name im Code legt der Projektleiter fest; Standard **aus**, bis Fachprüfer und Simon den Text bestätigt haben). Ist er aus: keine Erklärkarte, kein (i), keine Sprecherblase T19, keine Blasen T18. Ein Test prüft „ohne Freigabe kein Text“. Nie Platzhaltertext vor Spielern.
@@ -1871,7 +1889,7 @@ Was P4 laut Bauplan schon liefert (Grundgleis: Schotter, Schienen, Schwellen, Br
 7. **P5** – Schranken an (10|0) und (17|0); Gleisenden x = −2 … 25 im Wolkenrand.
 8. **P5** – Dunst über dem Nordgebiet mit weichem Südrand; Öl-Rauch an 2–3 Kulissenhäusern.
 9. **P5** – Zug: Form, Lackierung, Fahrt, Fahrplan aus der Uhrzeit, Takt „flüssig“ nur im Bild, aus bei weniger Bewegung/Sparmodus, **Pause während des Querungsbaus**.
-10. **P5** – Leitungsmodus: Schleier auf Bahnfeldern, ab Stufe 6 Aussparung und Raster bei x = 10.
+10. **P5** – **Schleier:** Nur im Modus „Leitung legen“ (Zeichenleiste offen) liegt auf jedem Bahnfeld (y = −2/−3, x = 0 … 23, auch auf der Brücke) eine Raute in `bahn.gesperrt_schleier` (`rgba(31,42,46,.12)`), gezeichnet über Schotter und Gleisen und unter Masten und Zug. Vor Stufe 6 liegt er auf allen Bahnfeldern. Ab Stufe 6 bleiben (10|−2) und (10|−3) frei und bekommen die normalen Rasterlinien eines Baufelds. Nach der Erschließung bleibt das so. Ohne Animation (er blendet nicht ein, er ist einfach da), gleich bei weniger Bewegung. Außerhalb des Leitungsmodus gibt es keinen Schleier.
 11. **P5** – Vorschau: Strichellinie und halbe Ringe statt Rohr auf den Bahnfeldern; Chip „+ Bahnquerung“ in der Zeichenleiste.
 12. **P5** – Rotes Feld + genau ein Hinweis je Fingerzug beim Ziehen (T09–T14), Prüfreihenfolge 14.5 (zusammen mit Kritiker-Befund 5, `steuerung.ts`).
 13. **P5** – Infozeile im Kasten „Bauabschnitt“ (T02–T04), [Express] grau mit T15.
@@ -1881,6 +1899,10 @@ Was P4 laut Bauplan schon liefert (Grundgleis: Schotter, Schienen, Schwellen, Br
 17. **P5** – Leitungsblatt der Querung mit Zeile T20 und Kasten „Warum so teuer?“.
 18. **P5** – Erklärkarte (Popup, Bild nach `design/nr27-erklaerbild-querschnitt.svg`, Chips, Zustände, Fokus) nur mit Schalter „Text freigegeben“; Test „ohne Freigabe kein Text“.
 19. **P5** – Sprecherblase T19 bei der ersten Leitung auf einem Bahnfeld, nur mit Schalter.
-20. **P5** – Mini-Tutorial bei Freischaltung (T17, T18 nur mit Schalter), [Zeig’s mir] mit Kamerafahrt auf (10|−2,5).
+20. **P5** – **Mini-Tutorial** bei der Freischaltung (Stufe 6, Muster 13.13 A, Anleiter-Karte Simon). Es kommt nach der Stufen-Meldung, nicht gleichzeitig mit „Neubaugebiet Süd erschlossen“, sondern in der Warteschlange danach.
+    - **Schalter an:** Blase 1 = `TUTORIAL_1`, Blase 2 = `TUTORIAL_2`, dann Blase 3 = `TUTORIAL_BEDIEN` mit den Knöpfen [Zeig’s mir] (`los`) und [Später] (neutral).
+    - **Schalter aus:** nur Blase 1 = `TUTORIAL_BEDIEN` mit denselben Knöpfen. `TUTORIAL_2` entfällt mit, weil sie ohne den Fachsatz davor in der Luft hängt.
+    - **[Zeig’s mir]:** Kamera fährt in 1200 ms (`kurve.weich`; bei weniger Bewegung springt sie) auf (10|−2,5), Zoom 2,2. Danach öffnet das Baumenü im Reiter „Leitungen“, mit Loch um den Kasten „Bauabschnitt“ und dessen Infozeile `KATALOG_PREIS`.
+    - **[Später]:** schließt; das Mini-Tutorial gilt als gesehen und kommt über (i) nach 13.13 wieder.
 21. **P5** – Neue Werte aus 14.9 in `design/tokens.json` eintragen (Gruppe `farbe.bahn`, `karte.bahn`, `zeit_ms`).
 22. **P5** – Darstellungstests: Zug pausiert bei `mit_querung`; kein Rohr auf Bahnfeldern; Schleier-Aussparung nur ab Stufe 6; Schalter aus → kein (i), keine Karte, keine Blase.
