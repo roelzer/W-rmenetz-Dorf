@@ -12,12 +12,12 @@ import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import {
-  BAHN, BAHN_MASS, bauFortschritt, brueckenSpalten, grubenFelder, unterDemDunst, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken,
-  schutzrohrY, STRICHEL_VORSCHAU, zeichneBaustelle, zeichneSchutzrohr, zeichneStrichellinie, zeichneZugTeil, zugLage, zugTeile, zugTeilTiefe,
+  bauFortschritt, grubenFelder, unterDemDunst, mastenNachTiefe, querungFrei, zeichneAbgelehnt, zeichneDunst, zeichneGleise, zeichneKulissenhaus,
+  zeichneMast, zeichneSchleier, zeichneSchranken, schutzrohrY, STRICHEL_VORSCHAU, zeichneBaustelle, zeichneSchutzrohr, zeichneStrichellinie, zeichneZugTeil, zugLage, zugTeile, zugTeilTiefe,
 } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
-import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
+import { blatt, istHerbst, LANDSCHAFT, LAUB, schneefall, type Jahreszeit } from './jahreszeiten';
 import { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 import { bodenSchluessel, fremdEinblendungMerken } from './szene-schluessel';
@@ -327,15 +327,6 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   if (s.modus === 'stempel' && s.bahn?.length) zeichneSchleier(m, k, s.bahn, querungFrei(s.spiel?.stand));
 }
 
-/**
- * NR27 (DESIGN 14.4): gleicher Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht erreichbar.
- * Kein Rauch (Designer-Treue M7): sonst endete er beim Wechsel, obwohl echte unversorgte Häuser auch nicht rauchen.
- */
-function zeichneKulissenhaus(m: Maler, k: Kamera, s: Szene, o: Objekt): void {
-  const kante = groesse(o), [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
-  zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(o, s.strassen) }, s.jetzt_ms);
-}
-
 /** NR27: Kulissenhäuser als Zeichenvorlage (Objekt ohne Spielbedeutung, Id 0 wie die Platzier-Vorschau). */
 const kulissenVorlagen = new WeakMap<NonNullable<Szene['kulisse']>, Objekt[]>();
 function kulissenObjekte(s: Szene): Objekt[] {
@@ -343,56 +334,6 @@ function kulissenObjekte(s: Szene): Objekt[] {
   let v = kulissenVorlagen.get(s.kulisse);
   if (!v) { v = s.kulisse.map((h) => ({ id: 0, typ: h.typ, x: h.x, y: h.y, stufe: 1, bau: null, kasse_eur: 0 })); kulissenVorlagen.set(s.kulisse, v); }
   return v;
-}
-
-/**
- * NR27 (DESIGN 14.2): Trasse im Boden – Zäune, Randwege, Schotterbett mit Flanken, zwei Gleise; über dem Fluss der Brückentrog.
- * Lage quer zur Bahn in Feldbruchteilen ab der Mitte der Bahnzeilen (−2,5); gezeichnet je Bahnfeld über die Kamera, damit
- * es in jedem Drehwinkel stimmt. Ab `detail_ab_kachelbreite` Schwellen, zwei Schienen je Gleis, Glanzstrich und Körnung.
- */
-function zeichneGleise(m: Maler, k: Kamera, bahn: ReadonlyArray<readonly [number, number]>, fluss: ReadonlyArray<readonly [number, number]>, winter: boolean): void {
-  const { X } = m, tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
-  const zeilen = [...new Set(bahn.map(([, y]) => y))].sort((a, b) => a - b);
-  const sued = zeilen[zeilen.length - 1] + 0.5, nord = zeilen[0] - 0.5, mitte = (sued + nord) / 2;
-  const bruecken = brueckenSpalten(bahn, fluss);
-  const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
-  const band = (x: number, y0: number, y1: number, farbe: string): void =>
-    m.flaeche([k.mitte(x - 0.52, y0), k.mitte(x + 0.52, y0), k.mitte(x + 0.52, y1), k.mitte(x - 0.52, y1)], farbe, false);
-  const linie = (x: number, y: number, farbe: string, breite: number): void => {
-    X.strokeStyle = farbe; X.lineWidth = breite; X.beginPath(); X.moveTo(...k.mitte(x - 0.5, y)); X.lineTo(...k.mitte(x + 0.5, y)); X.stroke();
-  };
-  for (const x of gleisSpalten()) {
-    const [cx, cy] = k.mitte(x, mitte);
-    if (cx < -tw * 2 || cx > W + tw * 2 || cy < -th * 2 || cy > H + tw * 2) continue;
-    const bruecke = bruecken.has(x);
-    if (bruecke) band(x, sued - 0.02, nord + 0.02, BAHN.bruecke);
-    else {
-      band(x, sued - 0.08, sued - 0.36, BAHN.randweg);
-      band(x, nord + 0.10, nord + 0.38, BAHN.randweg);
-    }
-    band(x, sued - 0.40, nord + 0.40, BAHN.schotter_kante);
-    band(x, sued - 0.46, nord + 0.46, BAHN.schotter);
-    if (winter) for (let i = 0; i < 4; i++) m.kreis(...k.mitte(x - 0.375 + i * 0.25, sued - 0.43), Math.max(0.8, tw * 0.012), SCHNEE);
-    if (details) {
-      X.fillStyle = 'rgba(60,54,46,.22)';
-      for (let i = 0; i < 6; i++) { const [px, py] = k.mitte(x - 0.42 + i * 0.17, mitte + ((i * 7) % 5 - 2) * 0.1); X.fillRect(px, py, Math.max(0.65, tw * 0.011), Math.max(0.45, tw * 0.006)); }
-    }
-    for (const g of [mitte + BAHN_MASS.gleisabstand / 2, mitte - BAHN_MASS.gleisabstand / 2]) {
-      if (details) {
-        for (let i = 0; i < 4; i++) {
-          const sx = x - 0.375 + i * BAHN_MASS.schwellen_teilung;
-          X.strokeStyle = BAHN.schwelle; X.lineWidth = Math.max(1.5, tw * 0.04); X.beginPath();
-          X.moveTo(...k.mitte(sx, g - BAHN_MASS.spurweite)); X.lineTo(...k.mitte(sx, g + BAHN_MASS.spurweite)); X.stroke();
-        }
-        for (const d of [-BAHN_MASS.spurweite / 2, BAHN_MASS.spurweite / 2]) {
-          linie(x, g + d, BAHN.schiene, Math.max(1.5, tw * 0.03));
-          linie(x, g + d - 0.01, BAHN.schiene_glanz, 1);
-        }
-      } else linie(x, g, BAHN.schiene, 2);
-    }
-    if (bruecke) for (const y of [sued, nord]) linie(x, y, BAHN.zaun, Math.max(1, tw * 0.02));
-    else for (const y of [sued - 0.06, nord + 0.06]) linie(x, y, BAHN.zaun, Math.max(1, tw * 0.015));
-  }
 }
 
 /** Wolken liegen um die freigeschalteten Felder. Die gekachelte Decke dahinter reicht über den Bildschirm hinaus. */
@@ -486,7 +427,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   // vorn und wird trotzdem zuerst gezeichnet. Nachgerechnet bei 0/45/90/135/180/225/270/315°: nichts wird überdeckt. Nur bei freien
   // Winkeln um 120° und 150° könnte ein Mastfuß knapp über eine Dachkante ragen.
   const kulisse = [...kulissenObjekte(s)].sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
-  kulisse.forEach((o) => zeichneKulissenhaus(m, k, s, o));
+  kulisse.forEach((o) => zeichneKulissenhaus(m, k, o, s.innen, s.jetzt_ms, strassenseite(o, s.strassen)));
   const dunst = (deckkraft?: number): void => zeichneDunst(m, k, -WIESENRAND - 1, N + WIESENRAND, (s.kartenOben ?? 0) - WIESENRAND - 1, deckkraft);
   if (kulisse.length) dunst();
   // NR27 Erfolgsmoment (DESIGN 14.8): Querung fertig, das Viertel ist erschlossen – die Kulisse ist weg. Kein Kernereignis, nur der
@@ -612,7 +553,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     const [cx, cy] = k.mitte(s.stempel.x, s.stempel.y);
     m.raute(cx, cy, 1); X.strokeStyle = s.stempel.ok ? '#fff' : '#d8392f'; X.lineWidth = 2.5; X.stroke();
   }
-  zeichneAbgelehnt(m, k, s);
+  zeichneAbgelehnt(m, k, s.abgelehnt_feld, s.jetzt_ms);
   if (durchsicht) zeichneLeitungen(m, k, s);
   // 13.17.9 F5: Band und Raute am Feld neben der Heizzentrale liegen über ihr (und über dem zweiten Leitungs-Durchgang)
   if (durchsicht && tutorial.fremd.length) zeichneFremd(m, k, s, tutorial.fremd, tutorial.deckkraft);
@@ -932,20 +873,6 @@ function zeichneWarndreiecke(m: Maler, k: Kamera, s: Szene): void {
 }
 
 /** A37: Beim Planen sind Gebäude durchsichtig, damit nichts dahinter verschwindet. */
-/** Ausblenden des roten Felds am Ende seiner Zeit, so lange wie die Meldung ausblendet. */
-const ABGELEHNT_BLENDE_MS = tokens.zeit_ms.toast_blende;
-
-/** NR27 (DESIGN 14.5 „Falsch ziehen“): abgelehntes Feld in `vorschau_nein` mit rotem Rand; bei „Weniger Bewegung“ ohne Ausblenden. */
-function zeichneAbgelehnt(m: Maler, k: Kamera, s: Szene): void {
-  const f = s.abgelehnt_feld;
-  if (!f || s.jetzt_ms >= f.bis_ms) return;
-  const { X } = m, [cx, cy] = k.mitte(f.x, f.y);
-  X.globalAlpha = m.reduziert ? 1 : Math.min(1, (f.bis_ms - s.jetzt_ms) / ABGELEHNT_BLENDE_MS);
-  m.raute(cx, cy, 1); X.fillStyle = KARTE.vorschau_nein; X.fill();
-  X.strokeStyle = KARTE.pfeil_nein; X.lineWidth = 2.5; X.stroke();
-  X.globalAlpha = 1;
-}
-
 export function istDurchsichtig(modus: string, abschnittPhase?: string): boolean {
   return modus === 'stempel' || modus === 'platzieren' || abschnittPhase === 'offen';
 }

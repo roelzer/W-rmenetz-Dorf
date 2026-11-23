@@ -2,9 +2,11 @@ import tokens from '../../design/tokens.json';
 import { mod } from '../core/feld';
 import { freigeschaltet } from '../core/freischaltung';
 import { QUERUNG_X, querungImBau } from '../core/nordviertel';
-import type { Spielstand } from '../core/typen';
+import { groesse } from '../core/netz';
+import type { InnenQuelle, Objekt, Spielstand } from '../core/typen';
 import { schatten } from './farben';
-import { zeichneMonteur } from './gebaeude';
+import { zeichneMonteur, zeichneObjekt } from './gebaeude';
+import { SCHNEE } from './jahreszeiten';
 import type { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 
@@ -23,11 +25,11 @@ export const ZUG_MASS = {
   gleis1_y: -2.28, gleis2_y: -2.72,
 } as const;
 
-export const BAHN = {
+const BAHN = {
   schotter: F.schotter, schotter_kante: F.schotter_kante, randweg: F.randweg, schwelle: F.schwelle, schiene: F.schiene,
   schiene_glanz: F.schiene_glanz, zaun: F.zaun, bruecke: F.bruecke,
 } as const;
-export const BAHN_MASS = {
+const BAHN_MASS = {
   gleisabstand: M.gleisabstand, spurweite: M.spurweite, schwellen_teilung: M.schwellen_teilung, detail_ab_kachelbreite: M.detail_ab_kachelbreite,
 } as const;
 
@@ -103,6 +105,15 @@ export function unterDemDunst(y: number): boolean {
   return y < DUNST.sued_y;
 }
 
+/**
+ * NR27 (DESIGN 14.4): Kulissenhaus mit dem gleichen Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht
+ * erreichbar. Kein Rauch (Designer-Treue M7): sonst endete er beim Wechsel, obwohl echte unversorgte Häuser auch nicht rauchen.
+ */
+export function zeichneKulissenhaus(m: Maler, k: Kamera, o: Objekt, innen: InnenQuelle[], jetzt_ms: number, strassenseite: number | undefined): void {
+  const kante = groesse(o), [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
+  zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen, oel: false, strassenseite }, jetzt_ms);
+}
+
 /** DESIGN 14.9 `gesperrt_schleier`; Rasterstrich wie das Baumodus-Raster in szene.ts (zeichneBoden). */
 const SCHLEIER = { farbe: F.gesperrt_schleier, raster: F.schleier_raster } as const;
 
@@ -163,6 +174,19 @@ export function zeichneStrichellinie(m: Maler, tw: number, mitte: Punkt, arme: r
   for (const [ax, ay] of arme) { X.moveTo(cx, cy); X.lineTo(ax, ay); }
   if (!arme.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
   X.stroke(); X.setLineDash([]);
+}
+
+/** Ausblenden des roten Felds am Ende seiner Zeit, so lange wie die Meldung ausblendet. */
+const ABGELEHNT_BLENDE_MS = tokens.zeit_ms.toast_blende;
+
+/** NR27 (DESIGN 14.5 „Falsch ziehen“): abgelehntes Feld in `vorschau_nein` mit rotem Rand; bei „Weniger Bewegung“ ohne Ausblenden. */
+export function zeichneAbgelehnt(m: Maler, k: Kamera, f: { x: number; y: number; bis_ms: number } | undefined, jetzt_ms: number): void {
+  if (!f || jetzt_ms >= f.bis_ms) return;
+  const { X } = m, [cx, cy] = k.mitte(f.x, f.y);
+  X.globalAlpha = m.reduziert ? 1 : Math.min(1, (f.bis_ms - jetzt_ms) / ABGELEHNT_BLENDE_MS);
+  m.raute(cx, cy, 1); X.fillStyle = tokens.farbe.karte.vorschau_nein; X.fill();
+  X.strokeStyle = tokens.farbe.karte.pfeil_nein; X.lineWidth = 2.5; X.stroke();
+  X.globalAlpha = 1;
 }
 
 /** Feld-y des Rings vor dem Zaun, wenn (y) eine äußere Bahnzeile ist, sonst null. `bahn_zeilen` = alle y der Bahnfelder. */
@@ -243,6 +267,56 @@ export function brueckenSpalten(bahn: Felder, fluss: Felder): Set<number> {
   const zeilen = bahn.map(([, y]) => y), nord = Math.min(...zeilen), sued = Math.max(...zeilen);
   const wasser = new Set(fluss.map(([x, y]) => `${x},${y}`));
   return new Set(bahn.map(([x]) => x).filter((x) => wasser.has(`${x},${nord - 1}`) && wasser.has(`${x},${sued + 1}`)));
+}
+
+/**
+ * NR27 (DESIGN 14.2): Trasse im Boden – Zäune, Randwege, Schotterbett mit Flanken, zwei Gleise; über dem Fluss der Brückentrog.
+ * Lage quer zur Bahn in Feldbruchteilen ab der Mitte der Bahnzeilen (−2,5); gezeichnet je Bahnfeld über die Kamera, damit
+ * es in jedem Drehwinkel stimmt. Ab `detail_ab_kachelbreite` Schwellen, zwei Schienen je Gleis, Glanzstrich und Körnung.
+ */
+export function zeichneGleise(m: Maler, k: Kamera, bahn: Felder, fluss: Felder, winter: boolean): void {
+  const { X } = m, tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
+  const zeilen = [...new Set(bahn.map(([, y]) => y))].sort((a, b) => a - b);
+  const sued = zeilen[zeilen.length - 1] + 0.5, nord = zeilen[0] - 0.5, mitte = (sued + nord) / 2;
+  const bruecken = brueckenSpalten(bahn, fluss);
+  const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
+  const band = (x: number, y0: number, y1: number, farbe: string): void =>
+    m.flaeche([k.mitte(x - 0.52, y0), k.mitte(x + 0.52, y0), k.mitte(x + 0.52, y1), k.mitte(x - 0.52, y1)], farbe, false);
+  const linie = (x: number, y: number, farbe: string, breite: number): void => {
+    X.strokeStyle = farbe; X.lineWidth = breite; X.beginPath(); X.moveTo(...k.mitte(x - 0.5, y)); X.lineTo(...k.mitte(x + 0.5, y)); X.stroke();
+  };
+  for (const x of gleisSpalten()) {
+    const [cx, cy] = k.mitte(x, mitte);
+    if (cx < -tw * 2 || cx > W + tw * 2 || cy < -th * 2 || cy > H + tw * 2) continue;
+    const bruecke = bruecken.has(x);
+    if (bruecke) band(x, sued - 0.02, nord + 0.02, BAHN.bruecke);
+    else {
+      band(x, sued - 0.08, sued - 0.36, BAHN.randweg);
+      band(x, nord + 0.10, nord + 0.38, BAHN.randweg);
+    }
+    band(x, sued - 0.40, nord + 0.40, BAHN.schotter_kante);
+    band(x, sued - 0.46, nord + 0.46, BAHN.schotter);
+    if (winter) for (let i = 0; i < 4; i++) m.kreis(...k.mitte(x - 0.375 + i * 0.25, sued - 0.43), Math.max(0.8, tw * 0.012), SCHNEE);
+    if (details) {
+      X.fillStyle = F.schotter_koernung;
+      for (let i = 0; i < 6; i++) { const [px, py] = k.mitte(x - 0.42 + i * 0.17, mitte + ((i * 7) % 5 - 2) * 0.1); X.fillRect(px, py, Math.max(0.65, tw * 0.011), Math.max(0.45, tw * 0.006)); }
+    }
+    for (const g of [mitte + BAHN_MASS.gleisabstand / 2, mitte - BAHN_MASS.gleisabstand / 2]) {
+      if (details) {
+        for (let i = 0; i < 4; i++) {
+          const sx = x - 0.375 + i * BAHN_MASS.schwellen_teilung;
+          X.strokeStyle = BAHN.schwelle; X.lineWidth = Math.max(1.5, tw * 0.04); X.beginPath();
+          X.moveTo(...k.mitte(sx, g - BAHN_MASS.spurweite)); X.lineTo(...k.mitte(sx, g + BAHN_MASS.spurweite)); X.stroke();
+        }
+        for (const d of [-BAHN_MASS.spurweite / 2, BAHN_MASS.spurweite / 2]) {
+          linie(x, g + d, BAHN.schiene, Math.max(1.5, tw * 0.03));
+          linie(x, g + d - 0.01, BAHN.schiene_glanz, 1);
+        }
+      } else linie(x, g, BAHN.schiene, 2);
+    }
+    if (bruecke) for (const y of [sued, nord]) linie(x, y, BAHN.zaun, Math.max(1, tw * 0.02));
+    else for (const y of [sued - 0.06, nord + 0.06]) linie(x, y, BAHN.zaun, Math.max(1, tw * 0.015));
+  }
 }
 
 /** Die Spitze fährt vom westlichen Gleisende bis der letzte Wagen das östliche verlassen hat (oder umgekehrt). */
