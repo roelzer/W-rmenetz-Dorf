@@ -34,6 +34,9 @@ const TEXTE = {
   KARTE_TITEL: { text: 'Warum so teuer?' },
   KARTE_ALT: { text: 'Skizze: zwei Gruben, Leitung unter zwei Gleisen' },
   CHIP: { text: '+ Bahnquerung' },
+  KARTE_CHIP_FELD: { text: '{preis} je Gleisfeld' },
+  KARTE_CHIP_ZUSCHLAG: { text: 'Bauzeit +{querung_zeit}' },
+  HOECHSTSTUFE: { text: 'höchste Stufe erreicht' },
   TUTORIAL_2: { text: 'Gut für die Häuser hinter der Bahn. Teuer und langsam – ein späterer Rohrtausch dort kostet die Querung noch einmal.' },
 } as const satisfies Record<string, { text: string; fach?: true }>;
 
