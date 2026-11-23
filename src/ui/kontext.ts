@@ -541,9 +541,8 @@ export class Kontext {
     const imGeplantenStueck = !!stueck?.empfohlen && o.ersatz?.typ === stueck.empfohlen && sp.abschnitt?.phase !== 'bau'
       && !sp.stueckOffeneFelder(key, stueck.empfohlen, [stueck]).length;
     if (!o.geplant && !imGeplantenStueck) this.ersatzBereich(c, o, stueck?.empfohlen ?? null);
-    // Geplante Leitungen eines bestellten oder gerade geplanten Abschnitts lehnt der Kern beim Entfernen ab – dann kein Knopf
-    const abschnittFest = sp.abschnitt?.phase === 'bau' || sp.abschnitt?.phase === 'planung';
-    if (!(o.geplant && abschnittFest)) c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
+    // Was der Kern beim Entfernen ablehnt, bekommt keinen Knopf
+    if (!sp.abschnittSperrtEntfernen(o)) c.append(h('div', { class: 'knopfreihe' }, knopf('Entfernen', () => { sp.entfernen(o.id); this.ui.geaendert(); this.schliessen(); }, '', { klein: true })));
   }
 
   /** NR22 (DESIGN 13.17.3, Bauplan E6): Kasten „Überlastet“ mit Größe und Last, direkt darunter die Hauptaktion für das ganze

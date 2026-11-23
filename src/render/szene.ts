@@ -399,7 +399,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   const { X } = m;
   m.jahreszeit = s.saison ?? 'sommer';
   m.tw = k.tw; m.th = k.th; m.dreh_cos = Math.cos(k.winkel_rad); m.dreh_sin = Math.sin(k.winkel_rad);
-  const tw = k.tw, th = k.th;
+  const tw = k.tw;
   bodenAuflegen(m, k, s, dt_s, finger_auf_karte);
   zeichneGlitzern(m, k, s);
 
