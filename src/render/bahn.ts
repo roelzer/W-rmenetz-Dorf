@@ -374,14 +374,25 @@ const BAUSTELLE = {
   bake_hoehe: 0.18,
   bohrgeraet: '#f0a53a', bohrlinie: '#4a2c14', kabine: ZUG.fenster, lafette: MAST.farbe,
   geraet: 0.34, geraet_hoehe: 0.12, kabine_breite: 0.14, kabine_hoehe: 0.14, kopf_radius: 0.06,
-  /** `bohrgeraet_zittern` 180 ms (±1 px), `abgas_zyklus` 2400 ms (DESIGN 14.9 `zeit_ms`) */
-  zittern_s: 0.18, abgas_s: 2.4,
+  /** `bohrgeraet_zittern` (±1 px) und `abgas_zyklus` aus design/tokens.json `zeit_ms` */
+  zittern_s: tokens.zeit_ms.bohrgeraet_zittern / 1000, abgas_s: tokens.zeit_ms.abgas_zyklus / 1000,
   rauch: tokens.farbe.objekt.rauch_hell, rauch_rand: tokens.farbe.objekt.rauch_hell_rand,
 } as const;
 
 /** Mitten der beiden Gruben: dort sprühen im Erfolgsmoment die Funken (DESIGN 14.8). */
 export function grubenFelder(): Array<[number, number]> {
   return [[QUERUNG_X, BAUSTELLE.start_y], [QUERUNG_X, BAUSTELLE.ziel_y]];
+}
+
+/**
+ * Liegt die Baustelle (beide Gruben samt Bohrlinie, Spalte QUERUNG_X) im Bild? Rand eine Kachel für Haube, Baken und Abgaswölkchen
+ * über dem Boden. Außerhalb braucht sie keinen flüssigen Takt.
+ */
+export function baustelleImBild(k: Kamera): boolean {
+  const halb = BAUSTELLE.grube / 2, tw = k.tw, rand = tw;
+  const p = [QUERUNG_X - halb, QUERUNG_X + halb].flatMap((x) => [BAUSTELLE.ziel_y - halb, BAUSTELLE.start_y + halb].map((y) => k.mitte(x, y)));
+  const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+  return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
 }
 
 /** Anteil der Bauzeit (0 … 1) der Querung, oder null, wenn keine Querung gebaut wird. */

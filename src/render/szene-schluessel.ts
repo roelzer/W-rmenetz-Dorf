@@ -2,7 +2,7 @@ import { istLeitung, KATALOG, KONSTANTEN } from '../core/katalog';
 import type { Netz, Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
 import { istHerbst } from './jahreszeiten';
-import { querungFrei, zugImBild, zugLage } from './bahn';
+import { baustelleImBild, bauFortschritt, querungFrei, zugImBild, zugLage } from './bahn';
 import { blase } from './blase';
 import type { Szene } from './szene';
 
@@ -127,10 +127,12 @@ export function bodenSchluessel(s: Szene, k: Kamera): string {
 /**
  * Schnellste Animation, die gerade sichtbar ist. Jeder Grund verweist auf die Stelle, die mit der Zeit zeichnet.
  * `kamera` braucht nur der Zug (DESIGN 14.3 „Takt“: flüssig nur, solange er im Bild ist); ohne Kamera zählt jeder fahrende Zug,
- * damit nie ein sichtbarer Zug stehen bleibt.
+ * damit nie ein sichtbarer Zug stehen bleibt. Die Baustelle der Querung zählt nur mit Kamera und im Bild; ihre Bohrlinie ist
+ * Information (DESIGN 14.5): bei ausgeschalteter Animation (`animation_an` false) läuft sie mit „langsam“ (4 Bilder/s) weiter.
  */
-export function animationBedarf(s: Szene, effekte_aktiv: boolean, kamera?: Kamera): AnimBedarf {
+export function animationBedarf(s: Szene, effekte_aktiv: boolean, kamera?: Kamera, animation_an = true): AnimBedarf {
   const netz = s.netz;
+  let baustelle_langsam = false;
   if (effekte_aktiv) return 'fluessig';
   if (netz.genutzt_kw > 0) return 'fluessig'; // Rauch der Heizzentrale (gebaeude.ts:144)
   for (const last of netz.last_kw.values()) if (last > 0) return 'fluessig'; // Wärmepunkte (szene.ts:427)
@@ -142,6 +144,10 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean, kamera?: Kamer
   if (s.bahn?.length) { // Zug (szene.ts, zeichneZugTeil in der Tiefenliste)
     const zug = zugLage(s.jetzt_ms, s.spiel);
     if (zug && (!kamera || zugImBild(kamera, zug))) return 'fluessig';
+  }
+  if (kamera && s.bahn?.length && s.spiel && bauFortschritt(s.spiel, s.jetzt_ms) !== null && baustelleImBild(kamera)) {
+    if (animation_an) return 'fluessig'; // Haube zittert, Abgas, wachsende Bohrlinie (bahn.ts, zeichneBaustelle)
+    baustelle_langsam = true;
   }
   if (abgelehnt(s)) return 'fluessig'; // rotes Feld blendet aus (szene.ts, zeichneAbgelehnt)
   if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
@@ -162,6 +168,6 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean, kamera?: Kamer
   }
   if (s.innen.some((q) => q.bau)) return 'langsam'; // Baubalken am Heizhaus
   if (s.objekte.some((o) => o.upgrade_auftrag)) return 'langsam';
-  return 'keine';
+  return baustelle_langsam ? 'langsam' : 'keine';
 }
 

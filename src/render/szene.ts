@@ -484,7 +484,9 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   // Zeichenreihenfolge von hinten nach vorn in der gedrehten Ansicht (Mittelpunkt, nach Größe gewichtet)
   const tiefe = (o: Objekt): number => { const kk = groesse(o), [rx, ry] = k.dreheFeld(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2); return rx + ry + kk; };
   // NR27 (DESIGN 14.4): Kulisse zuerst, darüber der Dunst; Bahn, Masten und Dorf bleiben klar. Vor der Erschließung steht
-  // hinter der Bahn kein echtes Objekt, darum liegt die Kulisse immer hinter allem, was danach kommt.
+  // hinter der Bahn kein echtes Objekt. Ohne Drehung liegt die Kulisse hinter allem, was danach kommt; bei 90° und 180° liegt sie
+  // vorn und wird trotzdem zuerst gezeichnet. Nachgerechnet bei 0/45/90/135/180/225/270/315°: nichts wird überdeckt. Nur bei freien
+  // Winkeln um 120° und 150° könnte ein Mastfuß knapp über eine Dachkante ragen.
   const kulisse = [...kulissenObjekte(s)].sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   kulisse.forEach((o) => zeichneKulissenhaus(m, k, s, o));
   const dunst = (deckkraft?: number): void => zeichneDunst(m, k, -WIESENRAND - 1, N + WIESENRAND, (s.kartenOben ?? 0) - WIESENRAND - 1, deckkraft);
