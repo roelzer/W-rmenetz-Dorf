@@ -1,8 +1,20 @@
-# NR27 – Bahnstrecke und Bahnquerung (Entwurf Architekt, 2026-11-23)
+# NR27 – Bahnstrecke und Bahnquerung (Bauplan Architekt, Fassung 3, 2026-11-23)
 
 **Auftrag:** Lastenheft NR27 (a)–(h). Simon: „eine Bahnquerung … nach oben hin … ab HZ6 … sehr teuer … bisschen was dazu erklärt“.
-**Grundlage:** Stand `1f7d53f`. Code nur gelesen. Einziger Projekt-Eingriff: Architekturtest `tests/architektur/nr27-raster.test.ts` (greift erst ab Paket P1).
-**Vorbild:** NR23 (Kartenerweiterung Süd, `neubaugebiet.ts`) und A46 (Fluss + Spülbohrung, `spiel.ts` Z. 591, 1059–1061).
+**Grundlage:** Stand `e121764`. Code nur gelesen. Projekt-Eingriff des Architekten: `tests/architektur/nr27-raster.test.ts` (verschärft, greift ab P1 bzw. P2).
+**Eingearbeitet:** Kritiker F1 (`docs/pruefberichte/20261123-kritiker-nr27-plan-f1.md`, Befunde 1–7 und Rückfragen), Entscheidungen 2026-11-23 (`docs/ENTSCHEIDUNGEN.md` am Ende), Fachprüfer (`docs/pruefberichte/20261123-fachpruefer-nr27-plan.md`, F1–F6; Texte `docs/recherche/bahnquerung-texte.md`).
+**Gestaltung:** Alles Aussehen (Farben, Maße, Zug, Dunst, Masten, Baustelle, Erklärkarte, Erfolgsmoment) steht in `docs/DESIGN.md` Abschnitt 14 (Designer überarbeitet 14.2/14.5–14.7 auf diese Geometrie, Variante A). Dieser Bauplan nennt nur, **wer** was baut und welche Daten es gibt.
+
+### Was sich gegenüber Fassung 2 geändert hat
+| Kritiker | Änderung |
+|---|---|
+| 1 Geometrie | gilt wie Abschnitt 3 (10 Zeilen, 14 Häuser, kein MFH, Stichstraße x = 10); Querung genau an x = 10 (AE-NR27-10) |
+| 2 Umfang/Texte | neues Paket **P5 Inszenierung**; **eine** Texttabelle `src/core/nord-texte.ts` (AE-NR27-12), Architekturtest |
+| 3 Fachtexte | Schalter `NORD_FACHTEXTE_FREIGEGEBEN = false`, Architekturtest + Test (AE-NR27-13); Fachregeln BQ1–BQ3 an Simon |
+| 4 weitere Schlüssel-Stellen | vollständige Bauliste P1 (Abschnitt 6), `mod()`, `alleSchluessel()`; Architekturtest erkennt `N_`, Abkürzungen, negative Reste, `belegung.length`-Schleifen; Verschiebungstest um `abschnittAnschluesse`/`schliesstLeitungsring` ergänzt |
+| 5 stilles `continue` | `nordSperre()` als reine Funktion (P2), Steuerung zeigt den Grund beim Ziehen (P4), Zusammenspiel-Test |
+| 6 Leitungsgrenze | Stufe 6 = **360** Leitungsfelder (AE-NR27-14), Balance-Test, Meldung bei Höchststufe ohne „nächste Stufe“ |
+| 7 Altstände | Tester-Vorarbeit **V2** mit eingefrorenen echten Spielständen |
 
 ---
 
@@ -10,67 +22,60 @@
 
 | Was | Wo | Bedeutung für NR27 |
 |---|---|---|
-| Feldschlüssel `y*24+x` | 68 Stellen in `src` (spiel.ts 26, szene.ts 15, netz.ts 7, orte.ts 5, speichern.ts 5, …), 95 Stellen in 27 Testdateien | Steht im Spielstand (`gestattungen`, `neubau_strassenluecken`). Darf sich nicht ändern. |
-| Rückrechnung Schlüssel → x/y mit `k % N` | 12 Stellen: netz.ts (4), szene.ts (4), ueberlast.ts (2), spiel.ts:993, steuerung.ts:1240, kontext.ts:491, tutorial-netz.ts:11 | Für negatives y falsch (`-19 % 24 = -19`). |
-| „Kein Feld“ = `-1`, geprüft mit `>= 0` / `< 0` | rund 45 Stellen: netz.ts (35), engstelle.ts:62, rohrvorschau.ts:38–39, tutorial-netz.ts:33/40, kontext.ts:488, szene.ts:888/936 | Jeder negative Schlüssel würde als „Wurzel/Heizhaus“ gelesen. |
-| Belegungskarte `Int32Array(N*MAX_Y)`, gelesen mit `bel[k]` | netz.ts:39–47; Leser in spiel.ts, engstelle.ts, speichern.ts, tutorial-netz.ts, kontext.ts, steuerung.ts | Ein Int32Array verwirft negative Indizes still. |
-| Kartengröße | `KONSTANTEN.feldanzahl` 24, `neubau_hoehe` 46 (katalog.ts:339–340); `Spiel.kartenHoehe` (spiel.ts:415) | Breite bleibt fest. Wachstum nur in y-Richtung möglich. |
-| Fluss + Spülbohrung | `istFluss`, `bohrungsFelder`, `bohrung_eur`, `ersatzPreis_eur`, `flussGesperrt` (spiel.ts) | **Genau dieses Muster** wird für die Bahn wiederverwendet: Hindernisfelder, Leitung nur mit Freischaltung, Aufpreis je Feld im Bauabschnitt. |
-| Freischalt-Leiter | `freischaltung.ts` (AE-A88-1, Architekturtest a88) | `bahnquerung: 6` kommt dorthin; die Meldung „Neu ab Stufe 6: …“ entsteht dann von selbst (`neuBeiStufe`). |
-| Erweiterte Karte | `spielOrt()` in neubaugebiet.ts:66 | Einziger Ort, der Straßen/Fluss der Erweiterungen zusammenführt. Die Nordzone hängt sich hier an. |
-| Bauzeit Abschnitt | `materialBestellen()` spiel.ts:1364, Text ui/katalog.ts:114 | fest `abschnitt_bau_s`; bekommt einen Querungs-Zuschlag. |
-| Spielstand-Version | `SPEICHER_VERSION = 3`, `gueltig()` prüft y nicht | Kein Versionssprung nötig (siehe AE-NR27-7). |
-| Recherche | `docs/recherche/bahnquerung.md` (GELB) | Grabenlos, Vertrag mit der Bahn, teurer und langsamer. **Keine Euro- und Zeitwerte belegt.** |
+| Feldschlüssel `y*24+x` | rund 70 Stellen in `src`, rund 95 in Tests; steht im Spielstand (`gestattungen`, `neubau_strassenluecken`) | Bleibt. Für negatives y eindeutig. |
+| Rückrechnung `k % N` | netz.ts 117/151/291/504, spiel.ts 806 (über Abkürzung `N_`, Z. 803) und 993, tutorial-netz.ts 11, szene.ts 777/888/934/937, ueberlast.ts 40/55, steuerung.ts 1240, kontext.ts 491 | Für y < 0 falsch (`-19 % 24 = -19`). |
+| „Kein Feld“ = `-1`, geprüft mit `>= 0`/`< 0` | netz.ts (35 Stellen), engstelle.ts 62, rohrvorschau.ts 38–39, tutorial-netz.ts 33/40, kontext.ts 488, szene.ts 888/936 | Ein Nordschlüssel würde als „direkt am Heizhaus“ gelesen. |
+| Belegungskarte `Int32Array`, `bel[k]` | Leser: engstelle.ts 36/85, spiel.ts 495/1084/1219/1292, speichern.ts 122, tutorial-netz.ts 26, steuerung.ts 750, kontext.ts 585; Schleife ab 0: tutorial-netz.ts 95 | Negativer Index wird still verworfen; Schleife ab 0 übersieht den Norden. |
+| Negativer Rest als Index/Bruchteil | szene.ts 126 `wiese[(x + y) % 2]`, 144 `LAUB[(x + y) % LAUB.length]`, 938 `(… + key * 0.37) % 1` | Für y < 0 `undefined` bzw. negativer Fortschritt. (szene.ts 246/263 und neubaugebiet.ts prüfen nur `=== 0`/wahr – bleiben richtig.) |
+| Oberer Rand `y < 0` | spiel.ts 486 (`kannPlatzieren`), 1218, 1253; szene.ts 121/271/818; steuerung.ts 626; netz.ts (`randFelder` Z. 71, `leitungsNachbarn` Z. 79) | Muss `KARTE_OBEN_Y` werden. **Bewusst unverändert:** spiel.ts 449 (`platz.y < 0`, Ausbau der Heizzentrale bei (11\|10)), speichern.ts 120 (Umzug nur im Neubaugebiet Süd), nachbarn.ts (eigenes 24×24-Beispieldorf). |
+| Fluss + Spülbohrung | `istFluss`, `bohrungsFelder`, `bohrung_eur`, `ersatzPreis_eur`, `flussGesperrt` (spiel.ts 1458) | Muster für die Bahn: Hindernisfeld, Leitung nur mit Freischaltung, Aufpreis je Feld. |
+| Freischalt-Leiter | `freischaltung.ts` (AE-A88-1) | `bahnquerung: 6`; „Neu ab Stufe 6“ entsteht von selbst. |
+| Erweiterte Karte | `spielOrt()` neubaugebiet.ts 66 – kehrt heute **ohne** Neubaugebiet sofort zurück | Muss die Nordzone immer anhängen. |
+| Leitungsgrenze | `grenze` je Leitung `[60, 90, 130, 180, 240]` (katalog.ts 192–242), `grenze()` spiel.ts 422 nimmt bei Stufe 6 den 5. Wert; Meldung spiel.ts 594 „ab der nächsten Heizzentralen-Stufe“ | Bei Stufe 6 falsch und zu knapp. Heute schon: Dorf 163 Straßenfelder + Süd 66 + 84 Häuser ≈ 313 > 240 (gemessen mit Wegwerf-Test, nicht im Projekt). |
+| Beschleunigen | `expressLiefern()` spiel.ts 1391, `beschleunigen()` 716 („Sofort fertig“ ui/katalog.ts 126) | Beides für den Abschnitt mit Querung sperren. |
+| Ziehen | `stempelnBei` steuerung.ts 623; Z. 680–685 `if (!kannPlatzieren) continue;` ohne Hinweis | Stilles Überspringen → P4. |
+| Echte Steuerung im Test | `tests/hilfen/echte-steuerung.ts` (z. B. tests/nr20-v1-zug.test.ts) | Für den Zusammenspiel-Test P4. |
+| Alter Netz-Vergleich | `tests/hilfen/netz-alt-a91.ts` (eingefrorene alte Netzrechnung, `-1` als Wurzel) | Vergleichstests müssen „kein Feld“ angleichen (V1). |
+| Spielstand | `SPEICHER_VERSION = 3`, `gueltig()` prüft y nicht | Kein Versionssprung (AE-NR27-7). |
 
----
-
-## 2. Kernfrage 1: Wie wächst die Karte nach Norden?
-
-| | (a) Alles um K Zeilen nach unten schieben + Umzug | (b) Bahn + Viertel ins heutige Raster | (c) Kulisse oben + eigene Koordinatenzone (z. B. y ≥ 50, oben gezeichnet) | **(d) Negative Zeilen y = −10 … −1, Schlüsselformel bleibt** |
-|---|---|---|---|---|
-| Idee | Spielstand-Umzug: jedes `o.y += K`, jeder Schlüssel `+= K*24` | Bahn in y = 0–1, Viertel darüber | Viertel liegt in Zeilen hinter dem Neubaugebiet, wird oben gezeichnet; Querung = „Portal“ | Die Karte beginnt bei `KARTE_OBEN_Y = −10`. `y*24+x` ist auch für negatives y eindeutig (x bleibt 0–23). |
-| Alte Spielstände | Umzug aller Objekte, Gestattungen, Straßenlücken; Fehler = Datenverlust | – | unverändert | **unverändert, kein Umzug** (alte Stände haben kein y < 0) |
-| Code | alle festen Koordinaten (orte.ts, neubaugebiet.ts `y ≥ 24`, Tutorial, Kamera, Start) | – | Nachbarschaft über die Naht in Netz, Platzieren, Zeichnen, Ringprüfung: neue Sonderfälle überall | ~60 Stellen in 11 Dateien, rein mechanisch: 12 Rückrechnungen, ~45 Wächter `-1`, 7 Belegungs-Leser, ~12 Randprüfungen `y < 0` |
-| Tests | ~95 Schlüssel-Stellen + Hunderte feste Koordinaten | – | wenig | **2 Zeilen** (Erwartung `feld: -1`, Tester-Vorarbeit) |
-| Risiko | hoch (Datenverlust, sehr viel Testumbau) | – | hoch (Netzrechnung an der Naht) | mittel: eine übersehene Stelle rechnet still falsch → abgefangen durch Architekturtest (Muster) **und** Verschiebungstest (gleiches Netz um −20 Zeilen verschoben muss gleich rechnen) **und** den vorhandenen 3.000-Netze-Vergleich (a91-vergleich) |
-| Aufwand | sehr groß | – | groß | P1 ≈ 1,5–2 h |
-| Ergebnis | verworfen | **nicht möglich**: Dorfstraßen ab y = 0 (Hauptstraße, Ring Ost), Nordring y = 2, Häuser ab y = 2, Hallenbad (3\|3) – kein Platz für Bahn **und** Viertel | verworfen | **Empfehlung** |
-
-Umkehrbar: **nein** (Einbahn). Leitungen und Häuser mit negativem y stehen nach dem ersten Bau im Spielstand. Zurückdrehen hieße Umzug wie (a).
-
-Grenze, die damit festliegt: **Die Breite 24 (x = 0–23) bleibt für immer.** Erweiterungen gehen nur nach Norden (y < −10 durch Vergrößern von `nord_zeilen`) oder Süden (`neubau_hoehe`). Das gilt auch für NR28.
+## 2. Kernfrage: Wie wächst die Karte nach Norden? (entschieden 2026-11-23)
+Variante (d): **negative Zeilen y = −10 … −1**, Schlüsselformel bleibt, Breite 24 bleibt für immer. Verworfen: (a) alles verschieben + Umzug (Datenverlust-Risiko), (b) Bahn ins heutige Raster (kein Platz: Dorfstraßen ab y = 0), (c) eigene Koordinatenzone mit Naht (Sonderfälle in Netz, Zeichnen, Ringprüfung). **Umkehrbar: nein** – Objekte mit negativem y stehen nach dem ersten Bau im Spielstand. Drei Sicherungen gegen still falsche Rechnung: Architekturtest (Muster), Verschiebungstest (P1), 3.000-Netze-Vergleich (`tests/a91-vergleich.test.ts`).
 
 ---
 
 ## 3. Rückgrat (Festlegungen)
 
-Grundmuster (bleibt): Spiellogik in `src/core` ohne Darstellung. Die Nordzone ist ein **reines Datenmodul** `src/core/nordviertel.ts` (wie `neubaugebiet.ts`). Die Regeln stehen in `spiel.ts` neben der Spülbohrung. Darstellung und Steuerung lesen nur.
+Grundmuster (bleibt): Spiellogik in `src/core` ohne Darstellung. Die Nordzone ist ein reines Datenmodul `src/core/nordviertel.ts`, die Texte eine reine Tabelle `src/core/nord-texte.ts`. Regeln in `spiel.ts` neben der Spülbohrung. Darstellung und Steuerung lesen nur.
 
-Führende Qualitätsziele für NR27:
-- **Q1 Alte Spielstände unverändert:** Ein Stand von heute lädt mit Befund `ok`, gleichen Objekten, gleichen Schlüsseln.
-- **Q2 Netzrechnung ortsunabhängig:** Ein Netz rechnet in Zeile −10 genauso wie in Zeile 10.
-- **Q3 Eine Regel an einer Stelle:** Bahnregel, Preis, Freischaltung, Nordzonen-Daten je genau ein Ort.
+Führende Qualitätsziele:
+- **Q1 Alte Spielstände unverändert:** Die eingefrorenen Stände aus V2 laden mit Befund `ok`, gleichen Objekten, gleichen Schlüsseln.
+- **Q2 Netzrechnung ortsunabhängig:** Ein Netz rechnet in Zeile −10 genauso wie in Zeile 2 (Verschiebungstest).
+- **Q3 Eine Regel, ein Ort:** Bahnregel, Sperrgründe, Preis, Texte, Nordzonen-Daten je genau ein Ort.
 
-| Nr. | Bindet | Verhindert | Regel (prüfbar) | Ziel · Umkehrbar · Folgen |
+| Nr. | Bindet | Verhindert | Regel (prüfbar) | Ziel · Umkehrbar · Folgen (Nachteil) · Status |
 |---|---|---|---|---|
-| **AE-NR27-1** | Karte nach Norden über negative Zeilen; `KONSTANTEN.nord_zeilen = 10`; `KARTE_OBEN_Y = −nord_zeilen` in `src/core/feld.ts` | zweites Koordinatensystem, Umzug alter Stände | In netz.ts kein `y < 0`/`y >= 0` (Architekturtest); obere Grenze überall `KARTE_OBEN_Y` | Q1 · nein · Nachteil: ~60 mechanische Änderungen in einem Paket; die Nordzone ist für **alle** Stände von Anfang an da (die Karte wird für alle 10 Zeilen höher) |
-| **AE-NR27-2** | Schlüssel → x/y nur über `feldVon(k)` aus feld.ts | falsches x für y < 0 | kein `% N`, `Math.floor(k / N)`, `(k - x) / N` außerhalb feld.ts (Architekturtest) | Q2 · ja (billig) · Nachteil: ein Import mehr in 7 Dateien |
-| **AE-NR27-3** | „Kein Feld / direkt am Heizhaus“ = `KEIN_FELD` (= −1.000.000) aus feld.ts | Nordschlüssel werden als Wurzel gelesen | kein `-1`-Wächter, kein `p >= 0`/`f < 0`/`.feld >= 0` (Architekturtest) | Q2 · ja · Nachteil: 2 bestehende Tests müssen vorher umgestellt werden (Vorarbeit) |
-| **AE-NR27-4** | Belegungskarte nur über `belegtId(bel, k)` aus netz.ts; Index intern `k − KARTE_OBEN_Y*N` | stilles Verwerfen negativer Indizes | kein `bel[`/`belegung[` außerhalb netz.ts (Architekturtest) | Q2 · ja · Nachteil: Karte 10 Zeilen größer (1.344 statt 1.104 Felder), vernachlässigbar |
-| **AE-NR27-5** | Nordzone (Bahnzeilen, Brücke, Straßen, Fluss, Hausplan, Kulisse, „Querung gebaut?“, Wissenstext) nur in `src/core/nordviertel.ts`; importiert nur katalog/typen/freischaltung/feld | verstreute Bahn-Koordinaten, Kreis-Abhängigkeit zu spiel.ts | Architekturtest Importe; Konsistenztest P3: alle Nordkoordinaten ≥ `KARTE_OBEN_Y` | Q3 · ja · Nachteil: Hausplan ist Spielinhalt im Kern (wie NR23) |
-| **AE-NR27-6** | Querung = **Leitung auf Bahnfeldern** (Muster Spülbohrung), kein eigenes Bauwerk-Objekt. Aufpreis `querung_eur_je_feld` je Bahnfeld im Abschnitt; Bauzeit-Zuschlag `querung_bau_s` für den ganzen Abschnitt; Länge = Zahl der Bahnzeilen (2 Felder = 20 m) | ein zweites Objekt auf demselben Feld (Belegungskarte kennt nur eins), Sonderwege in der Netzrechnung | `abschnittKosten_eur`, `ersatzPreis_eur` enthalten den Aufpreis; `gestattungsFelder` zählt Bahnfelder nicht; Netz (netz.ts) kennt keine Bahn | Q3 · ja (Leitungen auf Bahnfeldern ließen sich später in ein Bauwerk umdeuten) · Nachteil: der Zuschlag verlängert auch den restlichen Abschnitt |
-| **AE-NR27-7** | Spielstand: neues optionales Feld `nordviertel?: true` (Viertel erschlossen); `Abschnitt.mit_querung?: true`; **kein** Versionssprung | Umzugslogik | Altstand-Test: Befund `ok`, Objekte gleich | Q1 · ja · Nachteil: die Häuser im Norden haben in alten und neuen Ständen andere IDs (egal, IDs sind nur Nummern) |
-| **AE-NR27-8** | Häuser hinter der Bahn sind **Kulisse** (nur gezeichnet, keine Objekte), bis eine Querung gebaut ist; dann `nordviertelAnlegen()` als Bestandshäuser `ohne_station` | Interessenten, Kundenanfragen, Ziele greifen auf unerreichbare Häuser zu | Vor der Querung keine Objekte mit y ≤ −4; danach 14 | Q3 · ja · Nachteil: zweiter Zeichenweg für Häuser (Kulisse) |
-| **AE-NR27-9** | Hinter der Bahn (y ≤ −4) darf **nichts** gebaut werden, bevor die Querung steht (auch keine Leitung) → „erst Querung, dann Viertel“, zwei Bauabschnitte | Leitungen auf späteren Hausplätzen; Insel-Netze mit eigener Quelle hinter der Bahn | `kannPlatzieren` false + Hinweistext | Q3 · ja · Nachteil: man kann Querung und Viertel nicht in einem Abschnitt zeichnen (bewusst: die Bahn genehmigt zuerst) |
-| **AE-NR27-10** | Auf Bahnfeldern: nur Leitungen, nur quer (kein Leitungsnachbar links/rechts auf einem Bahnfeld), keine Leitung auf der Bahnbrücke (x = 19–20) | Leitung „entlang der Gleise“, Querung über die Flussbrücke | Tests in P3 | Q3 · ja · Nachteil: zwei Querungen brauchen mindestens eine Spalte Abstand |
-| **AE-NR27-11** | Express ist für einen Abschnitt mit Querung gesperrt | Bauzeit der Querung per Aufpreis wegkaufen (verletzt (c) „braucht Bauzeit“) | Test P3 | Abwägungspunkt (Spielspaß gegen Fachaussage „Bahn prüft, das dauert“) · ja · Nachteil: einziger Abschnitt ohne Express |
+| **AE-NR27-1** | Karte nach Norden über negative Zeilen; `KONSTANTEN.nord_zeilen = 10`; `KARTE_OBEN_Y = −nord_zeilen` (feld.ts) | zweites Koordinatensystem, Umzug | Architekturtest: netz.ts und jede Datei, die `KARTE_OBEN_Y`/`kartenOben` kennt, ohne `y < 0`/`y >= 0` | Q1 · nein · ~70 mechanische Änderungen; Nordzone für alle Stände da · gilt |
+| **AE-NR27-2** | Schlüssel → x/y nur `feldVon(k)`; Rest von Ausdrücken mit y/Schlüssel als Index/Bruchteil nur `mod(a, n)` (feld.ts); keine Abkürzung von N | falsches x, `farben[-1]` | Architekturtest (auch `% N_`, `const N_ = N`, `[(x+y) % 2]`, `(…key…) % 1`) | Q2 · ja · ein Import mehr in ~8 Dateien · gilt |
+| **AE-NR27-3** | „Kein Feld / direkt am Heizhaus“ = `KEIN_FELD` (−1.000.000) | Nordschlüssel als Wurzel gelesen | Architekturtest (kein `-1`-/`>= 0`-Wächter) | Q2 · ja · Vergleichstests brauchen Angleich (V1) · gilt |
+| **AE-NR27-4** | Belegungskarte nur `belegtId(bel, k)` und `alleSchluessel(bel)` (netz.ts) | stilles Verwerfen, Schleife übersieht Norden | Architekturtest (kein `bel[`, kein `< belegung.length` außerhalb netz.ts) | Q2 · ja · Karte 1.344 statt 1.104 Felder · gilt |
+| **AE-NR27-5** | Nordzone (Bahnzeilen, Brücke, Querungsspalte, Straßen, Fluss, Hausplan, Kulisse, `querungGebaut`, `nordSperre`, `nordInfo`) nur in `nordviertel.ts`; Importe nur katalog/typen/freischaltung/feld/nord-texte | verstreute Bahn-Koordinaten, Kreis zu spiel.ts | Architekturtest Importe; Konsistenztest P3 | Q3 · ja · Hausplan ist Spielinhalt im Kern (wie NR23) · gilt |
+| **AE-NR27-6** | Querung = **Leitung auf Bahnfeldern** (Muster Spülbohrung), kein eigenes Objekt. Aufpreis `querung_eur_je_feld` je Bahnfeld im Abschnitt; Zuschlag `querung_bau_s` für den ganzen Abschnitt | zweites Objekt je Feld, Sonderwege im Netz | `abschnittKosten_eur`/`ersatzPreis_eur` enthalten den Aufpreis; netz.ts kennt keine Bahn | Q3 · ja · Zuschlag hält den ganzen Abschnitt auf · gilt (Entscheidung 23.11.) |
+| **AE-NR27-7** | Spielstand: optional `nordviertel?: true`, `bahn_hilfe_gesehen?: true`, `Abschnitt.mit_querung?: true`; **kein** Versionssprung | Umzugslogik | Altstand-Tests mit V2-Dateien | Q1 · ja · Nordhäuser haben in alten/neuen Ständen andere IDs (egal) · gilt |
+| **AE-NR27-8** | Häuser hinter der Bahn sind **Kulisse**, bis eine Querung gebaut ist; dann `nordviertelAnlegen()` (Bestand, `ohne_station`) | Anfragen/Ziele auf unerreichbare Häuser | vor der Querung keine Objekte mit y ≤ −4; danach 14 | Q3 · ja · zweiter Zeichenweg (Kulisse) · gilt |
+| **AE-NR27-9** | **Ein** Sperrgrund für die Nordzone: `nordSperre(stand, t, x, y)` (nordviertel.ts). Genutzt von `kannPlatzieren`/`platzieren` (P3) **und** vom Ziehen in der Steuerung (P4). Hinter der Bahn (y ≤ −4) nichts, bevor die Querung steht | stilles Überspringen beim Ziehen; zwei Regelkopien | Tests P2 (Funktion), P3 (Kern), P4 (Zusammenspiel) | Q3 · ja · Querung und Viertel nie in einem Abschnitt · gilt |
+| **AE-NR27-10** | Auf Bahnfeldern nur Leitungen und nur in der Spalte `QUERUNG_X = 10` (Verlängerung der Dorfstraße x = 10, Stichstraße im Norden); Brücke x = 19–20 nie | Leitung entlang der Gleise, Querung über die Flussbrücke, mehrere Querungen | Tests P2/P3 | Q3 · ja · Spieler wählt die Stelle nicht · gilt (Entscheidung 23.11.) |
+| **AE-NR27-11** | Express **und** „Sofort fertig“ (Taler) sind für einen Abschnitt mit Querung gesperrt | Bauzeit wegkaufen (Abnahme (c)) | Tests P3 | Abwägungspunkt Spielspaß ↔ BQ2 · ja · einziger Abschnitt ohne Abkürzung · gilt |
+| **AE-NR27-12** | **Alle** Spielertexte zu Bahn/Querung stehen in `src/core/nord-texte.ts` (`NORD_TEXTE`, Abruf `nordText(id, werte?)`). Liegt im Kern, weil Kern-Sperrtexte sie brauchen und der Kern nichts aus `ui` importieren darf. DESIGN.md 14.6 verweist auf die IDs | zwei widersprüchliche Texttabellen (Kritiker 2) | Architekturtest: kein String mit „Bahn“/„Gleis“ außerhalb nord-texte.ts (Ausnahme `FUNKTION_NAME.bahnquerung`) | Q3 · ja · Texte stehen nicht neben ihrer Verwendung · gilt |
+| **AE-NR27-13** | Fachtexte (Wissen: Erklärkarte Sätze 1–4, Wissenstext A/B, Tutorial-Satz 1) tragen `fach: true` und erscheinen nur bei `NORD_FACHTEXTE_FREIGEGEBEN = true`; Standard **false**. Umschalten nur mit Eintrag „NR27-Fachtexte“ in `.claude/freigaben.md` (Simon, nach Fachprüfer) | ungeprüfte Fachaussage im Spiel (Kritiker 3) | Architekturtest (Schalter ↔ Freigabe), Test P2/P3 (ohne Freigabe kein Fachtext) | Fachregel · ja · bis zur Freigabe erklärt das Spiel weniger · gilt |
+| **AE-NR27-14** | Leitungsgrenze bei Heizzentrale Stufe 6 = **360** Leitungsfelder (6. Eintrag in jedem `grenze` der Leitungen). Bei Höchststufe Meldung ohne „nächste Stufe“ | Querung bei Stufe 6 nicht zeichenbar | Balance-Test P3 | Spielwert, ohne Fachbeleg · ja (eine Zahl) · evtl. zu großzügig · gilt |
 
-Konventionen: Einheiten im Namen (`querung_eur_je_feld`, `querung_bau_s`, `laenge_m` = Felder × `feldlaenge_m`). Fehler sichtbar: jede Ablehnung als Hinweis mit Grund, kein stilles Nichtstun.
+**Fachregeln** (vom Fachprüfer vorgeschlagen, **nicht bestätigt**, „Nur Simon“): BQ1 grabenlose Unterquerung von Grube zu Grube (im Spiel nur diese Bauart), BQ2 Bahn prüft und regelt vertraglich vor dem Bau, BQ3 teurer und länger als normaler Leitungsbau; Euro/Zeit sind Spielwerte („vereinfacht“). Die Spielmechanik (Aufpreis, Zuschlag, keine Abkürzung) folgt BQ3/BQ2 in der Richtung; die Zahlen 45.000 €/Bahnfeld und 1.440 s sind Platzhalter (Simon bestätigt 23.11. als „vereinfacht“).
 
-**Zurückgestellt:** eigener Kamera-Knopf „Zur Bahn“ (Designer entscheidet nach Foto); Bahnübergang/Straße über die Gleise (nur Grafik, nicht in den Daten); Zug-Animation.
-**Nicht-Ziel:** Leitung oberirdisch über die Bahn (Recherche Satz 4) – eine zweite Bauart verdoppelt Regeln und Texte ohne Spielgewinn.
+**Konventionen:** Einheiten im Namen (`querung_eur_je_feld`, `querung_bau_s`). Jede Ablehnung zeigt einen Grund (Kern als Hinweis, beim Ziehen als Toast) – nie stilles Nichtstun. Fehlt einem Text ein Platzhalterwert, wirft `nordText` einen Fehler mit ID und Platzhalter (sichtbar im Test).
+**Zurückgestellt:** Kamera-Knopf „Zur Bahn“ (Designer nach Foto); Bahnübergang nur Grafik; Erzeugungs-Balance Stufe 6 (Süd 576 kW + Nord 188 kW) → Testlauf Projektleiter.
+**Nicht-Ziele:** Leitung oberirdisch über die Bahn (zweite Bauart verdoppelt Regeln ohne Spielgewinn); freie Wahl der Querungsstelle (Entscheidung 23.11.); Versionssprung im Spielstand.
 
-### Kartenzeilen der Nordzone (vorläufig, Designer darf in nordviertel.ts verschieben, solange die Tests halten)
+### Kartenzeilen der Nordzone (verbindlich; Designer gestaltet das Aussehen, nicht die Lage)
 ```
       x 012345678901234567890123
   y=-10 ..........=........~~...   Gärten / Kartenrand (Stichstraße x=10 führt aus der Karte)
@@ -80,24 +85,50 @@ Konventionen: Einheiten im Namen (`querung_eur_je_feld`, `querung_bau_s`, `laeng
   y=-6  ...................~~...   Vorgärten
   y=-5  ..R.E.R.R...E.R.R..~~...   Hausreihe Süd
   y=-4  ...................~~...   Böschung (hinter der Bahn, gesperrt bis Querung)
-  y=-3  ######################## Bahn (x=19–20 Brücke)
+  y=-3  ######################## Bahn (x=19–20 Brücke; Querung nur x=10)
   y=-2  ######################## Bahn
   y=-1  ...................~~...   Grünstreifen (Dorfseite, normal bebaubar)
-  y=0   (heutiger Nordrand des Dorfs)
+  y=0   (heutiger Nordrand; Dorfstraße x=10 läuft hier nach Norden aus, geprüft am Startdorf)
 ```
-14 Häuser (6 EFH, 8 RH), gleiche Grundstücksregel wie NR23 (Vorgarten, Haus, Garten; 1 Feld Abstand). Bedarf mit den Werten aus NR23 Abschnitt 3: 6 × 15.000 + 8 × 24.000 = 282.000 kWh/a, Anschlussleistung ÷ 1.500 h = 188 kW. Liste zum Abtippen:
+14 Häuser (6 EFH, 8 RH), Grundstücksregel wie NR23. Bedarf mit NR23-Werten: 6 × 15.000 + 8 × 24.000 = 282.000 kWh/a, ÷ 1.500 h = 188 kW.
 ```
 efh 2 -9, rh 4 -9, rh 6 -9, efh 8 -9, rh 12 -9, rh 14 -9, efh 16 -9,
 rh 2 -5, efh 4 -5, rh 6 -5, rh 8 -5, efh 12 -5, rh 14 -5, rh 16 -5
 ```
+Querungsweg: (10\|0) Dorfstraße → (10\|−1) → Bahn (10\|−2), (10\|−3) → (10\|−4) … (10\|−6) frei → (10\|−7) Wohnstraße.
+
+### Texttabelle `src/core/nord-texte.ts` (einzige Quelle, Startinhalt)
+Wortlaut-Herkunft: **F** = Fachprüfer (`docs/recherche/bahnquerung-texte.md`), **D** = DESIGN 14.6 (Fachprüfer: in Ordnung), **A** = neu vom Architekten (reine Spielmechanik; Designer darf umformulieren, nur in dieser Tabelle).
+| ID | fach | Text | Herkunft · Verwendung |
+|---|---|---|---|
+| `Q2` | | Über die Bahn geht es erst mit einer Bahnquerung – {sperrgrund} | D · Leitung auf Bahnfeld vor Stufe 6 |
+| `Q4` | | Unter der Bahn geht es im Spiel nur quer hindurch, nicht an den Gleisen entlang. | F · Leitung auf Bahnfeld neben einer Bahn-Leitung derselben Zeile |
+| `STELLE` | | Über die Gleise geht es nur an einer Stelle: in Verlängerung der Dorfstraße. | A · Leitung auf anderem Bahnfeld als x = 10 |
+| `BRUECKE` | | Über die Bahnbrücke führt im Spiel keine Leitung. | F · x = 19–20 |
+| `GLEISE` | | Auf den Gleisen kann nichts gebaut werden. | A · Nicht-Leitung auf Bahnfeld |
+| `HINTER` | | Hinter der Bahn geht es erst weiter, wenn die Bahnquerung gebaut ist. | A · y ≤ −4 vor Erschließung |
+| `Q5` | | Die Bahnquerung wird noch gebaut. Danach geht es hinter der Bahn weiter. | D gekürzt (ohne Restzeit: der Kern formatiert keine Zeiten; Restzeit steht am Bauabschnitt) · y ≤ −4, Abschnitt mit Querung im Bau |
+| `EXPRESS` | | Eine Bahnquerung lässt sich nicht beschleunigen. | F · Express und Sofort fertig |
+| `SOFORT_GRUND` | | nicht bei Bahnquerung | A · Zeile 2 am gesperrten Knopf (≤ 28 Zeichen) |
+| `KATALOG_ZEILE` | | Über die Bahn kommt eine Leitung nur quer über die Gleise – ab Heizzentrale Stufe {stufe}. | F (ersetzt Q3) · Bauen-Blatt vor Stufe 6 |
+| `KATALOG_PREIS` | | Über die Gleise kommst du im Spiel nur per Bahnquerung an der Dorfstraße ({preis} je Gleisfeld{aktuell}). | A · Bauen-Blatt ab Stufe 6 |
+| `N1` | | Hinter der Bahn: Diese Häuser erreichst du über eine Bahnquerung ab Heizzentrale Stufe {stufe}. | D · Antippen vor Stufe 6 |
+| `N2` | | Diese Häuser erreichst du erst durch eine Bahnquerung. Bauen → Leitungen. | D · Antippen ab Stufe 6, Viertel nicht erschlossen |
+| `F1` | | Bahnquerung fertig! Die Häuser hinter der Bahn kannst du jetzt anschließen. | D · Erschließung |
+| `WISSEN_A` | ja | Gleise werden in der Regel nicht aufgegraben. Die Leitung wird von Grube zu Grube unter ihnen durchgebohrt oder -gepresst. | F · erste Bahn-Leitung im Abschnitt |
+| `WISSEN_B` | ja | Vorher muss die Bahn den Plan prüfen und zustimmen. Das braucht Zeit. | F · dito |
+| `KARTE_1` … `KARTE_4` | ja | Erklärkarte Sätze 1–4 wörtlich aus bahnquerung-texte.md Abschnitt 1 | F · Erklärkarte |
+| `KARTE_5` | | Preis und Bauzeit sind im Spiel vereinfacht. | F · Erklärkarte, immer |
+| `TUTORIAL_1` | ja | Mit einer Bahnquerung bringst du eine Leitung unter den Gleisen durch zum Wohngebiet dahinter. | F · Mini-Tutorial |
+| `TUTORIAL_2` | | Gut für die Häuser hinter der Bahn. Teuer und langsam – ein späterer Rohrtausch dort kostet die Querung noch einmal. | F · Mini-Tutorial |
+Platzhalter: `{stufe}` füllt `nordText` selbst aus `abStufe('bahnquerung')`; `{sperrgrund}`, `{preis}`, `{aktuell}` übergibt der Aufrufer.
 
 ---
 
-## 4. Kernfrage 3: Bezug zu Stufe 6 und Neubaugebiet Süd
-
-- **Keine Kollision der Koordinaten:** Süd wächst bei Stufe 6 auf y < 46 (`kartenHoehe`), Nord ist immer y ≥ −10 (`KARTE_OBEN_Y`). Beide Grenzen sind unabhängig; Kamera und Boden nutzen beide.
-- **Gleichzeitige Freischaltung:** Bei Stufe 6 erscheint „Neubaugebiet Süd erschlossen …“ und „Neu ab Stufe 6: Neubaugebiet Süd, Bahnquerung“. Das ist gewollt: zwei Wege, der Spieler wählt. Die Reihenfolge ergibt sich aus dem Preis (Süd = Straßenleitungen, Nord = ~90.000 € Querung). Keine Sperre „erst Süd“ – Simon sagte „ab HZ6“.
-- **Leistung:** Süd 576 kW (NR23), Nord 188 kW. Ob Stufe 6 beides trägt, ist Spielbalance → Bitte an Projektleiter, beim Testlauf prüfen (siehe Unsichere Beobachtungen: Leitungs-Stückzahlgrenze 240).
+## 4. Bezug zu Stufe 6 und Neubaugebiet Süd
+- Keine Kollision: Süd wächst bei Stufe 6 bis y < 46 (`kartenHoehe`), Nord ist immer y ≥ −10 (`KARTE_OBEN_Y`).
+- Bei Stufe 6 erscheinen „Neubaugebiet Süd“ und „Bahnquerung“ zugleich; keine Sperre „erst Süd“.
+- **Leitungsgrenze (AE-NR27-14):** Obergrenzen-Netz „jede Straße eine Leitung + ein Anschlussfeld je Haus + 2 Bahnfelder“ ≈ 163 + 66 + 20 (Nordstraßen) + 98 Häuser + 2 ≈ 349 (Zahlen aus Wegwerf-Messung am Startdorf; der Balance-Test rechnet sie aus den Daten). 360 deckt das, 240 nicht.
 
 ---
 
@@ -105,154 +136,221 @@ rh 2 -5, efh 4 -5, rh 6 -5, rh 8 -5, efh 12 -5, rh 14 -5, rh 16 -5
 
 | Paket | Inhalt | Dateien | Abhängig von | Parallel mit | Schwierigkeit |
 |---|---|---|---|---|---|
-| **P1 Raster nach Norden** | feld.ts, Rückrechnung, `KEIN_FELD`, `belegtId`, Netzgrenzen. Keine sichtbare Änderung. | neu: `src/core/feld.ts`, `tests/nr27-raster.test.ts`; ändern: katalog.ts (1 Zeile), netz.ts, engstelle.ts, rohrvorschau.ts, tutorial-netz.ts, spiel.ts (nur Belegungs-Leser + Z. 993), speichern.ts (1 Leser), ui/kontext.ts (Z. 488–491), render/szene.ts (Z. 777, 888, 934–937), render/ueberlast.ts (Z. 40, 55), steuerung.ts (Z. 1240 + Belegungs-Leser) | Tester-Vorarbeit V1 | P2 | **schwer** – Netzrechnung, stille Fehler möglich |
-| **P2 Nordzone-Daten** | nordviertel.ts, Freischaltung, Typen, `spielOrt` | neu: `src/core/nordviertel.ts`, `tests/nr27-nordzone-daten.test.ts`; ändern: freischaltung.ts, orte.ts (Typ `Ort`), neubaugebiet.ts (`spielOrt`), typen.ts | – | P1 | **einfach** – Daten und kleine reine Funktionen |
-| **P3 Bahnregeln im Kern** | Platzieren, Preis, Bauzeit, Express, Erschließen, Wissenstext, Bauen-Blatt | ändern: spiel.ts, katalog.ts (KONSTANTEN), nordviertel.ts (1 Zeile), typen.ts (`Abschnitt`), ui/katalog.ts (Z. 100, 114); neu: `tests/nr27-bahnquerung.test.ts` | P1, P2 | P4 | **schwer** – Fachregeln, Kosten, Spielstand |
-| **P4 Darstellung und Bedienung** | Gleise, Kulisse, Boden/Kamera nach Norden, Antippen | ändern: render/szene.ts, render/szene-schluessel.ts, render/kamera.ts, steuerung.ts; neu: `tests/nr27-darstellung.test.ts` | P1, P2 | P3 | **mittel** – Zeichnen, keine Fachlogik |
+| **V2** Tester | eingefrorene Altstände | neu: `tests/referenz/nr27/*.json` | – (vor P1!) | V1 | – |
+| **V1** Tester | Tests auf „kein Feld“ angleichen, K1-Rand | `tests/hilfen/kein-feld.ts` (neu), 5 Testdateien | – | V2 | – |
+| **P1 Raster nach Norden** | feld.ts, alle Schlüssel-/Wächter-/Belegungs-/Rest-Stellen, Konstanten | Abschnitt 6 P1 | V1 | P2 | **schwer** – Netzrechnung, stille Fehler möglich |
+| **P2 Nordzone + Verträge** | nordviertel.ts (inkl. `nordSperre`, `nordInfo`), nord-texte.ts, Typen, Freischaltung, `spielOrt`, Platzhalter bahn-karte.ts | Abschnitt 6 P2 | – | P1 | **einfach** – Daten, kleine reine Funktionen |
+| **P3 Bahnregeln im Kern** | Platzieren, Preis, Bauzeit, Express/Sofort, Erschließen, Wissenstext, Leitungsgrenze, Bauen-Blatt | Abschnitt 6 P3 | P1, P2, V2 | P4, P5 | **schwer** – Fachregeln, Kosten, Spielstand |
+| **P4 Darstellung Grundlage** | Boden/Kamera nach Norden, Gleise, Kulisse, Antippen, Hinweis beim Ziehen | Abschnitt 6 P4 | P1, P2 | P3 | **mittel** – Zeichnen + Steuerung, keine Fachlogik |
+| **P5 Inszenierung** | Zug (Takt A90), Dunst, Masten/Zaun/Schranke, Schleier, Strichellinie, Baustelle/Bohrlinie, Erklärkarte, Mini-Tutorial, Erfolgsmoment | Abschnitt 6 P5 | P2, P4, DESIGN 14 Variante A | P3 | **mittel** – viel Zeichnen, Zeitsteuerung, keine Rechnung |
 
-Kritischer Pfad: V1 → P1 → P3 (P2 läuft neben P1, P4 neben P3). 2 von 4 Paketen liegen hintereinander.
-Gemeinsame Ressourcen: keine (kein Port, keine Datei doppelt innerhalb einer Parallelstufe; katalog.ts/typen.ts/steuerung.ts/szene.ts nur in Paketen verschiedener Stufen).
+Stufen: (0) V2 → V1 · (1) P1 ∥ P2 · (2) P3 ∥ P4 · (3) P5 ∥ Rest von P3. **Kritischer Pfad:** V1 → P1 → P3; gleich lang P2 → P4 → P5. Je 3 von 5 Paketen liegen hintereinander – knapp über der Hälfte. Weiter schneiden hieße, dass P4 und P5 gleichzeitig `szene.ts`/`steuerung.ts` ändern; das nehme ich nicht in Kauf (bei Besetzung Solo baut der Projektleiter ohnehin nacheinander).
+Gemeinsame Dateien je Stufe: keine (P1: katalog.ts, szene.ts, steuerung.ts – P2 nicht; P3: spiel.ts, katalog.ts, ui/katalog.ts, nordviertel.ts – P4/P5 nicht; P4 → P5 nacheinander auf szene.ts, szene-schluessel.ts, steuerung.ts). Keine Ports, keine Datenbank.
+**Nach P3 + P4 + P5:** Tester-Abnahme `tests/nr27-abnahme.test.ts` (Ende-zu-Ende über die echte Steuerung, Prüf-Schwerpunkt Abschnitt 7) – Bitte an den Projektleiter, einzuplanen.
 
 ### Vorarbeit (nicht für den Entwickler)
-- **Tester-Vorarbeit V1 (vor P1, eigener Commit):** zwei Erwartungen auf „kein Leitungsfeld“ umstellen, ohne das neue Modul zu importieren (damit main vor P1 grün bleibt):
-  - `tests/nr18-engstelle-kern.test.ts` Z. 182 `expect(netz.anschluss.get(amHeizhaus)?.feld).toBe(-1)` → Tiefe 0 und `netz.tiefe.has(feld) === false` prüfen.
-  - `tests/a91-anschluss.test.ts` Z. 184 `toEqual({ feld: -1, tiefe: 0 })` → ebenso.
-- **Architekt-Vorarbeit:** keine. `tests/architektur/nr27-raster.test.ts` liegt schon (siehe Abschnitt 8).
-- `tests/ohne-leiter.ts` muss **nicht** angepasst werden: `bahnquerung` fehlt dort → Stufe 1; diese Tests zeichnen nie auf y < 0.
+**Tester-Vorarbeit V2 (zuerst, eigener Commit, auf dem Stand vor P1):** zwei echte Spielstände mit dem heutigen Code erzeugen (`serialisieren`) und als Dateien einfrieren; danach nie neu erzeugen. Je eine Zeile in `tests/referenz/nr27/LIESMICH.md`: Commit, wie erzeugt.
+- `altstand-stufe6-layout3.json`: Heizzentrale Stufe 6, `neubaugebiet: true`, `neubaugebiet_layout: 3`, mindestens 1 Eintrag in `gestattungen` und, wenn erzeugbar, in `neubau_strassenluecken`; gebaute Leitungen bis an den Nordrand (10\|0); kein `nordviertel`.
+- `altstand-mitten-im-bau.json`: Bauabschnitt in Phase `bau` mit laufender Uhr und geplanten Leitungen, dazu ein Haus mit laufendem Ausbau.
+- Ein Test in `tests/nr27-altstand-v2.test.ts`, der beide Dateien heute schon lädt (`ladenMitBefund` → `ok`) – damit ist belegt, dass sie gültig sind, bevor P1 etwas ändert.
+
+**Tester-Vorarbeit V1 (vor P1, eigener Commit; main bleibt vor P1 grün, kein Import aus feld.ts):**
+- neu `tests/hilfen/kein-feld.ts`: `export const istKeinFeld = (v: number | undefined): boolean => v === -1 || v === -1_000_000;` und `export function elternAngleichen(m: ReadonlyMap<number, number>): Array<[number, number | 'kein']>` (Wurzel → `'kein'`). Gilt vor und nach P1.
+- `tests/nr18-engstelle-kern.test.ts` Z. 182 `…?.feld).toBe(-1)` → `istKeinFeld(…)` ist true.
+- `tests/a91-anschluss.test.ts` Z. 184 `toEqual({ feld: -1, tiefe: 0 })` → Tiefe 0 und `istKeinFeld(feld)`.
+- `tests/a91-netzbaum.test.ts` Z. 131 `expect([...neu.eltern]).toEqual([...alt.eltern])` → beide über `elternAngleichen` (die alte Rechnung `tests/hilfen/netz-alt-a91.ts` bleibt eingefroren mit −1).
+- `tests/a91-wirkung-p1.test.ts` Z. 20 Vergleich `alt…feld === neu…feld` → „beide kein Feld“ gilt als gleich.
+- `tests/nr20-v1-zug.test.ts` Z. 156–172 (K1): Der Test nutzt (10\|−1) als „außerhalb der Karte“. Nach P4 ist das Karte (Grünstreifen). Auf den **linken** Kartenrand umstellen (Startfeld x = 0 mit Leitung, Ziel x = −1; Zeile wählt der Tester so, dass (0\|y) frei ist); Prüfzweck bleibt.
+- Geprüft und **unverändert** lassen (bleiben mit `KEIN_FELD` richtig, solange sie keine Nordfelder nutzen): `tests/a91-vergleich.test.ts` 76/87/125, `tests/a91-netzbaum.test.ts` 207, `tests/hilfen/netz-alt-a91.ts`.
+- Suche, die der Tester wiederholt (falls seit `e121764` Neues dazukam): `toBe(-1)`, `feld: -1`, `?? -1`, `eltern` mit `toEqual`, Koordinaten mit negativem y in `kannPlatzieren`/`platzieren`/`mitte`/`feld`.
+
+**Architekt-Vorarbeit:** erledigt in diesem Durchgang (`tests/architektur/nr27-raster.test.ts` verschärft). Keine weitere.
+`tests/ohne-leiter.ts` muss nicht angepasst werden (`bahnquerung` fehlt dort → Stufe 1; diese Tests zeichnen nie auf y < 0).
 
 ---
 
 ## 6. Baupläne
 
 ### P1 – Raster nach Norden
-**Ziel:** Die Kernrechnung funktioniert für Felder mit y = −10 … −1 genauso wie heute. Spielerisch ändert sich nichts (`kannPlatzieren` lehnt y < 0 weiter ab – das öffnet erst P3).
+**Ziel:** Die Kernrechnung und alle Leser von Schlüsseln funktionieren für y = −10 … −1. Spielerisch ändert sich nichts (`kannPlatzieren` lehnt y < 0 weiter ab – das öffnet P3).
 
-**Liefert** (`src/core/feld.ts`, importiert nur `./katalog`):
+**Liefert** `src/core/feld.ts` (importiert nur `./katalog`):
 - `export const KARTE_OBEN_Y: number` (= `-KONSTANTEN.nord_zeilen`)
 - `export const KEIN_FELD = -1_000_000`
-- `export function feldVon(k: number): [number, number]` – x immer 0–23 (`((k % N) + N) % N`), y = `(k - x) / N`
-- `export function schluessel(x: number, y: number): number` – `y * N + x` (Inline-Formel bleibt erlaubt, sie ist für negatives y richtig)
+- `export function feldVon(k: number): [number, number]` – x immer 0–23
+- `export function schluessel(x: number, y: number): number` – `y * N + x` (Inline-Formel bleibt erlaubt)
+- `export function mod(a: number, n: number): number` – Ergebnis immer 0 ≤ r < n (auch für n = 1 bei Bruchteilen)
 
-In `src/core/netz.ts`:
-- `belegungskarte()` → Größe `N * (MAX_Y - KARTE_OBEN_Y)`, Grenzen `y >= KARTE_OBEN_Y`
-- `export function belegtId(bel: Int32Array, k: number): number` – 0 außerhalb der Karte
-- alle `-1`-Wächter → `KEIN_FELD`; `anschluss.feld` „direkt am Heizhaus“ = `KEIN_FELD`; alle `ny < 0` → `ny < KARTE_OBEN_Y`
+In `src/core/netz.ts`: `belegungskarte()` Größe `N * (MAX_Y - KARTE_OBEN_Y)`; `export function belegtId(bel: Int32Array, k: number): number` (0 außerhalb); `export function alleSchluessel(bel: Int32Array): number[]` (aufsteigend, inkl. Nordzone); alle `-1`-Wächter → `KEIN_FELD`; `anschluss.feld` „direkt am Heizhaus“ = `KEIN_FELD`; `randFelder` (71), `leitungsNachbarn` (79) und alle `ny < 0` → `KARTE_OBEN_Y`.
 
-`KONSTANTEN.nord_zeilen: 10` (katalog.ts, neben `neubau_hoehe`).
+`src/core/katalog.ts` (neben `neubau_hoehe`): `nord_zeilen: 10`; `querung_eur_je_feld: 45000` – Kommentar „NR27 PLATZHALTER: Querung je Bahnfeld; Spielwert ohne Beleg, im Spiel ‚vereinfacht‘ (Fachregel BQ3, docs/recherche/bahnquerung.md)“; `querung_bau_s: 1440` – Kommentar „NR27 PLATZHALTER: Zuschlag auf die Abschnitts-Bauzeit – Prüfung und Bau, vereinfacht zusammengelegt; Spielwert ohne Beleg“. (Die beiden Werte liegen hier, damit P3 und P5 gleichzeitig darauf bauen.)
 
-**Tests** (`tests/nr27-raster.test.ts`):
-- `test_nr27_feldVon_umkehr`: für alle x 0–23, y −10 … 45 gilt `feldVon(y*24+x)` = `[x, y]`; `feldVon(-1)` = `[23, -1]`; `KEIN_FELD` ist kein Schlüssel dieses Bereichs.
-- `test_nr27_belegung_nord`: Haus auf (5\|−10) und (5\|45) → `belegtId` liefert beide IDs; (5\|−11) und (5\|46) → 0.
-- `test_nr27_verschiebung_netz`: ein Netz mit Heizzentrale, Abzweigen, Engstelle, Puffer, Quelle an Leitung in Zeilen 2–9 rechnen; dasselbe Netz um −12 Zeilen verschoben rechnen. Gleich sein müssen: `warm`, `kalt`, `verfuegbar_kw`, `last_kw`/`tiefe`/`eltern` (Schlüssel verschoben, `KEIN_FELD` bleibt), `engpass`, `reduzierung`, `aufteilung`, `engstellenFinden(...)`, `rohrVorschau(...)`.
-- Bestehende Tests bleiben grün, besonders `tests/a91-vergleich.test.ts` (3.000 Netze) und alle `nr18-*`, `nr24-*`.
-- Architekturtest `tests/architektur/nr27-raster.test.ts` muss grün werden.
+**Bauliste (vollständig; alle Fundstellen des Architekturtests am Stand `e121764`):**
+| Datei | Stellen | Änderung |
+|---|---|---|
+| netz.ts | 71, 79, 114–521 (Wächter), 117/151/291/504 (Rückrechnung) | KARTE_OBEN_Y, KEIN_FELD, feldVon |
+| engstelle.ts | 36, 85 (`belegung[`), 62 (`?? -1`, `feld >= 0`) | belegtId, KEIN_FELD |
+| rohrvorschau.ts | 38–39 | KEIN_FELD |
+| tutorial-netz.ts | 11 (Rückrechnung), 26 (`belegung[`), 33/40 (Wächter), **95** (Schleife `k < netz.belegung.length`) | feldVon, belegtId, KEIN_FELD, `for (const k of alleSchluessel(netz.belegung))` – Reihenfolge bleibt aufsteigend |
+| spiel.ts | 495, 1084, 1219, 1292 (`bel[`), **803–806** (`const N_ = N` weg, `f % N_` → feldVon), 993 | belegtId, feldVon. 486/1218/1253 (`y < 0`) bleiben bis P3 |
+| speichern.ts | **122** `bel[…]` | belegtId; **120 bleibt** `y < 0` (Umzug nur im Süden; Kommentar dazu) |
+| ui/kontext.ts | 488, 491, 585 | KEIN_FELD, feldVon, belegtId |
+| render/szene.ts | 126, 144 (`[(x + y) % …]`), 777, 888, 934–937, **938** (`… % 1`) | mod, feldVon, KEIN_FELD. 121/271/818 bleiben bis P4 |
+| render/ueberlast.ts | 40, 55 | feldVon |
+| steuerung.ts | 750 (`belegung[`), 1240 | belegtId, feldVon. 626 bleibt bis P4 |
+| typen.ts | – | **nicht** in P1 (gehört P2) |
 
-**Randfälle:** Haus direkt am Heizhaus (`KEIN_FELD`); Puffer (`feld: KEIN_FELD`); Schleifen in `engstelle.ts`/`rohrvorschau.ts`, die bis zur Wurzel laufen (`?? KEIN_FELD` statt `?? -1`, Abbruch bei `=== KEIN_FELD`).
-**Eskalation:** Wenn der Verschiebungstest nur mit Änderung an einem Rechenergebnis grün wird → stoppen, Projektleiter.
+**Tests** `tests/nr27-raster.test.ts`:
+- `test_nr27_feldVon_umkehr`: für alle x 0–23, y −10 … 45: `feldVon(y*24+x)` = `[x, y]`; `feldVon(-1)` = `[23, -1]`; `KEIN_FELD` liegt außerhalb dieses Bereichs.
+- `test_nr27_mod`: `mod(-1, 2) = 1`, `mod(-3, 4) = 1`, `mod(-0.25, 1) = 0.75`, `mod(5, 24) = 5`.
+- `test_nr27_belegung_nord`: Haus auf (5\|−10) und (5\|45) → `belegtId` liefert beide IDs; (5\|−11), (5\|46) → 0; `alleSchluessel` beginnt bei `-10*24`, ist aufsteigend und hat 1.344 Einträge.
+- `test_nr27_verschiebung_netz`: Stand direkt aus Objekten (nicht über `platzieren`): Heizzentrale (11\|10), Leitungen mit Abzweigen, Engstelle, Puffer, Quelle an Leitung, Häuser – alles in Zeilen 2–11. Derselbe Stand um −12 Zeilen verschoben (Zeilen −10 … −1). Gleich sein müssen (Schlüssel verschoben, `KEIN_FELD` bleibt): `warm`, `kalt`, `verfuegbar_kw`, `last_kw`, `tiefe`, `eltern`, `engpass`, `reduzierung`, `aufteilung`, `engstellenFinden(...)`, `rohrVorschau(...)`, **`spiel.abschnittAnschluesse()`** (IDs gleich; mit offenem Abschnitt und geplanten Leitungen) und **`schliesstLeitungsring`** (privat, über `spiel as unknown as {…}` wie in bestehenden Tests: ein Fall mit Ring, ein Fall ohne, ein Fall über die Heizzentrale).
+- Bestehende Tests bleiben grün, besonders `tests/a91-vergleich.test.ts`, alle `nr18-*`, `nr20-*`, `nr24-*`.
+- Architekturtest `tests/architektur/nr27-raster.test.ts` wird grün (alle Regeln ab feld.ts).
+
+**Randfälle:** Haus direkt am Heizhaus und Puffer (`KEIN_FELD`); Schleifen bis zur Wurzel in engstelle.ts/rohrvorschau.ts (`?? KEIN_FELD`, Abbruch bei `=== KEIN_FELD`); Tutorial-Reihenfolge `fremd` bleibt aufsteigend.
+**Eskalation:** Verschiebungstest nur mit geändertem Rechenergebnis grün → stoppen. Der `Spiel`-Konstruktor ändert den verschobenen Stand (repariert/entfernt Objekte mit y < 0) → stoppen, Projektleiter. Ein bestehender Test wird rot, der nicht in V1 steht → stoppen (Tester-Vorarbeit).
 **Risiko-Auslöser:** nein (keine Daten von außen, keine Anmeldung, keine Geheimnisse).
 
-### P2 – Nordzone-Daten
-**Liefert** (`src/core/nordviertel.ts`; Importe nur katalog, typen, freischaltung, feld – feld erst nach P1, vorher nicht nötig):
-- `export const BAHN_ZEILEN_Y: readonly number[] = [-3, -2]`
-- `export const BRUECKE_X: readonly number[] = [19, 20]`
-- `export const NORD_PLAN: ReadonlyArray<{ typ: TypId; x: number; y: number }>` – die 14 Häuser aus Abschnitt 3
-- `export function bahnFelder(): Array<[number, number]>` – alle x 0–23 in beiden Bahnzeilen (Brücke eingeschlossen)
-- `export function nordStrassen(): Array<[number, number]>`, `export function nordFluss(): Array<[number, number]>` – Fluss x = 19/20 für y = −10 … −1 **ohne** Bahnzeilen (dort Brücke)
-- `export function istBahn(x: number, y: number): boolean`, `export function istBruecke(x: number, y: number): boolean`
-- `export function hinterDerBahn(y: number): boolean` – y ≤ −4
-- `export function nordKulisse(stand: Pick<Spielstand, 'nordviertel'>): ReadonlyArray<{ typ: TypId; x: number; y: number }>` – `NORD_PLAN`, solange nicht erschlossen, sonst leer
-- `export function querungGebaut(objekte: ReadonlyArray<Objekt>): boolean` – es gibt eine Spalte x, in der auf **jeder** Bahnzeile eine gebaute (`!geplant`) Leitung liegt
-- `export function nordviertelAnlegen(stand: Spielstand): boolean` – einmalig (Merker `nordviertel`); stellt `NORD_PLAN` als `{ bestand: true, ohne_station: true, zufriedenheit_pct: 80, kasse_eur: 0, bau: null, stufe: 1 }` mit neuen IDs auf; ein belegter Platz wird übersprungen; gibt zurück, ob angelegt wurde
-- `export function nordInfo(stand: Spielstand, x: number, y: number): string | null` – Text für Antippen eines Bahnfelds oder Kulissenhauses (vor Stufe 6: „Hinter der Bahn liegt ein Wohngebiet. Hin kommst du nur mit einer Bahnquerung – ab Heizzentrale Stufe 6.“; danach: „Zeichne in einem Bauabschnitt eine Leitung quer über die Gleise. Erst wenn die Querung gebaut ist, geht es dahinter weiter.“); sonst `null`
-- `export const QUERUNG_WISSEN: readonly string[]` – vorläufig die Sätze 1 und 3 aus `docs/recherche/bahnquerung.md` („Eine Bahnstrecke wird nicht aufgegraben. Die Leitung wird unter den Gleisen durchgepresst oder gebohrt, damit der Zug weiterfahren kann und sich die Schienen nicht senken.“ / „Bevor gebaut wird, braucht ihr einen Vertrag mit der Bahn. Die Bahn prüft den Plan genau, das dauert.“). **Endfassung: Fachprüfer, dann Simon** (Abnahme (d)).
+### P2 – Nordzone-Daten und Verträge
+**Liefert** `src/core/nord-texte.ts` (Importe nur `./katalog`, `./freischaltung`):
+- `export type NordTextId` (alle IDs der Tabelle in Abschnitt 3)
+- `export const NORD_TEXTE: Readonly<Record<NordTextId, { text: string; fach?: true }>>`
+- `export const NORD_FACHTEXTE_FREIGEGEBEN: boolean = false` – Kommentar „Nur mit Simons Eintrag ‚NR27-Fachtexte‘ in .claude/freigaben.md auf true (AE-NR27-13)“
+- `export function nordText(id: NordTextId, werte: Readonly<Record<string, string | number>> = {}, freigegeben: boolean = NORD_FACHTEXTE_FREIGEGEBEN): string | null` – `null` nur für `fach`-Texte ohne Freigabe; fehlender Platzhalterwert → `Error` mit ID und Platzhalter
+
+**Liefert** `src/core/nordviertel.ts` (Importe: katalog, typen, freischaltung, nord-texte; feld erst ab P3):
+- `export const BAHN_ZEILEN_Y: readonly number[] = [-3, -2]`, `export const BRUECKE_X: readonly number[] = [19, 20]`, `export const QUERUNG_X = 10`
+- `export const NORD_PLAN: ReadonlyArray<{ typ: TypId; x: number; y: number }>` (14 Häuser, Abschnitt 3)
+- `export function bahnFelder(): Array<[number, number]>` (48 Felder, Brücke eingeschlossen); `nordStrassen()`, `nordFluss()` (x = 19/20, y = −10 … −1 ohne Bahnzeilen) – je `Array<[number, number]>`
+- `export function istBahn(x: number, y: number): boolean`, `istBruecke(x, y): boolean`, `hinterDerBahn(y: number): boolean` (y ≤ −4)
+- `export function nordKulisse(stand: Pick<Spielstand, 'nordviertel'>): ReadonlyArray<{ typ: TypId; x: number; y: number }>` – `NORD_PLAN` bis erschlossen, dann leer
+- `export function querungGebaut(objekte: ReadonlyArray<Objekt>): boolean` – auf **jeder** Bahnzeile in Spalte `QUERUNG_X` eine gebaute (`!geplant`) Leitung
+- `export function querungImBau(stand: Pick<Spielstand, 'abschnitt'>): boolean` – `abschnitt?.mit_querung && abschnitt.phase === 'bau'` (für Q5 und den Zug in P5)
+- `export function nordviertelAnlegen(stand: Spielstand): boolean` – einmalig (Merker `nordviertel`), Häuser als `{ bestand: true, ohne_station: true, zufriedenheit_pct: 80, kasse_eur: 0, bau: null, stufe: 1 }` mit neuen IDs; belegter Platz wird übersprungen
+- `export function nordSperre(stand: Spielstand, t: TypId, x: number, y: number): string | null` – Reihenfolge: weder Bahnfeld noch hinter der Bahn → null · Bahnfeld: keine Leitung → `GLEISE`; Brücke → `BRUECKE`; nicht freigeschaltet → `Q2` mit `sperrgrund(stand, 'bahnquerung')`; x ≠ `QUERUNG_X` → `Q4`, wenn links/rechts auf derselben Bahnzeile eine Leitung (geplant oder gebaut) liegt, sonst `STELLE`; sonst null · `hinterDerBahn(y)` und nicht `stand.nordviertel` → `Q5` bei `querungImBau`, sonst `HINTER` · sonst null
+- `export function nordInfo(stand: Spielstand, x: number, y: number): string | null` – Bahnfeld oder Kulissenfeld (y ≤ −4, Viertel nicht erschlossen): `N1` vor Stufe 6, `N2` ab Stufe 6; sonst null
+
+**Wichtig für den Architekturtest:** in nordviertel.ts keine Vergleiche `y < 0`/`y >= 0` (Schleifen bis `y <= -1`, Abfragen über `istBahn`/`hinterDerBahn`). Sobald P3 dort `KARTE_OBEN_Y` einsetzt, greift AE-NR27-1 auch für diese Datei.
+
+**Liefert** `src/ui/bahn-karte.ts` (Vertrag für P3/P5): `export function bahnKarteZeigen(sp: Spiel): void` – Platzhalter zeigt `toast(nordText('KARTE_5'))`; P5 ersetzt den Rumpf, die Signatur bleibt.
 
 Weitere Änderungen:
-- `freischaltung.ts`: `Funktion` um `'bahnquerung'`; `FREISCHALTUNGEN.bahnquerung: 6`; `FUNKTION_NAME.bahnquerung: 'Bahnquerung'`.
-- `orte.ts`: `Ort` bekommt `bahn?: Array<[number, number]>` (Kommentar: „Bahnfelder: nichts bauen, Leitungen nur quer per Bahnquerung (NR27)“).
-- `neubaugebiet.ts` `spielOrt()`: hängt **immer** (auch ohne Neubaugebiet) `nordStrassen()`, `nordFluss()` an und setzt `bahn: bahnFelder()`; Cache-Schlüssel bleibt gültig, weil die Nordzone fest ist.
-- `typen.ts`: `Spielstand.nordviertel?: true` (Kommentar „NR27: Wohngebiet hinter der Bahn erschlossen“); Kommentar an `Netz.anschluss` „KEIN_FELD (feld.ts) = direkt am Heizhaus“.
+- `freischaltung.ts`: `Funktion` + `'bahnquerung'`; `FREISCHALTUNGEN.bahnquerung: 6`; `FUNKTION_NAME.bahnquerung: 'Bahnquerung'`.
+- `orte.ts`: `Ort.bahn?: Array<[number, number]>` (Kommentar „Bahnfelder (NR27): nichts bauen, Leitungen nur an der Querungsstelle“).
+- `neubaugebiet.ts` `spielOrt()`: hängt **immer** (auch ohne Neubaugebiet – heute Rückkehr in Z. 68) `nordStrassen()`, `nordFluss()` an und setzt `bahn: bahnFelder()`; Cache bleibt gültig (Nordzone fest).
+- `typen.ts`: `Spielstand.nordviertel?: true`, `Spielstand.bahn_hilfe_gesehen?: true`, `Abschnitt.mit_querung?: true` (Kommentare mit „NR27“); Kommentar an `Netz.anschluss` „KEIN_FELD (feld.ts) = direkt am Heizhaus“.
 
-**Tests** (`tests/nr27-nordzone-daten.test.ts`):
-- `test_nr27_a_plan`: 14 Häuser, 6 EFH / 8 RH; kein Haus auf Straße, Fluss oder Bahn; alle y in −9 … −5; Chebyshev-Abstand ≥ 2 zwischen Häusern; jedes Haus hat ein freies Nachbarfeld, das an eine Straße grenzt.
-- `test_nr27_e_flaechen_getrennt`: Bahn ∩ Straßen = ∅, Bahn ∩ Fluss = ∅; Brücke ⊂ Bahn.
-- `test_nr27_f_querung_gebaut`: geplante Leitungen → false; nur eine Bahnzeile → false; zwei Zeilen in verschiedenen Spalten → false; beide Zeilen in Spalte 10 gebaut → true.
-- `test_nr27_f_anlegen_einmal`: zweimal `nordviertelAnlegen` → 14 neue Objekte, `naechste_id` +14, zweiter Aufruf false.
-- `test_nr27_b_freischaltung`: Stufe 5 → `sperrgrund(stand,'bahnquerung')` = „ab Heizzentrale Stufe 6“; Stufe 6 → frei; `neuBeiStufe(6)` enthält `neubaugebiet` und `bahnquerung`.
-- `test_nr27_a_spielort`: Stand ohne Neubaugebiet → `spielOrt(stand).bahn` hat 48 Felder, Straßen enthalten (1\|−7).
-- `test_nr27_info`: `nordInfo` auf Bahnfeld vor/nach Stufe 6, auf Kulissenhaus, auf (5\|5) → null.
+**Tests** `tests/nr27-nordzone-daten.test.ts`:
+- `test_nr27_a_plan`: 14 Häuser (6 EFH/8 RH); keins auf Straße, Fluss, Bahn; y in −9 … −5; Chebyshev-Abstand ≥ 2; jedes Haus hat ein freies Nachbarfeld an einer Straße; (10\|−4) … (10\|−6) frei (Querungsweg).
+- `test_nr27_e_flaechen_getrennt`: Bahn ∩ Straßen = ∅, Bahn ∩ Fluss = ∅, Brücke ⊂ Bahn, `QUERUNG_X` ∉ `BRUECKE_X`.
+- `test_nr27_f_querung_gebaut`: geplant → false; nur eine Zeile → false; beide Zeilen in Spalte 5 gebaut → false; beide in Spalte 10 gebaut → true.
+- `test_nr27_f_anlegen_einmal`: zweimal anlegen → 14 Objekte, `naechste_id` +14, zweiter Aufruf false.
+- `test_nr27_b_freischaltung`: Stufe 5 → `sperrgrund(…,'bahnquerung')` = „ab Heizzentrale Stufe 6“; Stufe 6 frei; `neuBeiStufe(6)` enthält `neubaugebiet` und `bahnquerung`.
+- `test_nr27_a_spielort`: ohne Neubaugebiet → `bahn` hat 48 Felder, Straßen enthalten (1\|−7) und (10\|−9).
+- `test_nr27_e_sperre`: `nordSperre` für jeden Zweig mit erwartetem Text aus `nordText(…)` (Stufe 5/6; (10\|−2) Leitung → null ab Stufe 6; (5\|−2) Leitung → `STELLE`; (11\|−2) neben geplanter (12\|−2) → `Q4`; (19\|−2) → `BRUECKE`; Baum auf (5\|−2) → `GLEISE`; (10\|−4) → `HINTER` bzw. `Q5` mit `mit_querung` + Phase `bau`; (10\|−1) und (10\|5) → null).
+- `test_nr27_info`: `nordInfo` auf Bahnfeld/Kulissenhaus vor und ab Stufe 6 (`N1`/`N2`), nach Erschließung null, (5\|5) null.
+- `test_nr27_d_texte`: jeder Eintrag mit Platzhaltern liefert mit Werten einen Text ohne `{`; fehlender Wert wirft; **ohne Freigabe** liefert jede `fach`-ID `null`, mit `freigegeben = true` den Text; die Menge der `fach`-IDs ist genau {`WISSEN_A`, `WISSEN_B`, `KARTE_1`–`KARTE_4`, `TUTORIAL_1`}; `NORD_FACHTEXTE_FREIGEGEBEN === false`.
 
-**Eskalation:** Wenn der Hausplan mit der Designer-Gestaltung nicht passt → nur die Liste ändern, Tests behalten; mehr als 2 Zeilen Nordzone nötig → Projektleiter (dann `nord_zeilen` in P1 anpassen).
+**Eskalation:** Hausplan passt nicht zur Designer-Gestaltung → Projektleiter (Lage ist entschieden, nur das Aussehen ist frei). Ein Text muss „Bahn“ außerhalb von nord-texte.ts enthalten → nicht umgehen, Projektleiter.
 **Risiko-Auslöser:** nein.
 
 ### P3 – Bahnregeln im Kern
-**Nutzt:** alles aus P1 (`KARTE_OBEN_Y`, `feldVon`, `KEIN_FELD`, `belegtId`) und P2 (`istBahn`, `istBruecke`, `hinterDerBahn`, `querungGebaut`, `nordviertelAnlegen`, `QUERUNG_WISSEN`, `BAHN_ZEILEN_Y`).
+**Nutzt:** P1 (`KARTE_OBEN_Y`, `feldVon`, `KEIN_FELD`, `belegtId`, `KONSTANTEN.querung_eur_je_feld`, `querung_bau_s`), P2 (`istBahn`, `nordSperre`, `querungGebaut`, `nordviertelAnlegen`, `BAHN_ZEILEN_Y`, `nordText`, `bahnKarteZeigen`), V2-Dateien.
 
 **Liefert** (Klasse `Spiel`):
-- `get kartenOben(): number` – `KARTE_OBEN_Y`
+- `get kartenOben(): number` (= `KARTE_OBEN_Y`)
 - `istBahn(x: number, y: number): boolean`
 - `querungsFelder(): number[]` – Schlüssel geplanter Leitungen auf Bahnfeldern
-- `querung_eur(): number` – `querungsFelder().length * KONSTANTEN.querung_eur_je_feld`
+- `querung_eur(): number` – `querungsFelder().length * querung_eur_je_feld`
 - `abschnittBau_s(): number` – `abschnitt_bau_s + (Abschnitt hat geplante Leitung oder Ersatz auf Bahnfeld ? querung_bau_s : 0)`
 
-`KONSTANTEN` (katalog.ts), beide **PLATZHALTER-Spielwerte** (Recherche fand keine Euro/Zeit; Wert setzt Projektleiter/Simon):
-- `querung_eur_je_feld: 45000` – Kommentar „NR27 PLATZHALTER: Querung je Bahnfeld, grabenlos mit Bahnvertrag; Spielwert ohne Beleg (docs/recherche/bahnquerung.md Abschnitt 3)“
-- `querung_bau_s: 1440` – Kommentar „NR27 PLATZHALTER: Zuschlag auf die Abschnitts-Bauzeit (Prüfung durch die Bahn); Spielwert ohne Beleg“
-
 Regeln:
-1. Private `nordSperre(t: TypId, x: number, y: number): string | null`, genutzt von `kannPlatzieren` (false bei Text) **und** `platzieren` (Text als Hinweis, vor „Hier ist kein Platz“):
-   - Bahnfeld + keine Leitung → „Auf den Gleisen kann nichts gebaut werden“
-   - Bahnfeld + Leitung + gesperrt → Sperrtext `bahnquerung` („Bahnquerung ab Heizzentrale Stufe 6“)
-   - Brücke → „Über die Bahnbrücke führt keine Leitung“
-   - Bahnfeld + Leitung links oder rechts auf einem Bahnfeld (geplant oder gebaut) → „Unter der Bahn geht es nur quer hindurch, nicht entlang der Gleise“
-   - `hinterDerBahn(y)` und nicht `stand.nordviertel` → „Hinter der Bahn geht es erst weiter, wenn eine Bahnquerung gebaut ist“
-2. `kannPlatzieren`: obere Grenze `y < KARTE_OBEN_Y` statt `y < 0`; ebenso `spiel.ts` Z. 1218 und 1253.
-3. `gestattungsFelder()` ohne Bahnfelder; `abschnittKosten_eur()` + `querung_eur()`; `ersatzPreis_eur()` + `querung_eur_je_feld` auf Bahnfeld (wie Spülbohrung).
-4. `materialBestellen()`: `this.neuerBau('neu', this.abschnittBau_s())` (Tutorial-Zweig unverändert); bei Querung `a.mit_querung = true` (`Abschnitt.mit_querung?: true` in typen.ts).
-5. `expressLiefern()`: bei `a.mit_querung` → „Die Prüfung durch die Bahn lässt sich nicht beschleunigen“.
-6. Nach Fertigstellen eines Abschnitts **und** im Konstruktor: `if (!stand.nordviertel && querungGebaut(stand.objekte) && nordviertelAnlegen(stand))` → Hinweis „Bahnquerung fertig · Das Wohngebiet hinter der Bahn ist erreichbar“, `neuBerechnen()`.
-7. Erste Leitung auf einem Bahnfeld im laufenden Abschnitt (danach `querungsFelder().length === 1`) → `sagt(ABSCHNITT_HELFER.planung, QUERUNG_WISSEN.join(' '))`. Keine Merke im Spielstand.
-8. `nordviertel.ts`: eigene Untergrenze −10 durch `KARTE_OBEN_Y` ersetzen.
-9. `ui/katalog.ts` Z. 100: Zeile „Über die Bahn kommst du nur mit einer Bahnquerung (… je Feld, aktuell …)“, nur wenn `sp.freigeschaltet('bahnquerung')`; Z. 114: „… dazu eine Bahnquerung (…)“ und Bauzeit aus `sp.abschnittBau_s()` statt `KONSTANTEN.abschnitt_bau_s`.
+1. `kannPlatzieren` false, wenn `nordSperre(...)` einen Text liefert; `platzieren` gibt diesen Text als Hinweis zurück (vor „Hier ist kein Platz“). Obere Grenze `y < KARTE_OBEN_Y` in Z. 486, 1218, 1253.
+2. `gestattungsFelder()` ohne Bahnfelder; `abschnittKosten_eur()` + `querung_eur()`; `ersatzPreis_eur()` + `querung_eur_je_feld` auf Bahnfeld.
+3. `materialBestellen()`: `neuerBau('neu', this.abschnittBau_s())` (Tutorial-Zweig unverändert); bei Querung `a.mit_querung = true`.
+4. `expressLiefern()` und `beschleunigen(bau)` (wenn `bau === stand.abschnitt?.bau`): bei `mit_querung` → Hinweis `EXPRESS`, nichts bezahlt.
+5. Nach Fertigstellen eines Abschnitts **und** im Konstruktor: `!stand.nordviertel && querungGebaut(...) && nordviertelAnlegen(stand)` → Hinweis `F1`, `neuBerechnen()`.
+6. Erste Leitung auf einem Bahnfeld im laufenden Abschnitt (danach `querungsFelder().length === 1`): sind `nordText('WISSEN_A')` und `nordText('WISSEN_B')` nicht null → ein `sprecher`-Ereignis (`ABSCHNITT_HELFER.planung`, beide Sätze). Ohne Freigabe: nichts. Keine Merke im Spielstand.
+7. Leitungsgrenze: jede Leitung in katalog.ts bekommt den 6. Eintrag `360` (`[…, 240, 360]`); Kommentar katalog.ts Z. 26 „Stufe 1..6“. Meldung Z. 594: bei `hzStufe >= KONSTANTEN.heizzentrale_hoechststufe` „Mehr Leitungen gehen nicht – die Heizzentrale hat schon die höchste Stufe“ (ebenso Z. 596 sinngemäß für andere Typen), sonst wie bisher.
+8. `nordviertel.ts`: Untergrenze −10 durch `KARTE_OBEN_Y` ersetzen (einzige Änderung dort).
+9. `ui/katalog.ts`: Z. 100 Zeile `KATALOG_ZEILE` (vor Stufe 6) bzw. `KATALOG_PREIS` (ab Stufe 6) mit (i)-Knopf 44 × 44 → `bahnKarteZeigen(sp)`; Z. 114 Bauzeit aus `sp.abschnittBau_s()`; Z. 126 „Sofort fertig“ gesperrt mit `SOFORT_GRUND`, Hinweis `EXPRESS`, wenn `a.mit_querung`.
 
-**Tests** (`tests/nr27-bahnquerung.test.ts`; Erwartungswerte aus den Konstanten, keine eigenen Rechenwerte):
-- `test_nr27_b_gesperrt_vor_stufe6`: Stufe 5, offener Abschnitt, `platzieren('d90', 10, -2)` → `ok: false`, Hinweis enthält „ab Heizzentrale Stufe 6“.
+**Tests** `tests/nr27-bahnquerung.test.ts` (Erwartungswerte aus Konstanten und Texttabelle, keine eigenen Rechenwerte):
+- `test_nr27_b_gesperrt_vor_stufe6`: Stufe 5, offener Abschnitt, `platzieren('d90', 10, -2)` → `ok: false`, Hinweis = `nordText('Q2', …)`.
 - `test_nr27_b_frei_ab_stufe6`: Stufe 6 → ok; `querungsFelder()` = `[-2*24+10]`.
-- `test_nr27_c_teurer`: `querung_eur_je_feld >= 4 * bohrung_eur_je_feld`; Abschnitt mit (10\|−1),(10\|−2),(10\|−3): `abschnittKosten_eur()` = Material + 2 × `querung_eur_je_feld` (+ Gestattung nur für (10\|−1), falls nicht Straße); **Kasse:** 2 × `querung_eur_je_feld` + 3 × teuerste bei Stufe 6 freie Leitung + `abschnitt_planung_eur` ≤ `grundkasse_eur`.
-- `test_nr27_c_bauzeit`: nach `materialBestellen` gilt `ende_ms − start_ms = (abschnitt_bau_s + querung_bau_s) × bauzeit_faktor × 1000`; ohne Bahnfeld unverändert `abschnitt_bau_s × …`.
-- `test_nr27_c_express_gesperrt`.
-- `test_nr27_d_wissenstext`: erste Bahnleitung → genau ein `sprecher`-Ereignis mit `QUERUNG_WISSEN`; zweite im selben Abschnitt → keins.
-- `test_nr27_e_nur_quer`: (10\|−2) geplant, dann (11\|−2) → abgelehnt mit „nur quer“; (19\|−2) → Brücke; `kannPlatzieren('baum', 5, -2)` und `('efh', 5, -3)` → false.
-- `test_nr27_e_kein_weg_vorbei`: vor Erschließung `platzieren('d50', 10, -4)` → abgelehnt mit „erst weiter, wenn eine Bahnquerung gebaut ist“; auch `kannPlatzieren('solar', 5, -6)` → false.
-- `test_nr27_f_erschliessen`: Querung bauen, Zeit bis Bauende vorspulen → `stand.nordviertel === true`, 14 Häuser mit y ≤ −5, alle `ohne_station`; danach `platzieren('d50', 10, -4)` im neuen Abschnitt → ok; Neuladen (`serialisieren` → `laden` → `new Spiel`) legt nichts doppelt an.
-- `test_nr27_g_alter_stand`: ein Stand von heute (Stufe 6, Neubaugebiet Layout 3, ohne `nordviertel`) → `ladenMitBefund` Befund `ok`, Objektliste gleich, kein Objekt mit y < 0, `kartenOben === -10`.
-- `test_nr27_ersatz_unter_bahn`: Ersatz einer gebauten Leitung auf (10\|−2) kostet zusätzlich `querung_eur_je_feld` und verlängert den Abschnitt um `querung_bau_s`.
-- `test_nr27_konsistenz`: alle Felder aus `bahnFelder()`, `nordStrassen()`, `nordFluss()`, `NORD_PLAN` haben y ≥ `KARTE_OBEN_Y` und y < 0.
+- `test_nr27_e_nur_querungsstelle`: (5\|−2) → `STELLE`; (19\|−2) → `BRUECKE`; `kannPlatzieren('baum', 5, -2)` false; zweite Querung unmöglich.
+- `test_nr27_e_kein_weg_vorbei`: vor Erschließung (10\|−4) → `HINTER`; `kannPlatzieren('solar', 5, -6)` false; während Bau mit Querung → `Q5`.
+- `test_nr27_c_teurer`: `querung_eur_je_feld >= 4 * bohrung_eur_je_feld`; Abschnitt (10\|−1),(10\|−2),(10\|−3): `abschnittKosten_eur()` = Material + 2 × `querung_eur_je_feld` (+ Gestattung nur, falls (10\|−1) keine Straße); 2 × `querung_eur_je_feld` + 3 × teuerste Stufe-6-Leitung + `abschnitt_planung_eur` ≤ `grundkasse_eur`.
+- `test_nr27_c_bauzeit`: `ende_ms − start_ms = (abschnitt_bau_s + querung_bau_s) × bauzeit_faktor × 1000`; ohne Bahnfeld unverändert.
+- `test_nr27_c_keine_abkuerzung`: `expressLiefern()` und `beschleunigen(abschnitt.bau)` → `ok: false`, Hinweis `EXPRESS`, Geld/Taler unverändert.
+- `test_nr27_d_wissenstext_ohne_freigabe`: Standard → erste Bahn-Leitung erzeugt **kein** `sprecher`-Ereignis.
+- `test_nr27_d_wissenstext_mit_freigabe`: Stand so herstellen, dass der Schalter wirkt (z. B. `vi.mock('../src/core/nord-texte', …)` mit `NORD_FACHTEXTE_FREIGEGEBEN = true`) → genau ein Ereignis mit `WISSEN_A` + `WISSEN_B`; zweite Bahn-Leitung im selben Abschnitt → keins.
+- `test_nr27_f_erschliessen`: Querung bauen, vorspulen → `nordviertel === true`, 14 Häuser y ≤ −5, alle `ohne_station`, Hinweis `F1`; danach (10\|−4) im neuen Abschnitt ok; Neuladen legt nichts doppelt an.
+- `test_nr27_g_alter_stand` (beide V2-Dateien): Befund `ok`, Objektliste tief gleich, `gestattungen`/`neubau_strassenluecken` gleich, kein Objekt mit y < 0, `kartenOben === -10`; Mitten-im-Bau-Stand: Bauende und Abschnittsdauer unverändert, kein `mit_querung`.
+- `test_nr27_ersatz_unter_bahn`: Ersatz auf (10\|−2) kostet zusätzlich `querung_eur_je_feld` und verlängert um `querung_bau_s`.
+- `test_nr27_leitungsgrenze_stufe6`: `grenze('d25')` bei Stufe 6 = 360, bei Stufe 5 = 240; Meldung bei 360 Leitungen und Stufe 6 enthält nicht „nächsten“.
+- `test_nr27_balance_leitungen`: Obergrenzen-Netz aus den Daten = Straßenfelder (Dorf + Süd Layout 3 + `nordStrassen()`) + alle Häuser (Dorf + `neubauPlan(3)` + `NORD_PLAN`) + `BAHN_ZEILEN_Y.length`; es gilt Obergrenzen-Netz ≤ 360 ≤ 1,25 × Obergrenzen-Netz.
+- `test_nr27_konsistenz`: alle Felder aus `bahnFelder()`, `nordStrassen()`, `nordFluss()`, `NORD_PLAN` haben `KARTE_OBEN_Y` ≤ y < 0.
 
-**Randfälle:** Querung gebaut, aber ohne Verbindung zur Heizzentrale → Viertel trotzdem erschlossen, Häuser bleiben kalt. Querungs-Leitung später entfernt → Häuser bleiben stehen (`nordviertel` bleibt), werden getrennt; kein Fehler. Kasse reicht nicht → übliche Meldung „Es fehlen … €“ bei `materialBestellen`. Ziehen mit dem Finger über Bahn und weiter nach Norden → die Leitung endet am letzten Bahnfeld, der Hinweis erscheint (kein stilles Abbrechen).
-**Eskalation:** Wenn Leitungen in der Bau-Phase nicht mehr `geplant` sind und dadurch Bauzeit oder Express anders wirken als beschrieben → `mit_querung` als einzige Quelle nutzen und im Bericht nennen. Wenn ein bestehender Test eine andere Bauzeit/Kosten erwartet → stoppen (Tester-Vorarbeit).
-**Risiko-Auslöser:** nein (Spielregeln, keine Daten von außen; Spielstand nur um optionale Felder erweitert).
+**Randfälle:** Querung gebaut, nicht angeschlossen → Viertel erschlossen, Häuser kalt, kein Fehler. Querungs-Leitung später entfernt → Häuser bleiben (`nordviertel` bleibt), werden getrennt. Kasse reicht nicht → übliche Meldung. Neuladen während Querung im Bau → `mit_querung` bleibt, Abkürzungen bleiben gesperrt.
+**Eskalation:** Leitungen in der Bau-Phase nicht mehr `geplant` → `mit_querung` als einzige Quelle, im Bericht nennen. Ein bestehender Test erwartet andere Bauzeit/Kosten/Grenze → stoppen (Tester). Balance-Test rot → nicht die Zahl anpassen, Werte melden (Projektleiter entscheidet).
+**Risiko-Auslöser:** nein (Spielregeln; Spielstand nur um optionale Felder erweitert).
 
-### P4 – Darstellung und Bedienung
-**Nutzt:** `KARTE_OBEN_Y`, `feldVon` (P1); `spielOrt(stand).bahn`, `nordKulisse(stand)`, `nordInfo(stand, x, y)` (P2). **Nicht** die neuen `Spiel`-Methoden aus P3 (läuft parallel).
+### P4 – Darstellung Grundlage und Bedienung
+**Nutzt:** `KARTE_OBEN_Y`, `feldVon` (P1); `spielOrt(stand).bahn`, `nordKulisse`, `nordInfo`, `nordSperre` (P2). **Nicht** die neuen `Spiel`-Methoden aus P3.
 
 **Liefert:**
 - `Szene` (szene.ts): `bahn?: ReadonlyArray<[number, number]>`, `kulisse?: ReadonlyArray<{ typ: TypId; x: number; y: number }>`, `kartenOben?: number`.
 - Boden ab `kartenOben − WIESENRAND`; `GRAS` mit `N * (neubau_hoehe + nord_zeilen)` Einträgen, Index `(y − KARTE_OBEN_Y) * N + x`; Randprüfungen Z. 121, 271, 818 mit `kartenOben`.
-- Gleise auf Bahnfeldern (Schotter, zwei Schienenpaare, Schwellen), Brücke über dem Fluss – Stil vom Designer (`docs/DESIGN.md`).
-- Kulissenhäuser mit dem vorhandenen Hauszeichner, nicht antippbar wie Kunden (Gestaltung: Designer).
-- `szene-schluessel.ts`: `bahn` und `kulisse` gehen in den Schlüssel der festen Ebene ein (sonst bleibt nach der Erschließung die Kulisse stehen).
-- `Kamera.kartenOben: number` (kamera.ts); `begrenzen()` erlaubt den Bereich `kartenOben … kartenHoehe`.
-- `steuerung.ts`: übergibt `bahn`, `kulisse`, `kartenOben` an Szene und Kamera; Grenzen Z. 620/626 mit `KARTE_OBEN_Y`; Antippen eines Feldes ohne Objekt → `nordInfo(...)` ≠ null → als Hinweis zeigen (vorhandener Hinweisweg).
+- Gleise als Grundbild (Schotter, Schienen, Schwellen, Brücke) und Kulissenhäuser mit dem vorhandenen Hauszeichner – Aussehen nach DESIGN 14.2/14.4.
+- `szene-schluessel.ts`: `bahn`, `kulisse`, `kartenOben` im Schlüssel der festen Ebene.
+- `Kamera.kartenOben: number` (kamera.ts); `begrenzen()` erlaubt `kartenOben … kartenHoehe`.
+- `steuerung.ts`: übergibt `bahn`, `kulisse`, `kartenOben`; Grenzen Z. 620/626 mit `KARTE_OBEN_Y`; Antippen eines Feldes ohne Objekt → `nordInfo(...)` ≠ null → Hinweis. Lokale Variable `kartenOben` in Z. 955 umbenennen (z. B. `blaseUnten`), damit sie nicht mit der Kamera-Eigenschaft verwechselt wird.
+- **Hinweis beim Ziehen (Kritiker 5):** in `stempelnBei` vor `kannPlatzieren`: für Leitungen `const grund = nordSperre(sp.stand, typ, fx, fy)`; bei Text → `toast(grund)` höchstens **einmal je Zug** (Merker, der beim Zugbeginn zurückgesetzt wird) und `break` (die Leitung endet am letzten erlaubten Feld). Das bisherige `continue` bleibt nur für Fälle ohne Nordsperre.
 
-**Tests** (`tests/nr27-darstellung.test.ts`, mit dem Zeichen-Protokoll wie in `nr20-*-darstellung`/`nr12-ebenen`):
-- `test_nr27_a_gleise`: Szene mit `bahn` zeichnet in den Bahnzeilen etwas, ohne `bahn` nicht.
-- `test_nr27_a_kulisse`: `kulisse` mit 14 Häusern wird gezeichnet; leere Kulisse → Schlüssel der festen Ebene ändert sich.
-- `test_nr27_a_boden_nord`: Boden für y = −10 nutzt `GRAS` ohne `undefined` (kein Absturz bei y < 0).
-- `test_nr27_kamera_nord`: bei Zoom 2,2 lässt sich (10\|−7) in die Bildmitte holen; (10\|45) bei Stufe 6 weiterhin.
-- `test_nr27_antippen`: Antippen (5\|−9) ohne Objekt → Hinweis = `nordInfo(stand, 5, -9)`.
+**Tests** `tests/nr27-darstellung.test.ts` (Zeichen-Protokoll wie `nr20-*-darstellung`, echte Steuerung über `tests/hilfen/echte-steuerung.ts`):
+- `test_nr27_a_gleise`: mit `bahn` wird in den Bahnzeilen gezeichnet, ohne nicht.
+- `test_nr27_a_kulisse`: 14 Kulissenhäuser gezeichnet; leere Kulisse → anderer Schlüssel der festen Ebene.
+- `test_nr27_a_boden_nord`: Boden für y = −10 ohne `undefined` (kein Absturz).
+- `test_nr27_kamera_nord`: bei Zoom 2,2 lässt sich (10\|−7) in die Bildmitte holen; (10\|45) bei Stufe 6 weiterhin; Startansicht unverändert.
+- `test_nr27_antippen`: (5\|−9) ohne Objekt → Hinweis = `nordInfo(stand, 5, -9)`.
+- `test_nr27_zusammenspiel_ziehen` (gilt vor **und** nach P3): (a) Stufe 5, offener Abschnitt, Zug (10\|0) → (10\|−3): genau ein Toast = `nordText('Q2', …)`, keine Leitung mit y ≤ −2; (b) Stufe 6, Zug (10\|0) → (10\|−6): genau ein Toast = `nordText('HINTER')`, keine Leitung mit y ≤ −4; (c) Stufe 6, Zug (14\|0) → (14\|−3) (senkrecht, damit die Achsenregel aus A47 nicht stört): genau ein Toast `STELLE`, keine Leitung mit y ≤ −2.
 
-**Randfälle:** Hochformat-Hinweis unverändert; Winter (Schneefall über die volle Höhe `kartenOben … kartenHoehe`); 60 Bilder/s beim Ziehen (10 Zeilen mehr Boden).
-**Eskalation:** Wenn die Kamera-Grenze nur mit Änderung der Mitte (`c = (N − 1) / 2`) geht und dadurch alte Kamerafahrten (Neubaugebiet, Tutorial) wandern → stoppen.
+**Randfälle:** Hochformat-Hinweis unverändert; Winter (Schneefall über `kartenOben … kartenHoehe`); 60 Bilder/s beim Ziehen mit 10 Zeilen mehr Boden und bis zu 360 Leitungen.
+**Eskalation:** Kamera-Grenze nur mit geänderter Mitte (`c = (N − 1) / 2`) möglich und alte Kamerafahrten (Neubaugebiet, Tutorial) wandern → stoppen. Bestehende Kamera-/Darstellungstests werden rot → Liste melden (Tester), nicht anpassen.
+**Risiko-Auslöser:** nein.
+
+### P5 – Inszenierung
+**Eingang:** DESIGN 14 in der Fassung Variante A (Designer überarbeitet parallel). Alle Maße, Farben, Zeiten, Abläufe von dort; dieser Plan wiederholt sie nicht.
+**Nutzt:** P2 (`istBahn`, `QUERUNG_X`, `BAHN_ZEILEN_Y`, `querungImBau`, `nordKulisse`, `nordText`, `Spielstand.bahn_hilfe_gesehen`, `bahnKarteZeigen`-Signatur), P4 (`Szene.bahn/kulisse/kartenOben`, Gleise, Kamera), P1 (`querung_eur_je_feld`, `querung_bau_s`).
+
+**Liefert / Umfang** (je Punkt Verweis auf DESIGN 14):
+| Punkt | DESIGN | Bauentscheidung (nur was nicht im DESIGN steht) |
+|---|---|---|
+| Zug mit Takt A90 | 14.3 | Bedarf „flüssig“ nur, solange der Zug im Bild ist (vorhandener Bedarfsweg aus `render/takt.ts`). **Kein Zug, solange `querungImBau(stand)`** (Fachprüfer F3) und bei „Weniger Bewegung“/Sparmodus. Fahrplan rein aus der Uhrzeit (keine Zufallszahl je Bild). |
+| Dunst über dem Viertel | 14.4 | an `nordKulisse(stand).length > 0` gekoppelt |
+| Masten/Fahrdraht, Zaun, Schranke | 14.2 | reine Grafik, keine Daten im Kern |
+| Schleier | 14.x (Designer) | nur Darstellung |
+| Strichellinie statt Rohr auf Bahnfeldern | 14.5 | Leitungen mit `istBahn(x, y)` werden nicht als Rohr, sondern als Strichellinie unter den Gleisen gezeichnet; Netzrechnung unverändert |
+| Baustelle/Bohrlinie | 14.5 | sichtbar bei `querungImBau(stand)`; Gruben auf (10\|−1) und (10\|−4) |
+| Erklärkarte | 14.7 | in `src/ui/bahn-karte.ts`, Signatur `bahnKarteZeigen(sp: Spiel): void` bleibt. Sätze `KARTE_1`–`KARTE_4` nur, wenn `nordText` nicht null; `KARTE_5`, Preis (`querung_eur_je_feld × BAHN_ZEILEN_Y.length`) und Zuschlag immer. Erklärbild ohne fahrenden Zug (F3) |
+| Mini-Tutorial | 14.x (Designer) | einmalig, Merker `stand.bahn_hilfe_gesehen = true`; `TUTORIAL_1` nur mit Freigabe, `TUTORIAL_2` immer |
+| Erfolgsmoment | 14.8 | ausgelöst in der Steuerung beim Wechsel `stand.nordviertel` undefined → true (kein neues Ereignis im Kern nötig); `F1` kommt als Hinweis aus P3 |
+
+Dateien: neu `src/render/bahn.ts` (Zug, Masten, Zaun, Schranke, Dunst, Baustelle, Strichellinie), Rumpf von `src/ui/bahn-karte.ts`; ändern `src/render/szene.ts` (Aufrufe, Leitungen auf Bahnfeldern), `src/render/szene-schluessel.ts`, `src/steuerung.ts` (Erfolgsmoment, Tutorial, Erklärkarte beim Antippen, falls DESIGN es vorsieht); Farbwerte nach DESIGN 14.9 am vorhandenen Ort der Tokens (wie 13.10). Neu `tests/nr27-inszenierung.test.ts`.
+
+**Tests** `tests/nr27-inszenierung.test.ts`:
+- `test_nr27_zug_takt`: Zug im Bild → Bedarf flüssig; außerhalb → keiner; `querungImBau` → kein Zug gezeichnet, kein Bedarf; „Weniger Bewegung“ → kein Zug.
+- `test_nr27_dunst`: mit Kulisse Dunst gezeichnet, nach Erschließung nicht.
+- `test_nr27_strichellinie`: Leitung auf (10\|−2) wird nicht mit dem Rohrzeichner gezeichnet, auf (10\|−1) schon.
+- `test_nr27_baustelle`: `mit_querung` + Phase `bau` → Baustelle an beiden Gruben; danach nicht.
+- `test_nr27_erklaerkarte_ohne_freigabe`: Standard → Karte enthält `KARTE_5` und Preis, keinen der Sätze `KARTE_1`–`KARTE_4`.
+- `test_nr27_tutorial_einmal`: zweites Auslösen zeigt nichts; Merker überlebt `serialisieren` → `laden`.
+- `test_nr27_erfolgsmoment`: Wechsel `nordviertel` → true löst den Effekt genau einmal aus; Neuladen eines erschlossenen Stands löst ihn nicht aus.
+
+**Randfälle:** Stand nach dem Laden schon erschlossen (kein Erfolgsmoment, kein Dunst); Querung im Bau beim Laden (Zug pausiert sofort); Sparmodus.
+**Eskalation:** DESIGN 14 verlangt Daten, die der Kern nicht liefert (z. B. ein neues Ereignis) → stoppen, Projektleiter. Der Takt-Bedarfsweg aus A90 passt nicht → stoppen.
 **Risiko-Auslöser:** nein.
 
 ---
@@ -260,14 +358,14 @@ Regeln:
 ## 7. Prüf-Schwerpunkt (nicht ausdrücklich in NR27, trifft echte Spieler)
 | # | Eingabe | Erwartet | Test in |
 |---|---|---|---|
-| 1 | In einem Zug über die Bahn und weiter ins Viertel ziehen | Leitung endet am letzten Bahnfeld; Hinweis „erst weiter, wenn eine Bahnquerung gebaut ist“ | P3 |
-| 2 | Längs über die Gleise ziehen | abgelehnt mit „nur quer“, vorhandene Felder bleiben | P3 |
-| 3 | Querung gebaut, aber nicht ans Netz angeschlossen | Viertel erschlossen, Häuser kalt, keine Fehlermeldung | P3 |
-| 4 | Querungs-Leitung wieder entfernen | Häuser bleiben, sind getrennt; kein Absturz | P3 |
-| 5 | Alter Stand mit Stufe 6 laden | Bahn und Kulisse sichtbar, Querung sofort zeichenbar, Befund `ok` | P3 (Kern), P4 (Bild) |
+| 1 | In einem Zug über die Bahn und weiter ins Viertel ziehen | Leitung endet am letzten Bahnfeld; ein Toast `HINTER` | P4 (Zusammenspiel), Abnahme |
+| 2 | Längs über die Gleise oder an anderer Stelle ziehen | Toast `STELLE`/`Q4`, vorhandene Felder bleiben | P2, P4 |
+| 3 | Querung gebaut, nicht angeschlossen | Viertel erschlossen, Häuser kalt, kein Fehler | P3 |
+| 4 | Querungs-Leitung wieder entfernen oder tauschen | Häuser bleiben, getrennt; Tausch kostet die Querung erneut | P3 |
+| 5 | Alter Stand (Stufe 6 bzw. mitten im Bau) laden | Befund `ok`, nichts verändert, Bahn/Kulisse sichtbar, Querung sofort zeichenbar | P3 (V2-Dateien), P4 (Bild) |
 
 ## 8. Architekturtest
-`tests/architektur/nr27-raster.test.ts` (geschrieben, greift ab `src/core/feld.ts`): Rückrechnung nur in feld.ts (AE-NR27-2), kein `-1`-/`< 0`-Wächter (AE-NR27-3), Belegung nur über `belegtId` (AE-NR27-4), netz.ts ohne `y < 0` (AE-NR27-1), feld.ts importiert nur katalog, nordviertel.ts nur katalog/typen/freischaltung/feld (AE-NR27-5). Jede Meldung nennt AE-Nummer, Fundstelle und erlaubten Weg.
+`tests/architektur/nr27-raster.test.ts` (ab `src/core/feld.ts`): Rückrechnung nur in feld.ts, auch mit `N_`; keine Abkürzung von N; kein negativer Rest als Index/Bruchteil (AE-NR27-2); kein `-1`-/`< 0`-Wächter (AE-NR27-3); Belegung nur über `belegtId`, Schleifen nur über `alleSchluessel` (AE-NR27-4); `y < 0` verboten in netz.ts und in jeder Datei, die `KARTE_OBEN_Y`/`kartenOben` kennt (AE-NR27-1); Importe feld.ts/nordviertel.ts (AE-NR27-5). Ab `src/core/nord-texte.ts`: Importe der Tabelle, kein Bahn-Text außerhalb (AE-NR27-12), Schalter nur mit Freigabe (AE-NR27-13). Jede Meldung nennt AE-Nummer, Datei und erlaubten Weg. Ausgenommen: `src/core/nachbarn.ts` (eigenes Beispieldorf).
 
 ## 9. NR28 (Tal, Höhenübergabe, Druck) – nicht verbaut
-Das Tal muss in **y-Richtung** liegen (nördlich hinter dem Nordviertel durch größeres `nord_zeilen`, oder im Süden über `neubau_hoehe`), weil die Breite 24 fest ist (AE-NR27-1). Geländehöhe wird dann – wie die Bahn – ein Datenmodul (`gelaende_hoehe_m(x, y)`), nicht ein Feld im Spielstand. Der Druck (`druck_bar`) wird eine eigene Kernrechnung, die über die vorhandenen `eltern`/`tiefe`-Wege des Netzes läuft; dafür ist die ortsunabhängige Netzrechnung aus P1 (Verschiebungstest) die Voraussetzung. Die Höhenübergabe wird ein eigener Objekttyp, der das Netz in zwei Druckzonen teilt – das ist bewusst **anders** als die Bahnquerung (dort reicht eine Leitung mit Aufpreis, AE-NR27-6); NR27 legt dazu nichts fest. Netz.ts bleibt bahnfrei, damit NR28 dort nur eine Regel hinzufügt.
+Das Tal liegt in y-Richtung (nördlich durch größeres `nord_zeilen` oder südlich über `neubau_hoehe`), weil die Breite 24 fest ist. Geländehöhe wird ein Datenmodul (`gelaende_hoehe_m(x, y)`), kein Spielstandfeld. Druck (`druck_bar`) wird eine eigene Kernrechnung über `eltern`/`tiefe`; Voraussetzung ist die ortsunabhängige Netzrechnung aus P1. Die Höhenübergabe wird ein eigener Objekttyp (anders als die Querung, AE-NR27-6). netz.ts bleibt bahnfrei.
