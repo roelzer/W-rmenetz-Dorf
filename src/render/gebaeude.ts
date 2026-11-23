@@ -295,7 +295,13 @@ export function zeichneGeruest(m: Maler, cx: number, cy: number, s: number, hp: 
   for (const f of [-0.4, 0, 0.4]) { X.moveTo(cx + f * tw * s, cy + th * 0.15); X.lineTo(cx + f * tw * s, cy - hp); }
   for (const k of [0.33, 0.66, 1]) { X.moveTo(cx - 0.4 * tw * s, cy - hp * k); X.lineTo(cx + 0.4 * tw * s, cy - hp * k); }
   X.stroke();
-  const a = Math.sin(m.zeit_s * 10) * 0.6, mx = cx + tw * 0.35 * s, my = cy + th * 0.25;
+  zeichneMonteur(m, cx + tw * 0.35 * s, cy + th * 0.25);
+}
+
+/** Bauarbeiter mit Helm und winkendem Arm; (mx|my) = Fußpunkt. Auch an der Bahn-Baustelle (DESIGN 14.5 „Monteur“). */
+export function zeichneMonteur(m: Maler, mx: number, my: number): void {
+  const { X } = m, tw = m.tw;
+  const a = Math.sin(m.zeit_s * 10) * 0.6;
   m.kreis(mx, my - tw * 0.16, tw * 0.045, '#f6c22c', true); X.lineWidth = 1; X.stroke();
   X.fillStyle = '#e2582b'; X.fillRect(mx - tw * 0.035, my - tw * 0.12, tw * 0.07, tw * 0.1);
   X.strokeStyle = '#5b4a33'; X.lineWidth = Math.max(1.5, tw * 0.02); X.beginPath();

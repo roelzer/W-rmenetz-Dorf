@@ -88,7 +88,7 @@ export function szenenSchluessel(s: Szene): string {
   teile.push(
     `netz,${netzNummer(s.netz)}`, s.saison ?? 'sommer', `${s.kartenHoehe ?? ''}`, s.modus, `${s.auswahl_id ?? ''}`, `${s.verschiebe_id ?? ''}`,
     g ? `${g.typ},${g.x},${g.y},${g.kante},${ja(g.ok)}` : '', st ? `${st.x},${st.y},${ja(st.ok)}` : '',
-    `${s.kw_anzeigen ?? ''}`, s.spiel?.abschnitt?.phase ?? '', `${s.strassen?.length ?? 0}`, `${s.fluss?.length ?? 0}`,
+    `${s.kw_anzeigen ?? ''}`, s.spiel?.abschnitt?.phase ?? '', ja(!!s.spiel?.abschnitt?.mit_querung), `${s.strassen?.length ?? 0}`, `${s.fluss?.length ?? 0}`,
     // NR13/NR20: Tutorial-Zeichen sind sichtbar und ändern sich ohne Objektänderung
     `erreicht,${(s.erreicht ?? []).map((e) => e.id).join(';')}`,
     `band,${(s.tutorial_band ?? []).map((f) => `${f.x},${f.y},${f.typ},${ja(f.aktiv)},${ja(f.falsch)},${f.pfeil?.join(',') ?? ''}`).join(';')}`,
