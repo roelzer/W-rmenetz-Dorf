@@ -1,11 +1,11 @@
 # Status
 
-**Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-12
+**Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-23
 
 
-**Jetzt:** NR24 fertig: Beim Leitungsziehen zeigt die Zeichenleiste, welche Rohrgröße an der Stelle unter dem Finger nötig ist (z. B. „Hier nötig: 40er · 2 Häuser · 26 kW“), warnt, wenn die gewählte Leitung zu dünn ist, und umrandet den passenden Farbknopf grün. 1924 Tests grün, auf main.
-**Als Nächstes:** NR25 schaltbare kW-Anzeige auf der Karte (Simon: Reihenfolge A, 12.11.). Designer-Fotoprüfung NR23 und NR24.
-**Fortschritt:** NR20–NR24 und NR26 fertig, offen NR25
+**Jetzt:** NR27 Bahnstrecke und Bahnquerung: P1–P5d gebaut und gemergt (2513 Tests grün), Gesamtprüfung durch (Tester 🟢, Reviewer, Designer 🟡, Fachprüfer 🟡). Fix-Runde läuft: Tester-Vorarbeit fertig (52 Tests absichtlich rot), zwei Entwickler (Oberfläche, Darstellung/Farb-Tokens) folgen.
+**Als Nächstes:** Fix-Runde, Re-Review, Schranke, Abschlussbericht NR27; dann NR25 (kW-Anzeige), später NR28 (Tal/Höhenübergabe). Warten auf Simon: BQ1–BQ3, Fachtexte-Freigabe, Spielwerte, a88.
+**Fortschritt:** NR27 ca. 90 % (Details docs/SITZUNGSUEBERGABE.md)
 **App:** https://heatville.pages.dev
 
 Annahme NR24 (2026-11-12): Die Vorschau steht nicht im Tutorial (dort erklärt Simon die Größen) und zählt auch Häuser ohne Übergabestation mit, die an der Leitung liegen.
