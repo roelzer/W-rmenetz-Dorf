@@ -8,15 +8,13 @@ import { zeichneMonteur } from './gebaeude';
 import type { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 
-/**
- * NR27 (DESIGN 14.3, 14.8, 14.9): Inszenierung der Bahn. Reine Darstellung, keine Spieldaten.
- * Maße aus DESIGN 14.9 (`karte.bahn`), bis sie in design/tokens.json stehen (14.15 Punkt 21).
- */
+/** Farben und Maße der Bahn aus design/tokens.json (`farbe.bahn`, `karte.bahn`, DESIGN 14.9). */
+const F = tokens.farbe.bahn, M = tokens.karte.bahn;
+
+/** NR27 (DESIGN 14.3, 14.8, 14.9): Inszenierung der Bahn. Reine Darstellung, keine Spieldaten. */
 export const ZUG_MASS = {
-  /** `zug_feld_je_s` */
-  feld_je_s: 3,
-  /** `zug_pause_s` [90, 150] */
-  pause_min_s: 90, pause_max_s: 150,
+  feld_je_s: M.zug_feld_je_s,
+  pause_min_s: M.zug_pause_s[0], pause_max_s: M.zug_pause_s[1],
   /** Gleise laufen von x = −2 bis 25 (DESIGN 14.2 „Enden“) */
   von_x: -2, bis_x: 25,
   /** zwei Wagen je 2 Felder (DESIGN 14.3 „Form“) */
@@ -25,21 +23,22 @@ export const ZUG_MASS = {
   gleis1_y: -2.28, gleis2_y: -2.72,
 } as const;
 
-/** Farben und Maße aus DESIGN 14.9 (Vorschlag `farbe.bahn`/`karte.bahn`; in design/tokens.json trägt sie 14.15 Punkt 21 ein). */
 export const BAHN = {
-  schotter: '#8f887d', schotter_kante: '#6f675c', randweg: '#ddd5c4', schwelle: '#cfcac0', schiene: '#333b41',
-  schiene_glanz: 'rgba(255,255,255,.55)', zaun: '#55605b', bruecke: '#7d858a',
+  schotter: F.schotter, schotter_kante: F.schotter_kante, randweg: F.randweg, schwelle: F.schwelle, schiene: F.schiene,
+  schiene_glanz: F.schiene_glanz, zaun: F.zaun, bruecke: F.bruecke,
 } as const;
-export const BAHN_MASS = { gleisabstand: 0.44, spurweite: 0.144, schwellen_teilung: 0.25, detail_ab_kachelbreite: 32 } as const;
+export const BAHN_MASS = {
+  gleisabstand: M.gleisabstand, spurweite: M.spurweite, schwellen_teilung: M.schwellen_teilung, detail_ab_kachelbreite: M.detail_ab_kachelbreite,
+} as const;
 
 /** Oberleitung (DESIGN 14.2 „Oberleitung“, 14.9 `mast`, `fahrdraht`, `mast_teilung`, `mast_versatz`, `mast_hoehe`, `fahrdraht_hoehe`). */
 const MAST = {
-  farbe: '#3f4549', draht: 'rgba(47,58,64,.60)',
-  teilung: 3, versatz: 2,
+  farbe: F.mast, draht: F.fahrdraht,
+  teilung: M.mast_teilung, versatz: M.mast_versatz,
   /** Masten auf dem Randweg Nord (Querschnitt 14.2) */
   y: -3.26,
   /** Höhen in Kachelbreiten */
-  hoehe: 0.62, draht_hoehe: 0.50,
+  hoehe: M.mast_hoehe, draht_hoehe: M.fahrdraht_hoehe,
   /** Ausleger knapp unter der Mastspitze, damit die Spitze als Mast lesbar bleibt (Wert der Grafik, kein Fachwert) */
   ausleger_hoehe: 0.58,
 } as const;
@@ -48,7 +47,7 @@ type Felder = ReadonlyArray<readonly [number, number]>;
 
 /** Schranke am Straßenende (DESIGN 14.2 „Straßenende“): `bake_rot` = `menue.knopf.gefahr`, dazu Weiß, 0,14 Kachel hoch. */
 const SCHRANKE = {
-  rot: tokens.menue.knopf.gefahr[0], weiss: '#ffffff', hoehe: 0.14,
+  rot: F.bake_rot, weiss: F.schranke_weiss, hoehe: 0.14,
   /** am Nordrand des letzten Straßenfelds; Pfosten knapp außerhalb der Fahrbahn (halbe Breite 0,31 in szene.ts) */
   rand_y: -0.42, pfosten_x: 0.36,
 } as const;
@@ -80,7 +79,7 @@ export function zeichneSchranken(m: Maler, k: Kamera, strassen: Felder, bahn: Fe
 }
 
 /** Dunst über dem Gebiet hinter der Bahn (DESIGN 14.4, 14.9 `nord_dunst`): ab dem Nordzaun, weicher Südrand über 0,3 Feld. */
-const DUNST = { farbe: 'rgba(236,242,245,.55)', klar: 'rgba(236,242,245,0)', sued_y: -3.5, rand_felder: 0.3 } as const;
+const DUNST = { farbe: F.nord_dunst, klar: F.nord_dunst_klar, sued_y: -3.5, rand_felder: 0.3 } as const;
 
 /**
  * Eine Fläche von `west_x` … `ost_x` und vom Nordzaun bis `nord_y`. Der Verlauf läuft senkrecht zur Zaunlinie im Bild
@@ -105,7 +104,7 @@ export function unterDemDunst(y: number): boolean {
 }
 
 /** DESIGN 14.9 `gesperrt_schleier`; Rasterstrich wie das Baumodus-Raster in szene.ts (zeichneBoden). */
-const SCHLEIER = { farbe: 'rgba(31,42,46,.12)', raster: 'rgba(255,255,255,.25)' } as const;
+const SCHLEIER = { farbe: F.gesperrt_schleier, raster: F.schleier_raster } as const;
 
 /** Ab Stufe 6 (Freischaltung „bahnquerung“) bleibt die Querungsstelle frei; ohne Spielstand (Nachbardorf) nie. */
 export function querungFrei(stand: Spielstand | undefined): boolean {
@@ -141,10 +140,10 @@ export function zeichneSchleier(m: Maler, k: Kamera, bahn: Felder, frei: boolean
  */
 const QUERUNG = {
   strich: 0.10, luecke: 0.07, breite_anteil: 0.6, ring_abstand: 0.62, ring_radius: 0.13, vorschau_deckkraft: 0.5,
-  schutzrohr: '#2f3a40', merkpfahl: '#f4f1ea', kappe: tokens.menue.farbe.naht_vorlauf,
+  schutzrohr: F.schutzrohr, merkpfahl: F.merkpfahl, kappe: tokens.menue.farbe.naht_vorlauf,
   /** Merkpfahl 0,22 Kachel hoch, neben dem Ring (Abstand und Kappenlänge sind Werte der Grafik) */
   pfahl_hoehe: 0.22, pfahl_versatz: 0.22, kappe_hoehe: 0.05,
-  haarlinie: 'rgba(31,42,46,.55)',
+  haarlinie: F.haarlinie,
 } as const;
 
 /**
@@ -305,13 +304,13 @@ export function zugTeile(lage: ZugLage): ZugTeil[] {
 
 /** Form und Farben nach DESIGN 14.3/14.9 (`zug_kasten`, `zug_fenster`, `zug_dach`; Streifen = `menue.farbe.naht_*`). */
 const ZUG = {
-  kasten: '#f3eee3', fenster: '#2f3d48', dach: '#9aa1a6',
+  kasten: F.zug_kasten, fenster: F.zug_fenster, dach: F.zug_dach,
   vorlauf: tokens.menue.farbe.naht_vorlauf, ruecklauf: tokens.menue.farbe.naht_ruecklauf,
   /** halbe Breite 0,28 Feld, Höhe 0,34 Kachel */
   halb_breite: 0.14, hoehe: 0.34,
   /** Fensterband und Streifen als Anteil der Kastenhöhe; Abstand der Fenster zum Wagenende in Feldern (Werte der Grafik) */
   fenster_unten: 0.5, fenster_oben: 0.78, streifen: 0.14, fenster_rand: 0.12,
-  schatten: 'rgba(30,50,35,.22)',
+  schatten: F.zug_schatten,
 } as const;
 
 /** Tiefe wie bei Masten und Objekten (Mitte + Größe 1), damit Häuser davor und Masten dahinter richtig liegen. */
@@ -370,9 +369,9 @@ export function zugImBild(k: Kamera, lage: ZugLage): boolean {
  */
 const BAUSTELLE = {
   start_y: -1, ziel_y: -4, grube: 0.7, grube_tiefe: 0.12,
-  grube_wand: '#8a6a4e', grube_boden: '#5f4532', verbau: tokens.farbe.objekt.geruest,
+  grube_wand: F.grube_wand, grube_boden: F.grube_boden, verbau: tokens.farbe.objekt.geruest,
   bake_hoehe: 0.18,
-  bohrgeraet: '#f0a53a', bohrlinie: '#4a2c14', kabine: ZUG.fenster, lafette: MAST.farbe,
+  bohrgeraet: F.bohrgeraet, bohrlinie: F.bohrlinie, kabine: ZUG.fenster, lafette: MAST.farbe,
   geraet: 0.34, geraet_hoehe: 0.12, kabine_breite: 0.14, kabine_hoehe: 0.14, kopf_radius: 0.06,
   /** `bohrgeraet_zittern` (±1 px) und `abgas_zyklus` aus design/tokens.json `zeit_ms` */
   zittern_s: tokens.zeit_ms.bohrgeraet_zittern / 1000, abgas_s: tokens.zeit_ms.abgas_zyklus / 1000,
