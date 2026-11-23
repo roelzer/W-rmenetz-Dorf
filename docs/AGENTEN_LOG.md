@@ -794,3 +794,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 11:06 | ▶ | entwickler | Entwickler P5b4 Baustelle und Erfolgsmoment |
 | 2026-11-23 11:19 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT, Grund: Kontext voll. Der größte Teil ist gebaut und committet. Zwei bestehende Architekturtests sind aber durch mein neues Modul rot g ([Bericht](docs/pruefberichte/20261123-111924-entwickler-a517ff485c55dbdd7.md)) |
 | 2026-11-23 11:19 | ▶ | entwickler | Entwickler P5a5 Tutorial fertigstellen |
+| 2026-11-23 11:31 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-23 11:31 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Beide roten Tests laufen wieder grün. Alle 2457 Tests bestehen, Typprüfung und Build auch. Zwei Punkte sind offen: Die T ([Bericht](docs/pruefberichte/20261123-113114-entwickler-a63bedda3c6e09e32.md)) |
+| 2026-11-23 11:31 | ■ 🔴 | entwickler | 🔴 BLOCKIERT. Grund: Mein Kontext ist voll. Alle drei Bildpunkte des Pakets sind gebaut, getestet und committet. Die Test-Schranke meldet trotzdem „NICHT OK ([Bericht](docs/pruefberichte/20261123-113140-entwickler-a58e57788306c03ae.md)) |
