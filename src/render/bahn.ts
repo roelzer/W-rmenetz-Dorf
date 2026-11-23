@@ -126,6 +126,58 @@ export function zeichneSchleier(m: Maler, k: Kamera, bahn: Felder, frei: boolean
   X.stroke();
 }
 
+/**
+ * Querung (DESIGN 14.5 „Zeichnen“/„Fertig“, 14.9): Strichellinie 0,10/0,07 Feld in 60 % der Rohrbreite, Ringe (Ø 0,26) vor den
+ * Zäunen bei y = −1,38 und −3,62 – also 0,62 Feld außerhalb der Mitte der äußeren Bahnzeilen. In der Vorschau Ringe mit 50 %.
+ */
+const QUERUNG = {
+  strich: 0.10, luecke: 0.07, breite_anteil: 0.6, ring_abstand: 0.62, ring_radius: 0.13, vorschau_deckkraft: 0.5,
+  schutzrohr: '#2f3a40', merkpfahl: '#f4f1ea', kappe: tokens.menue.farbe.naht_vorlauf,
+  /** Merkpfahl 0,22 Kachel hoch, neben dem Ring (Abstand und Kappenlänge sind Werte der Grafik) */
+  pfahl_hoehe: 0.22, pfahl_versatz: 0.22, kappe_hoehe: 0.05,
+  haarlinie: 'rgba(31,42,46,.55)',
+} as const;
+
+/** Vorschau-Farbe der Strichellinie (`karte.vorschau_ok`). */
+export const STRICHEL_VORSCHAU = tokens.farbe.karte.vorschau_ok;
+
+/**
+ * Leitung auf einem Bahnfeld: dieselben Arme wie das Rohr (ohne Arm der Punkt), aber gestrichelt und schmaler – auf den Gleisen
+ * liegt nie ein normales Rohr (DESIGN 14.5).
+ */
+export function zeichneStrichellinie(m: Maler, tw: number, mitte: Punkt, arme: readonly Punkt[], farbe: string, rohr_breite: number): void {
+  const { X } = m, [cx, cy] = mitte;
+  X.setLineDash([QUERUNG.strich * tw, QUERUNG.luecke * tw]); X.lineCap = 'butt';
+  X.strokeStyle = farbe; X.lineWidth = rohr_breite * QUERUNG.breite_anteil; X.beginPath();
+  for (const [ax, ay] of arme) { X.moveTo(cx, cy); X.lineTo(ax, ay); }
+  if (!arme.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
+  X.stroke(); X.setLineDash([]);
+}
+
+/** Feld-y des Rings vor dem Zaun, wenn (y) eine äußere Bahnzeile ist, sonst null. `bahn_zeilen` = alle y der Bahnfelder. */
+export function schutzrohrY(y: number, bahn_zeilen: readonly number[]): number | null {
+  if (y === Math.max(...bahn_zeilen)) return y + QUERUNG.ring_abstand;
+  if (y === Math.min(...bahn_zeilen)) return y - QUERUNG.ring_abstand;
+  return null;
+}
+
+/** Schutzrohr-Ring (flache Ellipse, innen die Rohrfarbe); fertig zusätzlich der Merkpfahl daneben, sonst halb durchsichtig. */
+export function zeichneSchutzrohr(m: Maler, k: Kamera, x: number, y: number, rohr: string, fertig: boolean): void {
+  const { X } = m, tw = k.tw, [cx, cy] = k.mitte(x, y);
+  X.save(); X.globalAlpha = fertig ? 1 : QUERUNG.vorschau_deckkraft; X.setLineDash([]);
+  X.beginPath(); X.ellipse(cx, cy, QUERUNG.ring_radius * tw, QUERUNG.ring_radius * k.th, 0, 0, Math.PI * 2);
+  X.fillStyle = rohr; X.fill();
+  X.strokeStyle = QUERUNG.schutzrohr; X.lineWidth = Math.max(1.5, tw * 0.03); X.stroke();
+  X.restore();
+  if (!fertig) return;
+  const [px, py] = k.mitte(x + QUERUNG.pfahl_versatz, y), kopf = py - QUERUNG.pfahl_hoehe * tw, b = Math.max(1.5, tw * 0.03);
+  X.lineCap = 'butt';
+  // Haarlinie wie bei allen Objekten, damit der weiße Pfahl auch auf Schnee lesbar bleibt
+  X.strokeStyle = QUERUNG.haarlinie; X.lineWidth = b + 1; X.beginPath(); X.moveTo(px, py); X.lineTo(px, kopf - 0.5); X.stroke();
+  X.strokeStyle = QUERUNG.merkpfahl; X.lineWidth = b; X.beginPath(); X.moveTo(px, py); X.lineTo(px, kopf); X.stroke();
+  X.strokeStyle = QUERUNG.kappe; X.beginPath(); X.moveTo(px, kopf + QUERUNG.kappe_hoehe * tw); X.lineTo(px, kopf); X.stroke();
+}
+
 /** Gleisspalten von Ende zu Ende: x = −2 … 25, beidseits über die Karte hinaus in den Wolkenrand (DESIGN 14.2 „Enden“). */
 export function gleisSpalten(): number[] {
   const r: number[] = [];
