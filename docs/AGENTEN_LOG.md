@@ -820,3 +820,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 12:25 | ■ 🟢 | tester | 🟢 **Abnahme NR27 Bahnstrecke und Bahnquerung (Modus `pruefen`, Stand 5ed5230): kein blockierender Fehler gefunden.**  ([Bericht](docs/pruefberichte/20261123-122553-tester-a9a1574de38fe615c.md)) |
 | 2026-11-23 12:29 | ■ 🟡 | designer | 🟡 **Designer-Treue NR27 (Bahnstrecke und Bahnquerung), Arbeitsbranch, Kopf 5ed5230**  ([Bericht](docs/pruefberichte/20261123-122905-designer-a655dacdfbe1c00ef.md)) |
 | 2026-11-23 12:29 | ▶ | tester | Tester-Vorarbeit NR27 Fix-Runde |
+| 2026-11-23 12:37 | ■ 🟡 | tester | 🟡 BLOCKIERT (Kontext voll). Teil A (bestehende Tests anpassen) ist fertig und committet. Teil B (neue Testdateien tests/nr27-fix-*.test.ts) ist noch nicht ge ([Bericht](docs/pruefberichte/20261123-123739-tester-a586dd9a520a8faa3.md)) |
+| 2026-11-23 12:37 | ▶ | tester | Tester-Vorarbeit Fix-Runde Teil B |
