@@ -434,8 +434,6 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .knopf.farbknopf .farb-sperre .schloss-klein{width:var(--menue-mass-px-schloss-klein);height:var(--menue-mass-px-schloss-klein)}
 /* 12 px Abstand unter den Farbknöpfen (13.17.9 F7): 8 px Lücke der Spalte + 4 px Rand – Platz für den Ring am Farbknopf */
 .blatt.zeichenleiste .kennzeile{margin:4px 0 0;line-height:16px;font-size:12px;font-weight:600;color:var(--menue-farbe-text-gedaempft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* NR27 (DESIGN 14.5): Chip „+ Bahnquerung“ – sichtbar 26 px hoch, die Tippfläche (der Knopf darum) mindestens 44 px */
-.blatt.zeichenleiste .bahn-chip{display:flex;align-items:center;align-self:flex-start;min-width:var(--groesse-px-tippflaeche-min);min-height:var(--groesse-px-tippflaeche-min);padding:0;border:0;background:none;cursor:pointer}
 /* NR24: Vorschau der nötigen Leitungsgröße unter dem Finger; der Farbknopf der nötigen Größe bekommt einen grünen Rahmen */
 .blatt.zeichenleiste .rohrvorschau{display:flex;flex-direction:column;gap:2px;line-height:16px;font-size:12px;color:var(--menue-farbe-text)}
 .blatt.zeichenleiste .rohrvorschau[hidden]{display:none}
@@ -453,6 +451,9 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 /* Abschließen immer 52 px hoch, auch ohne Zeile 2 – sonst springt die Aktionsleiste (12.21 Punkt 1) */
 .aktionsleiste .knopf{width:100%;height:var(--menue-mass-px-zeichen-abschluss-hoehe);min-height:0;padding:0 8px;font-size:var(--menue-schrift-groesse-px-knopf-klein);display:flex;flex-direction:column;align-items:center;justify-content:center}
 .aktionsleiste .knopf small{margin-top:0}
+/* NR27 (Designer-Treue M1): „+ Bahnquerung“ als zweite Zeile im Abschlussknopf, Knopfhöhe bleibt gleich (Schrift wie Zeile 2) */
+.aktionsleiste .abschluss-text{display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.aktionsleiste .bahn-zeile{font-family:var(--schrift-text);font-weight:800;font-size:var(--menue-schrift-groesse-px-knopf-unter);letter-spacing:0;-webkit-text-stroke:0;text-shadow:0 1px 0 var(--k)}
 /* NR13 Tutorial (DESIGN.md 13.2/13.3/13.7/13.11/13.15): Spotlight über Karte, HUD und Blatt; Sprecher (30), Anleiter-Karte und
    Meldung liegen darüber. Abdunkeln per clip-path aus spotlight.ts, Lochränder als eigene Elemente. */
 #spotlight{position:fixed;inset:0;z-index:25;pointer-events:none}
@@ -515,15 +516,21 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 #bahn-tutorial{position:absolute;inset:0;z-index:33}
 /* Infozeile im Kasten „Bauabschnitt“ (DESIGN 14.5): Abstand zum Sockel der Knöpfe darüber, (i) rechts neben dem Text statt darunter */
 .bahn-info{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+/* direkt unter der Kostenzeile (Phase „offen“, DESIGN 14.5): 8 px, dort steht kein Knopfsockel darüber */
+.abschnitt-kurz + .bahn-info{margin-top:8px}
 .bahn-tutorial-knoepfe{justify-content:flex-end}
 #bahn-karte{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px}
 #bahn-karte>.blatt.popup{position:relative;width:min(560px,100%);max-width:none;max-height:100%;margin:0}
-#bahn-karte .inhalt{display:flex;flex-direction:column;gap:8px;padding:16px}
+/* Reicht die Höhe nicht (667×375, Bildspalte mit Chips höher als der Platz), scrollt der Inhalt zwischen Kopfband und
+   Aktionsleiste; unten Ausblendmaske 16 px (Designer-Treue M4). Der Innenabstand unten hält Inhalt, der passt, aus der
+   Maske heraus – ohne echten Überlauf bleibt alles voll deckend. */
+#bahn-karte .inhalt{display:flex;flex-direction:column;padding:16px 16px 16px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent)}
 .karte-oben{display:flex;gap:16px;align-items:flex-start}
+.karte-bildspalte{flex:none;width:176px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .karte-bild{flex:none;width:176px;height:132px}
 .karte-text{flex:1;min-width:0}
 .karte-text p{margin:0 0 4px;font-size:14px;line-height:20px}
-.karte-chips{display:flex;flex-wrap:wrap;gap:8px}
+.karte-chips{display:flex;flex-wrap:wrap;gap:6px}
 .karte-chips .sym{width:14px;height:14px}
 .karte-hinweis{margin:0;font-size:12px}
 #bahn-karte .aktionen{flex:none;display:flex;justify-content:flex-end;padding:8px 12px;background:var(--menue-farbe-kasten-kopf);border-top:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}

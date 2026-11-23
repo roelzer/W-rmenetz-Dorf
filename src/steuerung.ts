@@ -28,11 +28,11 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { zieleOeffnen } from './ui/ziele';
 import { spielOrt } from './core/neubaugebiet';
-import { BAHN_ZEILEN_Y, QUERUNG_X, nordInfo, nordKulisse, nordSperre } from './core/nordviertel';
+import { BAHN_ZEILEN_Y, QUERUNG_X, istBahn, nordInfo, nordKulisse, nordSperre, querungImBau } from './core/nordviertel';
 import { nordHinweisText } from './core/nord-texte';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
-import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, querungKostenText, schonGemocht } from './ui/sperrtexte';
+import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { tempo } from './tempo';
@@ -113,6 +113,8 @@ export class Steuerung implements Ui {
   private zielHerstellenOffen = false;
   /** Aufgaben, die erst nach dem Tutorial dran sind (z. B. der Update-Hinweis, K6) */
   private nachTutorialListe: Array<() => void> = [];
+  /** Meldungen, die kamen, solange das Mini-Tutorial „Bahnquerung“ offen war – sie verdeckten sonst dessen Knöpfe (667×375) */
+  private nachBahnTutorialMeldungen: string[] = [];
   /** Läuft in diesem Bild eine Kamerafahrt? Einmal je Bild aus der Bildzeit bestimmt (tick). */
   private fahrtJetzt = false;
   /** Zuletzt angewendete Ansicht: Schritt (mit Wiedereinstieg), freie Breite und Darstellungs-Schlüssel */
@@ -404,15 +406,10 @@ export class Steuerung implements Ui {
     // enge Leiste: kurzer Grund „ab Stufe X“ (DESIGN.md 12.15); der Hinweis beim Antippen erklärt ausführlich
     const tStueck = umschalter(knopf('T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, id: 'tstueck', unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, muenze: true, hinweis: tStueckHinweis() }), this.vorsehen);
     tStueck.classList.add('t-stueck');
-    // NR27 (DESIGN 14.5): solange der Abschnitt ein Bahnfeld enthält; Antippen nennt Aufpreis und Zuschlag wie der Kasten (T04)
-    const querungChip = sp.querungsFelder().length
-      ? h('button', { type: 'button', class: 'bahn-chip', 'data-ziel': 'bahn_chip', onclick: () => toast(querungKostenText(sp)) }, h('span', { class: 'chip gold' }, nordHinweisText('CHIP')))
-      : null;
     this.vorschauEl = h('div', { class: 'rohrvorschau', role: 'status', 'data-ziel': 'rohrvorschau', hidden: true });
     const werkzeug = h('div', { class: 'zeichen-werkzeug', hidden: this.hilfeOffen },
       h('div', { class: 'farbknoepfe' }, ...farben, dicker),
       h('p', { class: 'kennzeile' }, kennzeile),
-      querungChip,
       this.vorschauEl,
       h('div', { class: 'zeichen-reihe' },
         umschalter(knopf('Radierer', () => this.stempeln(typ, !this.radieren), this.radieren ? 'gewaehlt' : '', { klein: true, id: 'radierer' }), this.radieren),
@@ -424,7 +421,12 @@ export class Steuerung implements Ui {
     l.blatt.inhalt.replaceChildren(werkzeug, hilfe);
     // B1–B4 vor B6 (12.21 Punkt 1); beim Tippen werden alle Gründe neu gelesen (Punkt 3)
     // 13.7: die Gründe des Spiels (B1–B6) zuerst, dann die Sperre des Tutorials
-    const abschliessen = knopf('Abschnitt abschließen', () => this.leisteAbschliessen(), 'los', { id: 'abschliessen', sperre: () => ersteSperre(abschnittSperreKurz(sp, this.uhr), sp.abschnittLeitungen() ? null : NICHTS_GEZEICHNET_KURZ, this.sperreKnopf('abschliessen', this.abschliessenSperre())), neuAufbau });
+    // NR27 (Designer-Treue M1): „+ Bahnquerung“ als zweite Zeile im Abschlussknopf statt eigener Zeile in der Leiste – sonst
+    // rutschen Radierer/Zurück bei kleinen Handys unter den Knopf. Aufpreis und Zuschlag stehen im Kasten „Bauabschnitt“ (T04).
+    const abschlussText = sp.querungsFelder().length
+      ? h('span', { class: 'abschluss-text' }, 'Abschnitt abschließen', h('span', { class: 'bahn-zeile' }, nordHinweisText('CHIP')))
+      : 'Abschnitt abschließen';
+    const abschliessen = knopf(abschlussText, () => this.leisteAbschliessen(), 'los', { id: 'abschliessen', sperre: () => ersteSperre(abschnittSperreKurz(sp, this.uhr), sp.abschnittLeitungen() ? null : NICHTS_GEZEICHNET_KURZ, this.sperreKnopf('abschliessen', this.abschliessenSperre())), neuAufbau });
     abschliessen.setAttribute('data-ziel', 'abschliessen');
     l.aktion.replaceChildren(abschliessen);
     if (fokus) [...l.blatt.wurzel.querySelectorAll<HTMLElement>('button')].find((b) => b.getAttribute('data-id') === fokus)?.focus();
@@ -781,6 +783,9 @@ export class Steuerung implements Ui {
       if (info !== null) toast(info);
       return;
     }
+    // DESIGN 14.5: Ein Bahnfeld der Baustelle antippen → Meldung Q5 statt Blatt; dort gibt es nichts zu ändern
+    const baustelle = istLeitung(o.typ) && o.geplant && istBahn(o.x, o.y) && querungImBau(this.spiel.stand) ? nordInfo(this.spiel.stand, o.x, o.y) : null;
+    if (baustelle !== null) { this.kontextUi.schliessen(); toast(baustelle); return; }
     this.kontext(o.id);
   }
 
@@ -879,13 +884,20 @@ export class Steuerung implements Ui {
     if (this.anleitung || sp.tutorialAktiv() || this.besuch || blattOffen() || sprecherAktiv() || meldungOffen() || bahnTutorialOffen()) return;
     // Der Installations-Hinweis liegt im Browser über dem ganzen Spiel (außerhalb von #app) und verdeckte die Knöpfe der Karte
     if (document.querySelector('.install-hinweis')) return;
-    const gesehen = (): void => { sp.stand.bahn_hilfe_gesehen = true; };
+    const gesehen = (): void => { sp.stand.bahn_hilfe_gesehen = true; this.zurueckgehalteneMeldungen(); };
     // Ohne offenes Blatt ist die ganze Fläche frei (Bedingung oben), Platz wie die Anleiter-Karte (13.3)
     const bild = { breite: this.kamera.breite, hoehe: this.kamera.hoehe };
     bahnTutorialZeigen(anleiterPlatz({ x: 0, y: 0, b: bild.breite, h: bild.hoehe }, null, bild), {
       spaeter: gesehen,
       zeigMir: () => { gesehen(); this.zurQuerung(); },
     });
+  }
+
+  /** Designer-Treue M8: zurückgehaltene Meldungen nach dem Schließen des Mini-Tutorials, mit derselben Pause wie nach dem
+   *  Pflicht-Tutorial – keine geht verloren. */
+  private zurueckgehalteneMeldungen(): void {
+    const liste = this.nachBahnTutorialMeldungen.splice(0);
+    if (liste.length) window.setTimeout(() => { for (const text of liste) toast(text); }, NACH_TUTORIAL_MS);
   }
 
   /** [Zeig’s mir] (14.15 Punkt 20): Baumenü im Reiter „Leitungen“, Kamera auf die Querungsstelle (10|−2,5), Zoom 2,2. Das Menü
@@ -1294,7 +1306,7 @@ export class Steuerung implements Ui {
   private ereignisse(): void {
     const ruhig = this.einstellungen.weniger_bewegung;
     for (const ev of this.spiel.ereignisse.splice(0)) {
-      if (ev.art === 'hinweis') toast(ev.text);
+      if (ev.art === 'hinweis') { if (bahnTutorialOffen()) this.nachBahnTutorialMeldungen.push(ev.text); else toast(ev.text); }
       else if (ev.art === 'sprecher') sprecherZeigen(ev.figur, ev.text);
       else if (ev.art === 'schritt') this.mitSchliessen(() => this.anleitung?.schritt(ev));
       // NR18 (AE-NR18-6): auch bei „Weniger Bewegung“ markieren – die Darstellung lässt dann nur den Puls weg

@@ -105,8 +105,10 @@ export function nordSperre(stand: Spielstand, t: TypId, x: number, y: number): s
   return null;
 }
 
-/** Hinweis beim Antippen der Bahn oder der Kulisse; nach der Erschließung nichts mehr. */
+/** Hinweis beim Antippen der Bahn oder der Kulisse; nach der Erschließung nichts mehr. Während die Querung gebaut wird, wäre
+ *  „Zeichne … eine Leitung“ (N2) falsch – dann Q5. */
 export function nordInfo(stand: Spielstand, x: number, y: number): string | null {
   if (stand.nordviertel || !(istBahn(x, y) || hinterDerBahn(y))) return null;
+  if (querungImBau(stand)) return nordHinweisText('Q5');
   return nordHinweisText(freigeschaltet(stand, 'bahnquerung') ? 'N2' : 'N1');
 }
