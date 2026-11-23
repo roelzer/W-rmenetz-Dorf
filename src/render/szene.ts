@@ -10,7 +10,10 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
-import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken } from './bahn';
+import {
+  BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken,
+  schutzrohrY, STRICHEL_VORSCHAU, zeichneSchutzrohr, zeichneStrichellinie, zeichneZugTeil, zugLage, zugTeile, zugTeilTiefe,
+} from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -483,11 +486,18 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
   const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
-  // NR27 (DESIGN 14.2): Masten und Fahrdraht nach Tiefe zwischen die Objekte einsortiert (beide Listen sind sortiert)
-  const masten = s.bahn?.length ? mastenNachTiefe(k, s.bahn, s.fluss ?? []) : [];
+  // NR27 (DESIGN 14.2, 14.3): Masten mit Fahrdraht und die Wagen des Zugs nach Tiefe zwischen die Objekte einsortiert (beide
+  // Listen sind sortiert). Kein Zug bei weniger Bewegung/Sparmodus: ein stehender Zug sähe wie eine Störung aus.
+  const bahnTeile: Array<{ tiefe: number; zeichne: () => void }> = [];
+  if (s.bahn?.length) {
+    for (const mast of mastenNachTiefe(k, s.bahn, s.fluss ?? [])) bahnTeile.push({ tiefe: mast.tiefe, zeichne: () => zeichneMast(m, k, mast) });
+    const zug = m.reduziert ? null : zugLage(s.jetzt_ms, s.spiel);
+    for (const teil of zug ? zugTeile(zug) : []) bahnTeile.push({ tiefe: zugTeilTiefe(k, teil), zeichne: () => zeichneZugTeil(m, k, teil) });
+    bahnTeile.sort((a, b) => a.tiefe - b.tiefe);
+  }
   let naechsterMast = 0;
   const mastenBis = (grenze: number): void => {
-    while (naechsterMast < masten.length && masten[naechsterMast].tiefe < grenze) zeichneMast(m, k, masten[naechsterMast++]);
+    while (naechsterMast < bahnTeile.length && bahnTeile[naechsterMast].tiefe < grenze) bahnTeile[naechsterMast++].zeichne();
   };
   for (const o of sortiert) {
     mastenBis(tiefe(o));
@@ -908,6 +918,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const stummel: Array<{ von: Punkt; bis: Punkt; typ: TypId; an: boolean }> = [];
   const ueberlastFelder = new Set((s.ueberlast ?? []).flatMap((u) => u.felder));
   const vorschau = s.ueberlast_vorschau, vorschauFelder = new Set(vorschau?.felder ?? []);
+  const bahnFelder = new Set((s.bahn ?? []).map(([x, y]) => y * N + x)), bahnZeilen = (s.bahn ?? []).map(([, y]) => y);
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
@@ -958,6 +969,14 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     // Leitung nicht dicker wirkt als eine größere daneben.
     const rohr = plan || an ? (D.farbe ?? '#e2582b') : '#9aa4ab';
     const kanteBreite = w + 1.25;
+    if (bahnFelder.has(key)) {
+      // NR27 (DESIGN 14.5): auf den Gleisen nie ein Rohr – Strichellinie, Ringe vor den Zäunen; Fließpunkte laufen unten weiter
+      zeichneStrichellinie(m, tw, [cx, cy], seg, plan ? STRICHEL_VORSCHAU : rohr, w);
+      const ring_y = schutzrohrY(o.y, bahnZeilen);
+      if (ring_y !== null) zeichneSchutzrohr(m, k, o.x, ring_y, rohr, !plan);
+      if (plan) { planRaute(cx, cy); X.restore(); }
+      continue;
+    }
     const kante: readonly [number, string] = ueberlastFelder.has(key) ? [kanteBreite, MF.ueberlast_zeichen] : [kanteBreite, 'rgba(35,40,35,.42)'];
     for (const [lw, c] of [kante, [w, rohr] as const]) {
       X.strokeStyle = c; X.lineWidth = lw; X.beginPath();

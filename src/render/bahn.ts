@@ -3,6 +3,7 @@ import { mod } from '../core/feld';
 import { freigeschaltet } from '../core/freischaltung';
 import { QUERUNG_X, querungImBau } from '../core/nordviertel';
 import type { Spielstand } from '../core/typen';
+import { schatten } from './farben';
 import type { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 
@@ -125,6 +126,61 @@ export function zeichneSchleier(m: Maler, k: Kamera, bahn: Felder, frei: boolean
   X.stroke();
 }
 
+/**
+ * Querung (DESIGN 14.5 „Zeichnen“/„Fertig“, 14.9): Strichellinie 0,10/0,07 Feld in 60 % der Rohrbreite, Ringe (Ø 0,26) vor den
+ * Zäunen bei y = −1,38 und −3,62 – also 0,62 Feld außerhalb der Mitte der äußeren Bahnzeilen. In der Vorschau Ringe mit 50 %.
+ */
+const QUERUNG = {
+  strich: 0.10, luecke: 0.07, breite_anteil: 0.6, ring_abstand: 0.62, ring_radius: 0.13, vorschau_deckkraft: 0.5,
+  schutzrohr: '#2f3a40', merkpfahl: '#f4f1ea', kappe: tokens.menue.farbe.naht_vorlauf,
+  /** Merkpfahl 0,22 Kachel hoch, neben dem Ring (Abstand und Kappenlänge sind Werte der Grafik) */
+  pfahl_hoehe: 0.22, pfahl_versatz: 0.22, kappe_hoehe: 0.05,
+  haarlinie: 'rgba(31,42,46,.55)',
+} as const;
+
+/**
+ * Vorschau-Farbe der Strichellinie: das deckende OK-Grün der Karte (`karte.pfeil_ok`). DESIGN 14.5 nennt `vorschau_ok`; das ist
+ * eine Flächenfarbe mit 40 % Deckkraft und war als 1-px-Strich auf dem Schotter kaum zu sehen (Foto P5b3).
+ */
+export const STRICHEL_VORSCHAU = tokens.farbe.karte.pfeil_ok;
+
+/**
+ * Leitung auf einem Bahnfeld: dieselben Arme wie das Rohr (ohne Arm der Punkt), aber gestrichelt und schmaler – auf den Gleisen
+ * liegt nie ein normales Rohr (DESIGN 14.5).
+ */
+export function zeichneStrichellinie(m: Maler, tw: number, mitte: Punkt, arme: readonly Punkt[], farbe: string, rohr_breite: number): void {
+  const { X } = m, [cx, cy] = mitte;
+  X.setLineDash([QUERUNG.strich * tw, QUERUNG.luecke * tw]); X.lineCap = 'butt';
+  X.strokeStyle = farbe; X.lineWidth = rohr_breite * QUERUNG.breite_anteil; X.beginPath();
+  for (const [ax, ay] of arme) { X.moveTo(cx, cy); X.lineTo(ax, ay); }
+  if (!arme.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
+  X.stroke(); X.setLineDash([]);
+}
+
+/** Feld-y des Rings vor dem Zaun, wenn (y) eine äußere Bahnzeile ist, sonst null. `bahn_zeilen` = alle y der Bahnfelder. */
+export function schutzrohrY(y: number, bahn_zeilen: readonly number[]): number | null {
+  if (y === Math.max(...bahn_zeilen)) return y + QUERUNG.ring_abstand;
+  if (y === Math.min(...bahn_zeilen)) return y - QUERUNG.ring_abstand;
+  return null;
+}
+
+/** Schutzrohr-Ring (flache Ellipse, innen die Rohrfarbe); fertig zusätzlich der Merkpfahl daneben, sonst halb durchsichtig. */
+export function zeichneSchutzrohr(m: Maler, k: Kamera, x: number, y: number, rohr: string, fertig: boolean): void {
+  const { X } = m, tw = k.tw, [cx, cy] = k.mitte(x, y);
+  X.save(); X.globalAlpha = fertig ? 1 : QUERUNG.vorschau_deckkraft; X.setLineDash([]);
+  X.beginPath(); X.ellipse(cx, cy, QUERUNG.ring_radius * tw, QUERUNG.ring_radius * k.th, 0, 0, Math.PI * 2);
+  X.fillStyle = rohr; X.fill();
+  X.strokeStyle = QUERUNG.schutzrohr; X.lineWidth = Math.max(1.5, tw * 0.03); X.stroke();
+  X.restore();
+  if (!fertig) return;
+  const [px, py] = k.mitte(x + QUERUNG.pfahl_versatz, y), kopf = py - QUERUNG.pfahl_hoehe * tw, b = Math.max(1.5, tw * 0.03);
+  X.lineCap = 'butt';
+  // Haarlinie wie bei allen Objekten, damit der weiße Pfahl auch auf Schnee lesbar bleibt
+  X.strokeStyle = QUERUNG.haarlinie; X.lineWidth = b + 1; X.beginPath(); X.moveTo(px, py); X.lineTo(px, kopf - 0.5); X.stroke();
+  X.strokeStyle = QUERUNG.merkpfahl; X.lineWidth = b; X.beginPath(); X.moveTo(px, py); X.lineTo(px, kopf); X.stroke();
+  X.strokeStyle = QUERUNG.kappe; X.beginPath(); X.moveTo(px, kopf + QUERUNG.kappe_hoehe * tw); X.lineTo(px, kopf); X.stroke();
+}
+
 /** Gleisspalten von Ende zu Ende: x = −2 … 25, beidseits über die Karte hinaus in den Wolkenrand (DESIGN 14.2 „Enden“). */
 export function gleisSpalten(): number[] {
   const r: number[] = [];
@@ -218,4 +274,82 @@ export function zugLage(jetzt_ms: number, stand: Pick<Spielstand, 'abschnitt'> |
   // Im Wechsel: gerade Takte auf Gleis 2 nach Osten, ungerade auf Gleis 1 nach Westen
   if (n % 2 === 0) return { gleis_y: ZUG_MASS.gleis2_y, kopf_x: ZUG_MASS.von_x + weg, richtung: 1 };
   return { gleis_y: ZUG_MASS.gleis1_y, kopf_x: ZUG_MASS.bis_x - weg, richtung: -1 };
+}
+
+/** Ein Wagen in Feld-x, schon auf die Gleislänge gekürzt. `lok` = vorderer Wagen (Stromabnehmer, orangener Streifen). */
+export interface ZugTeil { von_x: number; bis_x: number; gleis_y: number; lok: boolean }
+
+/** Gleise enden am Feldrand der Endspalten; was darüber hinausragt, steckt noch im Wolkenrand (DESIGN 14.3 „Fahrt“). */
+const GLEIS_WEST_X = ZUG_MASS.von_x - 0.5, GLEIS_OST_X = ZUG_MASS.bis_x + 0.5;
+const WAGEN_FELDER = ZUG_MASS.laenge_felder / 2;
+
+/** Lok und Wagen hinter der Spitze (gegen die Fahrtrichtung), je 2 Felder; ganz im Wolkenrand liegende Teile fehlen. */
+export function zugTeile(lage: ZugLage): ZugTeil[] {
+  const r: ZugTeil[] = [];
+  for (const [i, lok] of [[0, true], [1, false]] as const) {
+    const a = lage.kopf_x - lage.richtung * i * WAGEN_FELDER, b = a - lage.richtung * WAGEN_FELDER;
+    const von_x = Math.max(Math.min(a, b), GLEIS_WEST_X), bis_x = Math.min(Math.max(a, b), GLEIS_OST_X);
+    if (bis_x > von_x) r.push({ von_x, bis_x, gleis_y: lage.gleis_y, lok });
+  }
+  return r;
+}
+
+/** Form und Farben nach DESIGN 14.3/14.9 (`zug_kasten`, `zug_fenster`, `zug_dach`; Streifen = `menue.farbe.naht_*`). */
+const ZUG = {
+  kasten: '#f3eee3', fenster: '#2f3d48', dach: '#9aa1a6',
+  vorlauf: tokens.menue.farbe.naht_vorlauf, ruecklauf: tokens.menue.farbe.naht_ruecklauf,
+  /** halbe Breite 0,28 Feld, Höhe 0,34 Kachel */
+  halb_breite: 0.14, hoehe: 0.34,
+  /** Fensterband und Streifen als Anteil der Kastenhöhe; Abstand der Fenster zum Wagenende in Feldern (Werte der Grafik) */
+  fenster_unten: 0.5, fenster_oben: 0.78, streifen: 0.14, fenster_rand: 0.12,
+  schatten: 'rgba(30,50,35,.22)',
+} as const;
+
+/** Tiefe wie bei Masten und Objekten (Mitte + Größe 1), damit Häuser davor und Masten dahinter richtig liegen. */
+export function zugTeilTiefe(k: Kamera, teil: ZugTeil): number {
+  const [rx, ry] = k.dreheFeld((teil.von_x + teil.bis_x) / 2, teil.gleis_y);
+  return rx + ry + 1;
+}
+
+/**
+ * Wagen als Quader nach Blickrichtung: sichtbare Seiten wie Maler.quader (Außennormale zeigt im Bild nach unten), Fensterband und
+ * Streifen auf den Längsseiten, Dach, Stromabnehmer bis zur Fahrdrahthöhe auf der Lok, flacher Schatten am Boden.
+ */
+export function zeichneZugTeil(m: Maler, k: Kamera, teil: ZugTeil): void {
+  const { X } = m, tw = k.tw, h = ZUG.hoehe * tw;
+  const { von_x: x0, bis_x: x1, gleis_y: g } = teil, y0 = g - ZUG.halb_breite, y1 = g + ZUG.halb_breite;
+  const auf = (p: Punkt, f: number): Punkt => [p[0], p[1] - h * f];
+  const boden = [k.mitte(x0, y0), k.mitte(x1, y0), k.mitte(x1, y1), k.mitte(x0, y1)];
+  const versatz = tw * 0.04;
+  m.flaeche(boden.map(([px, py]) => [px + versatz, py + versatz * 0.5] as Punkt), ZUG.schatten, false);
+  const fx0 = Math.min(x0 + ZUG.fenster_rand, x1), fx1 = Math.max(x1 - ZUG.fenster_rand, x0);
+  for (let i = 0; i < 4; i++) {
+    const a = boden[i], b = boden[(i + 1) % 4], nx = b[1] - a[1], ny = -(b[0] - a[0]), nl = Math.hypot(nx, ny) || 1;
+    if (ny <= 0) continue;
+    m.flaeche([a, b, auf(b, 1), auf(a, 1)], schatten(ZUG.kasten, -0.08 - 0.179 * (nx / nl)));
+    // Längsseiten (Kanten 0 und 2 laufen entlang der Gleise): Fensterband und Streifen
+    if (i % 2 !== 0) continue;
+    const yy = i === 0 ? y0 : y1, p = (x: number, f: number): Punkt => auf(k.mitte(x, yy), f);
+    m.flaeche([p(fx0, ZUG.fenster_unten), p(fx1, ZUG.fenster_unten), p(fx1, ZUG.fenster_oben), p(fx0, ZUG.fenster_oben)], ZUG.fenster, false);
+    X.strokeStyle = teil.lok ? ZUG.vorlauf : ZUG.ruecklauf; X.lineWidth = Math.max(1, tw * 0.025); X.lineCap = 'butt';
+    X.beginPath(); X.moveTo(...p(x0, ZUG.streifen)); X.lineTo(...p(x1, ZUG.streifen)); X.stroke();
+  }
+  m.flaeche(boden.map((q) => auf(q, 1)), ZUG.dach);
+  if (!teil.lok) return;
+  // Stromabnehmer: zwei Striche vom Dach bis an den Fahrdraht (Höhe `fahrdraht_hoehe` über der Gleismitte)
+  const mx = (x0 + x1) / 2, oben = (x: number, y: number, hh: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - hh * tw]; };
+  X.strokeStyle = MAST.farbe; X.lineWidth = Math.max(1, tw * 0.015); X.beginPath();
+  X.moveTo(...oben(mx - 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
+  X.moveTo(...oben(mx + 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
+  X.stroke();
+}
+
+/** Liegt ein Teil des Zugs im Bild (mit Rand für Dach und Stromabnehmer)? Außerhalb braucht er keinen flüssigen Takt. */
+export function zugImBild(k: Kamera, lage: ZugLage): boolean {
+  const tw = k.tw, rand = tw * MAST.draht_hoehe;
+  return zugTeile(lage).some((t) => {
+    const p = [t.von_x, t.bis_x].flatMap((x) => [k.mitte(x, t.gleis_y - ZUG.halb_breite), k.mitte(x, t.gleis_y + ZUG.halb_breite)]);
+    const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+    return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
+  });
 }
