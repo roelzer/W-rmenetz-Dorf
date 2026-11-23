@@ -1,6 +1,8 @@
 import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istAltanlage, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
 import { erzeugerAbStufe } from '../core/freischaltung';
-import { chip, knopf, symbol } from './bausteine';
+import { chip, knopf, sperrHinweis, symbol, type Sperre } from './bausteine';
+import { nordHinweisText, nordText } from '../core/nord-texte';
+import { bahnKarteZeigen } from './bahn-karte';
 import { NICHTS_GEZEICHNET, ersteSperre, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
@@ -111,7 +113,7 @@ export class Katalog {
       const warnungen = sp.abschnittWarnungen();
       // DESIGN 12.22: roter Streifen im Kasten „Bauabschnitt“ statt eines Kastens im Kasten
       if (warnungen.length) k.append(h('div', { class: 'warnstreifen', role: 'note' }, h('h3', {}, 'Nach dem Bau zu dünn'), ...warnungen.map((w) => h('p', {}, w))));
-      k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${dauerText(KONSTANTEN.abschnitt_bau_s * KONSTANTEN.bauzeit_faktor)}`),
+      k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${dauerText(sp.abschnittBau_s() * KONSTANTEN.bauzeit_faktor)}`),
         h('div', { class: 'knopfreihe' },
           ziel(knopf('Material bei Laura bestellen', () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }), 'laura'),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('weiter_einzeichnen') }),
@@ -119,13 +121,32 @@ export class Katalog {
     } else {
       const c = a.bau ? sp.beschleunigungskosten_taler(a.bau) : 0;
       const ex = sp.expresskosten_eur();
+      // NR27 (AE-NR27-11, DESIGN 14.5): grau ohne Schloss – kein Fortschritt hebt die Sperre auf, der Hinweis erklärt sie
+      const querung: Sperre | null = a.mit_querung ? { grund: nordHinweisText('SOFORT_GRUND'), schloss: false, hinweis: nordHinweisText('EXPRESS') } : null;
       k.append(h('p', {}, 'Der Bauabschnitt wird gebaut … noch ', rest(), a.express ? ' (Expresslieferung)' : ''),
         h('div', { class: 'knopfreihe' },
           // A88: gesperrt = deaktiviert mit Grund statt Preis; fehlt nur Geld, bleibt der Preis (DESIGN.md 12.20 Regel 4/5)
-          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(this.ui.tutorialSperreKnopf('express'), stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
-          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: ersteSperre(this.ui.tutorialSperreKnopf('sofort'), a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null) })));
+          a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(this.ui.tutorialSperreKnopf('express'), querung, stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
+          knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: ersteSperre(this.ui.tutorialSperreKnopf('sofort'), querung, a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null) })));
     }
+    const info = this.bahnInfo();
+    if (info) k.append(info);
     return k;
+  }
+
+  /** NR27 (DESIGN 14.5): Infozeile zur Bahnquerung unter dem Kosten-Text; entfällt nach der Erschließung und während eine
+   *  Querung gebaut wird (dann sprechen Balken und graue Knöpfe). (i) zur Erklärkarte nur mit freigegebenem Fachtext (14.7). */
+  private bahnInfo(): HTMLElement | null {
+    const sp = this.ui.spiel, a = sp.abschnitt;
+    if (sp.stand.nordviertel || (a?.phase === 'bau' && a.mit_querung)) return null;
+    if (!sp.freigeschaltet('bahnquerung')) return sperrHinweis(nordHinweisText('KATALOG_ZEILE'));
+    const text = sp.querungsFelder().length
+      ? nordHinweisText('KOSTEN_ZUSATZ', { querung_eur: eur(sp.querung_eur()), querung_zeit: dauerText(KONSTANTEN.querung_bau_s * KONSTANTEN.bauzeit_faktor) })
+      : nordHinweisText('KATALOG_PREIS', { preis: eur(KONSTANTEN.querung_eur_je_feld) });
+    const infoKnopf = nordText('KARTE_1') !== null
+      ? h('button', { type: 'button', class: 'info-knopf', 'aria-label': `Info: ${nordHinweisText('KARTE_TITEL')}`, 'data-ziel': 'bahn_info', onclick: () => bahnKarteZeigen(sp) }, symbol('frage'))
+      : null;
+    return h('p', { class: 'gedaempft bahn-info', 'data-ziel': 'bahn_infozeile' }, text, infoKnopf);
   }
 
   private erzeuger(t: TypId): HTMLElement {
