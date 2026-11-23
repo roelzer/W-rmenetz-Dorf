@@ -1,3 +1,4 @@
+import tokens from '../../design/tokens.json';
 import { WEICH } from './kamera';
 import type { Maler } from './maler';
 
@@ -17,9 +18,11 @@ interface Engstelle { felder: ReadonlyArray<readonly [number, number]>; ruhig: b
  * NR27 Erfolgsmoment (DESIGN 14.8, 14.9 `dunst_heben`): der Dunst hebt sich in 1,2 s mit `kurve.weich`. Bei „Weniger Bewegung“
  * ist er sofort weg; stattdessen leuchten die Grubenfelder kurz und ruhig auf (Dauer und Deckkraft sind Werte der Grafik).
  */
-const DUNST_HEBEN_S = 1.2;
+const DUNST_HEBEN_S = tokens.zeit_ms.dunst_heben / 1000;
+/** DESIGN 14.8: nach dem Dunst erscheinen die Blasen der neuen Häuser nacheinander, je Haus `blase_versatz` später. */
+const BLASE_VERSATZ_S = tokens.zeit_ms.blase_versatz / 1000;
 const AUFLEUCHTEN = { dauer_s: 0.4, deckkraft: 0.5, farbe: '#ffe14d' } as const;
-interface Erfolg { felder: ReadonlyArray<readonly [number, number]>; ruhig: boolean; t: number }
+interface Erfolg { felder: ReadonlyArray<readonly [number, number]>; ruhig: boolean; t: number; haeuser: number }
 
 /** Kurzlebige Effekte (Funken, fliegende Münzen, Schwebetexte). Reine Darstellung, laufen über Zeitdifferenzen. */
 export class Effekte {
@@ -63,9 +66,16 @@ export class Effekte {
     this.nord_ = { spiel, kulisse };
     return !!vorher && vorher.spiel === spiel && vorher.kulisse && !kulisse;
   }
-  /** Startet den Erfolgsmoment; `felder` = Grubenfelder fürs Aufleuchten, `ruhig` = „Weniger Bewegung“. */
-  erfolgsmoment(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {
-    this.erfolg_ = { felder, ruhig, t: 0 };
+  /** Startet den Erfolgsmoment; `felder` = Grubenfelder fürs Aufleuchten, `ruhig` = „Weniger Bewegung“, `haeuser` = neue Häuser,
+   *  deren Blasen versetzt erscheinen (der Moment läuft, bis das letzte seine Blase hat). */
+  erfolgsmoment(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean, haeuser = 0): void {
+    this.erfolg_ = { felder, ruhig, t: 0, haeuser };
+  }
+  /** Darf das neue Haus Nummer `rang` (0 = erstes) seine Blase schon zeigen? Ohne laufenden Erfolgsmoment und bei „Weniger
+   *  Bewegung“ immer. */
+  blaseFrei(rang: number): boolean {
+    const e = this.erfolg_;
+    return !e || e.ruhig || e.t >= DUNST_HEBEN_S + rang * BLASE_VERSATZ_S;
   }
   /** Deckkraft des Dunsts über dem neuen Viertel: 1 beim Auslösen, nach 1,2 s und bei „Weniger Bewegung“ 0. */
   dunstDeckkraft(): number {
@@ -117,8 +127,10 @@ export class Effekte {
       for (const [x, y] of e.felder) { const [cx, cy] = mitte(x, y); m.raute(cx, cy, 1); X.fillStyle = AUFLEUCHTEN.farbe; X.fill(); }
       X.globalAlpha = 1;
     }
+    // Erst enden, wenn das eben gezeichnete Bild auch die letzte Blase zeigen durfte – sonst fehlte der Grund für ein weiteres Bild.
+    const letzteBlase = e.haeuser > 0 && !this.blaseFrei(e.haeuser - 1);
     e.t += dt;
-    if (e.t >= (e.ruhig ? AUFLEUCHTEN.dauer_s : DUNST_HEBEN_S)) this.erfolg_ = null;
+    if (e.t >= (e.ruhig ? AUFLEUCHTEN.dauer_s : DUNST_HEBEN_S) && !letzteBlase) this.erfolg_ = null;
   }
 
   private engstelleZeichnen(m: Maler, dt: number, mitte: (x: number, y: number) => [number, number]): void {
