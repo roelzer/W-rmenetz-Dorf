@@ -1,4 +1,4 @@
-import { istLeitung, type TypId } from './katalog';
+import { istLeitung, KONSTANTEN, type TypId } from './katalog';
 import { freigeschaltet, sperrgrund } from './freischaltung';
 import { nordText } from './nord-texte';
 import type { Objekt, Spielstand } from './typen';
@@ -16,7 +16,7 @@ export const BRUECKE_X: readonly number[] = [19, 20];
 /** Einzige Spalte, in der eine Leitung die Gleise quert: Verlängerung der Dorfstraße x = 10. */
 export const QUERUNG_X = 10;
 
-const BREITE = 24;
+const BREITE = KONSTANTEN.feldanzahl;
 const ERSTE_ZEILE_Y = -10;
 const LETZTE_ZEILE_Y = -1;
 const ERSTE_ZEILE_HINTER_Y = -4;
@@ -26,7 +26,7 @@ const WOHNSTRASSE_Y = -7;
 
 type Haus = { typ: TypId; x: number; y: number };
 
-/** 14 Häuser (6 EFH, 8 RH) in zwei Reihen hinter der Bahn; Reihenfolge wie im Bauplan. */
+/** 14 Häuser (5 EFH, 9 RH; Entscheidung 23.11.) in zwei Reihen hinter der Bahn; Reihenfolge wie im Bauplan. */
 export const NORD_PLAN: ReadonlyArray<Haus> = [
   { typ: 'efh', x: 2, y: -9 }, { typ: 'rh', x: 4, y: -9 }, { typ: 'rh', x: 6, y: -9 }, { typ: 'efh', x: 8, y: -9 },
   { typ: 'rh', x: 12, y: -9 }, { typ: 'rh', x: 14, y: -9 }, { typ: 'efh', x: 16, y: -9 },

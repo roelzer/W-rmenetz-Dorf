@@ -176,7 +176,6 @@ export interface Netz {
   reduzierung: Set<number>;
   /** A76: Abzweig, an dem zwei oder mehr Abgänge so dick sind wie die Zuleitung (Zuleitung + diese Abgänge) */
   aufteilung: Set<number>;
-  /** Anschlusspunkt je Gebäude-ID (-1 = direkt am Heizhaus) */
   /** feld: Schlüssel des Elternfelds; KEIN_FELD (feld.ts) = direkt am Heizhaus */
   anschluss: Map<number, { feld: number; tiefe: number }>;
   warm: Set<number>;
