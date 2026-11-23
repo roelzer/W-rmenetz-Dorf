@@ -1,5 +1,6 @@
 import { KONSTANTEN, LEITUNGSRANG, istLeitung, type TypId } from './katalog';
-import { leitungsNachbarn } from './netz';
+import { KEIN_FELD, feldVon } from './feld';
+import { alleSchluessel, belegtId, leitungsNachbarn } from './netz';
 import { TUTORIAL_ABZWEIG, TUTORIAL_ANSCHLUSS_1, TUTORIAL_ANSCHLUSS_2, TUTORIAL_HAUPT } from './start';
 import type { Feld, TutorialLeitungsLage } from './tutorial-vertrag';
 import type { Netz, Objekt } from './typen';
@@ -8,7 +9,6 @@ import type { Netz, Objekt } from './typen';
 // berechneNetz schon gerechnet hat (Hausanschluss, Eltern, Planungsfehler) – keine zweite Netzrechnung.
 const N = KONSTANTEN.feldanzahl;
 const nummer = ([x, y]: Feld): number => y * N + x;
-const koordinate = (k: number): Feld => [k % N, (k - (k % N)) / N];
 const ABZWEIG = nummer(TUTORIAL_ABZWEIG);
 const HAUPT_SPUR = new Set(TUTORIAL_HAUPT.map(nummer));
 const ANSCHLUSS_SPUR = [new Set(TUTORIAL_ANSCHLUSS_1.map(nummer)), new Set(TUTORIAL_ANSCHLUSS_2.map(nummer))];
@@ -23,25 +23,25 @@ const SPUR_FELDER = new Set(SPUR.map((s) => nummer(s.feld)));
 export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>, haus1_id: number, haus2_id: number, haupt: TypId, anschluss: TypId): TutorialLeitungsLage {
   for (const id of [haus1_id, haus2_id]) if (!objekte.some((o) => o.id === id)) throw new Error(`NR21: Tutorial-Haus ${id} fehlt`);
   const typAn = (k: number): TypId | null => {
-    const o = netz.nachId.get(netz.belegung[k]);
+    const o = netz.nachId.get(belegtId(netz.belegung, k));
     return o && istLeitung(o.typ) ? o.typ : null;
   };
-  // Weg über netz.eltern bis zur Heizzentrale (Eltern −1); [] für ein Feld, das nicht mit ihr verbunden ist.
+  // Weg über netz.eltern bis zur Heizzentrale (Eltern KEIN_FELD); [] für ein Feld, das nicht mit ihr verbunden ist.
   const weg = (start: number): number[] => {
     if (!netz.tiefe.has(start)) return [];
     const w: number[] = [];
-    for (let k = start; k >= 0; k = netz.eltern.get(k) as number) w.push(k);
+    for (let k = start; k !== KEIN_FELD; k = netz.eltern.get(k) as number) w.push(k);
     return w;
   };
   const hauptweg = weg(ABZWEIG);
   const aufHauptweg = new Set(hauptweg);
   const haeuser = [haus1_id, haus2_id].map((id, i) => {
     const a = netz.anschluss.get(id);
-    const hausweg = a && a.feld >= 0 ? weg(a.feld) : [];
+    const hausweg = a && a.feld !== KEIN_FELD ? weg(a.feld) : [];
     const vorhanden = hausweg.length > 0;
     const eigenerAbgang = vorhanden && !hausweg.includes(ABZWEIG);
     // A57/M2/N2: nur ein Anschluss am Leitungsende oder auf einem Spurfeld des eigenen Hausanschlusses bestimmt Rollen.
-    const ende = vorhanden && leitungsNachbarn(...koordinate(hausweg[0]), (f) => typAn(f) !== null) <= 1;
+    const ende = vorhanden && leitungsNachbarn(...feldVon(hausweg[0]), (f) => typAn(f) !== null) <= 1;
     const gezaehlt = vorhanden && !eigenerAbgang && (ende || ANSCHLUSS_SPUR[i].has(hausweg[0]));
     return { hausweg, eigenerAbgang, gezaehlt };
   });
@@ -73,7 +73,7 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
   const alleFelder = [...rollenFelder].sort((p, q) => p - q).flatMap((k) => {
     const rolle = rolleVon(k), typ = typAn(k);
     if (!rolle || !typ) return [];
-    const [x, y] = koordinate(k);
+    const [x, y] = feldVon(k);
     return [{ x, y, rolle, typ, richtig: passt(rolle, typ) }];
   });
   const richtig = new Map(alleFelder.map((f) => [nummer([f.x, f.y]), f.richtig]));
@@ -92,7 +92,7 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
   // Aufsteigend nach Feldnummer, jedes Feld nur einmal. Das enthält auch jedes Planungsfehler-Feld abseits der Spur (Fassung 2.3
   // M1), denn Reduzierung, Aufteilung und Engpass liegen immer auf Leitungsfeldern. Das Tutorial wendet diesen Teil erst ab
   // T13h an (Review P5f-1 W1, Entscheidung (a); Filter in Tutorial.leitungen), der Kern kennt den Schritt nicht.
-  for (let k = 0; k < netz.belegung.length; k++) {
+  for (const k of alleSchluessel(netz.belegung)) {
     if (typAn(k) !== null && !SPUR_FELDER.has(k) && !aufHauptweg.has(k) && !fremd.includes(k)) fremd.push(k);
   }
 
@@ -108,6 +108,6 @@ export function tutorialLeitungsLage(netz: Netz, objekte: ReadonlyArray<Objekt>,
   });
   return {
     haupt_ok, haus1_ok, haus2_ok, haupt_zu_duenn, anschluss_zu_dick, planungsfehler,
-    fremd: fremd.map(koordinate), fremd_haus, felder, spur,
+    fremd: fremd.map((k) => feldVon(k)), fremd_haus, felder, spur,
   };
 }

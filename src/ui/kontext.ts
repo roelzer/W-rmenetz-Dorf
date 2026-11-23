@@ -1,8 +1,9 @@
 import { ausbauZieleKasten } from './ziele';
 import { ANDI_BUDGET_SCHRITT, ABSCHNITT_HELFER, istAltanlage, istLeitung, DACH_PV, UPGRADES, VORLAUF, VOLLLASTSTUNDEN, MIN_RUECKLAUF_C, GRUNDGEBUEHR, HELFER, KATALOG, LEITUNGEN, KONSTANTEN, PREISSTUFEN, PUFFER_STATIONEN, STATIONEN, hatStufen, istPufferStation, passendePufferStation, passendeStation, stationHolen, type PufferStation, type Station, type TypId } from '../core/katalog';
-import { bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, pufferStationReicht, spreizungHaus_k, stationReicht } from '../core/netz';
+import { belegtId, bedarfKw, eigenerAnschlussZuDuenn, groesse, istAktiv, istKunde, nutzungsfaktor, pufferStationReicht, spreizungHaus_k, stationReicht } from '../core/netz';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import { WANDSTATION_TUTORIAL, type Spiel } from '../core/spiel';
+import { KEIN_FELD, feldVon } from '../core/feld';
 import type { Objekt } from '../core/typen';
 import type { Engstelle } from '../core/engstelle';
 import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, zeile, type Sperre } from './bausteine';
@@ -485,10 +486,10 @@ export class Kontext {
     const last = n.last_kw.get(key) ?? 0, kap = Math.round((D.kapazitaet_kw ?? 0) * n.spreizung_faktor);
     // Hauptleitung bis zum letzten Abzweig, danach Hausanschluss: Ab dem Abknick zum einzelnen Haus darf das Rohr kleiner sein.
     const kinder = new Map<number, number[]>();
-    for (const [k, p] of n.eltern) if (p >= 0) kinder.set(p, [...(kinder.get(p) ?? []), k]);
+    for (const [k, p] of n.eltern) if (p !== KEIN_FELD) kinder.set(p, [...(kinder.get(p) ?? []), k]);
     let ende = key, verzweigt = false;
     for (let kd = kinder.get(ende) ?? []; kd.length > 0; kd = kinder.get(ende) ?? []) { if (kd.length > 1) { verzweigt = true; break; } ende = kd[0]; }
-    const ex = ende % KONSTANTEN.feldanzahl, ey = Math.floor(ende / KONSTANTEN.feldanzahl);
+    const [ex, ey] = feldVon(ende);
     const haeuser = sp.stand.objekte.filter((k) => {
       if (!['haus', 'gross'].includes(KATALOG[k.typ].kategorie)) return false;
       const g = groesse(k);
@@ -582,7 +583,7 @@ export class Kontext {
 
   /** Gebaute Leitung auf einem Feld eines überlasteten Stücks (der Kern bildet Stücke nur aus solchen Feldern). */
   private leitungAuf(f: number): Objekt {
-    const o = this.ui.spiel.objekt(this.ui.spiel.netz.belegung[f]);
+    const o = this.ui.spiel.objekt(belegtId(this.ui.spiel.netz.belegung, f));
     if (!o) throw new Error(`Feld ${f} des überlasteten Stücks trägt keine Leitung`);
     return o;
   }

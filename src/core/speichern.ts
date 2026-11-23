@@ -1,5 +1,5 @@
 import { ANDI_BUDGET_SCHRITT, HELFER, KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
-import { belegungskarte, groesse } from './netz';
+import { belegtId, belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
 import { ERSTE_HAEUSER, hzAusbauflaecheFreiraeumen, neuesSpielMitTutorial } from './start';
 import type { Spielstand } from './typen';
@@ -117,9 +117,10 @@ export function karteAnpassen(stand: Spielstand): boolean {
   });
   const frei = (o: Spielstand['objekte'][number], x: number, y: number): boolean => {
     const k = kante(o);
+    // Umzug nur innerhalb des alten Dorfrasters (Neubaugebiet Süd): Die Nordzone ist kein Ziel für umziehende Gebäude.
     if (x < 0 || y < 0 || x + k > N || y + k > N || blockiert(o, x, y)) return false;
     const bel = belegungskarte(stand.objekte, o);
-    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) if (bel[(y + dy) * N + x + dx]) return false;
+    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) if (belegtId(bel, (y + dy) * N + x + dx)) return false;
     return true;
   };
   for (const o of stand.objekte) {

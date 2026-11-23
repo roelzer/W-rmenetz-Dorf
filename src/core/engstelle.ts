@@ -1,4 +1,6 @@
 import { KATALOG, LEITUNGEN, istLeitung, type TypId } from './katalog';
+import { KEIN_FELD } from './feld';
+import { belegtId } from './netz';
 import type { Netz } from './typen';
 
 /**
@@ -33,7 +35,7 @@ const kapazitaet = (netz: Netz, typ: TypId): number => (KATALOG[typ].kapazitaet_
 
 /** Leitungstyp auf dem Feld; null, wenn dort keine Leitung liegt. */
 function leitungsTyp(netz: Netz, feld: number): TypId | null {
-  const o = netz.nachId.get(netz.belegung[feld]);
+  const o = netz.nachId.get(belegtId(netz.belegung, feld));
   return o && istLeitung(o.typ) ? o.typ : null;
 }
 
@@ -48,7 +50,7 @@ function zuVoll(netz: Netz, feld: number): boolean {
  * dahinter weiter kalte Häuser. Im Netzbaum hat jedes Feld genau ein Elternfeld; ein Stück beginnt deshalb für alle Kunden
  * am selben Feld, und Stücke mit gleichem erstem Feld werden vereinigt (Äste einer Verzweigung). Felder im Stück nach Tiefe,
  * dann Feldnummer geordnet, damit das Ergebnis nicht von der Reihenfolge der Kunden abhängt. Kunden ohne Anschluss oder
- * direkt an der Heizzentrale (Feld −1) haben keinen Weg. Stücke sortiert nach Tiefe des ersten Felds, dann Feldnummer.
+ * direkt an der Heizzentrale (KEIN_FELD) haben keinen Weg. Stücke sortiert nach Tiefe des ersten Felds, dann Feldnummer.
  */
 export function engstellenFinden(netz: Netz, kunden: Iterable<number>): Engstelle[] {
   const tiefe = (feld: number): number => netz.tiefe.get(feld) as number;
@@ -57,9 +59,9 @@ export function engstellenFinden(netz: Netz, kunden: Iterable<number>): Engstell
   for (const id of kunden) {
     const a = netz.anschluss.get(id);
     if (!a) continue;
-    // Feld −1 (direkt an der Heizzentrale) ergibt einen leeren Weg und damit kein Stück.
+    // KEIN_FELD (direkt an der Heizzentrale) ergibt einen leeren Weg und damit kein Stück.
     const weg: number[] = [];
-    for (let feld = a.feld; feld >= 0; feld = netz.eltern.get(feld) ?? -1) weg.push(feld);
+    for (let feld = a.feld; feld !== KEIN_FELD; feld = netz.eltern.get(feld) ?? KEIN_FELD) weg.push(feld);
     weg.reverse();
     let felder: Set<number> | null = null;
     for (let i = 0; i < weg.length; i++) {
@@ -82,7 +84,7 @@ export function engstellenFinden(netz: Netz, kunden: Iterable<number>): Engstell
       last_kw,
       kapazitaet_kw: kapazitaet(netz, typ),
       an_heizzentrale: tiefe(erstes) === 1,
-      geplant: felder.some((feld) => { const o = netz.nachId.get(netz.belegung[feld]); return !!(o?.geplant || o?.ersatz); }),
+      geplant: felder.some((feld) => { const o = netz.nachId.get(belegtId(netz.belegung, feld)); return !!(o?.geplant || o?.ersatz); }),
       // Das Stück ist zu voll, die Katalogkapazität steigt mit dem Durchmesser: Jede Leitung, die die Last trägt, ist dicker.
       empfohlen: LEITUNGEN.find((l) => kapazitaet(netz, l) >= last_kw) ?? null,
     });

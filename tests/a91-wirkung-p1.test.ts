@@ -3,6 +3,10 @@ import { berechneNetz, istKunde } from '../src/core/netz';
 import { KATALOG } from '../src/core/katalog';
 import { berechneNetzAlt } from './hilfen/netz-alt-a91';
 import { zufallsNetz } from './hilfen/a91-netze';
+import { istKeinFeld } from './hilfen/kein-feld';
+
+/** NR27 V1: gleicher Anschluss, auch wenn die alte Rechnung „kein Feld“ als -1 und die neue (ab P1) als KEIN_FELD schreibt. */
+const gleichesFeld = (a: number | undefined, b: number | undefined): boolean => a === b || (istKeinFeld(a) && istKeinFeld(b));
 
 // A91 P1 (Bauplan NR15, Fassung 3 Nachtrag 1): Die neue Anschlusswahl muss auf den 3.000 Zufallsnetzen aus P0 tatsächlich
 // greifen – sonst prüft der Vergleichstest (tests/a91-vergleich.test.ts) nur „alt gegen alt“. Mindestzahlen aus dem Bauplan
@@ -17,7 +21,7 @@ describe('A91 P1 – Wirkung im Generator', () => {
       const neu = berechneNetz(objekte, innen, 2, vorlauf_c);
       let gewechselt = false;
       for (const o of objekte) {
-        if (!istKunde(o) || alt.anschluss.get(o.id)?.feld === neu.anschluss.get(o.id)?.feld) continue;
+        if (!istKunde(o) || gleichesFeld(alt.anschluss.get(o.id)?.feld, neu.anschluss.get(o.id)?.feld)) continue;
         gewechselt = true;
         if (KATALOG[o.typ].kategorie === 'gross') grossWechsel++;
       }

@@ -2,6 +2,7 @@ import tokens from '../../design/tokens.json';
 import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
 import { bedarfKw, groesse, heizzentrale, leitungsNachbarn, trassenUebergang } from '../core/netz';
+import { KEIN_FELD, feldVon, mod } from '../core/feld';
 import type { Spiel } from '../core/spiel';
 import { bandVorgaenger } from '../core/tutorial-band';
 import type { Feld, TutorialBandFeld } from '../core/tutorial-vertrag';
@@ -123,7 +124,7 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
         continue;
       }
       const g = GRAS[y * N + x];
-      X.fillStyle = farben.wiese[(x + y) % 2]; X.fill();
+      X.fillStyle = farben.wiese[mod(x + y, 2)]; X.fill();
       if (g.hell > 0.8) { X.fillStyle = 'rgba(255,255,255,.08)'; X.fill(); }
       if (winter) {
         if (tw >= 25 && g.hell > 0.66) {
@@ -141,7 +142,7 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       if (!details && (tw < 28 || saison === 'sommer')) continue;
       const bx = cx + g.n[0][0] * tw * 0.4, by = cy + g.n[0][1] * th * 0.4;
       if (herbst) {
-        if (g.hell > .74) blatt(m, bx, by, Math.max(1.3, tw * .03), LAUB[(x + y) % LAUB.length], .35);
+        if (g.hell > .74) blatt(m, bx, by, Math.max(1.3, tw * .03), LAUB[mod(x + y, LAUB.length)], .35);
       } else if (g.blume >= 0 || (saison === 'fruehling' && g.hell > .91)) {
         const r = Math.max(1.2, tw * 0.022);
         m.kreis(bx + r, by + r, r * 1.4, 'rgba(52,76,30,.20)');
@@ -774,7 +775,7 @@ function zeichneWarndreiecke(m: Maler, k: Kamera, s: Szene): void {
     const groesse = m.reduziert || t >= 1 || t < 0 ? 1 : federGroesse(t);
     X.globalAlpha = u.geplant ? SAUM.geplant_deckkraft : 1;
     for (const f of u.dreiecke) {
-      const [lx, ly] = k.mitte(f % N, Math.floor(f / N)), [cx, cy] = dreieckMitte(k, f);
+      const [lx, ly] = k.mitte(...feldVon(f)), [cx, cy] = dreieckMitte(k, f);
       const kante = dreieckKante(k) * groesse, hoehe = (kante * Math.sqrt(3)) / 2;
       X.lineCap = 'round'; X.lineJoin = 'round';
       X.strokeStyle = MF.kontur; X.lineWidth = 2;
@@ -885,7 +886,7 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
       const quer = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return !verbunden(o, n); });
       const lauf = NACHBARN.filter(([dx, dy]) => { const n = nachFeld.get((o.y + dy) * N + o.x + dx); return verbunden(o, n); });
       // A74: An einer Ecke zeigt der Abgang geradeaus (Fortsetzung der Zuleitung), sonst quer zur Leitung, bevorzugt zu einem freien Feld
-      const p = netz.eltern.get(key), px = p !== undefined && p >= 0 ? p % N - o.x : null, py = p !== undefined && p >= 0 ? Math.floor(p / N) - o.y : null;
+      const p = netz.eltern.get(key), vorher = p !== undefined && p !== KEIN_FELD ? feldVon(p) : null, px = vorher ? vorher[0] - o.x : null, py = vorher ? vorher[1] - o.y : null;
       const geradeaus = quer.filter(([dx, dy]) => px === null ? lauf.some(([lx, ly]) => lx === -dx && ly === -dy) : px === -dx && py === -dy);
       const senkrecht = quer.filter(([dx, dy]) => lauf.every(([lx, ly]) => lx * dx + ly * dy === 0));
       const frei = (r: readonly [number, number]): boolean => !nachFeld.has((o.y + r[1]) * N + o.x + r[0]);
@@ -931,11 +932,11 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   X.fillStyle = '#fff';
   for (const [key] of netz.tiefe) {
     if (!((netz.last_kw.get(key) ?? 0) > 0)) continue;
-    const p = netz.eltern.get(key), x = key % N, y = (key - x) / N;
+    const p = netz.eltern.get(key), [x, y] = feldVon(key);
     let a: Punkt;
-    if (p === -1 || p === undefined) { const kante = groesse(hz); a = k.mitte(hz.x + (kante - 1) / 2, hz.y + (kante - 1) / 2); }
-    else a = k.mitte(p % N, (p - (p % N)) / N);
-    const b = k.mitte(x, y), f = (m.zeit_s * 0.6 + key * 0.37) % 1;
+    if (p === KEIN_FELD || p === undefined) { const kante = groesse(hz); a = k.mitte(hz.x + (kante - 1) / 2, hz.y + (kante - 1) / 2); }
+    else a = k.mitte(...feldVon(p));
+    const b = k.mitte(x, y), f = mod(m.zeit_s * 0.6 + key * 0.37, 1);
     X.globalAlpha = 0.8; X.beginPath(); X.arc(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, Math.max(0.8, tw * 0.013), 0, Math.PI * 2); X.fill();
   }
   X.globalAlpha = 1;

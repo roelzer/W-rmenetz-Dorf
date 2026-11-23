@@ -2,8 +2,9 @@ import {
   ABGLEICH_PAUSE_MS, ANDI_BUDGET_SCHRITT, KATALOG, KONSTANTEN, LEITUNGEN, PREISSTUFEN, UPGRADES, VORLAUF, HELFER, ABSCHNITT_HELFER, DACH_PV, HZ_ZIELE, SPREIZUNG_BASIS_K, SPIELJAHR_MS, SPIELMONAT_MS, MONATE, MONATSANTEIL_PROMILLE, GRUNDGEBUEHR, MIN_VORLAUF_C, MIN_RUECKLAUF_C, STATIONEN, passendeStation, passendePufferStation, istPufferStation, stationHolen, hatStufen, istAltanlage, istLeitung, istQuelle, type Station, type TypId,
 } from './katalog';
 import {
-  belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
+  belegtId, belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
+import { feldVon } from './feld';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { neubaugebietAnlegen, neubaugebietLayout2Anlegen, neubauPlan, neubauStrassen, spielOrt } from './neubaugebiet';
 import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
@@ -492,7 +493,7 @@ export class Spiel {
     if (this.sperrtAusbaureserve(t, x, y, s, alt?.bestand)) return false;
     const belegung = belegungskarte(this.stand.objekte, alt);
     for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) {
-      if (belegung[(y + dy) * N + x + dx]) return false;
+      if (belegtId(belegung, (y + dy) * N + x + dx)) return false;
       // A46: Auf Straßen steht nichts (außer Leitungen, Laternen, Bänke); im Fluss nur Leitungen (per Spülbohrung)
       const fx = x + dx, fy = y + dy;
       if (!istLeitung(t) && this.istFluss(fx, fy)) return false;
@@ -800,17 +801,17 @@ export class Spiel {
   }
   /** A47: Häuser und Großabnehmer, die an eine geplante Leitung des Bauabschnitts grenzen und noch an keiner gebauten Leitung hängen: Das sind die Hausanschlüsse dieses Abschnitts. */
   abschnittAnschluesse(): Objekt[] {
-    const N_ = N, bau = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ) && !o.geplant).map((o) => o.y * N_ + o.x));
-    const plan = new Set(this.stand.objekte.filter((o) => o.geplant).map((o) => o.y * N_ + o.x));
+    const bau = new Set(this.stand.objekte.filter((o) => istLeitung(o.typ) && !o.geplant).map((o) => o.y * N + o.x));
+    const plan = new Set(this.stand.objekte.filter((o) => o.geplant).map((o) => o.y * N + o.x));
     // A57: Nur ein Leitungsende am Haus ist ein Hausanschluss – eine vorbeilaufende Leitung nicht.
-    const leitungsEnde = (f: number): boolean => leitungsNachbarn(f % N_, Math.floor(f / N_), (n) => plan.has(n) || bau.has(n)) <= 1;
+    const leitungsEnde = (f: number): boolean => leitungsNachbarn(...feldVon(f), (n) => plan.has(n) || bau.has(n)) <= 1;
     return this.stand.objekte.filter((h) => {
       if (!['haus', 'gross'].includes(KATALOG[h.typ].kategorie)) return false;
       const g = groesse(h);
       let anPlan = false, anBau = false;
       for (let dy = -1; dy <= g; dy++) for (let dx = -1; dx <= g; dx++) {
         if ((dx === -1 || dx === g) === (dy === -1 || dy === g)) continue; // nur die vier Seiten, keine Ecken/Innenfelder
-        const f = (h.y + dy) * N_ + h.x + dx;
+        const f = (h.y + dy) * N + h.x + dx;
         if (plan.has(f) && leitungsEnde(f)) anPlan = true;
         if (bau.has(f)) anBau = true;
       }
@@ -990,7 +991,7 @@ export class Spiel {
     for (const platz of neubauPlan(3)) {
       const k = KATALOG[platz.typ].groesse ?? 1;
       const fl = felder(platz.x, platz.y, k);
-      if (fl.some((f) => belegt.has(f) || strassen3.has(f) || this.istFluss(f % N, Math.floor(f / N)))) continue;
+      if (fl.some((f) => belegt.has(f) || strassen3.has(f) || this.istFluss(...feldVon(f)))) continue;
       const probe = { x: platz.x, y: platz.y, typ: platz.typ } as Objekt;
       if (amRand(probe)) continue;
       const i = offen.findIndex((o) => o.typ === platz.typ);
@@ -1081,7 +1082,7 @@ export class Spiel {
   private gebauteNachbarn(rohr: Objekt): number {
     const bel = belegungskarte(this.stand.objekte);
     return leitungsNachbarn(rohr.x, rohr.y, (n) => {
-      const o = this.objekt(bel[n]);
+      const o = this.objekt(belegtId(bel, n));
       return !!o && (o.typ === 'hz' || (istLeitung(o.typ) && !o.geplant && trassenUebergang(rohr, o) !== false));
     });
   }
@@ -1216,7 +1217,7 @@ export class Spiel {
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = g.x + dx, ny = g.y + dy;
         if (nx < 0 || ny < 0 || nx >= N || ny >= this.kartenHoehe) continue;
-        const o = this.objekt(bel[ny * N + nx]);
+        const o = this.objekt(belegtId(bel, ny * N + nx));
         if (o && trassenUebergang(g, o) !== false && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
       }
     }
@@ -1289,7 +1290,7 @@ export class Spiel {
   }
   /** Gebaute Leitung auf einem Feld des gebauten Netzes; ein Stück aus engstellenFinden besteht nur aus solchen Feldern. */
   private leitungImNetz(f: number): Objekt {
-    const o = this.objekt(this.netz.belegung[f]);
+    const o = this.objekt(belegtId(this.netz.belegung, f));
     if (!o || !istLeitung(o.typ)) throw new Error(`Feld ${f} trägt keine gebaute Leitung`);
     return o;
   }

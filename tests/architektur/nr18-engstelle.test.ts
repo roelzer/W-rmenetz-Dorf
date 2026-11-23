@@ -32,9 +32,15 @@ describe('NR18 Engstelle: eine Abfrage im Kern, Oberfläche fragt nur ab', { tim
   }
   const text = ohneKommentare(readFileSync(DATEI, 'utf8'));
 
-  it('NR18 R1: engstelle.ts importiert nur katalog und typen (kein Spielstand, kein spiel.ts, kein Kreis)', () => {
-    const importe = [...text.matchAll(/(?:from|import)\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
-    expect(importe.filter((i) => !['./katalog', './typen'].includes(i))).toEqual([]);
+  it('NR18 R1: engstelle.ts importiert nur katalog, typen, feld und netz (kein Spielstand, kein spiel.ts, kein Kreis)', () => {
+    // NR27 P1 (Entscheidung 2026-11-23, Tester-Vorarbeit V3): ./feld (KEIN_FELD) und ./netz (belegtId) sind erlaubt. Kein Kreis,
+    // solange weder netz.ts noch feld.ts engstelle oder spiel importieren – das prüfen die ersten beiden Erwartungen.
+    const importeVon = (t: string): string[] => [...t.matchAll(/(?:from|import)\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
+    for (const nachbar of ['src/core/netz.ts', 'src/core/feld.ts']) {
+      const fremd = existsSync(nachbar) ? importeVon(ohneKommentare(readFileSync(nachbar, 'utf8'))).filter((i) => /(^|\/)(engstelle|spiel)$/.test(i)) : [];
+      expect(fremd, nachbar).toEqual([]);
+    }
+    expect(importeVon(text).filter((i) => !['./katalog', './typen', './feld', './netz'].includes(i))).toEqual([]);
   });
 
   it('NR18 R2: engstellenFinden wird außerhalb von engstelle.ts nur in src/core/spiel.ts aufgerufen', () => {

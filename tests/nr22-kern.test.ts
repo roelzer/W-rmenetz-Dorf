@@ -5,7 +5,7 @@ import { bedarfKw } from '../src/core/netz';
 import type { Objekt } from '../src/core/typen';
 import tokens from '../design/tokens.json';
 import { Kamera } from '../src/render/kamera';
-import { dreieckFelder, dreieckTreffer } from '../src/render/ueberlast';
+import { dreieckFelder as dreieckFelderRoh, dreieckTreffer } from '../src/render/ueberlast';
 import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
 
 // Bauplan docs/bauplaene/NR20-22.md Fassung 2.4, P6 (E5, E6). Erwartungen von Hand aus dem Startdorf hergeleitet:
@@ -16,6 +16,11 @@ import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18
 const T0 = 1_000_000_000_000;
 const N = KONSTANTEN.feldanzahl;
 const feld = (x: number, y: number): number => y * N + x;
+// NR27 P1 (Tester-Vorarbeit V3): Die Kartenbreite ist für immer 24 (Entscheidung 2026-11-23). Die Tests hängen deshalb nicht
+// mehr an einem Breite-Parameter von dreieckFelder: Sie rufen über diese Hülle auf, die mit und ohne dritten Parameter passt
+// (überzähliges N wird ignoriert, ein vorhandener Parameter bekommt die echte Breite 24).
+const dreieckFelder = (stuecke: ReadonlyArray<ReadonlyArray<number>>, tiefe: ReadonlyMap<number, number>): number[][] =>
+  (dreieckFelderRoh as unknown as (s: ReadonlyArray<ReadonlyArray<number>>, t: ReadonlyMap<number, number>, n: number) => number[][])(stuecke, tiefe, N);
 const STAMM: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9]];
 const ENDE: ReadonlyArray<[number, number]> = [[5, 9], [4, 9], [3, 9], [2, 9], [2, 8]];
 const STAMM_FELDER = STAMM.map(([x, y]) => feld(x, y));
@@ -186,7 +191,7 @@ describe('NR22 P6 Dreiecke auf einem Stück (E9)', () => {
   ];
   it.each(TABELLE)('test_nr22_dreiecke: gerades Stück mit %i Feldern → Indizes %j', (n, indizes) => {
     const { felder, tiefe } = gerade(n);
-    expect(dreieckFelder([felder], tiefe, N)).toEqual([indizes.map((i) => felder[i])]);
+    expect(dreieckFelder([felder], tiefe)).toEqual([indizes.map((i) => felder[i])]);
   });
 
   it('test_nr22_dreiecke verzweigt: Stamm Tiefe 1–6, zwei Äste Tiefe 7–14 → Kandidat Tiefe 9 mit kleinerer Feldnummer, 14 − 9 = 5 ≥ 4', () => {
@@ -202,27 +207,29 @@ describe('NR22 P6 Dreiecke auf einem Stück (E9)', () => {
     // Tiefe 9: (8|10) = 248 und (5|13) = 317 → 248; Ast B steht absichtlich vorn in der Liste
     expect(feld(8, 10)).toBe(248);
     expect(feld(5, 13)).toBe(317);
-    expect(dreieckFelder([[...stamm, ...astB, ...astA]], tiefe, N)).toEqual([[feld(0, 10), 248]]);
+    expect(dreieckFelder([[...stamm, ...astB, ...astA]], tiefe)).toEqual([[feld(0, 10), 248]]);
     // Äste nur bis Tiefe 12: 12 − 9 = 3 < 4 → nur das erste Dreieck
     const kurz = [...stamm, ...astA.slice(0, 6), ...astB.slice(0, 6)];
-    expect(dreieckFelder([kurz], tiefe, N)).toEqual([[feld(0, 10)]]);
+    expect(dreieckFelder([kurz], tiefe)).toEqual([[feld(0, 10)]]);
   });
 
   it('test_nr22_dreiecke zwei Stücke: näher als 1,5 Felder → das spätere entfällt; genau 2 Felder bleibt', () => {
     const a = [feld(5, 5), feld(5, 4)], tiefe = new Map<number, number>([[feld(5, 5), 1], [feld(5, 4), 2]]);
     const nah = [feld(6, 5)], schraeg = [feld(6, 6)], weit = [feld(7, 5)];
     for (const f of [...nah, ...schraeg, ...weit]) tiefe.set(f, 3);
-    expect(dreieckFelder([a, nah], tiefe, N)).toEqual([[feld(5, 5)], []]); // Abstand 1
-    expect(dreieckFelder([a, schraeg], tiefe, N)).toEqual([[feld(5, 5)], []]); // Abstand √2 ≈ 1,41
-    expect(dreieckFelder([a, weit], tiefe, N)).toEqual([[feld(5, 5)], [feld(7, 5)]]); // Abstand 2
-    // die Feldnummer wird mit der übergebenen Kartenbreite zerlegt: bei Breite 40 liegen 125 = (5|3) und 166 = (6|4) √2 auseinander
-    const t40 = new Map<number, number>([[125, 1], [166, 1]]);
-    expect(dreieckFelder([[125], [166]], t40, 40)).toEqual([[125], []]);
-    expect(dreieckFelder([[125], [166]], t40, 24)).toEqual([[125], [166]]);
+    expect(dreieckFelder([a, nah], tiefe)).toEqual([[feld(5, 5)], []]); // Abstand 1
+    expect(dreieckFelder([a, schraeg], tiefe)).toEqual([[feld(5, 5)], []]); // Abstand √2 ≈ 1,41
+    expect(dreieckFelder([a, weit], tiefe)).toEqual([[feld(5, 5)], [feld(7, 5)]]); // Abstand 2
+    // die Feldnummer wird als Feld (x|y) auf der 24 breiten Karte gelesen, nicht als bloße Zahl:
+    // 77 = (5|3) und 102 = (6|4) liegen √2 auseinander (Nummern 25 auseinander) → das spätere entfällt;
+    // 119 = (23|4) und 120 = (0|5) haben benachbarte Nummern, liegen aber 23 Felder auseinander → beide bleiben.
+    const t24 = new Map<number, number>([[77, 1], [102, 1], [119, 1], [120, 1]]);
+    expect(dreieckFelder([[77], [102]], t24)).toEqual([[77], []]);
+    expect(dreieckFelder([[119], [120]], t24)).toEqual([[119], [120]]);
   });
 
   it('test_nr22_dreiecke ohne Tiefe für ein Feld → Fehler statt stiller Annahme', () => {
-    expect(() => dreieckFelder([[feld(1, 1)]], new Map(), N)).toThrow(/Tiefe/);
+    expect(() => dreieckFelder([[feld(1, 1)]], new Map())).toThrow(/Tiefe/);
   });
 });
 
@@ -263,7 +270,7 @@ describe('NR22 P6 Treffer auf ein Dreieck (E9, DESIGN 13.17.3)', () => {
 
 describe('NR22 P6 Randfälle Dreieck und Tokens', () => {
   it('test_nr22_dreiecke leeres Stück → keine Dreiecke', () => {
-    expect(dreieckFelder([[]], new Map(), N)).toEqual([[]]);
+    expect(dreieckFelder([[]], new Map())).toEqual([[]]);
   });
   it('test_nr22_treffer_44px: überdecken sich zwei Tippflächen, gewinnt das nähere Dreieck', () => {
     const k = new Kamera(); k.groesseSetzen(844, 390, 1); k.zoom = 3;

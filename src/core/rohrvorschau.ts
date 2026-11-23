@@ -1,5 +1,6 @@
 import { KATALOG, LEITUNGEN, type TypId } from './katalog';
 import { bedarfKw, istAktiv, istKunde } from './netz';
+import { KEIN_FELD } from './feld';
 import type { Netz, Objekt } from './typen';
 
 /**
@@ -35,8 +36,8 @@ export function rohrVorschau(netz: Netz, objekte: readonly Objekt[], feld: numbe
   for (const o of objekte) {
     if (!zaehlt(o)) continue;
     const a = netz.anschluss.get(o.id);
-    if (!a || a.feld < 0) continue;
-    for (let f = a.feld; f >= 0; f = netz.eltern.get(f) ?? -1) {
+    if (!a || a.feld === KEIN_FELD) continue;
+    for (let f = a.feld; f !== KEIN_FELD; f = netz.eltern.get(f) ?? KEIN_FELD) {
       if (f === feld) { last_kw += bedarfKw(o); haeuser++; break; }
     }
   }

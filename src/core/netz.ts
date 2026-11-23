@@ -2,6 +2,7 @@ import {
   KATALOG, KONSTANTEN, UPGRADES, SPREIZUNG_BASIS_K, MIN_RUECKLAUF_C, VOLLLASTSTUNDEN, DACH_PV, LEITUNGSRANG, VORLAUF, PREISSTUFEN, GRUNDGEBUEHR, SPIELJAHR_MS, istLeitung, istPufferStation, stationHolen, PUFFER_STATIONEN,
   type Station, type TypId,
 } from './katalog';
+import { KARTE_OBEN_Y, KEIN_FELD, feldVon } from './feld';
 import type { InnenQuelle, Netz, Objekt } from './typen';
 
 /** Spreizung eines Kunden in K: Grundwert plus Upgrades (A33), aber höchstens Vorlauf minus Mindest-Rücklauf 40 °C (A73). */
@@ -35,20 +36,34 @@ export const istAktiv = (o: { bau: { art: string } | null }): boolean => !(o.bau
 export const heizzentrale = (objekte: Objekt[]): Objekt =>
   objekte.find((o) => o.typ === 'hz') as Objekt;
 
-/** Belegung: Feld → Objekt-ID (0 = frei). */
+/** Erster Schlüssel der Karte (links oben in der Nordzone); die Belegungskarte beginnt dort mit Index 0. */
+const ERSTER_SCHLUESSEL = KARTE_OBEN_Y * N;
+
+/** Belegung: Feld → Objekt-ID (0 = frei). Index = Schlüssel − ERSTER_SCHLUESSEL; lesen nur über belegtId, durchlaufen nur über
+ *  alleSchluessel (AE-NR27-4), weil ein Int32Array negative Indizes still verwirft. */
 export function belegungskarte(objekte: Objekt[], ohne?: Objekt): Int32Array {
-  const m = new Int32Array(N * MAX_Y);
+  const m = new Int32Array(N * (MAX_Y - KARTE_OBEN_Y));
   for (const o of objekte) {
     if (o === ohne) continue;
     const s = groesse(o);
     for (let dy = 0; dy < s; dy++) {
       for (let dx = 0; dx < s; dx++) {
         const x = o.x + dx, y = o.y + dy;
-        if (x >= 0 && y >= 0 && x < N && y < MAX_Y) m[y * N + x] = o.id;
+        if (x >= 0 && y >= KARTE_OBEN_Y && x < N && y < MAX_Y) m[y * N + x - ERSTER_SCHLUESSEL] = o.id;
       }
     }
   }
   return m;
+}
+
+/** Objekt-ID auf dem Feld k; 0 = frei oder außerhalb der Karte (auch KEIN_FELD). */
+export function belegtId(bel: Int32Array, k: number): number {
+  return bel[k - ERSTER_SCHLUESSEL] ?? 0;
+}
+
+/** Alle Schlüssel der Karte aufsteigend, Nordzone eingeschlossen. */
+export function alleSchluessel(bel: Int32Array): number[] {
+  return Array.from({ length: bel.length }, (_, i) => i + ERSTER_SCHLUESSEL);
 }
 
 /** Zahlender oder abnehmender Kunde? Häuser ohne Kündigung, Großabnehmer mit Vertrag und Wärmebedarf. */
@@ -68,7 +83,7 @@ export function randFelder(o: Objekt): Array<[number, number]> {
   const s = groesse(o);
   const r: Array<[number, number]> = [];
   for (let i = 0; i < s; i++) r.push([o.x + i, o.y - 1], [o.x + i, o.y + s], [o.x - 1, o.y + i], [o.x + s, o.y + i]);
-  return r.filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < MAX_Y);
+  return r.filter(([x, y]) => x >= 0 && y >= KARTE_OBEN_Y && x < N && y < MAX_Y);
 }
 
 const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -76,7 +91,7 @@ const NACHBARN: ReadonlyArray<readonly [number, number]> = [[1, 0], [-1, 0], [0,
 /** Zahl der Leitungsfelder rund um (x|y) – gemeinsame Grundlage für „Leitungsende“ (≤ 1) und „durchlaufend“ (≥ 2). */
 export function leitungsNachbarn(x: number, y: number, istLeitungsfeld: (feld: number) => boolean): number {
   let z = 0;
-  for (const [dx, dy] of NACHBARN) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < N && ny < MAX_Y && istLeitungsfeld(ny * N + nx)) z++; }
+  for (const [dx, dy] of NACHBARN) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= KARTE_OBEN_Y && nx < N && ny < MAX_Y && istLeitungsfeld(ny * N + nx)) z++; }
   return z;
 }
 
@@ -96,7 +111,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const nachId = new Map(objekte.map((o) => [o.id, o]));
   const hz = heizzentrale(objekte);
   const leitungAn = (k: number): Objekt | null => {
-    const o = nachId.get(belegung[k]);
+    const o = nachId.get(belegtId(belegung, k));
     return o && istLeitung(o.typ) ? o : null;
   };
 
@@ -111,13 +126,13 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const reihenfolge: number[] = [];
   for (const [x, y] of randFelder(hz)) {
     const k = y * N + x;
-    if (leitungAn(k) && !tiefe.has(k)) { tiefe.set(k, 1); eltern.set(k, -1); reihenfolge.push(k); }
+    if (leitungAn(k) && !tiefe.has(k)) { tiefe.set(k, 1); eltern.set(k, KEIN_FELD); reihenfolge.push(k); }
   }
   for (let i = 0; i < reihenfolge.length; i++) {
-    const k = reihenfolge[i], x = k % N, y = (k - x) / N;
+    const k = reihenfolge[i], [x, y] = feldVon(k);
     for (const [dx, dy] of NACHBARN) {
       const nx = x + dx, ny = y + dy;
-      if (nx < 0 || ny < 0 || nx >= N || ny >= MAX_Y) continue;
+      if (nx < 0 || ny < KARTE_OBEN_Y || nx >= N || ny >= MAX_Y) continue;
       const nk = ny * N + nx;
       if (verbunden(k, nk) && !tiefe.has(nk)) {
         tiefe.set(nk, (tiefe.get(k) as number) + 1);
@@ -143,12 +158,12 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     const felder: number[] = [];
     for (const [x, y] of randFelder(o)) {
       const k = y * N + x;
-      if (hzFelder.has(k)) { best = -1; bd = 0; break; }
+      if (hzFelder.has(k)) { best = KEIN_FELD; bd = 0; break; }
       const t = tiefe.get(k);
       if (t === undefined) continue;
       // A57: Eine Leitung, die nur am Haus vorbeiläuft, ist kein Anschluss. Bevorzugt wird ein Leitungsende,
       // das am Haus endet (Hausanschluss); nur wenn es keins gibt, zählt die vorbeilaufende Leitung.
-      const px = k % N, py = (k - px) / N;
+      const [px, py] = feldVon(k);
       const nb = leitungsNachbarn(px, py, (f) => verbunden(k, f));
       if (nb <= 1) eigenesEnde = true;
       felder.push(k);
@@ -156,11 +171,11 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       if (wert < bd) { bd = wert; best = k; }
     }
     if (best !== null) {
-      anschluss.set(o.id, { feld: best, tiefe: best === -1 ? 0 : (tiefe.get(best) as number) });
-      if (best >= 0 && !eigenesEnde && felder.length >= 2 && istKunde(o)) kandidaten.set(o.id, felder);
+      anschluss.set(o.id, { feld: best, tiefe: best === KEIN_FELD ? 0 : (tiefe.get(best) as number) });
+      if (best !== KEIN_FELD && !eigenesEnde && felder.length >= 2 && istKunde(o)) kandidaten.set(o.id, felder);
     }
     // A24: Ein Pufferspeicher außen ist ohne eigene Leitung mit der Heizzentrale verbunden.
-    else if (o.typ === 'puffer') anschluss.set(o.id, { feld: -1, tiefe: 0 });
+    else if (o.typ === 'puffer') anschluss.set(o.id, { feld: KEIN_FELD, tiefe: 0 });
   }
   const kunden = objekte.filter((o) => istKunde(o) && anschluss.has(o.id));
 
@@ -175,17 +190,17 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     for (const k of reihenfolge) last.set(k, 0);
     for (const o of kunden) {
       const f = (an.get(o.id) as { feld: number }).feld;
-      if (f >= 0) last.set(f, (last.get(f) as number) + bedarfKw(o));
+      if (f !== KEIN_FELD) last.set(f, (last.get(f) as number) + bedarfKw(o));
     }
     for (let i = reihenfolge.length - 1; i >= 0; i--) {
       const k = reihenfolge[i], p = el.get(k) as number;
-      if (p >= 0) last.set(p, (last.get(p) as number) + (last.get(k) as number));
+      if (p !== KEIN_FELD) last.set(p, (last.get(p) as number) + (last.get(k) as number));
     }
     const ok = new Map<number, boolean>(), rest = new Map<number, number>();
     for (const k of reihenfolge) {
       const p = el.get(k) as number, kap = kap_kw(k), lk = last.get(k) as number;
-      ok.set(k, (p < 0 || (ok.get(p) as boolean)) && lk <= kap);
-      rest.set(k, p < 0 ? kap - lk : Math.min(rest.get(p) as number, kap - lk));
+      ok.set(k, (p === KEIN_FELD || (ok.get(p) as boolean)) && lk <= kap);
+      rest.set(k, p === KEIN_FELD ? kap - lk : Math.min(rest.get(p) as number, kap - lk));
     }
     return { ok, last_kw: last, rest_kw: rest };
   };
@@ -211,21 +226,21 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
       if (!istAbzweig(alt, kinder.length, (baum.angebunden.get(alt) as number) - 1) && kinder.some((k) => rang(k) < rang(alt))) continue;
       const n = bedarfKw(nachId.get(id) as Objekt);
       const altWeg = new Set<number>();
-      for (let f = alt; f >= 0; f = eltern.get(f) as number) altWeg.add(f);
+      for (let f = alt; f !== KEIN_FELD; f = eltern.get(f) as number) altWeg.add(f);
       // Freie Kapazität auf dem Weg des Kandidaten, ohne die eigene Last: Auf dem Stück, das er mit dem alten Weg teilt,
       // ist die eigene Last schon enthalten und wandert nur mit (sonst zählte sie doppelt).
       const restOhne = (k: number): number => {
         let m = Infinity, f = k;
-        for (; f >= 0 && !altWeg.has(f); f = eltern.get(f) as number) m = Math.min(m, kap_kw(f) - (stand.last_kw.get(f) as number));
-        return f >= 0 ? Math.min(m, (stand.rest_kw.get(f) as number) + n) : m;
+        for (; f !== KEIN_FELD && !altWeg.has(f); f = eltern.get(f) as number) m = Math.min(m, kap_kw(f) - (stand.last_kw.get(f) as number));
+        return f !== KEIN_FELD ? Math.min(m, (stand.rest_kw.get(f) as number) + n) : m;
       };
-      let neu = -1, beste = -Infinity;
+      let neu = KEIN_FELD, beste = -Infinity;
       for (const k of kandidaten.get(id) as number[]) {
         if (k === alt) continue;
         const r = restOhne(k);
         if (r >= n && r > beste) { beste = r; neu = k; }
       }
-      if (neu < 0) continue;
+      if (neu === KEIN_FELD) continue;
       // Probehalber umhängen; behalten nur, wenn die Endprüfung selbst das neue Feld trägt.
       anschluss.set(id, { feld: neu, tiefe: tiefe.get(neu) as number });
       const probe = endpruefung(anschluss, eltern);
@@ -239,17 +254,17 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // A91 Netzbaum: Hat die Breitensuche ein Feld über ein dünneres Feld erreicht, hängt es an einem gleich nahen, mindestens
   // so dicken Nachbarn, wenn dessen Weg die Last dahinter noch trägt. Die Fließrichtung ist eine Modellannahme des Spiels;
   // Kapazität, Planungsfehler und Einspeisung werden entlang dieses Baums geprüft. Tiefe und Reihenfolge bleiben.
-  if (reihenfolge.some((k) => { const p = eltern.get(k) as number; return p >= 0 && rang(p) < rang(k); })) {
+  if (reihenfolge.some((k) => { const p = eltern.get(k) as number; return p !== KEIN_FELD && rang(p) < rang(k); })) {
     // Teilbäume, an denen eine Wärmequelle, ein Puffer oder ein Gewerbe hängt, bleiben, wo sie sind: Sonst änderte sich die
     // Einspeisung (V1); schon mehr Wärme kann in der Verteilung ein bisher warmes Haus verdrängen (Bauplan NR15, AE-A91-4).
     const mitQuelle = new Set<number>();
     for (const o of objekte) {
       const a = anschluss.get(o.id);
-      if (a && a.feld >= 0 && (KATALOG[o.typ].kategorie === 'waerme' || o.typ === 'gewerbe')) mitQuelle.add(a.feld);
+      if (a && a.feld !== KEIN_FELD && (KATALOG[o.typ].kategorie === 'waerme' || o.typ === 'gewerbe')) mitQuelle.add(a.feld);
     }
     for (let i = reihenfolge.length - 1; i >= 0; i--) {
       const k = reihenfolge[i], p = eltern.get(k) as number;
-      if (p >= 0 && mitQuelle.has(k)) mitQuelle.add(p);
+      if (p !== KEIN_FELD && mitQuelle.has(k)) mitQuelle.add(p);
     }
     // Schrittweise Prüfung statt voller Endprüfung je Umhängen (dicht verlegte Netze mit Hunderten Umhängungen rechneten sonst
     // ein Vielfaches): Ein Umhängen ändert die Last nur auf den Wegen über p und q zur Heizzentrale.
@@ -260,12 +275,12 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     for (const k of reihenfolge) eigen.set(k, 0);
     for (const o of kunden) {
       const fa = (anschluss.get(o.id) as { feld: number }).feld;
-      if (fa >= 0) eigen.set(fa, (eigen.get(fa) as number) + bedarfKw(o));
+      if (fa !== KEIN_FELD) eigen.set(fa, (eigen.get(fa) as number) + bedarfKw(o));
     }
     const last = new Map(stand.last_kw);
     const nachSummieren = (wege: number[]): void => {
       const felder = new Set<number>();
-      for (const start of wege) for (let g = start; g >= 0; g = eltern.get(g) as number) felder.add(g);
+      for (const start of wege) for (let g = start; g !== KEIN_FELD; g = eltern.get(g) as number) felder.add(g);
       for (const g of [...felder].sort((a, b) => (platz.get(b) as number) - (platz.get(a) as number))) {
         let s = eigen.get(g) as number;
         for (const c of [...(baum.kinder.get(g) ?? [])].sort((a, b) => (platz.get(b) as number) - (platz.get(a) as number))) s += last.get(c) as number;
@@ -274,25 +289,25 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     };
     const restWeg = (q: number): number => {
       let m = Infinity;
-      for (let g = q; g >= 0; g = eltern.get(g) as number) m = Math.min(m, kap_kw(g) - (last.get(g) as number));
+      for (let g = q; g !== KEIN_FELD; g = eltern.get(g) as number) m = Math.min(m, kap_kw(g) - (last.get(g) as number));
       return m;
     };
     const traegtWeg = (q: number): boolean => {
-      for (let g = q; g >= 0; g = eltern.get(g) as number) if ((last.get(g) as number) > kap_kw(g)) return false;
+      for (let g = q; g !== KEIN_FELD; g = eltern.get(g) as number) if ((last.get(g) as number) > kap_kw(g)) return false;
       return true;
     };
     let umgehaengt = false;
     for (const k of reihenfolge) {
       const p = eltern.get(k) as number;
-      if (p < 0 || rang(p) >= rang(k) || mitQuelle.has(k)) continue;
+      if (p === KEIN_FELD || rang(p) >= rang(k) || mitQuelle.has(k)) continue;
       // Ohne k wäre p kein Abzweig mehr, und ein verbleibendes Kind ist dünner → neue A67-Warnung an p.
       const ohneK = (baum.kinder.get(p) as number[]).filter((c) => c !== k);
       if (!istAbzweig(p, ohneK.length, baum.angebunden.get(p) ?? 0) && ohneK.some((c) => rang(c) < rang(p))) continue;
-      const tk = tiefe.get(k) as number, lastK = last.get(k) as number, x = k % N, y = (k - x) / N;
-      let neu = -1, beste = -Infinity;
+      const tk = tiefe.get(k) as number, lastK = last.get(k) as number, [x, y] = feldVon(k);
+      let neu = KEIN_FELD, beste = -Infinity;
       for (const [dx, dy] of NACHBARN) {
         const nx = x + dx, ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= MAX_Y) continue;
+        if (nx < 0 || ny < KARTE_OBEN_Y || nx >= N || ny >= MAX_Y) continue;
         const q = ny * N + nx;
         if (q === p || tiefe.get(q) !== tk - 1 || rang(q) < rang(k)) continue;
         const kinderQ = baum.kinder.get(q) ?? [];
@@ -304,7 +319,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
         const r = restWeg(q);
         if (r >= lastK && r > beste) { beste = r; neu = q; }
       }
-      if (neu < 0) continue;
+      if (neu === KEIN_FELD) continue;
       // Probehalber umhängen; behalten nur, wenn der neue Weg die Last trägt.
       const mitP = baum.kinder.get(p) as number[], mitNeu = baum.kinder.get(neu) ?? [];
       eltern.set(k, neu);
@@ -331,7 +346,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const engpass = new Set<number>();
   for (const k of reihenfolge) {
     const p = eltern.get(k) as number;
-    if (p >= 0 && LEITUNGSRANG[(leitungAn(k) as Objekt).typ] > LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) {
+    if (p !== KEIN_FELD && LEITUNGSRANG[(leitungAn(k) as Objekt).typ] > LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) {
       engpass.add(k); engpass.add(p);
     }
   }
@@ -341,7 +356,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const reduzierung = new Set<number>();
   for (const k of reihenfolge) {
     const p = eltern.get(k) as number;
-    if (p < 0 || LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) continue;
+    if (p === KEIN_FELD || LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) continue;
     if (istAbzweig(p, endbaum.kinder.get(p)?.length ?? 0, endbaum.angebunden.get(p) ?? 0)) continue; // A69: T-Stück mit Vorsehung ist ein Abzweig
     reduzierung.add(k); reduzierung.add(p);
   }
@@ -351,7 +366,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   const gleichDick = new Map<number, number[]>();
   for (const k of reihenfolge) {
     const p = eltern.get(k) as number;
-    if (p >= 0 && LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) gleichDick.set(p, [...(gleichDick.get(p) ?? []), k]);
+    if (p !== KEIN_FELD && LEITUNGSRANG[(leitungAn(k) as Objekt).typ] >= LEITUNGSRANG[(leitungAn(p) as Objekt).typ]) gleichDick.set(p, [...(gleichDick.get(p) ?? []), k]);
   }
   for (const [p, kinder] of gleichDick) if (kinder.length >= 2) { aufteilung.add(p); for (const k of kinder) aufteilung.add(k); }
 
@@ -359,7 +374,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   // Leitungskapazität auf dem Weg zur Heizzentrale. V2: Ein Speicher erzeugt keine Wärme (zählt nur, wenn eine Quelle läuft).
   const wegKapazitaet_kw = (feld: number): number => {
     let kap = Infinity;
-    for (let k = feld; k >= 0; k = eltern.get(k) as number) kap = Math.min(kap, (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor);
+    for (let k = feld; k !== KEIN_FELD; k = eltern.get(k) as number) kap = Math.min(kap, (KATALOG[(leitungAn(k) as Objekt).typ].kapazitaet_kw as number) * spreizung_faktor);
     return kap;
   };
   let aussen_kw = 0, strom_kw = 0, speicher_kw = 0;
@@ -394,7 +409,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
   if (geaendert) {
     for (const o of kunden) {
       const fa = (anschlussAlt.get(o.id) as { feld: number }).feld, fn = (anschluss.get(o.id) as { feld: number }).feld;
-      if (fa >= 0 && !pruefungAlt.ok.get(fa) && fn >= 0 && kapazitaet_ok.get(fn)) beguenstigt.add(o.id);
+      if (fa !== KEIN_FELD && !pruefungAlt.ok.get(fa) && fn !== KEIN_FELD && kapazitaet_ok.get(fn)) beguenstigt.add(o.id);
     }
   }
   const warm = new Set<number>();
@@ -408,7 +423,7 @@ export function berechneNetz(objekte: Objekt[], innen: InnenQuelle[], preisstufe
     const n = bedarfKw(o);
     const a = anschluss.get(o.id) as { feld: number };
     bedarf_kw += n;
-    if (a.feld >= 0 && !kapazitaet_ok.get(a.feld)) { kalt.set(o.id, 'leitung'); continue; }
+    if (a.feld !== KEIN_FELD && !kapazitaet_ok.get(a.feld)) { kalt.set(o.id, 'leitung'); continue; }
     const st = stationHolen(o.station);
     if (st && !stationReicht(st, o)) { kalt.set(o.id, 'station'); continue; } // A32/NR19: Station zu klein
     if (genutzt_kw + n <= verfuegbar_kw) { genutzt_kw += n; warm.add(o.id); } else kalt.set(o.id, 'waerme');
@@ -499,26 +514,26 @@ export function dorfwert(objekte: Objekt[], innen: InnenQuelle[]): number {
  */
 export function eigenerAnschlussZuDuenn(netz: Netz, o: Objekt): boolean {
   const f = netz.anschluss.get(o.id)?.feld;
-  if (netz.kalt.get(o.id) !== 'leitung' || f === undefined || f < 0) return false;
-  const istLeitungsfeld = (k: number): boolean => { const l = netz.nachId.get(netz.belegung[k]); return !!l && istLeitung(l.typ); };
-  if (leitungsNachbarn(f % N, Math.floor(f / N), istLeitungsfeld) > 1) return false;
+  if (netz.kalt.get(o.id) !== 'leitung' || f === undefined || f === KEIN_FELD) return false;
+  const istLeitungsfeld = (k: number): boolean => { const l = netz.nachId.get(belegtId(netz.belegung, k)); return !!l && istLeitung(l.typ); };
+  if (leitungsNachbarn(...feldVon(f), istLeitungsfeld) > 1) return false;
   const { kinder, angebunden } = baumKennzahlen(netz.eltern, netz.anschluss);
   let t = f;
-  for (let p = netz.eltern.get(t) as number; p >= 0 && kinder.get(p)?.length === 1 && !angebunden.has(p); p = netz.eltern.get(t) as number) t = p;
+  for (let p = netz.eltern.get(t) as number; p !== KEIN_FELD && kinder.get(p)?.length === 1 && !angebunden.has(p); p = netz.eltern.get(t) as number) t = p;
   const s = netz.eltern.get(t) as number;
-  return s < 0 || netz.kapazitaet_ok.get(s) === true;
+  return s === KEIN_FELD || netz.kapazitaet_ok.get(s) === true;
 }
 
 /** Grundlage der Abzweig-Regel A67: Kinder je Leitungsfeld im Baum `eltern` und Zahl der Gebäude, die an einem Feld anschließen. */
 function baumKennzahlen(eltern: ReadonlyMap<number, number>, anschluss: ReadonlyMap<number, { feld: number }>): { kinder: Map<number, number[]>; angebunden: Map<number, number> } {
   const kinder = new Map<number, number[]>();
   for (const [k, p] of eltern) {
-    if (p < 0) continue;
+    if (p === KEIN_FELD) continue;
     const liste = kinder.get(p);
     if (liste) liste.push(k); else kinder.set(p, [k]);
   }
   const angebunden = new Map<number, number>();
-  for (const a of anschluss.values()) if (a.feld >= 0) angebunden.set(a.feld, (angebunden.get(a.feld) ?? 0) + 1);
+  for (const a of anschluss.values()) if (a.feld !== KEIN_FELD) angebunden.set(a.feld, (angebunden.get(a.feld) ?? 0) + 1);
   return { kinder, angebunden };
 }
 
