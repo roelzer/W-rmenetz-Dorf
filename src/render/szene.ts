@@ -3,6 +3,7 @@ import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../core/katalog';
 import { abzweigZeichnen, eigenerHausanschluss, kwSchildZeigen } from './anschluss';
 import { bedarfKw, groesse, heizzentrale, leitungsNachbarn, trassenUebergang } from '../core/netz';
 import { KEIN_FELD, feldVon, mod } from '../core/feld';
+import { querungImBau } from '../core/nordviertel';
 import type { Spiel } from '../core/spiel';
 import { bandVorgaenger } from '../core/tutorial-band';
 import type { Feld, TutorialBandFeld } from '../core/tutorial-vertrag';
@@ -936,6 +937,8 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
   const ueberlastFelder = new Set((s.ueberlast ?? []).flatMap((u) => u.felder));
   const vorschau = s.ueberlast_vorschau, vorschauFelder = new Set(vorschau?.felder ?? []);
   const bahnFelder = new Set((s.bahn ?? []).map(([x, y]) => y * N + x)), bahnZeilen = (s.bahn ?? []).map(([, y]) => y);
+  // DESIGN 14.5 „Bau“: Die Leitungen im Bau gelten noch als geplant; auf den Gleisen zeigt dann allein die Baustelle den Stand.
+  const imBau = !!s.spiel && querungImBau(s.spiel.stand);
   // dünne Leitungen zuerst, damit die dicke Hauptleitung über dem Anschlusspunkt liegt (A65)
   const rohre = s.objekte.filter((o) => istLeitung(o.typ)).sort((a, b) => (KATALOG[a.typ].kapazitaet_kw as number) - (KATALOG[b.typ].kapazitaet_kw as number));
   /** Gestrichelte blaue Raute: Kennzeichen „geplant, noch nicht gebaut“ (geplante Leitung und geplanter Ersatz). */
@@ -988,9 +991,11 @@ function zeichneLeitungen(m: Maler, k: Kamera, s: Szene): void {
     const kanteBreite = w + 1.25;
     if (bahnFelder.has(key)) {
       // NR27 (DESIGN 14.5): auf den Gleisen nie ein Rohr – Strichellinie, Ringe vor den Zäunen; Fließpunkte laufen unten weiter
-      zeichneStrichellinie(m, tw, [cx, cy], seg, plan ? STRICHEL_VORSCHAU : rohr, w);
-      const ring_y = schutzrohrY(o.y, bahnZeilen);
-      if (ring_y !== null) zeichneSchutzrohr(m, k, o.x, ring_y, rohr, !plan);
+      if (!(plan && imBau)) {
+        zeichneStrichellinie(m, tw, [cx, cy], seg, plan ? STRICHEL_VORSCHAU : rohr, w);
+        const ring_y = schutzrohrY(o.y, bahnZeilen);
+        if (ring_y !== null) zeichneSchutzrohr(m, k, o.x, ring_y, rohr, !plan);
+      }
       if (plan) { planRaute(cx, cy); X.restore(); }
       continue;
     }
