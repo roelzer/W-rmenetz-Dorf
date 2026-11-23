@@ -726,3 +726,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-11 08:55 | ■ 🟡 | reviewer | ### Urteil: 🟡 freigegeben mit kleinen Punkten  ([Bericht](docs/pruefberichte/20261111-085551-reviewer-a3d58366076e04f8f.md)) |
 | 2026-11-11 12:40 | ▶ | reviewer | Review NR26 Blatt an der Seite |
 | 2026-11-11 12:46 | ■ 🟡 | reviewer | 🟡 **NR26 (Bau-Fenster am Laptop an der Seite) kann zusammengeführt werden. Vorher sollte ein Punkt behoben werden: Am Laptop verdeckt das Fenster jetzt die  ([Bericht](docs/pruefberichte/20261111-124642-reviewer-a9b1ba38f0aae227f.md)) |
+| 2026-11-23 08:07 | ▶ | architekt | Architekt: Entwurf Bahnquerung |
+| 2026-11-23 08:08 | ▶ | rechercheur | Recherche Bahnquerung Fachwissen |
+| 2026-11-23 08:08 | ▶ | designer | Designer: Entwurf Bahn und Viertel |
