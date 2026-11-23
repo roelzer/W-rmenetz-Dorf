@@ -84,3 +84,8 @@ Neubaugebiet nutzt dieselben Werte wie das Altdorf (EFH 15.000 kWh/a = 10 kW, Sp
 
 ## 2026-11-12 – Reihenfolge NR24/NR25
 - Frage (aus STATUS „Als Nächstes“): Erst Rohrgrößen-Vorschau (NR24) oder erst kW-Anzeige (NR25)? → Simon per Sprache 2026-11-12: „A ist okay“ = erst NR24, dann NR25. NR24 gebaut. Erledigt.
+
+## 2026-11-23 – NR27 Bahnquerung (Fachregeln, nur Simon)
+- [ ] **BQ1–BQ3 bestätigen** (docs/recherche/bahnquerung-texte.md, Abschnitt 5): (BQ1) Bahn wird in der Regel grabenlos unterquert; (BQ2) vor dem Bau muss der Bahnbetreiber den Plan prüfen und zustimmen; (BQ3) Querung ist teurer und langsamer als normaler Leitungsbau, Zahlen sind Spielwerte. Empfehlung: bestätigen (Sicherheit 75/85/70). Ohne Antwort: Erklärtexte bleiben im Spiel ausgeschaltet.
+- [ ] **Fachtexte freigeben** (Erklärkarte, Wissenstext, Mini-Tutorial-Blasen). Freigabezeile zum Einfügen in `.claude/freigaben.md`: `2026-11-23 | NR27-Fachtexte | Simon bestätigt Texte aus docs/recherche/bahnquerung-texte.md | Erklärkarte und Wissenstext Bahnquerung`. Ohne Antwort: Spiel läuft, aber ohne Erklärtext.
+- [ ] **Preis und Bauzeit der Querung:** Platzhalter 45.000 € je Bahnfeld (90.000 € je Querung), Zuschlag 1.440 s (Bauabschnitt dauert 75 statt 15 Min Spielzeit). Keine belegbaren Werte vorhanden. Empfehlung: so lassen, „vereinfacht“. Echte Werte nur per Anfrage bei DB InfraGO/DB Immobilien.

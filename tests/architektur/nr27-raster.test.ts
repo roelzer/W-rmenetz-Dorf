@@ -130,7 +130,7 @@ describe('NR27 Texte: eine Tabelle, Fachtexte nur mit Freigabe', { timeout: 3000
   it('Fachtexte sind nur mit Simons Freigabe eingeschaltet (AE-NR27-13)', () => {
     const an = /\bNORD_FACHTEXTE_FREIGEGEBEN\s*(?::\s*boolean\s*)?=\s*true\b/.test(ohneKommentare(readFileSync(TEXT_MODUL, 'utf8')));
     const freigaben = existsSync('.claude/freigaben.md') ? readFileSync('.claude/freigaben.md', 'utf8') : '';
-    expect(!an || /NR27-Fachtexte/.test(freigaben),
-      'AE-NR27-13 verletzt: NORD_FACHTEXTE_FREIGEGEBEN = true ohne Eintrag „NR27-Fachtexte“ in .claude/freigaben.md. Fachliche Texte schaltet nur Simon frei (nach Fachprüfer). Erlaubter Weg: Schalter auf false lassen, bis Simon die Freigabe eingetragen hat.').toBe(true);
+    expect(!an || /^.*NR27-Fachtexte.*Simon.*$/m.test(freigaben),
+      'AE-NR27-13 verletzt: NORD_FACHTEXTE_FREIGEGEBEN = true ohne Zeile mit „NR27-Fachtexte“ und „Simon“ in .claude/freigaben.md. Fachliche Texte schaltet nur Simon frei (nach Fachprüfer). Erlaubter Weg: Schalter auf false lassen, bis Simon die Freigabe eingetragen hat.').toBe(true);
   });
 });

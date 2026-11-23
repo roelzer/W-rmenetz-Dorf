@@ -375,3 +375,11 @@ Dateien: neu `src/render/bahn.ts` (Zug, Masten, Zaun, Schranke, Dunst, Baustelle
 
 ## 9. NR28 (Tal, Höhenübergabe, Druck) – nicht verbaut
 Das Tal liegt in y-Richtung (nördlich durch größeres `nord_zeilen` oder südlich über `neubau_hoehe`), weil die Breite 24 fest ist. Geländehöhe wird ein Datenmodul (`gelaende_hoehe_m(x, y)`), kein Spielstandfeld. Druck (`druck_bar`) wird eine eigene Kernrechnung über `eltern`/`tiefe`; Voraussetzung ist die ortsunabhängige Netzrechnung aus P1. Die Höhenübergabe wird ein eigener Objekttyp (anders als die Querung, AE-NR27-6). netz.ts bleibt bahnfrei.
+
+## 10. Nachtrag Fassung 3.1 (Projektleiter, nach Kritiker-Nachprüfung 2026-11-23)
+1. **Texttabelle:** Die Tabelle in Abschnitt 3 ist um die sechs Kennungen des Designers erweitert und gilt allein (Wortlaut „Hauptstraße“). `NordTextId` enthält alle Kennungen, auch `KARTE_TITEL`, `KARTE_ALT`, `CHIP`.
+2. **Zuordnung der neuen Stellen:** `KOSTEN_ZUSATZ` (Infozeile im Kasten „Bauabschnitt“) und `BLATT_ZEILE` baut P3 nur als Text/Wert im Kern, die Anzeige P4 (ui/katalog.ts, Blatt); `CHIP` und `TUTORIAL_BEDIEN` P5; `KARTE_TITEL`/`KARTE_ALT` P5 (Erklärkarte).
+3. **nordInfo nach der Erschließung auf einem Bahnfeld:** `null` (kein Toast). DESIGN 14.6 Zeile zu `STELLE` beim Antippen entfällt; `STELLE` gilt nur beim Zeichnen.
+4. **Test mit Freigabe (P3, P5):** Der Test ersetzt per `vi.mock` die Funktion `nordText` durch die echte Funktion mit `freigegeben = true`. Es gibt **keinen** umschaltbaren Schalter im Spielcode.
+5. **P2 `nordviertelAnlegen`:** Belegte Plätze werden direkt aus `stand.objekte` verglichen, ohne `netz.ts` zu importieren (AE-NR27-5).
+6. **Freigabe der Fachtexte:** Der Architekturtest verlangt in `.claude/freigaben.md` eine Zeile mit „NR27-Fachtexte“ und „Simon“. Der Punkt steht in `docs/OFFENE_FRAGEN.md` („Nur Simon“).
