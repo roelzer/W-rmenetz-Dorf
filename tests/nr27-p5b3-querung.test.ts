@@ -14,9 +14,9 @@ import { aufnahme } from './hilfen/nr22';
 //
 // Werte von Hand: Zoom 1,4 bei 844×390 → Basis min(844/26, 390/15) = 26 px, tw = 36,4 px. d40: breite 0,08, farbe '#6ec6ff'
 // (core/katalog.ts) → Rohrbreite max(1,5; 36,4 · 0,08 · 0,62) = 1,80544 px; Strichellinie 60 % = 1,083264 px.
-// Vorschau-Farbe `karte.vorschau_ok` = 'rgba(63,154,91,0.40)'; `bahn.schutzrohr` '#2f3a40'; `bahn.merkpfahl` '#f4f1ea',
+// Vorschau-Farbe `karte.pfeil_ok` = '#2e7a4e' (deckendes Grün statt `vorschau_ok` mit 40 %: auf Schotter kaum sichtbar, Foto P5b3); `bahn.schutzrohr` '#2f3a40'; `bahn.merkpfahl` '#f4f1ea',
 // Kappe `menue.farbe.naht_vorlauf` '#ff8a1f'. Ringe vor den Zäunen bei y = −1,38 und −3,62.
-const D40 = '#6ec6ff', W = 1.80544, STRICH = 1.083264, VORSCHAU = 'rgba(63,154,91,0.40)';
+const D40 = '#6ec6ff', W = 1.80544, STRICH = 1.083264, VORSCHAU = '#2e7a4e';
 const SCHUTZROHR = 'strokeStyle=#2f3a40', MERKPFAHL = 'strokeStyle=#f4f1ea', KAPPE = 'strokeStyle=#ff8a1f';
 
 function kamera(): Kamera {

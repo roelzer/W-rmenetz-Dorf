@@ -138,8 +138,11 @@ const QUERUNG = {
   haarlinie: 'rgba(31,42,46,.55)',
 } as const;
 
-/** Vorschau-Farbe der Strichellinie (`karte.vorschau_ok`). */
-export const STRICHEL_VORSCHAU = tokens.farbe.karte.vorschau_ok;
+/**
+ * Vorschau-Farbe der Strichellinie: das deckende OK-Grün der Karte (`karte.pfeil_ok`). DESIGN 14.5 nennt `vorschau_ok`; das ist
+ * eine Flächenfarbe mit 40 % Deckkraft und war als 1-px-Strich auf dem Schotter kaum zu sehen (Foto P5b3).
+ */
+export const STRICHEL_VORSCHAU = tokens.farbe.karte.pfeil_ok;
 
 /**
  * Leitung auf einem Bahnfeld: dieselben Arme wie das Rohr (ohne Arm der Punkt), aber gestrichelt und schmaler – auf den Gleisen
