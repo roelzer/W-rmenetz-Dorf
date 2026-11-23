@@ -113,6 +113,8 @@ export class Steuerung implements Ui {
   private zielHerstellenOffen = false;
   /** Aufgaben, die erst nach dem Tutorial dran sind (z. B. der Update-Hinweis, K6) */
   private nachTutorialListe: Array<() => void> = [];
+  /** Meldungen, die kamen, solange das Mini-Tutorial „Bahnquerung“ offen war – sie verdeckten sonst dessen Knöpfe (667×375) */
+  private nachBahnTutorialMeldungen: string[] = [];
   /** Läuft in diesem Bild eine Kamerafahrt? Einmal je Bild aus der Bildzeit bestimmt (tick). */
   private fahrtJetzt = false;
   /** Zuletzt angewendete Ansicht: Schritt (mit Wiedereinstieg), freie Breite und Darstellungs-Schlüssel */
@@ -882,13 +884,20 @@ export class Steuerung implements Ui {
     if (this.anleitung || sp.tutorialAktiv() || this.besuch || blattOffen() || sprecherAktiv() || meldungOffen() || bahnTutorialOffen()) return;
     // Der Installations-Hinweis liegt im Browser über dem ganzen Spiel (außerhalb von #app) und verdeckte die Knöpfe der Karte
     if (document.querySelector('.install-hinweis')) return;
-    const gesehen = (): void => { sp.stand.bahn_hilfe_gesehen = true; };
+    const gesehen = (): void => { sp.stand.bahn_hilfe_gesehen = true; this.zurueckgehalteneMeldungen(); };
     // Ohne offenes Blatt ist die ganze Fläche frei (Bedingung oben), Platz wie die Anleiter-Karte (13.3)
     const bild = { breite: this.kamera.breite, hoehe: this.kamera.hoehe };
     bahnTutorialZeigen(anleiterPlatz({ x: 0, y: 0, b: bild.breite, h: bild.hoehe }, null, bild), {
       spaeter: gesehen,
       zeigMir: () => { gesehen(); this.zurQuerung(); },
     });
+  }
+
+  /** Designer-Treue M8: zurückgehaltene Meldungen nach dem Schließen des Mini-Tutorials, mit derselben Pause wie nach dem
+   *  Pflicht-Tutorial – keine geht verloren. */
+  private zurueckgehalteneMeldungen(): void {
+    const liste = this.nachBahnTutorialMeldungen.splice(0);
+    if (liste.length) window.setTimeout(() => { for (const text of liste) toast(text); }, NACH_TUTORIAL_MS);
   }
 
   /** [Zeig’s mir] (14.15 Punkt 20): Baumenü im Reiter „Leitungen“, Kamera auf die Querungsstelle (10|−2,5), Zoom 2,2. Das Menü
@@ -1297,7 +1306,7 @@ export class Steuerung implements Ui {
   private ereignisse(): void {
     const ruhig = this.einstellungen.weniger_bewegung;
     for (const ev of this.spiel.ereignisse.splice(0)) {
-      if (ev.art === 'hinweis') toast(ev.text);
+      if (ev.art === 'hinweis') { if (bahnTutorialOffen()) this.nachBahnTutorialMeldungen.push(ev.text); else toast(ev.text); }
       else if (ev.art === 'sprecher') sprecherZeigen(ev.figur, ev.text);
       else if (ev.art === 'schritt') this.mitSchliessen(() => this.anleitung?.schritt(ev));
       // NR18 (AE-NR18-6): auch bei „Weniger Bewegung“ markieren – die Darstellung lässt dann nur den Puls weg
