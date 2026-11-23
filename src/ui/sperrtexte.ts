@@ -1,7 +1,8 @@
 import { ABSCHNITT_HELFER, GRUNDGEBUEHR, KONSTANTEN, PREISSTUFEN, VORLAUF } from '../core/katalog';
 import { abStufe, merkmalName, type Merkmal } from '../core/freischaltung';
 import type { Spiel } from '../core/spiel';
-import { zeitText } from '../render/gebaeude';
+import { nordHinweisText } from '../core/nord-texte';
+import { dauerText, zeitText } from '../render/gebaeude';
 import type { Sperre } from './bausteine';
 import { eur } from './dom';
 
@@ -17,6 +18,11 @@ export const OHNE_ABSCHNITT_HINWEIS = `Erst mit ${ABSCHNITT_HELFER.planung} eine
 
 /** DESIGN.md 12.22: dasselbe im Hausblatt, wo der Knopf „Bauabschnitt planen lassen“ direkt über dem gesperrten Knopf steht. */
 export const OHNE_ABSCHNITT_HINWEIS_HAUS = `Erst mit ${ABSCHNITT_HELFER.planung} einen Bauabschnitt planen – Knopf direkt darüber.`;
+
+/** NR27 (DESIGN 14.5, T04): Zusatz zur Kostenzeile, solange der Abschnitt ein Bahnfeld enthält – Kasten „Bauabschnitt“ und
+ *  Chip der Zeichenleiste sagen dasselbe. Summe und Zuschlag kommen aus dem Kern. */
+export const querungKostenText = (sp: Spiel): string =>
+  nordHinweisText('KOSTEN_ZUSATZ', { querung_eur: eur(sp.querung_eur()), querung_zeit: dauerText(KONSTANTEN.querung_bau_s * KONSTANTEN.bauzeit_faktor) });
 
 /** Hausanschluss-Erklärsatz, kurze Fassung für die Zeichenleiste (Fachprüfung, ENTSCHEIDUNGEN 2026-11-05). */
 export const HAUSANSCHLUSS_KURZ = 'Endet eine Leitung an einem Haus, ist es sein Hausanschluss – er muss dick genug für das Haus sein.';
