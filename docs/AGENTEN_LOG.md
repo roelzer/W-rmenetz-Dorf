@@ -729,3 +729,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:07 | ▶ | architekt | Architekt: Entwurf Bahnquerung |
 | 2026-11-23 08:08 | ▶ | rechercheur | Recherche Bahnquerung Fachwissen |
 | 2026-11-23 08:08 | ▶ | designer | Designer: Entwurf Bahn und Viertel |
+| 2026-11-23 08:11 | ■ 🟡 | rechercheur | Ampel GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/bahnquerung.md (Modus recherche, Gegenprüfung steht aus).  ([Bericht](docs/pruefberichte/20261123-081129-rechercheur-a505fa64128e03cb8.md)) |
+| 2026-11-23 08:11 | ▶ | rechercheur | Gegenprüfung Recherche Bahnquerung |
