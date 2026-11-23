@@ -790,3 +790,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 10:56 | ▶ | entwickler | Entwickler P5a4 Mini-Tutorial und Tokens |
 | 2026-11-23 10:56 | ▶ | reviewer | Reviewer P5a UI-Pakete |
 | 2026-11-23 11:03 | ■ 🔴 | reviewer | ## 🟡 Freigegeben mit kleinen Punkten: Review NR27 P5a (Oberfläche/Kern), Modus `paket`  ([Bericht](docs/pruefberichte/20261123-110356-reviewer-a2b69022472bc6637.md)) |
+| 2026-11-23 11:05 | ■ 🔴 | entwickler | 🔴 BLOCKIERT. Grund: Mein Kontext ist voll. Alle drei Bildpunkte des Pakets sind gebaut, getestet und committet. Die Test-Schranke meldet trotzdem „NICHT OK ([Bericht](docs/pruefberichte/20261123-110533-entwickler-a58e57788306c03ae.md)) |
+| 2026-11-23 11:06 | ▶ | entwickler | Entwickler P5b4 Baustelle und Erfolgsmoment |
