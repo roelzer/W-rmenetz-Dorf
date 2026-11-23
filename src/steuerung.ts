@@ -28,7 +28,7 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { zieleOeffnen } from './ui/ziele';
 import { spielOrt } from './core/neubaugebiet';
-import { nordInfo, nordKulisse, nordSperre } from './core/nordviertel';
+import { BAHN_ZEILEN_Y, QUERUNG_X, nordInfo, nordKulisse, nordSperre } from './core/nordviertel';
 import { nordHinweisText } from './core/nord-texte';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
@@ -36,7 +36,8 @@ import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSp
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { tempo } from './tempo';
-import { meldungenStumm, toast, toastDauer_ms, toastWichtig } from './ui/toast';
+import { meldungenStumm, meldungOffen, toast, toastDauer_ms, toastWichtig } from './ui/toast';
+import { bahnTutorialOffen, bahnTutorialZeigen } from './ui/bahn-tutorial';
 
 const N = KONSTANTEN.feldanzahl;
 /** Bauplan NR13 P4: Abstand nach [Los geht’s], bevor aufgesparte Hinweise kommen */
@@ -55,6 +56,8 @@ const T13_ZOOM_MIN = 2;
 const BLATT_ZU_NACH_KAUF_MS = 200;
 /** Wie Kamera.groesseSetzen: kürzere Bildkante unter 500 px = Handy */
 const HANDY_KANTE_PX = 500;
+/** DESIGN 14.15 Punkt 20 [Zeig’s mir]: Blick auf die Querungsstelle, zwischen beiden Gleisen (10|−2,5), Zoom 2,2 */
+const QUERUNG_BLICK = { x: QUERUNG_X, y: (BAHN_ZEILEN_Y[0] + BAHN_ZEILEN_Y[BAHN_ZEILEN_Y.length - 1]) / 2, zoom: 2.2 };
 type SzeneTutorial = Pick<Szene, 'tutorial_band' | 'naechstes_feld' | 'zielscheibe' | 'ziel' | 'stecker_blass' | 'stecker_blass_ids' | 'ruhe' | 'tutorial_fremd' | 'erreicht'>;
 type Modus = 'normal' | 'platzieren' | 'verschieben' | 'stempel';
 
@@ -860,6 +863,32 @@ export class Steuerung implements Ui {
     // Weg b: Geld ändert sich auch ohne Ereignis, darum in jedem Bild prüfen (vor dem Anwenden)
     this.anleitung?.zustandPruefen();
     this.anleitungAnwenden();
+    this.bahnTutorialPruefen();
+  }
+
+  /** NR27 (DESIGN 13.13 A, 14.15 Punkt 20): Mini-Tutorial einmal nach der Freischaltung der Querung – erst, wenn nichts anderes
+   *  offen ist (Blatt, Pflicht-Tutorial, Besuch, Sprecher, Meldung, Installations-Hinweis), damit es nach der Stufen-Meldung kommt und nie gleichzeitig.
+   *  Alte Stände auf Stufe 6 sehen es auch einmal. „Gesehen“ erst nach einer Antwort: Neustart mittendrin → kommt von vorn. */
+  private bahnTutorialPruefen(): void {
+    const sp = this.spiel;
+    if (sp.stand.bahn_hilfe_gesehen === true || !sp.freigeschaltet('bahnquerung')) return;
+    if (this.anleitung || sp.tutorialAktiv() || this.besuch || blattOffen() || sprecherAktiv() || meldungOffen() || bahnTutorialOffen()) return;
+    // Der Installations-Hinweis liegt im Browser über dem ganzen Spiel (außerhalb von #app) und verdeckte die Knöpfe der Karte
+    if (document.querySelector('.install-hinweis')) return;
+    const gesehen = (): void => { sp.stand.bahn_hilfe_gesehen = true; };
+    bahnTutorialZeigen({ breite: this.kamera.breite, hoehe: this.kamera.hoehe }, {
+      spaeter: gesehen,
+      zeigMir: () => { gesehen(); this.zurQuerung(); },
+    });
+  }
+
+  /** [Zeig’s mir] (14.15 Punkt 20): Baumenü im Reiter „Leitungen“, Kamera auf die Querungsstelle (10|−2,5), Zoom 2,2. Das Menü
+   *  öffnet zuerst, damit die Fahrt in der Fläche links davon endet – sonst läge die Stelle am Ende hinter dem Seitenblatt. */
+  private zurQuerung(): void {
+    this.katalog('netz');
+    const frei = this.freieFlaeche();
+    this.kamera.fahrtZu(QUERUNG_BLICK.x, QUERUNG_BLICK.y, 1, frei.x + frei.b / 2, frei.y + frei.h / 2, QUERUNG_BLICK.zoom,
+      this.ruhig() ? 0 : T.menue.zeit_ms.kamera_fahrt, this.bildzeit());
   }
 
   /** Nach dem letzten Schritt: Meldungen und HUD wie außerhalb des Tutorials; Aufgesparte Aufgaben 600 ms nach [Los geht’s]. */

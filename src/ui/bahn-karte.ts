@@ -1,9 +1,9 @@
 import type { Spiel } from '../core/spiel';
 import { KONSTANTEN } from '../core/katalog';
 import { nordHinweisText, nordText } from '../core/nord-texte';
-import { dauerText } from '../render/gebaeude';
 import { chip, knopf, symbol } from './bausteine';
 import { eur, h } from './dom';
+import { querungZuschlagText } from './sperrtexte';
 import erklaerbild from '../../design/nr27-erklaerbild-querschnitt.svg?raw';
 
 const SAETZE = ['KARTE_1', 'KARTE_2', 'KARTE_3', 'KARTE_4'] as const;
@@ -42,7 +42,7 @@ export function bahnKarteZeigen(_sp: Spiel): void {
         h('div', { class: 'karte-text' }, ...saetze.map((s) => h('p', {}, s)))),
       h('div', { class: 'karte-chips' },
         h('span', { class: 'chip gold' }, symbol('geld', 'sym'), nordHinweisText('KARTE_CHIP_FELD', { preis: eur(KONSTANTEN.querung_eur_je_feld) })),
-        chip(nordHinweisText('KARTE_CHIP_ZUSCHLAG', { querung_zeit: dauerText(KONSTANTEN.querung_bau_s * KONSTANTEN.bauzeit_faktor) }))),
+        chip(nordHinweisText('KARTE_CHIP_ZUSCHLAG', { querung_zeit: querungZuschlagText() }))),
       h('p', { class: 'gedaempft karte-hinweis' }, nordHinweisText('KARTE_5'))),
     h('div', { class: 'aktionen' }, verstanden));
 
@@ -55,7 +55,8 @@ export function bahnKarteZeigen(_sp: Spiel): void {
     if (e.shiftKey && document.activeElement === erst) { e.preventDefault(); letzt.focus(); }
     else if (!e.shiftKey && document.activeElement === letzt) { e.preventDefault(); erst.focus(); }
   });
-  const ebene = h('div', { id: 'bahn-karte' }, h('div', { class: 'abdunkeln' }), dialog);
+  // Tippen neben das Popup: Im Browser fiele der Fokus auf body und Tab liefe aus dem Popup heraus – er bleibt im Popup.
+  const ebene = h('div', { id: 'bahn-karte' }, h('div', { class: 'abdunkeln', onclick: () => verstanden.focus({ preventScroll: true }) }), dialog);
   document.getElementById('app')!.append(ebene);
   verstanden.focus({ preventScroll: true });
 }

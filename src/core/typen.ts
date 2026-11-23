@@ -122,7 +122,7 @@ export interface Spielstand {
   neubau_strassenluecken?: number[];
   /** NR27: Die Querung steht, die Häuser hinter der Bahn sind angelegt (einmalig; fehlt in alten Ständen) */
   nordviertel?: true;
-  /** NR27: Die Erklärkarte zur Bahnquerung wurde schon gezeigt */
+  /** NR27: Das Mini-Tutorial zur Bahnquerung wurde beantwortet ([Zeig’s mir], [Später] oder Esc; fehlt in alten Ständen) */
   bahn_hilfe_gesehen?: true;
   garten_layout?: 1;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
