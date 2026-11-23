@@ -3,6 +3,7 @@ import { mod } from '../core/feld';
 import { freigeschaltet } from '../core/freischaltung';
 import { QUERUNG_X, querungImBau } from '../core/nordviertel';
 import type { Spielstand } from '../core/typen';
+import { schatten } from './farben';
 import type { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 
@@ -218,4 +219,82 @@ export function zugLage(jetzt_ms: number, stand: Pick<Spielstand, 'abschnitt'> |
   // Im Wechsel: gerade Takte auf Gleis 2 nach Osten, ungerade auf Gleis 1 nach Westen
   if (n % 2 === 0) return { gleis_y: ZUG_MASS.gleis2_y, kopf_x: ZUG_MASS.von_x + weg, richtung: 1 };
   return { gleis_y: ZUG_MASS.gleis1_y, kopf_x: ZUG_MASS.bis_x - weg, richtung: -1 };
+}
+
+/** Ein Wagen in Feld-x, schon auf die Gleislänge gekürzt. `lok` = vorderer Wagen (Stromabnehmer, orangener Streifen). */
+export interface ZugTeil { von_x: number; bis_x: number; gleis_y: number; lok: boolean }
+
+/** Gleise enden am Feldrand der Endspalten; was darüber hinausragt, steckt noch im Wolkenrand (DESIGN 14.3 „Fahrt“). */
+const GLEIS_WEST_X = ZUG_MASS.von_x - 0.5, GLEIS_OST_X = ZUG_MASS.bis_x + 0.5;
+const WAGEN_FELDER = ZUG_MASS.laenge_felder / 2;
+
+/** Lok und Wagen hinter der Spitze (gegen die Fahrtrichtung), je 2 Felder; ganz im Wolkenrand liegende Teile fehlen. */
+export function zugTeile(lage: ZugLage): ZugTeil[] {
+  const r: ZugTeil[] = [];
+  for (const [i, lok] of [[0, true], [1, false]] as const) {
+    const a = lage.kopf_x - lage.richtung * i * WAGEN_FELDER, b = a - lage.richtung * WAGEN_FELDER;
+    const von_x = Math.max(Math.min(a, b), GLEIS_WEST_X), bis_x = Math.min(Math.max(a, b), GLEIS_OST_X);
+    if (bis_x > von_x) r.push({ von_x, bis_x, gleis_y: lage.gleis_y, lok });
+  }
+  return r;
+}
+
+/** Form und Farben nach DESIGN 14.3/14.9 (`zug_kasten`, `zug_fenster`, `zug_dach`; Streifen = `menue.farbe.naht_*`). */
+const ZUG = {
+  kasten: '#f3eee3', fenster: '#2f3d48', dach: '#9aa1a6',
+  vorlauf: tokens.menue.farbe.naht_vorlauf, ruecklauf: tokens.menue.farbe.naht_ruecklauf,
+  /** halbe Breite 0,28 Feld, Höhe 0,34 Kachel */
+  halb_breite: 0.14, hoehe: 0.34,
+  /** Fensterband und Streifen als Anteil der Kastenhöhe; Abstand der Fenster zum Wagenende in Feldern (Werte der Grafik) */
+  fenster_unten: 0.5, fenster_oben: 0.78, streifen: 0.14, fenster_rand: 0.12,
+  schatten: 'rgba(30,50,35,.22)',
+} as const;
+
+/** Tiefe wie bei Masten und Objekten (Mitte + Größe 1), damit Häuser davor und Masten dahinter richtig liegen. */
+export function zugTeilTiefe(k: Kamera, teil: ZugTeil): number {
+  const [rx, ry] = k.dreheFeld((teil.von_x + teil.bis_x) / 2, teil.gleis_y);
+  return rx + ry + 1;
+}
+
+/**
+ * Wagen als Quader nach Blickrichtung: sichtbare Seiten wie Maler.quader (Außennormale zeigt im Bild nach unten), Fensterband und
+ * Streifen auf den Längsseiten, Dach, Stromabnehmer bis zur Fahrdrahthöhe auf der Lok, flacher Schatten am Boden.
+ */
+export function zeichneZugTeil(m: Maler, k: Kamera, teil: ZugTeil): void {
+  const { X } = m, tw = k.tw, h = ZUG.hoehe * tw;
+  const { von_x: x0, bis_x: x1, gleis_y: g } = teil, y0 = g - ZUG.halb_breite, y1 = g + ZUG.halb_breite;
+  const auf = (p: Punkt, f: number): Punkt => [p[0], p[1] - h * f];
+  const boden = [k.mitte(x0, y0), k.mitte(x1, y0), k.mitte(x1, y1), k.mitte(x0, y1)];
+  const versatz = tw * 0.04;
+  m.flaeche(boden.map(([px, py]) => [px + versatz, py + versatz * 0.5] as Punkt), ZUG.schatten, false);
+  const fx0 = Math.min(x0 + ZUG.fenster_rand, x1), fx1 = Math.max(x1 - ZUG.fenster_rand, x0);
+  for (let i = 0; i < 4; i++) {
+    const a = boden[i], b = boden[(i + 1) % 4], nx = b[1] - a[1], ny = -(b[0] - a[0]), nl = Math.hypot(nx, ny) || 1;
+    if (ny <= 0) continue;
+    m.flaeche([a, b, auf(b, 1), auf(a, 1)], schatten(ZUG.kasten, -0.08 - 0.179 * (nx / nl)));
+    // Längsseiten (Kanten 0 und 2 laufen entlang der Gleise): Fensterband und Streifen
+    if (i % 2 !== 0) continue;
+    const yy = i === 0 ? y0 : y1, p = (x: number, f: number): Punkt => auf(k.mitte(x, yy), f);
+    m.flaeche([p(fx0, ZUG.fenster_unten), p(fx1, ZUG.fenster_unten), p(fx1, ZUG.fenster_oben), p(fx0, ZUG.fenster_oben)], ZUG.fenster, false);
+    X.strokeStyle = teil.lok ? ZUG.vorlauf : ZUG.ruecklauf; X.lineWidth = Math.max(1, tw * 0.025); X.lineCap = 'butt';
+    X.beginPath(); X.moveTo(...p(x0, ZUG.streifen)); X.lineTo(...p(x1, ZUG.streifen)); X.stroke();
+  }
+  m.flaeche(boden.map((q) => auf(q, 1)), ZUG.dach);
+  if (!teil.lok) return;
+  // Stromabnehmer: zwei Striche vom Dach bis an den Fahrdraht (Höhe `fahrdraht_hoehe` über der Gleismitte)
+  const mx = (x0 + x1) / 2, oben = (x: number, y: number, hh: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - hh * tw]; };
+  X.strokeStyle = MAST.farbe; X.lineWidth = Math.max(1, tw * 0.015); X.beginPath();
+  X.moveTo(...oben(mx - 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
+  X.moveTo(...oben(mx + 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
+  X.stroke();
+}
+
+/** Liegt ein Teil des Zugs im Bild (mit Rand für Dach und Stromabnehmer)? Außerhalb braucht er keinen flüssigen Takt. */
+export function zugImBild(k: Kamera, lage: ZugLage): boolean {
+  const tw = k.tw, rand = tw * MAST.draht_hoehe;
+  return zugTeile(lage).some((t) => {
+    const p = [t.von_x, t.bis_x].flatMap((x) => [k.mitte(x, t.gleis_y - ZUG.halb_breite), k.mitte(x, t.gleis_y + ZUG.halb_breite)]);
+    const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+    return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
+  });
 }

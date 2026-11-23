@@ -10,7 +10,10 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
-import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken } from './bahn';
+import {
+  BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken,
+  zeichneZugTeil, zugLage, zugTeile, zugTeilTiefe,
+} from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -483,11 +486,18 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
   const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
-  // NR27 (DESIGN 14.2): Masten und Fahrdraht nach Tiefe zwischen die Objekte einsortiert (beide Listen sind sortiert)
-  const masten = s.bahn?.length ? mastenNachTiefe(k, s.bahn, s.fluss ?? []) : [];
+  // NR27 (DESIGN 14.2, 14.3): Masten mit Fahrdraht und die Wagen des Zugs nach Tiefe zwischen die Objekte einsortiert (beide
+  // Listen sind sortiert). Kein Zug bei weniger Bewegung/Sparmodus: ein stehender Zug sähe wie eine Störung aus.
+  const bahnTeile: Array<{ tiefe: number; zeichne: () => void }> = [];
+  if (s.bahn?.length) {
+    for (const mast of mastenNachTiefe(k, s.bahn, s.fluss ?? [])) bahnTeile.push({ tiefe: mast.tiefe, zeichne: () => zeichneMast(m, k, mast) });
+    const zug = m.reduziert ? null : zugLage(s.jetzt_ms, s.spiel);
+    for (const teil of zug ? zugTeile(zug) : []) bahnTeile.push({ tiefe: zugTeilTiefe(k, teil), zeichne: () => zeichneZugTeil(m, k, teil) });
+    bahnTeile.sort((a, b) => a.tiefe - b.tiefe);
+  }
   let naechsterMast = 0;
   const mastenBis = (grenze: number): void => {
-    while (naechsterMast < masten.length && masten[naechsterMast].tiefe < grenze) zeichneMast(m, k, masten[naechsterMast++]);
+    while (naechsterMast < bahnTeile.length && bahnTeile[naechsterMast].tiefe < grenze) bahnTeile[naechsterMast++].zeichne();
   };
   for (const o of sortiert) {
     mastenBis(tiefe(o));

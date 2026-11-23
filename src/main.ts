@@ -173,7 +173,7 @@ function bild(jetzt: number): void {
   steuerung.effekte.sparsam = einstellungen.sparmodus;
   const szene = steuerung.szene(), kameraSchluessel = kamera.schluessel(), effekte_aktiv = steuerung.effekte.aktiv(), verdeckt = vorspannDeckt();
   const r = sollZeichnen(takt, {
-    jetzt_ms: jetzt, szene: szenenSchluessel(szene), kamera: kameraSchluessel, bedarf: animationBedarf(szene, effekte_aktiv),
+    jetzt_ms: jetzt, szene: szenenSchluessel(szene), kamera: kameraSchluessel, bedarf: animationBedarf(szene, effekte_aktiv, kamera),
     effekte_aktiv, animation: maler.reduziert ? 'aus' : 'an', sparmodus: einstellungen.sparmodus, verdeckt, erzwingen,
   });
   takt = r.zustand;

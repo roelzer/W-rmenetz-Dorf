@@ -2,7 +2,7 @@ import { istLeitung, KATALOG, KONSTANTEN } from '../core/katalog';
 import type { Netz, Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
 import { istHerbst } from './jahreszeiten';
-import { querungFrei } from './bahn';
+import { querungFrei, zugImBild, zugLage } from './bahn';
 import { blase } from './blase';
 import type { Szene } from './szene';
 
@@ -119,8 +119,12 @@ export function bodenSchluessel(s: Szene, k: Kamera): string {
   ].join('|');
 }
 
-/** Schnellste Animation, die gerade sichtbar ist. Jeder Grund verweist auf die Stelle, die mit der Zeit zeichnet. */
-export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
+/**
+ * Schnellste Animation, die gerade sichtbar ist. Jeder Grund verweist auf die Stelle, die mit der Zeit zeichnet.
+ * `kamera` braucht nur der Zug (DESIGN 14.3 „Takt“: flüssig nur, solange er im Bild ist); ohne Kamera zählt jeder fahrende Zug,
+ * damit nie ein sichtbarer Zug stehen bleibt.
+ */
+export function animationBedarf(s: Szene, effekte_aktiv: boolean, kamera?: Kamera): AnimBedarf {
   const netz = s.netz;
   if (effekte_aktiv) return 'fluessig';
   if (netz.genutzt_kw > 0) return 'fluessig'; // Rauch der Heizzentrale (gebaeude.ts:144)
@@ -130,6 +134,10 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   if (s.saison === 'winter' || (s.saison && istHerbst(s.saison) && s.objekte.some((o) => o.typ === 'baum'))) return 'fluessig';
   if (s.fluss?.length) return 'fluessig'; // Wasserglitzern (szene.ts:83)
   if (s.kulisse?.length) return 'fluessig'; // Öl-Rauch der Kulisse (szene.ts, zeichneKulissenhaus)
+  if (s.bahn?.length) { // Zug (szene.ts, zeichneZugTeil in der Tiefenliste)
+    const zug = zugLage(s.jetzt_ms, s.spiel);
+    if (zug && (!kamera || zugImBild(kamera, zug))) return 'fluessig';
+  }
   if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
   if (s.ziel?.stecker.length) return 'fluessig'; // Ziel-Stecker wippt wie jede Blase (gebaeude.ts, zeichneBlase)
   // NR22 E7: Überlast blinkt nicht; flüssig nur, solange ein Warndreieck federt (szene.ts, zeichneWarndreiecke)
