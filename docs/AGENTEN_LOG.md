@@ -756,3 +756,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:12 | ■ 🔴 | entwickler | 🔴 **Status: BRAUCHT_KONTEXT.** P1 ist bis auf drei Stellen gebaut. An diesen drei Stellen widersprechen sich der Bauplan und bestehende Tests, die ich nicht  ([Bericht](docs/pruefberichte/20261123-091251-entwickler-a4a5b369546872879.md)) |
 | 2026-11-23 09:13 | ▶ | tester | Tester-Vorarbeit V3 für P1 |
 | 2026-11-23 09:17 | ■ 🟡 | tester | 🟡 Tester-Vorarbeit V3 ist fertig und committet. Ein Test bleibt rot, und das ist so gewollt: Er beschreibt die Umbauarbeit, die der Entwickler noch machen mu ([Bericht](docs/pruefberichte/20261123-091739-tester-a8d154a5484c53cbd.md)) |
+| 2026-11-23 09:22 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, aber nur wegen der Prüf-Schranke.** P1 ist fertig gebaut, alle 2193 Tests sind grün. Die Schranke sagt trotzdem NICHT OK. Grund ist  ([Bericht](docs/pruefberichte/20261123-092216-entwickler-a4a5b369546872879.md)) |
+| 2026-11-23 09:24 | ▶ | reviewer | Reviewer P1 NR27 |
