@@ -6,6 +6,7 @@ import { altesStartdorf } from './hilfen/altes-startdorf';
 import { SPEICHER_SCHLUESSEL, SPEICHER_VERSION } from '../src/core/speichern';
 import type { Netz, Objekt } from '../src/core/typen';
 import { berechneNetzAlt } from './hilfen/netz-alt-a91';
+import { istKeinFeld } from './hilfen/kein-feld';
 import { kontextKarte } from './hilfen/kontext-attrappe';
 
 // A91 P1 (Bauplan docs/bauplaene/NR15-netzmodell.md, Fassung 3 Nachtrag 1): Anschlusswahl und Wärmeverteilung.
@@ -181,7 +182,11 @@ describe('A91 P1 – Anschlusswahl', () => {
     const rh = a.kunde('rh', 2, 1);
     const b = a.kunde('baeck', 4, 2);
     const { neu } = rechne(a.objekte, 5);
-    expect(neu.anschluss.get(rh.id)).toEqual({ feld: -1, tiefe: 0 });
+    // NR27 V1: „direkt am Heizhaus“ = kein Feld (heute -1, ab P1 KEIN_FELD), Tiefe 0, sonst nichts
+    const amHeizhaus = neu.anschluss.get(rh.id);
+    expect(Object.keys(amHeizhaus ?? {}).sort()).toEqual(['feld', 'tiefe']);
+    expect(amHeizhaus?.tiefe).toBe(0);
+    expect(istKeinFeld(amHeizhaus?.feld)).toBe(true);
     expect(neu.warm.has(rh.id)).toBe(true);
     expect(neu.kalt.get(b.id)).toBe('leitung');
   });

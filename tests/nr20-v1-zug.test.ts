@@ -153,22 +153,24 @@ describe('NR20 V1 – Zug ab einer vorhandenen Leitung (E4)', () => {
   });
 
   // Sammelliste P5 Punkt 9 (Review P3, K1–K3)
-  it('K1: Zug beginnt auf einer Leitung am Kartenrand (10|0) und geht über den Rand hinaus → Startfeld bleibt d32 (E4 Regel 2 „außerhalb“)', async () => {
+  // NR27 V1: früher am oberen Rand (10|0) → (10|−1). Ab NR27 liegt nördlich davon Karte (Grünstreifen, Bahn); der Prüfzweck
+  // „Zug geht über den Kartenrand hinaus“ wird deshalb am linken Rand geprüft: (0|14) → (−1|14). (0|14) und (1|14) sind frei.
+  it('K1: Zug beginnt auf einer Leitung am linken Kartenrand (0|14) und geht über den Rand hinaus → Startfeld bleibt d32 (E4 Regel 2 „außerhalb“)', async () => {
     const s = neu();
     await echteSteuerung(s, (u) => {
       const k = u.st.kamera as unknown as { mitte(x: number, y: number): [number, number]; feld(a: number, b: number): [number, number]; zentrieren(x: number, y: number, kante: number): void };
-      k.zentrieren(10, 0, 1);
-      zeichne(u, 'd32', [[10, 1], [10, 0]]);
-      expect([typBei(s, 10, 0), typBei(s, 10, 1)], 'Testaufbau').toEqual(['d32', 'd32']);
+      k.zentrieren(0, 14, 1);
+      zeichne(u, 'd32', [[1, 14], [0, 14]]);
+      expect([typBei(s, 0, 14), typBei(s, 1, 14)], 'Testaufbau').toEqual(['d32', 'd32']);
       u.st.stempeln('d25'); hilfeZu(u);
       const canvas = u.dom.app.querySelector('canvas')!;
-      const [sx, sy] = punkt(u, 10, 0), [ax, ay] = k.mitte(10, -1);
-      expect(k.feld(ax, ay), 'Testaufbau: Punkt liegt außerhalb der Karte').toEqual([10, -1]);
+      const [sx, sy] = punkt(u, 0, 14), [ax, ay] = k.mitte(-1, 14);
+      expect(k.feld(ax, ay), 'Testaufbau: Punkt liegt außerhalb der Karte').toEqual([-1, 14]);
       const ev = (x: number, y: number) => ({ pointerId: 7, clientX: x, clientY: y, pointerType: 'touch', button: 0 });
       canvas.ausloesen('pointerdown', ev(sx, sy));
       canvas.ausloesen('pointermove', ev(ax, ay));
       canvas.ausloesen('pointerup', ev(ax, ay));
-      expect([typBei(s, 10, 0), typBei(s, 10, 1)]).toEqual(['d32', 'd32']);
+      expect([typBei(s, 0, 14), typBei(s, 1, 14)]).toEqual(['d32', 'd32']);
     });
   });
 

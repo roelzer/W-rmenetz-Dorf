@@ -8,6 +8,7 @@ import type { Schritt, Tipp } from '../src/core/tutorial-vertrag';
 import type { Netz, Objekt } from '../src/core/typen';
 import { Effekte } from '../src/render/effekte';
 import { dorf, neu, quelle } from './hilfen';
+import { istKeinFeld } from './hilfen/kein-feld';
 
 // Bauplan docs/bauplaene/NR18-ohne-autoanschluss.md, Fassung 3, Paket P1 (AE-NR18-2, AE-NR13-1, Abschnitt 5.4, Texte Abschnitt 6).
 // Netze mit tests/hilfen.ts: Heizzentrale bei (10|10) belegt x 10–11, y 10–11. Kartenbreite 24 Felder, Feldnummer = y·24 + x.
@@ -171,7 +172,7 @@ describe('NR18 engstellenFinden', () => {
     expect(engstellenFinden(netz, new Set([b, a]))).toEqual(e);
   });
 
-  it('test_nr18_leer: alles passt, Kunde ohne Anschluss, Kunde direkt an der Heizzentrale (Feld −1), unbekannte Id, keine Kunden', () => {
+  it('test_nr18_leer: alles passt, Kunde ohne Anschluss, Kunde direkt an der Heizzentrale (kein Feld), unbekannte Id, keine Kunden', () => {
     const passt = dorf(neu('d25', 12, 10), neu('efh', 13, 10));
     expect(engstellenFinden(netzAus(passt), kundenIds(passt))).toEqual([]);
 
@@ -179,7 +180,8 @@ describe('NR18 engstellenFinden', () => {
     const netz = netzAus(objekte);
     const fern = objekte.find((o) => o.x === 20)!.id, amHeizhaus = objekte.find((o) => o.x === 12 && o.y === 11)!.id;
     expect(netz.anschluss.has(fern)).toBe(false);
-    expect(netz.anschluss.get(amHeizhaus)?.feld).toBe(-1);
+    // NR27 V1: „direkt am Heizhaus“ = kein Feld (heute -1, ab P1 KEIN_FELD)
+    expect(istKeinFeld(netz.anschluss.get(amHeizhaus)?.feld)).toBe(true);
     expect(engstellenFinden(netz, [fern, amHeizhaus, 99999])).toEqual([]);
     expect(engstellenFinden(netz, [])).toEqual([]);
   });

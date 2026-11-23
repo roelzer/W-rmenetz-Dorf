@@ -5,6 +5,7 @@ import { altesStartdorf } from './hilfen/altes-startdorf';
 import type { InnenQuelle, Netz, Objekt } from '../src/core/typen';
 import { berechneNetzAlt } from './hilfen/netz-alt-a91';
 import { pruefeVergleich, zufallsNetz } from './hilfen/a91-netze';
+import { elternAngleichen, istKeinFeld } from './hilfen/kein-feld';
 
 // A91 P2 (Bauplan docs/bauplaene/NR15-netzmodell.md, Fassung 3 Nachtrag 1, AE-A91-2): Netzbaum. Eine Leitung wird nicht über
 // ein dünneres Feld gespeist, wenn ein gleich naher, mindestens so dicker Nachbar die Last dahinter trägt.
@@ -128,7 +129,8 @@ describe('A91 P2 – Netzbaum', () => {
     const { neu, alt } = rechne(objekte);
     expect(neu.eltern.get(f(6, 4))).toBe(f(5, 4));
     expect([neu.last_kw.get(f(2, 0)), neu.last_kw.get(f(0, 2))]).toEqual([30, 60]);
-    expect([...neu.eltern]).toEqual([...alt.eltern]);
+    // NR27 V1: die eingefrorene alte Rechnung nennt die Wurzel -1, die neue ab P1 KEIN_FELD → beide als 'kein' vergleichen
+    expect(elternAngleichen(neu.eltern)).toEqual(elternAngleichen(alt.eltern));
     expect([...neu.kalt]).toEqual([...alt.kalt]);
     expect(neu.kalt.size).toBe(6);
     expect([...neu.warm]).toEqual([...alt.warm]);
@@ -202,7 +204,8 @@ describe('A91 P2 – Netzbaum', () => {
     for (const { objekte, innen, vorlauf_c } of netze) {
       const neu = berechneNetz(objekte, innen, 2, vorlauf_c);
       const alt = berechneNetzAlt(objekte, innen, 2, vorlauf_c);
-      if ([...neu.eltern].some(([k, p]) => alt.eltern.get(k) !== p)) umgehaengt++;
+      // NR27 V1: Wurzel (alt -1, neu ab P1 KEIN_FELD) zählt nicht als umgehängt – sonst wäre jedes Netz „umgehängt“
+      if ([...neu.eltern].some(([k, p]) => { const q = alt.eltern.get(k); return q !== p && !(istKeinFeld(q) && istKeinFeld(p)); })) umgehaengt++;
       const platz = new Map(neu.reihenfolge.map((k, i) => [k, i]));
       for (const [k, p] of neu.eltern) if (p >= 0) expect(platz.get(p) as number).toBeLessThan(platz.get(k) as number);
     }
