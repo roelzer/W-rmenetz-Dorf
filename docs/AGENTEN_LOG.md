@@ -825,3 +825,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 12:47 | ■ 🟡 | tester | 🟡 Tester-Vorarbeit NR27 Fix-Runde, Teil B: fertig. Neun neue Testdateien sind angelegt. 47 Tests sind absichtlich rot, weil der Code dafür noch fehlt. Produ ([Bericht](docs/pruefberichte/20261123-124722-tester-a9c0155f74d34eb99.md)) |
 | 2026-11-23 12:49 | ▶ | entwickler | Fix-Runde Oberfläche/Kern |
 | 2026-11-23 12:49 | ▶ | entwickler | Fix-Runde Render/Tokens |
+| 2026-11-23 13:03 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT** – das gilt nur formal. Mein Teil (Render/Tokens) ist komplett gebaut, committet und getestet. Die Test-Schranke meldet trotzdem „ ([Bericht](docs/pruefberichte/20261123-130334-entwickler-a363f43842c206a3e.md)) |
+| 2026-11-23 13:03 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Meine Punkte (Wortlaut, M1, M2, M3, M4, M8) sind fertig, committet und getestet. Blockiert ist nur der Abschluss: Die Test-Schranke  ([Bericht](docs/pruefberichte/20261123-130345-entwickler-a702335fee1444ca2.md)) |
