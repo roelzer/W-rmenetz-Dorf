@@ -137,6 +137,26 @@ describe('NR27 P5a3 Erklärkarte mit Fachtext-Freigabe (DESIGN 14.7)', () => {
   });
 });
 
+describe('NR27 P5a3 (i)-Knopf im Katalog „netz“ (DESIGN 14.5, 14.7)', () => {
+  // Fehler, die ihn rot machen: (i) fehlt trotz Freigabe, falsche Beschriftung für Vorleser, kein echter Knopf,
+  // Antippen öffnet nichts; ohne Freigabe dürfte es ihn nicht geben (Gegenstück in tests/nr27-p5a-katalog.test.ts).
+  it('mit Freigabe: [data-ziel="bahn_info"] mit aria-label „Info: Warum so teuer?“ öffnet die Erklärkarte', async () => {
+    schalter.frei = true;
+    await echteSteuerung(spiel(6), (u) => {
+      u.st.katalog('netz');
+      const knoepfe = u.dom.html.querySelectorAll('[data-ziel="bahn_info"]');
+      expect(knoepfe).toHaveLength(1);
+      const info = knoepfe[0];
+      expect(info.tag.toLowerCase()).toBe('button');
+      expect(info.getAttribute('aria-label')).toBe('Info: Warum so teuer?');
+      expect(info.closest('[data-ziel="bahn_infozeile"]'), 'sitzt in der Infozeile').not.toBeNull();
+      expect(karte(u)).toBeNull();
+      tippe(info);
+      expect(karte(u), 'Antippen öffnet die Erklärkarte').not.toBeNull();
+    });
+  });
+});
+
 describe('NR27 P5a3 Katalogkarte bei Höchststufe (Bauplan P3 Regel 9, ENTSCHEIDUNGEN 23.11.)', () => {
   /** Spiel mit `n` gebauten 25er-Leitungen außerhalb des Dorfs (Muster tests/nr27-bahnquerung.test.ts „Leitungsgrenze“). */
   function voll(stufe: number, n: number): Spiel {
