@@ -219,6 +219,61 @@ describe('NR27 P5a3 Leitungsblatt der Querung (DESIGN 14.6 T20, 14.7)', () => {
   });
 });
 
+describe('NR27 P5a3 Sprecherblase beim ersten Bahnfeld (DESIGN 14.6 T19, 14.7)', () => {
+  const blick = (u: EchteUmgebung, x: number, y: number): void => (u.st.kamera as unknown as { zentrieren(x: number, y: number, k: number): void }).zentrieren(x, y, 1);
+  function punkt(u: EchteUmgebung, x: number, y: number): [number, number] {
+    const k = u.st.kamera as unknown as { mitte(x: number, y: number): [number, number]; feld(a: number, b: number): [number, number] };
+    const [mx, my] = k.mitte(x, y);
+    expect(k.feld(mx, my), `Testaufbau: Feld (${x}|${y})`).toEqual([x, y]);
+    return [mx, my];
+  }
+  /** Zug des Fingers über die Felder (Muster tests/nr27-p5a2-ui.test.ts). */
+  function zeichne(u: EchteUmgebung, felder: Array<[number, number]>): void {
+    u.st.stempeln('d40');
+    u.knoepfe().filter((k) => k.isConnected).find((k) => norm(k.textContent) === 'Verstanden')?.click();
+    const canvas = u.dom.app.querySelector('canvas')!;
+    const evs = felder.map(([x, y]) => { const [mx, my] = punkt(u, x, y); return { pointerId: 7, clientX: mx, clientY: my, pointerType: 'touch', button: 0 }; });
+    canvas.ausloesen('pointerdown', evs[0]);
+    for (const ev of evs.slice(1)) canvas.ausloesen('pointermove', ev);
+    canvas.ausloesen('pointerup', evs[evs.length - 1]);
+  }
+  const zug: Array<[number, number]> = [[10, 0], [10, -1], [10, -2], [10, -3]];
+  /** Ein Bild der Spielschleife: Erst hier übersetzt die Steuerung die Ereignisse des Kerns (Sprecher) in die Oberfläche. */
+  const bild = (u: EchteUmgebung): void => (u.st as unknown as { tick(t: number): void }).tick(T0);
+  const gezeichnet = (s: Spiel): boolean => s.stand.objekte.some((o) => o.geplant && o.x === 10 && o.y === -3);
+
+  // Fehler, die ihn rot machen: Blase fehlt mit Freigabe, nur ein Satz, Blase trotz fehlender Freigabe (Fachtext vor Spielern).
+  it('mit Freigabe: Zug (10|0)→(10|−3) zeigt #sprecher mit WISSEN_A und WISSEN_B', async () => {
+    schalter.frei = true;
+    const s = spiel(6);
+    await echteSteuerung(s, (u) => {
+      blick(u, 10, -1);
+      zeichne(u, zug);
+      expect(gezeichnet(s), 'Testaufbau').toBe(true);
+      bild(u);
+      const blase = u.dom.html.querySelector('#sprecher');
+      expect(blase, '#sprecher').not.toBeNull();
+      const text = norm(sichtbarerText(blase!));
+      expect(text).toContain(t('WISSEN_A'));
+      expect(text).toContain(t('WISSEN_B'));
+    });
+  });
+
+  it('ohne Freigabe: derselbe Zug zeigt keinen #sprecher', async () => {
+    schalter.frei = false;
+    const s = spiel(6);
+    await echteSteuerung(s, (u) => {
+      blick(u, 10, -1);
+      zeichne(u, zug);
+      expect(gezeichnet(s), 'Testaufbau').toBe(true);
+      bild(u);
+      const blase = u.dom.html.querySelector('#sprecher');
+      expect(blase ? norm(sichtbarerText(blase)) : '', 'kein sichtbarer #sprecher').toBe('');
+      expect(norm(sichtbarerText(u.dom.html))).not.toContain(t('WISSEN_B'));
+    });
+  });
+});
+
 describe('NR27 P5a3 Katalogkarte bei Höchststufe (Bauplan P3 Regel 9, ENTSCHEIDUNGEN 23.11.)', () => {
   /** Spiel mit `n` gebauten 25er-Leitungen außerhalb des Dorfs (Muster tests/nr27-bahnquerung.test.ts „Leitungsgrenze“). */
   function voll(stufe: number, n: number): Spiel {
