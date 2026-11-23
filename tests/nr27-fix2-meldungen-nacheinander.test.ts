@@ -50,7 +50,9 @@ describe('NR27 Fix 2 – zurückgehaltene Meldungen nacheinander', () => {
       vi.advanceTimersByTime(2_800); // 3400 ms: die erste hat ihre 2860 ms noch nicht ganz gestanden
       expect(u.meldung()).toBe(ERSTE);
       expect(u.meldungen).not.toContain(ZWEITE);
-      vi.advanceTimersByTime(300); // 3700 ms: nach Lesezeit und Blende
+      vi.advanceTimersByTime(200); // 3600 ms: Lesezeit vorbei (3460), Blende noch nicht (3660)
+      expect(u.meldung()).toBe(ERSTE);
+      vi.advanceTimersByTime(100); // 3700 ms: nach Lesezeit und Blende
       expect(u.meldung()).toBe(ZWEITE);
       expect(u.meldungen.filter((m) => m === ERSTE || m === ZWEITE)).toEqual([ERSTE, ZWEITE]);
     }, { breite: 667, hoehe: 375 });
