@@ -1,5 +1,6 @@
 import { istLeitung, KONSTANTEN, type TypId } from './katalog';
 import { freigeschaltet, sperrgrund } from './freischaltung';
+import { KARTE_OBEN_Y } from './feld';
 import { nordText } from './nord-texte';
 import type { Objekt, Spielstand } from './typen';
 
@@ -16,7 +17,7 @@ export const BRUECKE_X: readonly number[] = [19, 20];
 /** Einzige Spalte, in der eine Leitung die Gleise quert: Verlängerung der Dorfstraße x = 10. */
 export const QUERUNG_X = 10;
 
-const ERSTE_ZEILE_Y = -10;
+const ERSTE_ZEILE_Y = KARTE_OBEN_Y;
 const LETZTE_ZEILE_Y = -1;
 const ERSTE_ZEILE_HINTER_Y = -4;
 const FLUSS_X: readonly number[] = [19, 20];
