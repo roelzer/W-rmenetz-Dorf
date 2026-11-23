@@ -9,16 +9,14 @@ vi.mock('../src/core/nord-texte', async (orig) => {
   return { ...echt, nordText: (id: Parameters<typeof echt.nordText>[0], werte?: Record<string, string | number>, frei?: boolean) => echt.nordText(id, werte, frei ?? schalter.frei) };
 });
 
-import { istLeitung, KATALOG, KONSTANTEN, type TypId } from '../src/core/katalog';
+import { istLeitung, KATALOG, type TypId } from '../src/core/katalog';
 import { nordText, type NordTextId } from '../src/core/nord-texte';
 import { neuerSpielstand, Spiel } from '../src/core/spiel';
-import { dauerText } from '../src/render/gebaeude';
-import { echteSteuerung, tippe, type EchteUmgebung } from './hilfen/echte-steuerung';
+import { echteSteuerung, type EchteUmgebung } from './hilfen/echte-steuerung';
 
 const T0 = 1_700_000_000_000;
 /** Text aus der echten Tabelle; Fachtexte immer mit Freigabe, damit „kommt nicht vor“ etwas Echtes prüft. */
 const t = (id: NordTextId, werte?: Record<string, string | number>): string => nordText(id, werte, true) as string;
-const eur = (n: number): string => `${n.toLocaleString('de-DE')} €`;
 const norm = (s: string): string => s.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
 
 function spiel(stufe: number): Spiel {
@@ -49,12 +47,15 @@ function zeichne(u: EchteUmgebung, typ: TypId, felder: Array<[number, number]>):
   for (const ev of evs.slice(1)) canvas.ausloesen('pointermove', ev);
   canvas.ausloesen('pointerup', evs[evs.length - 1]);
 }
-const kostenZusatz = (felder: number): string => t('KOSTEN_ZUSATZ', { querung_eur: eur(felder * KONSTANTEN.querung_eur_je_feld), querung_zeit: dauerText(KONSTANTEN.querung_bau_s * KONSTANTEN.bauzeit_faktor) });
 const chipKnopf = (u: EchteUmgebung) => u.dom.html.querySelectorAll('[data-ziel="bahn_chip"]')[0];
 
-describe('NR27 P5a2 Punkt 11 – Chip „+ Bahnquerung“ in der Zeichenleiste', () => {
-  // Fehler, die ihn rot machen: Chip fehlt, falscher Text, erscheint auch ohne Bahnfeld, Antippen sagt nichts oder etwas anderes.
-  it('erscheint erst, wenn der Abschnitt ein Bahnfeld enthält; Antippen zeigt KOSTEN_ZUSATZ', async () => {
+const abschlussKnopf = (u: EchteUmgebung) => u.dom.html.querySelectorAll('[data-ziel="abschliessen"]')[0];
+
+describe('NR27 P5a2 Punkt 11 – „+ Bahnquerung“ in der Zeichenleiste', () => {
+  // Fix-Runde NR27 (Designer-Treue M1, Abhilfe A): Der Chip ist keine eigene Zeile mehr, „+ Bahnquerung“ steht als zweite Zeile im
+  // Knopf „Abschnitt abschließen“. Das Antippen des Chips (Meldung KOSTEN_ZUSATZ) entfällt, T04 steht im Baumenü.
+  // Fehler, die ihn rot machen: Text fehlt, falscher Text, erscheint auch ohne Bahnfeld, eigener Chip-Knopf bleibt.
+  it('erscheint erst, wenn der Abschnitt ein Bahnfeld enthält – im Knopf „Abschnitt abschließen“, ohne eigenen Chip', async () => {
     schalter.frei = false;
     const s = spiel(6);
     await echteSteuerung(s, (u) => {
@@ -62,15 +63,11 @@ describe('NR27 P5a2 Punkt 11 – Chip „+ Bahnquerung“ in der Zeichenleiste',
       zeichne(u, 'd40', [[10, 1], [10, 0], [10, -1]]);
       expect(leitungBei(s, 10, -1), 'Testaufbau').toBeDefined();
       expect(chipKnopf(u), 'ohne Bahnfeld kein Chip').toBeUndefined();
+      expect(norm(abschlussKnopf(u).textContent), 'ohne Bahnfeld kein Zusatz im Abschlussknopf').not.toContain(t('CHIP'));
       zeichne(u, 'd40', [[10, -1], [10, -2], [10, -3]]);
       expect(leitungBei(s, 10, -3), 'Testaufbau').toBeDefined();
-      const k = chipKnopf(u);
-      expect(k, 'Chip mit Bahnfeld').toBeDefined();
-      expect(norm(k.textContent)).toBe(t('CHIP'));
-      expect(k.tag.toLowerCase(), 'antippbar').toBe('button');
-      u.meldungen.splice(0);
-      tippe(k);
-      expect(u.meldungen).toEqual([kostenZusatz(2)]);
+      expect(chipKnopf(u), 'kein eigener Chip mehr').toBeUndefined();
+      expect(norm(abschlussKnopf(u).textContent), 'zweite Zeile im Abschlussknopf').toContain(t('CHIP'));
     });
   });
 });

@@ -14,8 +14,8 @@ import { aufnahme, leeresDorf } from './hilfen/nr22';
 //
 // Werte von Hand: Dunst hebt sich in 1200 ms (`dunst_heben`). Bildzeiten 0,0625 s (im Gleitkomma exakt, Lektion Grenzwerte):
 // nach 18 Bildern = 1,125 s ist noch Dunst da, nach 20 Bildern = 1,25 s nicht mehr. Funken je Grube 24 Teilchen, jede vierte in
-// '#9be36a' (effekte.ts) → 6 je Grube, 12 an beiden Gruben. Weniger Bewegung: keine Funken, kein Dunst, stattdessen 0,4 s ein
-// ruhiges Aufleuchten der beiden Grubenfelder in der ersten Funkenfarbe '#ffe14d'.
+// '#9be36a' (effekte.ts) → 6 je Grube, 12 an beiden Gruben. Weniger Bewegung: keine Funken, kein Dunst und (Fix-Runde NR27)
+// auch kein Aufleuchten der Grubenfelder mehr (früher 0,4 s in '#ffe14d').
 const DT = 0.0625, FUNKE = 'fillStyle=#9be36a', LEUCHTEN = 'fillStyle=#ffe14d';
 
 function kamera(winkel_rad = 0): Kamera {
@@ -151,20 +151,20 @@ describe('NR27 P5b4 Dunst hebt sich in 1,2 s (DESIGN 14.8 „Dunst 1200 ms kurve
 });
 
 describe('NR27 P5b4 Erfolgsmoment bei weniger Bewegung (DESIGN 14.8 „Funken aus, Dunst sofort weg“)', () => {
-  // Fehler, die ihn rot machen: Funken oder sich hebender Dunst auch bei weniger Bewegung, kein Aufleuchten, oder das Aufleuchten
-  // bleibt stehen.
-  it('test_nr27_erfolg_weniger_bewegung: sofortiger Wechsel mit kurzem Aufleuchten an beiden Gruben', () => {
+  // Fix-Runde NR27 (Designer-Treue Entscheidung 2): Das gelbe Aufleuchten ist gestrichen (ohne DESIGN-Beleg). Weniger Bewegung:
+  // Dunst sofort weg, keine Funken, kein Aufleuchten; die Meldung F1 prüft tests/nr27-fix-meldungen.test.ts.
+  // Fehler, die ihn rot machen: Funken oder sich hebender Dunst auch bei weniger Bewegung, oder die Grubenfelder leuchten noch auf.
+  it('test_nr27_erfolg_weniger_bewegung: sofortiger Wechsel ohne Funken, ohne Dunst, ohne Aufleuchten', () => {
     const d = darstellung(true), sp = neuesSpiel();
     d.bild(szene(sp, true));
     const b = d.bild(szene(sp, false));
     expect(zahl(b, FUNKE), 'keine Funken').toBe(0);
     expect(dunst(b), 'Dunst sofort weg').toBeNull();
-    expect(zahl(b, LEUCHTEN), 'Aufleuchten an zwei Gruben').toBe(2);
-    expect(d.e.aktiv(), 'Aufleuchten braucht Bilder').toBe(true);
-    for (let i = 0; i < 5; i++) d.bild(szene(sp, false));
-    expect(zahl(d.bild(szene(sp, false)), LEUCHTEN), 'nach 0,375 s noch').toBe(2);
-    d.bild(szene(sp, false));
-    expect(zahl(d.bild(szene(sp, false)), LEUCHTEN), 'nach 0,5 s vorbei').toBe(0);
-    expect(d.e.aktiv(), 'vorbei').toBe(false);
+    expect(zahl(b, LEUCHTEN), 'kein Aufleuchten').toBe(0);
+    for (let i = 0; i < 8; i++) {
+      const weiter = d.bild(szene(sp, false));
+      expect(zahl(weiter, LEUCHTEN), `kein Aufleuchten, Bild ${i + 2}`).toBe(0);
+      expect(dunst(weiter), `kein Dunst, Bild ${i + 2}`).toBeNull();
+    }
   });
 });
