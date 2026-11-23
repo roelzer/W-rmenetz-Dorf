@@ -10,7 +10,7 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
-import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, zeichneDunst, zeichneMast, zeichneSchranken } from './bahn';
+import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -315,6 +315,7 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       X.beginPath(); if (i <= N) { X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); } X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
     }
   }
+  if (s.modus === 'stempel' && s.bahn?.length) zeichneSchleier(m, k, s.bahn, querungFrei(s.spiel?.stand));
 }
 
 /**

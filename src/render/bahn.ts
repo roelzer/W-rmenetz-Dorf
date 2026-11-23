@@ -1,6 +1,7 @@
 import tokens from '../../design/tokens.json';
 import { mod } from '../core/feld';
-import { querungImBau } from '../core/nordviertel';
+import { freigeschaltet } from '../core/freischaltung';
+import { QUERUNG_X, querungImBau } from '../core/nordviertel';
 import type { Spielstand } from '../core/typen';
 import type { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
@@ -91,6 +92,37 @@ export function zeichneDunst(m: Maler, k: Kamera, west_x: number, ost_x: number,
   const g = X.createLinearGradient(a[0], a[1], a[0] + nx * tiefe, a[1] + ny * tiefe);
   g.addColorStop(0, DUNST.klar); g.addColorStop(1, DUNST.farbe);
   m.flaeche([a, b, k.mitte(ost_x, nord_y), k.mitte(west_x, nord_y)], g, false);
+}
+
+/** DESIGN 14.9 `gesperrt_schleier`; Rasterstrich wie das Baumodus-Raster in szene.ts (zeichneBoden). */
+const SCHLEIER = { farbe: 'rgba(31,42,46,.12)', raster: 'rgba(255,255,255,.25)' } as const;
+
+/** Ab Stufe 6 (Freischaltung „bahnquerung“) bleibt die Querungsstelle frei; ohne Spielstand (Nachbardorf) nie. */
+export function querungFrei(stand: Spielstand | undefined): boolean {
+  return !!stand && freigeschaltet(stand, 'bahnquerung');
+}
+
+/**
+ * Leitungsmodus (DESIGN 14.15 Punkt 10): auf jedem Bahnfeld der Schleier, auch auf der Brücke. Ist die Querung frei, bleiben die
+ * Felder in der Querungsspalte ohne Schleier und bekommen Rasterlinien wie ein Baufeld – gleiche Lage wie das Raster in zeichneBoden.
+ */
+export function zeichneSchleier(m: Maler, k: Kamera, bahn: Felder, frei: boolean): void {
+  const { X } = m, tw = k.tw, th = k.th;
+  const offen: Array<readonly [number, number]> = [];
+  for (const f of bahn) {
+    if (frei && f[0] === QUERUNG_X) { offen.push(f); continue; }
+    const [cx, cy] = k.mitte(f[0], f[1]);
+    if (cx < -tw || cx > k.breite + tw || cy < -th || cy > k.hoehe + tw) continue;
+    m.raute(cx, cy, 1.02); X.fillStyle = SCHLEIER.farbe; X.fill();
+  }
+  if (!offen.length) return;
+  const ecke = (x: number, y: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - th / 2]; };
+  X.strokeStyle = SCHLEIER.raster; X.lineWidth = 1; X.beginPath();
+  for (const [x, y] of offen) {
+    const p = [ecke(x - 0.5, y - 0.5), ecke(x + 0.5, y - 0.5), ecke(x + 0.5, y + 0.5), ecke(x - 0.5, y + 0.5)];
+    X.moveTo(...p[0]); for (const q of [p[1], p[2], p[3], p[0]]) X.lineTo(...q);
+  }
+  X.stroke();
 }
 
 /** Gleisspalten von Ende zu Ende: x = −2 … 25, beidseits über die Karte hinaus in den Wolkenrand (DESIGN 14.2 „Enden“). */

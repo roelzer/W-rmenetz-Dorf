@@ -2,6 +2,7 @@ import { istLeitung, KATALOG, KONSTANTEN } from '../core/katalog';
 import type { Netz, Objekt } from '../core/typen';
 import type { Kamera } from './kamera';
 import { istHerbst } from './jahreszeiten';
+import { querungFrei } from './bahn';
 import { blase } from './blase';
 import type { Szene } from './szene';
 
@@ -112,6 +113,9 @@ export function bodenSchluessel(s: Szene, k: Kamera): string {
   return [
     runde(k.tw), runde(k.winkel_rad), runde(k.breite), runde(k.hoehe), runde(k.pixelverhaeltnis),
     s.kartenHoehe ?? KONSTANTEN.feldanzahl, s.kartenOben ?? 0, koordinaten(s.bahn), kulisse(s), s.saison ?? 'sommer', koordinaten(s.strassen), koordinaten(s.fluss), haeuser, ja(s.modus !== 'normal'),
+    // NR27: Schleier auf den Bahnfeldern nur im Leitungsmodus, Aussparung erst ab Stufe 6. Ohne Bahn ändert der Leitungsmodus
+    // den Boden nicht – dann bleibt der Schlüssel gleich, damit der Wechsel Platzieren ↔ Leitung nichts neu baut.
+    s.bahn?.length ? `${ja(s.modus === 'stempel')}${ja(querungFrei(s.spiel?.stand))}` : '',
   ].join('|');
 }
 
