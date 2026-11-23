@@ -136,3 +136,29 @@ describe('NR27 P5a3 Erklärkarte mit Fachtext-Freigabe (DESIGN 14.7)', () => {
     expect(tokens.groesse_px.tippflaeche_min).toBeGreaterThanOrEqual(44);
   });
 });
+
+describe('NR27 P5a3 Katalogkarte bei Höchststufe (Bauplan P3 Regel 9, ENTSCHEIDUNGEN 23.11.)', () => {
+  /** Spiel mit `n` gebauten 25er-Leitungen außerhalb des Dorfs (Muster tests/nr27-bahnquerung.test.ts „Leitungsgrenze“). */
+  function voll(stufe: number, n: number): Spiel {
+    const sp = spiel(stufe);
+    for (let i = 0; i < n; i++) sp.stand.objekte.push({ id: sp.stand.naechste_id++, typ: 'd25', x: 0, y: 100 + i, stufe: 1, bau: null, kasse_eur: 0 });
+    return sp;
+  }
+  const grund = (u: EchteUmgebung): string => norm(u.dom.html.querySelector('.bkarte[data-typ="d25"] .grund')?.textContent ?? '');
+
+  // Fehler, die ihn rot machen: bei Stufe 6 weiter „mehr ab nächster Stufe“ (es gibt keine nächste), Text nicht aus der
+  // Tabelle, Zähler fehlt; die Prüfung mit Stufe 5 fängt den umgekehrten Fehler (Höchststufen-Text schon vorher).
+  it('volle Leitungsgrenze: Stufe 6 zeigt HOECHSTSTUFE, Stufe 5 weiter „mehr ab nächster Stufe“', async () => {
+    schalter.frei = false;
+    expect(KONSTANTEN.heizzentrale_hoechststufe).toBe(6);
+    await echteSteuerung(voll(6, 360), (u) => {
+      u.st.katalog('netz');
+      expect(grund(u)).toBe(`360/360 · ${t('HOECHSTSTUFE')}`);
+      expect(grund(u)).toBe('360/360 · höchste Stufe erreicht');
+    });
+    await echteSteuerung(voll(5, 240), (u) => {
+      u.st.katalog('netz');
+      expect(grund(u)).toBe('240/240 · mehr ab nächster Stufe');
+    });
+  });
+});

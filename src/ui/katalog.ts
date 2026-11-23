@@ -189,7 +189,8 @@ export class Katalog {
       h('span', { class: 'titel' }, D.name),
       h('span', { class: 'werte' }, werte(t)),
       gesperrt ? h('span', { class: 'grund' }, symbol('schloss'), grund)
-        : voll ? h('span', { class: 'grund' }, `${gesamtLeitungen}/${grenze} · mehr ab nächster Stufe`)
+        // NR27: Bei der Höchststufe gibt es keine nächste Stufe, die mehr erlaubt
+        : voll ? h('span', { class: 'grund' }, `${gesamtLeitungen}/${grenze} · ${sp.hzStufe >= KONSTANTEN.heizzentrale_hoechststufe ? nordHinweisText('HOECHSTSTUFE') : 'mehr ab nächster Stufe'}`)
           : h('span', { class: `preis ${zuTeuer ? 'zuteuer' : ''}` }, symbol(c.taler != null ? 'taler' : 'geld'), kostetText, !innen && D.kategorie !== 'netz' ? h('span', { class: 'gedaempft' }, ` · ${gesamtLeitungen}/${grenze}`) : null),
       antrag?.stand === 'bewilligt' ? h('span', { class: 'abzeichen' }, chip('−40 % Förderung', 'gruen')) : antrag ? h('span', { class: 'abzeichen' }, chip('Antrag in Prüfung', 'blau')) : null);
     return kind;
