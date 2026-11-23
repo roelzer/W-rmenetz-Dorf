@@ -816,3 +816,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 12:12 | ▶ | fachpruefer | Fachpruefer ergebnis NR27 |
 | 2026-11-23 12:12 | ▶ | reviewer | Reviewer gesamt NR27 |
 | 2026-11-23 12:18 | ■ 🔴 | reviewer | 🔴 **Gesamtprüfung NR27 (Bahnstrecke und Bahnquerung): Nachbesserung nötig, aber nur zwei kleine Lücken.** Der Code ist sauber und alle Tests sind grün. E ([Bericht](docs/pruefberichte/20261123-121807-reviewer-aea5078130fbce874.md)) |
+| 2026-11-23 12:19 | ■ 🟡 | fachpruefer | **Ampel: GELB.** Kein Spieltext und kein Bild zur Bahnquerung behauptet etwas fachlich Falsches. Das Nordviertel überlastet die Heizzentrale nicht. Gelb ist es ([Bericht](docs/pruefberichte/20261123-121942-fachpruefer-a75a6b50b019cfc2e.md)) |

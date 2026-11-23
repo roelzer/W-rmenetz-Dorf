@@ -72,7 +72,7 @@ Führende Qualitätsziele:
 **Fachregeln** (vom Fachprüfer vorgeschlagen, **nicht bestätigt**, „Nur Simon“): BQ1 grabenlose Unterquerung von Grube zu Grube (im Spiel nur diese Bauart), BQ2 Bahn prüft und regelt vertraglich vor dem Bau, BQ3 teurer und länger als normaler Leitungsbau; Euro/Zeit sind Spielwerte („vereinfacht“). Die Spielmechanik (Aufpreis, Zuschlag, keine Abkürzung) folgt BQ3/BQ2 in der Richtung; die Zahlen 45.000 €/Bahnfeld und 1.440 s sind Platzhalter (Simon bestätigt 23.11. als „vereinfacht“).
 
 **Konventionen:** Einheiten im Namen (`querung_eur_je_feld`, `querung_bau_s`). Jede Ablehnung zeigt einen Grund (Kern als Hinweis, beim Ziehen als Toast) – nie stilles Nichtstun. Fehlt einem Text ein Platzhalterwert, wirft `nordText` einen Fehler mit ID und Platzhalter (sichtbar im Test).
-**Zurückgestellt:** Kamera-Knopf „Zur Bahn“ (Designer nach Foto); Bahnübergang nur Grafik; Erzeugungs-Balance Stufe 6 (Süd 576 kW + Nord 188 kW) → Testlauf Projektleiter.
+**Zurückgestellt:** Kamera-Knopf „Zur Bahn“ (Designer nach Foto); Bahnübergang nur Grafik; Erzeugungs-Balance Stufe 6 (Süd 576 kW + Nord 194 kW) → Testlauf Projektleiter.
 **Nicht-Ziele:** Leitung oberirdisch über die Bahn (zweite Bauart verdoppelt Regeln ohne Spielgewinn); freie Wahl der Querungsstelle (Entscheidung 23.11.); Versionssprung im Spielstand.
 
 ### Kartenzeilen der Nordzone (verbindlich; Designer gestaltet das Aussehen, nicht die Lage)
@@ -90,7 +90,7 @@ Führende Qualitätsziele:
   y=-1  ...................~~...   Grünstreifen (Dorfseite, normal bebaubar)
   y=0   (heutiger Nordrand; Dorfstraße x=10 läuft hier nach Norden aus, geprüft am Startdorf)
 ```
-14 Häuser (5 EFH, 9 RH), Grundstücksregel wie NR23. Bedarf mit NR23-Werten: 6 × 15.000 + 8 × 24.000 = 282.000 kWh/a, ÷ 1.500 h = 188 kW.
+14 Häuser (5 EFH, 9 RH), Grundstücksregel wie NR23. Bedarf mit NR23-Werten: 6 × 15.000 + 8 × 24.000 = 282.000 kWh/a, ÷ 1.500 h = 194 kW.
 ```
 efh 2 -9, rh 4 -9, rh 6 -9, efh 8 -9, rh 12 -9, rh 14 -9, efh 16 -9,
 rh 2 -5, efh 4 -5, rh 6 -5, rh 8 -5, efh 12 -5, rh 14 -5, rh 16 -5
