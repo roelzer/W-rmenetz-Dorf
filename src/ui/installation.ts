@@ -60,8 +60,8 @@ async function installieren(): Promise<void> {
 
 function bannerZeigen(): void {
   if (banner || laeuftAlsApp() || !istHandyOderTablet() || ausgeblendet()) return;
-  // Keine zusätzliche Fläche über einem Spielmenü, Simons Tutorial-Karte oder einer gerade sprechenden Figur.
-  if (document.body.classList.contains('blatt-offen') || document.getElementById('anleiter') || document.querySelector('#sprecher .sichtbar')) {
+  // Keine zusätzliche Fläche über einem Spielmenü, Simons Tutorial-Karte, dem Mini-Tutorial oder einer gerade sprechenden Figur.
+  if (document.body.classList.contains('blatt-offen') || document.getElementById('anleiter') || document.getElementById('bahn-tutorial') || document.querySelector('#sprecher .sichtbar')) {
     window.setTimeout(bannerZeigen, 1500);
     return;
   }

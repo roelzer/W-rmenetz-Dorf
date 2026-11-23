@@ -475,10 +475,10 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .ersatz-ziel{position:absolute;z-index:26;pointer-events:none;border-radius:var(--menue-mass-px-spot-abstand-knopf);outline:none}
 .ersatz-ziel:focus-visible{outline:3px solid var(--menue-farbe-fokus-auf-dunkel);outline-offset:2px}
 .info-kapsel{position:absolute;z-index:26;transform:translateX(-50%);white-space:nowrap;pointer-events:none;animation:nr13-ein var(--menue-zeit-ms-spot-wechsel) ease-out}
-#anleiter{position:absolute;z-index:33;display:flex;align-items:flex-end;gap:8px;box-sizing:border-box;animation:nr13-ein var(--menue-zeit-ms-anleiter-wechsel) ease-out}
+#anleiter,.bahn-tutorial-karte{position:absolute;z-index:33;display:flex;align-items:flex-end;gap:8px;box-sizing:border-box;animation:nr13-ein var(--menue-zeit-ms-anleiter-wechsel) ease-out}
 .anleiter-figur{flex:none;width:var(--menue-mass-px-anleiter-figur);height:var(--menue-mass-px-anleiter-figur)}
 /* Kleine Figur zählt in der Karte weiter mit 72 px (DESIGN 13.3, Kartenhöhe 162) und ragt um den Rest über die Blase hinaus, damit die Karte nicht höher wird; unten bündig über align-items:flex-end */
-#anleiter.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:calc(72px - var(--menue-mass-px-anleiter-figur-klein))}
+#anleiter.figur-klein .anleiter-figur,.bahn-tutorial-karte.figur-klein .anleiter-figur{width:var(--menue-mass-px-anleiter-figur-klein);height:var(--menue-mass-px-anleiter-figur-klein);margin-top:calc(72px - var(--menue-mass-px-anleiter-figur-klein))}
 .anleiter-figur .sprecher-bild{width:100%;height:100%}
 .anleiter-figur .sprecher-bild.foto{width:100%;height:100%;margin:0}
 .anleiter-figur .sprecher-bild.foto img{width:100%;height:100%;object-fit:contain;object-position:center bottom}
@@ -500,8 +500,8 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
   #anleiter.handlung .anleiter-blase{padding:6px 10px}
   #anleiter.handlung .anleiter-text{margin-top:2px;font-size:14px;line-height:16px}
 }
-.weniger-bewegung .spot-ring:not(.stupst-ruhig),.weniger-bewegung .info-kapsel,.weniger-bewegung #anleiter{animation:none}
-@media (prefers-reduced-motion:reduce){.spot-ring:not(.stupst-ruhig),.info-kapsel,#anleiter{animation:none}}
+.weniger-bewegung .spot-ring:not(.stupst-ruhig),.weniger-bewegung .info-kapsel,.weniger-bewegung #anleiter,.weniger-bewegung .bahn-tutorial-karte{animation:none}
+@media (prefers-reduced-motion:reduce){.spot-ring:not(.stupst-ruhig),.info-kapsel,#anleiter,.bahn-tutorial-karte{animation:none}}
 /* Hochformat: das Tutorial ruht hinter dem Dreh-Hinweis (13.7) */
 @media (orientation:portrait) and (max-width:600px){#spotlight,#anleiter,.ersatz-ziel,.info-kapsel{display:none}}
 /* Kapitel 3 kompakt (13.17.1 B6): Höhe 92 und Figur 96 mit 24 px Überstand nach oben (figur-klein) setzt anleiter.ts; Blase 8 + 18 + 4 + 3 × 18 + 8, der Rand zählt in die 8 px Innenabstand */
@@ -511,6 +511,11 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 #schleier{position:absolute;inset:0;pointer-events:none}
 #schleier svg{display:block;width:100%;height:100%}
 /* Erklärkarte (DESIGN 14.7): eigene Ebene über dem offenen Blatt – das Blatt darunter bleibt offen –, unter dem Dreh-Hinweis (#drehen, Ebene 10) */
+/* NR27 Mini-Tutorial (DESIGN 13.13 A): Anleiter-Karte über abgedunkeltem Bild; [Zeig’s mir] und [Später] rechts */
+#bahn-tutorial{position:absolute;inset:0;z-index:33}
+/* Infozeile im Kasten „Bauabschnitt“ (DESIGN 14.5): Abstand zum Sockel der Knöpfe darüber, (i) rechts neben dem Text statt darunter */
+.bahn-info{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.bahn-tutorial-knoepfe{justify-content:flex-end}
 #bahn-karte{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px}
 #bahn-karte>.blatt.popup{position:relative;width:min(560px,100%);max-width:none;max-height:100%;margin:0}
 #bahn-karte .inhalt{display:flex;flex-direction:column;gap:8px;padding:16px}
