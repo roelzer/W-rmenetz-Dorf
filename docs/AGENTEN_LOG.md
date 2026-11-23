@@ -804,3 +804,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 11:47 | ■ 🟡 | reviewer | 🟡 **Review NR27 P5b (Zug, Masten, Schranken, Dunst, Schleier, Strichellinie, Baustelle, Erfolgsmoment): freigegeben mit kleinen Punkten**  ([Bericht](docs/pruefberichte/20261123-114748-reviewer-a51f2a89ff5d425b9.md)) |
 | 2026-11-23 11:53 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-23 11:53 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261123-115300-entwickler-a834b75fcf8bdb6d3.md)) |
+| 2026-11-23 11:54 | ▶ | tester | Tester-Vorarbeit NR27 P5d |
