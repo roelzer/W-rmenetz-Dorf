@@ -6,7 +6,7 @@ import {
 } from './netz';
 import { feldVon, KARTE_OBEN_Y } from './feld';
 import { istBahn, nordSperre, nordviertelAnlegen, querungGebaut } from './nordviertel';
-import { nordText, type NordTextId } from './nord-texte';
+import { nordHinweisText, nordText } from './nord-texte';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { neubaugebietAnlegen, neubaugebietLayout2Anlegen, neubauPlan, neubauStrassen, spielOrt } from './neubaugebiet';
 import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
@@ -53,12 +53,6 @@ const RINGSCHLUSS = 'Diese Verbindung würde einen Ringschluss erzeugen. Baue di
 /** NR27: erste Zeile des Dorfs vor der Nordzone (die Karte vor NR27 begann hier). */
 const DORF_OBEN_Y = KARTE_OBEN_Y + KONSTANTEN.nord_zeilen;
 const HOECHSTE_STUFE = 'gehen nicht – die Heizzentrale hat schon die höchste Stufe';
-/** NR27: Text der Nordzone, der im Kern als Hinweis erscheint; ein Fachtext (kann null sein) wäre hier ein Programmfehler. */
-const nordHinweis = (id: NordTextId): string => {
-  const text = nordText(id);
-  if (text === null) throw new Error(`nordText ${id}: Hinweis im Kern darf kein Fachtext sein`);
-  return text;
-};
 const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
 const brauchtFestenPlatz = (typ: TypId): boolean =>
   istLeitung(typ) || ['haus', 'gross', 'hindernis'].includes(KATALOG[typ].kategorie);
@@ -604,8 +598,13 @@ export class Spiel {
     const sperre = this.gesperrt(t);
     if (sperre) return sperre;
     if (this.sperrtAusbaureserve(t, x, y)) return this.nein('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
-    const nord = nordSperre(this.stand, t, x, y);
-    if (nord) return this.nein(nord);
+    // Jedes Feld des Objekts zählt (gleiche Reihenfolge wie kannPlatzieren): ein 2×2-Objekt, das auf die Gleise ragt, nennt den
+    // Nord-Grund statt „Hier ist kein Platz“.
+    const kante = KATALOG[t].groesse ?? 1;
+    for (let dy = 0; dy < kante; dy++) for (let dx = 0; dx < kante; dx++) {
+      const nord = nordSperre(this.stand, t, x + dx, y + dy);
+      if (nord) return this.nein(nord);
+    }
     if (!this.kannPlatzieren(t, x, y)) return this.nein('Hier ist kein Platz');
     if (istLeitung(t) && this.istFluss(x, y) && !freigeschaltet(this.stand, 'spuelbohrung')) return this.nein(this.flussGesperrt());
     if (istLeitung(t)) {
@@ -735,7 +734,7 @@ export class Spiel {
 
   beschleunigen(bau: Bau | null | undefined): Ergebnis {
     if (!bau) return { ok: false };
-    if (bau === this.stand.abschnitt?.bau && this.stand.abschnitt.mit_querung) return this.nein(nordHinweis('EXPRESS'));
+    if (bau === this.stand.abschnitt?.bau && this.stand.abschnitt.mit_querung) return this.nein(nordHinweisText('EXPRESS'));
     const c = this.beschleunigungskosten_taler(bau);
     const b = this.bezahlen({ taler: c });
     if (!b.ok) return b;
@@ -1422,7 +1421,7 @@ export class Spiel {
   expressLiefern(): Ergebnis {
     const a = this.stand.abschnitt;
     if (a?.phase !== 'bau' || !a.bau) return { ok: false };
-    if (a.mit_querung) return this.nein(nordHinweis('EXPRESS'));
+    if (a.mit_querung) return this.nein(nordHinweisText('EXPRESS'));
     const sperre = this.gesperrt('express');
     if (sperre) return sperre;
     if (a.express) return this.nein('Express ist schon bestellt');
@@ -1490,7 +1489,7 @@ export class Spiel {
   /** NR27 (AE-NR27-8): Steht die Querung, werden die Häuser hinter der Bahn einmalig angelegt. */
   private nordviertelErschliessen(): void {
     if (this.stand.nordviertel || !querungGebaut(this.stand.objekte) || !nordviertelAnlegen(this.stand)) return;
-    this.hinweis(nordHinweis('F1'));
+    this.hinweis(nordHinweisText('F1'));
     this.neuBerechnen();
   }
   /** NR27: Wissenstext beim ersten Bahnfeld des Abschnitts – nur, wenn die Fachtexte freigegeben sind (AE-NR27-13). */
