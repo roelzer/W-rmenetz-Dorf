@@ -22,7 +22,10 @@ export const OHNE_ABSCHNITT_HINWEIS_HAUS = `Erst mit ${ABSCHNITT_HELFER.planung}
 /** NR27 (DESIGN 14.5, T04): Zusatz zur Kostenzeile, solange der Abschnitt ein Bahnfeld enthält – Kasten „Bauabschnitt“ und
  *  Chip der Zeichenleiste sagen dasselbe. Summe und Zuschlag kommen aus dem Kern. */
 export const querungKostenText = (sp: Spiel): string =>
-  nordHinweisText('KOSTEN_ZUSATZ', { querung_eur: eur(sp.querung_eur()), querung_zeit: dauerText(KONSTANTEN.querung_bau_s * KONSTANTEN.bauzeit_faktor) });
+  nordHinweisText('KOSTEN_ZUSATZ', { querung_eur: eur(sp.querung_eur()), querung_zeit: querungZuschlagText() });
+
+/** Bauzeit-Zuschlag der Querung als Text (Kostenzeile, Chip, Erklärkarte): Spielzeit = Katalogzeit × Bauzeit-Faktor. */
+export const querungZuschlagText = (): string => dauerText(KONSTANTEN.querung_bau_s * KONSTANTEN.bauzeit_faktor);
 
 /** Hausanschluss-Erklärsatz, kurze Fassung für die Zeichenleiste (Fachprüfung, ENTSCHEIDUNGEN 2026-11-05). */
 export const HAUSANSCHLUSS_KURZ = 'Endet eine Leitung an einem Haus, ist es sein Hausanschluss – er muss dick genug für das Haus sein.';

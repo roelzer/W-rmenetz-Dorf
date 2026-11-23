@@ -66,6 +66,9 @@ export function toastWichtig(text: string): void {
   zeigen(text, true);
 }
 
+/** Steht gerade eine Meldung (auch während sie ausblendet)? Ein Mini-Tutorial wartet, bis sie weg ist (DESIGN 14.15 Punkt 20). */
+export const meldungOffen = (): boolean => !!wurzel?.firstElementChild;
+
 /** AE-NR13-8: Tutorial-Schalter für gewöhnliche Meldungen. Beim Einschalten verschwindet auch eine stehende, nicht wichtige Meldung. */
 export function meldungenStumm(an: boolean): void {
   stumm = an;
