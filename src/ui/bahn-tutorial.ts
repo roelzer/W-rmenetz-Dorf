@@ -1,5 +1,5 @@
 import { nordHinweisText, nordText } from '../core/nord-texte';
-import { anleiterPlatz } from './anleiter';
+import type { AnleiterPlatz } from './anleiter';
 import { knopf } from './bausteine';
 import { h } from './dom';
 import { sprecherFigur } from './sprecher';
@@ -8,7 +8,8 @@ import { T } from './tokens';
 /**
  * NR27 (DESIGN 13.13 A, 14.15 Punkt 20): Mini-Tutorial „Bahnquerung“ bei der Freischaltung – Anleiter-Karte mit Simon über
  * abgedunkeltem Bild. Mit Fachtext-Freigabe drei Blasen (TUTORIAL_1, TUTORIAL_2, TUTORIAL_BEDIEN), ohne nur TUTORIAL_BEDIEN:
- * TUTORIAL_2 hinge ohne den Fachsatz davor in der Luft. Kennt den Spielstand nicht; den Merker setzt der Aufrufer.
+ * TUTORIAL_2 hinge ohne den Fachsatz davor in der Luft. Kennt den Spielstand nicht; den Merker setzt der Aufrufer. Den Platz
+ * rechnet steuerung.ts (Werte aus ui/anleiter holt nur sie, U7); eigene Texte schreibt das Modul nur ohne Bahn-Bezug (AE-NR27-12).
  */
 export interface BahnTutorialAktionen { zeigMir(): void; spaeter(): void }
 
@@ -22,12 +23,10 @@ function blasen(): string[] {
   return fach === null ? [bedien] : [fach, nordHinweisText('TUTORIAL_2'), bedien];
 }
 
-export function bahnTutorialZeigen(bild: { breite: number; hoehe: number }, aktionen: BahnTutorialAktionen): void {
-  if (ebene) throw new Error('Mini-Tutorial Bahnquerung ist schon offen');
+export function bahnTutorialZeigen(platz: AnleiterPlatz, aktionen: BahnTutorialAktionen): void {
+  if (ebene) throw new Error('Mini-Tutorial ist schon offen');
   const texte = blasen();
-  // Ohne offenes Blatt ist die ganze Fläche frei (Auslösebedingung in steuerung.ts), Platz wie die Anleiter-Karte (13.3)
-  const platz = anleiterPlatz({ x: 0, y: 0, b: bild.breite, h: bild.hoehe }, null, bild);
-  const karte = h('div', { class: 'anleiter bahn-tutorial-karte', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Neu freigeschaltet: Bahnquerung' });
+  const karte = h('div', { class: 'anleiter bahn-tutorial-karte', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Neu freigeschaltet' });
   karte.style.left = `${platz.links}px`;
   karte.style.width = `${platz.breite}px`;
   karte.style.bottom = `calc(${platz.unten!}px + env(safe-area-inset-bottom))`;

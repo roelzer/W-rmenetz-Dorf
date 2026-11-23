@@ -876,7 +876,9 @@ export class Steuerung implements Ui {
     // Der Installations-Hinweis liegt im Browser über dem ganzen Spiel (außerhalb von #app) und verdeckte die Knöpfe der Karte
     if (document.querySelector('.install-hinweis')) return;
     const gesehen = (): void => { sp.stand.bahn_hilfe_gesehen = true; };
-    bahnTutorialZeigen({ breite: this.kamera.breite, hoehe: this.kamera.hoehe }, {
+    // Ohne offenes Blatt ist die ganze Fläche frei (Bedingung oben), Platz wie die Anleiter-Karte (13.3)
+    const bild = { breite: this.kamera.breite, hoehe: this.kamera.hoehe };
+    bahnTutorialZeigen(anleiterPlatz({ x: 0, y: 0, b: bild.breite, h: bild.hoehe }, null, bild), {
       spaeter: gesehen,
       zeigMir: () => { gesehen(); this.zurQuerung(); },
     });
