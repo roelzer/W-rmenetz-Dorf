@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 132" width="352" height="264" role="img" aria-label="Skizze: Längsschnitt der Bahnquerung – Startgrube mit Bohrgerät, Schutzrohr unter zwei Gleisen, Zielgrube">
-  <!-- NR27 Erklärkarte, Skizze für das Bild links (176×132 px). Farben = Token-Vorschlag DESIGN.md 14.9. Kein fertiges Asset: Der Projektleiter zeichnet es mit denselben Farben im Canvas (wie src/ui/bild.ts) oder übernimmt diese Datei. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 132" width="352" height="264" role="img" aria-label="Skizze: zwei Gruben, Leitung unter zwei Gleisen">
+  <!-- NR27 Erklärkarte, Skizze für das Bild links (176×132 px). Farben = Token-Vorschlag DESIGN.md 14.9. Kein fertiges Asset: Der Projektleiter zeichnet es mit denselben Farben im Canvas (wie src/ui/bild.ts) oder übernimmt diese Datei. Fassung 2 (2026-11-23, Fachprüfer F3): kein Zug über der Bohrung, keine Merkpfähle, keine Aussage zur Bau-Reihenfolge. -->
   <rect width="176" height="132" rx="8" fill="#d6eaff"/>
   <!-- Erdreich -->
   <rect x="0" y="62" width="176" height="70" fill="#8a6a4e"/>
@@ -25,13 +25,6 @@
   <!-- Schutzrohr (Rohr im Rohr) unter den Gleisen -->
   <rect x="28" y="92" width="122" height="8" rx="4" fill="#dfe5e8" stroke="#2f3a40" stroke-width="2"/>
   <rect x="30" y="94.5" width="118" height="3" rx="1.5" fill="#ff8a1f"/>
-  <!-- Merkpfähle -->
-  <g><rect x="18" y="44" width="3" height="14" fill="#f4f1ea" stroke="#3b1d0a" stroke-width=".6"/><rect x="18" y="44" width="3" height="3" fill="#ff8a1f"/></g>
-  <g><rect x="155" y="44" width="3" height="14" fill="#f4f1ea" stroke="#3b1d0a" stroke-width=".6"/><rect x="155" y="44" width="3" height="3" fill="#ff8a1f"/></g>
-  <!-- Zug fährt weiter (nur Umriss) -->
-  <rect x="56" y="18" width="64" height="23" rx="5" fill="#f3eee3" stroke="#3b1d0a" stroke-width="1.2"/>
-  <rect x="60" y="22" width="56" height="7" rx="2" fill="#2f3d48"/>
-  <rect x="56" y="34" width="32" height="3" fill="#ff8a1f"/><rect x="88" y="34" width="32" height="3" fill="#3a92ea"/>
   <!-- Maß: Bohrstrecke -->
   <g stroke="#3b1d0a" stroke-width="1"><line x1="28" y1="118" x2="150" y2="118"/><line x1="28" y1="114" x2="28" y2="122"/><line x1="150" y1="114" x2="150" y2="122"/></g>
 </svg>

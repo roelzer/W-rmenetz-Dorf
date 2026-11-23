@@ -740,3 +740,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:28 | ■ 🟡 | fachpruefer | 🟡 GELB – Fachprüfer, Modus plan, NR27 Bahnquerung (2026-11-23)  ([Bericht](docs/pruefberichte/20261123-082815-fachpruefer-a46c33305f23907d2.md)) |
 | 2026-11-23 08:28 | ▶ | architekt | Architekt: Bauplan NR27 überarbeiten |
 | 2026-11-23 08:28 | ▶ | designer | Designer: DESIGN 14 anpassen |
+| 2026-11-23 08:35 | ■ 🟢 | designer | 🟢 Abschnitt 14 (NR27) in DESIGN.md ist auf Fassung 2 umgestellt. Das umfasst die Kritiker-Befunde 1 und 2, deinen Zusatz zu den Fachprüfer-Befunden und die  ([Bericht](docs/pruefberichte/20261123-083531-designer-ab0cd91f6c8e2ba97.md)) |
