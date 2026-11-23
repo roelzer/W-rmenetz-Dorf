@@ -18,6 +18,22 @@ export const ZUG_MASS = {
   gleis1_y: -2.28, gleis2_y: -2.72,
 } as const;
 
+/** Farben und Maße aus DESIGN 14.9 (Vorschlag `farbe.bahn`/`karte.bahn`; in design/tokens.json trägt sie 14.15 Punkt 21 ein). */
+export const BAHN = {
+  schotter: '#8f887d', schotter_kante: '#6f675c', randweg: '#ddd5c4', schwelle: '#cfcac0', schiene: '#333b41',
+  schiene_glanz: 'rgba(255,255,255,.55)', zaun: '#55605b', bruecke: '#7d858a',
+} as const;
+export const BAHN_MASS = { gleisabstand: 0.44, spurweite: 0.144, schwellen_teilung: 0.25, detail_ab_kachelbreite: 32 } as const;
+
+type Felder = ReadonlyArray<readonly [number, number]>;
+
+/** Spalten mit Brückentrog: Der Fluss kreuzt die Bahnzeilen dort, wo ober- und unterhalb der Bahn Wasser liegt. */
+export function brueckenSpalten(bahn: Felder, fluss: Felder): Set<number> {
+  const zeilen = bahn.map(([, y]) => y), nord = Math.min(...zeilen), sued = Math.max(...zeilen);
+  const wasser = new Set(fluss.map(([x, y]) => `${x},${y}`));
+  return new Set(bahn.map(([x]) => x).filter((x) => wasser.has(`${x},${nord - 1}`) && wasser.has(`${x},${sued + 1}`)));
+}
+
 /** Die Spitze fährt vom westlichen Gleisende bis der letzte Wagen das östliche verlassen hat (oder umgekehrt). */
 const FAHRT_FELDER = ZUG_MASS.bis_x - ZUG_MASS.von_x + ZUG_MASS.laenge_felder;
 const FAHRT_MS = (FAHRT_FELDER / ZUG_MASS.feld_je_s) * 1000;

@@ -10,6 +10,7 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
+import { BAHN, BAHN_MASS, brueckenSpalten } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -322,13 +323,6 @@ function kulissenObjekte(s: Szene): Objekt[] {
   return v;
 }
 
-/** Farben und Maße aus DESIGN 14.9 (Vorschlag `farbe.bahn`/`karte.bahn`; in design/tokens.json trägt sie P5 ein, 14.15 Punkt 21). */
-const BAHN = {
-  schotter: '#8f887d', schotter_kante: '#6f675c', randweg: '#ddd5c4', schwelle: '#cfcac0', schiene: '#333b41',
-  schiene_glanz: 'rgba(255,255,255,.55)', zaun: '#55605b', bruecke: '#7d858a',
-} as const;
-const BAHN_MASS = { gleisabstand: 0.44, spurweite: 0.144, schwellen_teilung: 0.25, detail_ab_kachelbreite: 32 } as const;
-
 /**
  * NR27 (DESIGN 14.2): Trasse im Boden – Zäune, Randwege, Schotterbett mit Flanken, zwei Gleise; über dem Fluss der Brückentrog.
  * Lage quer zur Bahn in Feldbruchteilen ab der Mitte der Bahnzeilen (−2,5); gezeichnet je Bahnfeld über die Kamera, damit
@@ -338,7 +332,7 @@ function zeichneGleise(m: Maler, k: Kamera, bahn: ReadonlyArray<readonly [number
   const { X } = m, tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
   const zeilen = [...new Set(bahn.map(([, y]) => y))].sort((a, b) => a - b);
   const sued = zeilen[zeilen.length - 1] + 0.5, nord = zeilen[0] - 0.5, mitte = (sued + nord) / 2;
-  const wasser = new Set(fluss.map(([x, y]) => `${x},${y}`));
+  const bruecken = brueckenSpalten(bahn, fluss);
   const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
   const band = (x: number, y0: number, y1: number, farbe: string): void =>
     m.flaeche([k.mitte(x - 0.52, y0), k.mitte(x + 0.52, y0), k.mitte(x + 0.52, y1), k.mitte(x - 0.52, y1)], farbe, false);
@@ -349,8 +343,7 @@ function zeichneGleise(m: Maler, k: Kamera, bahn: ReadonlyArray<readonly [number
   for (const x of spalten) {
     const [cx, cy] = k.mitte(x, mitte);
     if (cx < -tw * 2 || cx > W + tw * 2 || cy < -th * 2 || cy > H + tw * 2) continue;
-    // Brücke: Trog über dem Wasser, wo der Fluss die Bahnzeilen kreuzt (Wasserfelder ober- und unterhalb)
-    const bruecke = wasser.has(`${x},${zeilen[0] - 1}`) && wasser.has(`${x},${zeilen[zeilen.length - 1] + 1}`);
+    const bruecke = bruecken.has(x);
     if (bruecke) band(x, sued - 0.02, nord + 0.02, BAHN.bruecke);
     else {
       band(x, sued - 0.08, sued - 0.36, BAHN.randweg);
