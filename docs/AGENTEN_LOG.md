@@ -832,3 +832,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 13:17 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig** (zwei kleine, schnell behebbare Punkte). Review der Fix-Runde NR27 (Bahnquerung), Modus `paket`, Diff f232a8a..f49f037  ([Bericht](docs/pruefberichte/20261123-131708-reviewer-ad537429587517852.md)) |
 | 2026-11-23 13:17 | ▶ | entwickler | Nachbesserung Review NR27 |
 | 2026-11-23 13:22 | ■ 🟡 | produktpruefer | AMPEL GELB. NR27 a–c und e–g sind belegt erfüllt. d ist wegen des bewusst ausgeschalteten Fachtext-Schalters nicht bewertbar. h: Fotos erstellt und angeseh ([Bericht](docs/pruefberichte/20261123-132212-produktpruefer-ab3088f10407e5839.md)) |
+| 2026-11-23 13:35 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Ich habe fünf von sieben Punkten gebaut, getestet und committet. Fertig melden kann ich trotzdem nicht, aus zwei Gründen:  ([Bericht](docs/pruefberichte/20261123-133508-entwickler-a15c8e38c0420d968.md)) |

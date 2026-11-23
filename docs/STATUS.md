@@ -3,9 +3,9 @@
 **Auftrag:** Heatnet (Wärmenetz-Spiel) · **Zuletzt aktualisiert:** 2026-11-23
 
 
-**Jetzt:** NR27 Bahnstrecke und Bahnquerung: P1–P5d gebaut und gemergt (2513 Tests grün), Gesamtprüfung durch (Tester 🟢, Reviewer, Designer 🟡, Fachprüfer 🟡). Fix-Runde läuft: Tester-Vorarbeit fertig (52 Tests absichtlich rot), zwei Entwickler (Oberfläche, Darstellung/Farb-Tokens) folgen.
-**Als Nächstes:** Fix-Runde, Re-Review, Schranke, Abschlussbericht NR27; dann NR25 (kW-Anzeige), später NR28 (Tal/Höhenübergabe). Warten auf Simon: BQ1–BQ3, Fachtexte-Freigabe, Spielwerte, a88.
-**Fortschritt:** NR27 ca. 90 % (Details docs/SITZUNGSUEBERGABE.md)
+**Jetzt:** NR27 Bahnquerung gebaut und geprüft (2659 Tests grün, Typprüfung/Build grün, Re-Review nachgebessert, Produktprüfung Gelb). Fachtexte/Erklärkarte warten auf Simons Freigabe.
+**Als Nächstes:** Simon: BQ1–BQ3 und Fachtext-Freigabe, Spielwerte (45.000 €/Gleisfeld, +1 h), a88-Prüfsumme. Danach NR25 (kW-Anzeige), später NR28 (Tal/Höhenübergabe).
+**Fortschritt:** NR27 ca. 97 % (offen: Karte W1, Freigabe)
 **App:** https://heatville.pages.dev
 
 Annahme NR24 (2026-11-12): Die Vorschau steht nicht im Tutorial (dort erklärt Simon die Größen) und zählt auch Häuser ohne Übergabestation mit, die an der Leitung liegen.
