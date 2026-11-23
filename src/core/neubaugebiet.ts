@@ -1,4 +1,5 @@
 import { KONSTANTEN, type TypId } from './katalog';
+import { bahnFelder, nordFluss, nordStrassen } from './nordviertel';
 import { ortHolen } from './orte';
 import type { Spielstand } from './typen';
 
@@ -65,15 +66,20 @@ export function neubauStrassen(layout: 2 | 3): Array<[number, number]> {
 const erweitert = new Map<string, ReturnType<typeof ortHolen>>();
 export function spielOrt(stand: Pick<Spielstand, 'ort' | 'neubaugebiet' | 'neubaugebiet_layout' | 'neubau_strassenluecken'>): ReturnType<typeof ortHolen> {
   const ort = ortHolen(stand.ort);
-  if (!stand.neubaugebiet) return ort;
-  const layout = stand.neubaugebiet_layout === 3 ? 3 : 2;
-  const luecken = stand.neubau_strassenluecken ?? [];
+  const layout = stand.neubaugebiet ? (stand.neubaugebiet_layout === 3 ? 3 : 2) : 0;
+  const luecken = layout ? stand.neubau_strassenluecken ?? [] : [];
   const schluessel = `${ort.id}|${layout}|${luecken.join(',')}`;
   let plan = erweitert.get(schluessel);
   if (!plan) {
     const frei = new Set(luecken);
-    const neu = (layout === 3 ? strassen3 : strassen2).filter(([x, y]) => !frei.has(y * N + x));
-    plan = { ...ort, strassen: [...ort.strassen, ...neu], fluss: [...ort.fluss, ...fluss] };
+    const neu = layout ? (layout === 3 ? strassen3 : strassen2).filter(([x, y]) => !frei.has(y * N + x)) : [];
+    // Die Nordzone (Bahn, Nordstraßen, Nordfluss) liegt für alle Spielstände fest da, auch ohne Neubaugebiet.
+    plan = {
+      ...ort,
+      strassen: [...ort.strassen, ...nordStrassen(), ...neu],
+      fluss: [...ort.fluss, ...nordFluss(), ...(layout ? fluss : [])],
+      bahn: bahnFelder(),
+    };
     erweitert.set(schluessel, plan);
   }
   return plan;

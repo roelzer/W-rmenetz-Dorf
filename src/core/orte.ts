@@ -19,6 +19,8 @@ export interface Ort {
   strassen: Array<[number, number]>;
   /** Gewässerfelder (Fluss): hier darf nichts gebaut werden; Leitungen kommen nur per Spülbohrung hinüber (A46) */
   fluss: Array<[number, number]>;
+  /** Bahnfelder (NR27): nichts bauen, Leitungen nur an der Querungsstelle */
+  bahn?: Array<[number, number]>;
 }
 
 /** Geschätzter Haustyp aus der Grundfläche des Gebäudes (Spielwert, keine Norm): Wohnverbrauch wächst mit der Fläche. */
