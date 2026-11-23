@@ -815,3 +815,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 12:12 | ▶ | designer | Designer treue NR27 |
 | 2026-11-23 12:12 | ▶ | fachpruefer | Fachpruefer ergebnis NR27 |
 | 2026-11-23 12:12 | ▶ | reviewer | Reviewer gesamt NR27 |
+| 2026-11-23 12:18 | ■ 🔴 | reviewer | 🔴 **Gesamtprüfung NR27 (Bahnstrecke und Bahnquerung): Nachbesserung nötig, aber nur zwei kleine Lücken.** Der Code ist sauber und alle Tests sind grün. E ([Bericht](docs/pruefberichte/20261123-121807-reviewer-aea5078130fbce874.md)) |
