@@ -53,7 +53,7 @@ describe('NR27 P5a – Kasten „Bauabschnitt“', () => {
   it('ohne Freigabe kein (i)-Knopf', async () => {
     await echteSteuerung(spiel(6), (u) => {
       u.st.katalog('netz');
-      expect(u.dom.html.querySelectorAll('[data-ziel="bahn_info"]')).toHaveLength(0);
+      expect(u.dom.html.querySelectorAll('[data-ziel="bahn_info"]').length).toBe(0);
     });
   });
   // Fehler: Bauzeit-Text aus abschnitt_bau_s statt abschnittBau_s() → ohne Zuschlag.

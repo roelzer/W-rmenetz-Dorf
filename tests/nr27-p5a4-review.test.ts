@@ -9,6 +9,7 @@ vi.mock('../src/core/nord-texte', async (orig) => {
   return { ...echt, nordText: (id: Parameters<typeof echt.nordText>[0], werte?: Record<string, string | number>, frei?: boolean) => echt.nordText(id, werte, frei ?? schalter.frei) };
 });
 
+import tokens from '../design/tokens.json';
 import { neuerSpielstand, Spiel } from '../src/core/spiel';
 import { querungZuschlagText } from '../src/ui/sperrtexte';
 import { echteSteuerung, tippe } from './hilfen/echte-steuerung';
@@ -32,11 +33,13 @@ function spiel(stufe: number): Spiel {
 }
 
 describe('NR27 P5a4 Review-Nachträge', () => {
-  // Fehler, der ihn rot macht: Mindestmaß der Chip-Tippfläche gestrichen (Chip nur so groß wie seine Schrift, < 44 px).
-  it('Tippfläche des Chips „+ Bahnquerung“ mindestens 44 × 44 px', () => {
-    const r = regeln(lies('src/ui/stil.css'), '.blatt.zeichenleiste .bahn-chip');
-    expect(r).toMatch(/(?:^|;)min-width:var\(--groesse-px-tippflaeche-min\)/);
-    expect(r).toMatch(/(?:^|;)min-height:var\(--groesse-px-tippflaeche-min\)/);
+  // Fix-Runde NR27 (Designer-Treue M1): „+ Bahnquerung“ ist kein eigener Chip mehr, sondern zweite Zeile im Knopf „Abschnitt
+  // abschließen“; die Tippfläche ist damit die des Abschlussknopfs.
+  // Fehler, der ihn rot macht: Höhe des Abschlussknopfs nicht mehr aus dem Token, oder das Token fällt unter 44 px.
+  it('Knopf „Abschnitt abschließen“ (trägt „+ Bahnquerung“) mindestens 44 px hoch', () => {
+    const r = regeln(lies('src/ui/stil.css'), '.aktionsleiste .knopf');
+    expect(r).toMatch(/(?:^|;)height:var\(--menue-mass-px-zeichen-abschluss-hoehe\)/);
+    expect(tokens.menue.mass_px.zeichen_abschluss_hoehe).toBeGreaterThanOrEqual(44);
   });
 
   // Fehler, die ihn rot machen: Tippen aufs Abdunkeln lässt den Fokus außerhalb des Popups (im Browser fällt er auf body),

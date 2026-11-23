@@ -317,10 +317,12 @@ describe('NR27 Texte (AE-NR27-12, -13)', () => {
   });
 
   it('Platzhalter werden an der richtigen Stelle ersetzt', () => {
-    expect(nordText('KOSTEN_ZUSATZ', WERTE)).toBe('dazu eine Bahnquerung (90.000 €) · Bauzeit +24 min');
+    // Fix-Runde NR27 (Designer-Treue Entscheidung 3, Fachprüfer „quer unter den Gleisen“): Wortlaut KOSTEN_ZUSATZ neu; bei
+    // KATALOG_PREIS/KATALOG_ZEILE prüft dieser Test nur noch die Platzhalter-Stelle, den Wortlaut tests/nr27-fix-texte.test.ts.
+    expect(nordText('KOSTEN_ZUSATZ', WERTE)).toBe('davon Bahnquerung 90.000 € · Bauzeit +24 min');
     expect(nordText('BLATT_ZEILE', WERTE)).toBe('Bahnquerung · unter den Gleisen · 2 m');
-    expect(nordText('KATALOG_PREIS', WERTE)).toBe('Über die Gleise nur per Bahnquerung an der Hauptstraße: 45.000 € je Gleisfeld.');
-    expect(nordText('KATALOG_ZEILE')).toBe('Über die Bahn kommt eine Leitung nur quer über die Gleise – ab Heizzentrale Stufe 6.');
+    expect(nordText('KATALOG_PREIS', WERTE)).toMatch(/: 45\.000 € je Gleisfeld\.$/);
+    expect(nordText('KATALOG_ZEILE')).toMatch(/ – ab Heizzentrale Stufe 6\.$/);
     expect(nordText('SOFORT_GRUND')?.length).toBeLessThanOrEqual(28);
   });
 
@@ -393,8 +395,4 @@ describe('NR27 Erklärkarte ohne Fachtext-Freigabe (Entscheidung 23.11., DESIGN 
     expect(sichtbarerText(dom.html)).not.toContain(nordText('KARTE_5') as string);
     expect(sichtbarerText(dom.html)).not.toContain(nordText('KARTE_TITEL') as string);
   });
-
-  // Offen für P5a3 (bewusst kein Platzhalter-Test, die Test-Schranke verbietet ihn): Mit Freigabe (nordText mit freigegeben=true per vi.mock)
-  // öffnet bahnKarteZeigen das Popup „Warum so teuer?“ mit KARTE_1–KARTE_5 und den Chips KARTE_CHIP_FELD / KARTE_CHIP_ZUSCHLAG.
-  // Den Test schreibt der Entwickler im P5a3-Testsatz, sobald Selektor und Aufbau nach DESIGN 14.7 feststehen.
 });
