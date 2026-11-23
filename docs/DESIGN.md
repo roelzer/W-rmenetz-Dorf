@@ -3,6 +3,7 @@
 Stand 2026-11-04 · Designer, Modus `entwurf` (Überarbeitung) und `vorgabe` · Werte: `design/tokens.json`, Fassung 2. Im Code stehen keine Farben, Maße oder Zeiten direkt.
 **Nachtrag 2026-11-05: Für alle Menüs und Bedienoberflächen (DOM) gilt ab jetzt Abschnitt 12 „Menü-Stil v2“.** Wo die Abschnitte 1, 4 und 9 für Menüs etwas anderes sagen (Haarlinien, kein Textumriss, eine Schrift), gilt Abschnitt 12. Die Kartengrafik (Abschnitt 3) bleibt unverändert.
 **Nachtrag 2026-11-06: Abschnitt 13 „Tutorial (NR13)“** – Ablauf, Texte, Spotlight und Zustände des Pflicht-Tutorials für neue Spiele.
+**Nachtrag 2026-11-23: Abschnitt 14 „NR27 Bahnstrecke und Bahnquerung“** – Bahn im heutigen Wiesenrand am Nordrand, Zug in Rohrnaht-Farben, Nordgebiet im Dunst, Querung als Bauwerk (Vorschau, Baustelle mit Bohrlinie, Schutzrohr-Symbol), Sperrtexte Q1–N2, Erklärkarte „Warum so teuer?“, Prüfliste.
 **Nachtrag 2026-11-08: Abschnitt 13.17.11** – nach Fotocheck NR20–22 final: Saum am überlasteten Rohr schmal (Durchmesser bleibt), Vorschau-Rauten deutlicher, Titel bei Hand-Ersatz, kein doppeltes Zurücknehmen, Pfeil auf Eckfeldern verschoben.
 **Nachtrag 2026-11-07: Abschnitt 13.17.10** – nach Fotocheck P5f-final: Streifen über Gebäuden, Haken live, Rest-Satz, Raute ohne Füllung, Stecker blass beim eigenen Abgang, Klarstellung Abdunkeln/Pfeil.
 **Nachtrag 2026-11-07: Abschnitt 13.17 (NR20–NR22)** – Geisterleitung und Ziel-Häuser in T13, Hauptleitung + Hausanschluss im Tutorial, Überlast mit gelbem Warndreieck statt Rot-Blinken. Ersetzt die Überlast-Angaben in Abschnitt 3 und 9.
@@ -1549,3 +1550,318 @@ Anlass: Fotocheck `docs/pruefberichte/20261108-designer-nr20-22-final.md` (Workt
 - Der Einleitungssatz der Leitung („Für ein einzelnes Haus …“) steht über dem Kasten „Überlastet“. Der Knopf bleibt trotzdem sichtbar.
 
 **Prüfung beim nächsten Fotocheck:** Überlast-Karte bei Startzoom (Pipette Breite und Mitte), Blatt mit Vorschau-Rauten bei Gerätefaktor 1, Zustand „Wird … vergrößert“ ohne [Ersatz zurücknehmen], T13w mit Pfeil auf (10\|14).
+
+## 14. NR27 – Bahnstrecke und Bahnquerung (Entwurf 2026-11-23)
+Designer, Modus `entwurf`. Grundlage: Lastenheft NR27 (Abnahme a–h), Stand `c7f101e`, Code nur gelesen. Fotos vom heutigen Nordrand (844×390, Gerätefaktor 2, „Ohne Tutorial starten“, Winter) liegen nur im Temp-Ordner, nicht im Projekt. **Kein Code, keine Spielregeln:** Preis, Bauzeit, Kartenkoordinaten und Fachtext entscheiden Projektleiter, Fachprüfer bzw. Simon. Wo dieser Entwurf eine Regel braucht, steht sie als **Vorschlag**.
+
+### 14.0 Befund am heutigen Nordrand
+| Was | Befund | Folge für den Entwurf |
+|---|---|---|
+| Lage „oben“ | Kamera-Winkel 0: Zeile y = 0 ist die **obere rechte** Kante der Raute (`kamera.ts` `mitte()`: Bildschirm-x ~ x−y, Bildschirm-y ~ x+y). Das Neubaugebiet Süd liegt gegenüber (untere linke Kante). | „Norden“ = y < 0. Die Bahn läuft parallel zu Zeile 0, auf dem Bildschirm von der oberen Spitze schräg nach rechts unten. |
+| Platz | Hinter Zeile 0 liegen heute 2 Zeilen leerer Wiesenrand (`WIESENRAND = 2`), danach der Wolkenrand (2,85 Felder). | Die Bahn liegt **genau im heutigen Wiesenrand**. Das Spielfeld 24×24 verliert kein Feld. |
+| Zeilen 0 und 1 | Fast frei. Nur Hauptstraße (x = 10) und Ringstraße Ost (x = 17) laufen bis y = 0 und enden dort. Häuser beginnen bei y = 2. | Platz für die Startgrube überall. Hauptstraße und Ringstraße enden künftig sichtbar **an der Bahn** (siehe 14.2 „Straßenende“). |
+| Fluss | x = 19/20 läuft über die Nordkante hinaus. | Die Bahn quert den Fluss auf einer kleinen Brücke. Dort ist keine Querung möglich. |
+| Startbild | Zoom 2,2 auf die Heizzentrale: Die Nordkante liegt rechts oben **unter den HUD-Anzeigen**. Bei Zoom 1,4 ist sie frei zu sehen. | Die Bahn muss auch dann lesbar sein, wenn man sie nur in einer Ecke sieht. Deshalb gibt es Masten und gelegentlich einen Zug (beides ragt nach oben). |
+| Drehen | Die Kamera dreht stufenlos (A75). | Alles wird über Feldkoordinaten gezeichnet (wie Straßen und Laternen). Dann stimmt es in jedem Winkel. |
+| Bilder | Kräftige Wiese `#8dcc55`, im Winter `#e9f0f3`; Straßen aus Gehweg, Bordstein und Asphalt; Laternen als Strich mit Punkt; weicher Wolkenrand. | Die Bahn wird aus denselben Mitteln gebaut: flache Flächen in Schichten, Haarlinien, dünne senkrechte Striche. Keine Texturen, keine Bilddateien. |
+
+### 14.1 Richtung, Vorbilder, Erkennungsmerkmal
+**Richtung: Die Bahn ist eine „harte Kante“ in der weichen Spielzeugwelt.** Sie ist gerade, grau, technisch und eingezäunt. Davor liegt das bunte Dorf, dahinter ein Wohngebiet im Dunst. Ohne Text versteht man: Da kommt man nicht einfach drüber. Das ist die Begründung für den hohen Preis, bevor ein Wort darüber gefallen ist.
+- **Zielgruppe und Einsatz** wie bisher: Querformat, kurz zwischendurch, Finger. Den Moment, in dem man zum ersten Mal über die Bahn kommt, erlebt man nur einmal, bei Heizzentrale Stufe 6. Er darf deshalb groß sein. Die Bahn selbst sieht man ständig, sie muss also ruhig sein.
+
+**Vorbilder (nur Prinzipien):**
+| Vorbild | Was es gut macht | Warum es wirkt |
+|---|---|---|
+| **Mini Motorways** | Flüsse und Berge sind Hindernisse. Darüber kommt man nur mit einem knappen Spezialteil (Brücke, Tunnel), das man beim Ziehen sofort als Vorschau sieht. | Das Hindernis ist auf der Karte **sichtbar**, lange bevor man es überwinden kann. Das Spezialteil fühlt sich wertvoll an, weil es selten ist. |
+| **Mini Metro** | Züge fahren ruhig auf klaren Linien. Die Bewegung erzählt, dass das Netz lebt; sie ist nie Schmuck. | Bewegung ist Information („hier fährt etwas, das nicht gestört werden darf“). Alles andere bleibt flach und still. |
+| **eigener Grundsatz (Abschnitt 1)** | „Wärme ist das einzige Leuchten“: Man sieht, wo das Netz wirkt. | Das Nordgebiet liegt kalt im Dunst. Hebt sich der Dunst, ist der Erfolg ohne Text sichtbar. |
+
+**Abgeleitete Prinzipien**
+1. **Hindernis zuerst zeigen, Lösung später:** Bahn und Häuser dahinter sind ab dem ersten Spiel zu sehen, die Querung kommt erst mit Stufe 6.
+2. **Ein Bauteil, ein Ort, eine Richtung:** Die Querung gleitet nur an der Bahn entlang (eindimensional verschieben). Am Handy kann man sie nicht falsch platzieren.
+3. **Teuer sieht teuer aus:** zwei Baugruben, ein Bohrgerät, Absperrbaken, ein Bohrfortschritt unter den Gleisen. Die lange Bauzeit hat damit ein Bild.
+4. **Bewegung nur mit Zweck:** Der Zug zeigt, dass die Strecke befahren wird. Die Bohrlinie zeigt den Fortschritt. Der Dunst, der sich hebt, ist die Belohnung. Sonst bewegt sich nichts.
+5. **Gewohnt bedienen:** Platzieren wie jedes Gebäude (S5), Sperren wie 12.19/12.20, Erklärung wie 13.13 (Info-Knopf). Neu ist nur, dass das Teil an der Bahn entlanggleitet.
+
+**Erkennungsmerkmal: Der Regionalzug fährt in den Rohrnaht-Farben.** Sein Kasten ist cremeweiß mit einem Streifen, der links Orange und rechts Blau ist, genau wie die Rohrnaht unter jedem Kopfband (12.1). Menüs, Ladebild und Spielwelt sprechen damit dieselbe Sprache. Fremde Bahnfarben oder Logos kommen nicht vor.
+**Standard-Prüfung:** Ein rotes Zugdach oder Gleise mit Holzschwellen wären die Standardlösung. Wir verwenden graue Betonschwellen (sachlich, modern) und unsere eigene Lackierung. Der Dunst nutzt die Farbe des vorhandenen Wolkenrands und keine neue Nebel-Optik.
+
+### 14.2 Karte: Aufbau nach Norden
+**Zeilen (Vorschlag; ob die Karte negative Zeilen bekommt oder alles verschoben wird, entscheidet der Projektleiter wegen der Feldschlüssel `y*24+x` im Spielstand):**
+| Zeile | Inhalt | spielbar |
+|---|---|---|
+| y = 0 | heutige Nordzeile des Dorfs (Startgruben liegen hier) | ja |
+| y = −1 | **Bahn, südliche Hälfte**: Zaun, Randweg, Gleis 1 | nein, nur die Querung |
+| y = −2 | **Bahn, nördliche Hälfte**: Gleis 2, Randweg mit Masten, Zaun | nein, nur die Querung |
+| y = −3 | Grünstreifen an der Bahn, frei (Zielgruben liegen hier) | nach der Querung |
+| y = −4 | „Bahnstraße“ x = −2 … 17 (läuft im Westen in die Wolken = Anschluss an die Welt) | nach der Querung |
+| y = −5 | Vorgärten | nach der Querung |
+| y = −6 (−7) | Häuser im Raster 2 wie NR23: EFH/RH bei x = 2, 4, 6, 8, 10, 15, 17 und ein MFH 2×2 bei x = 12–13, y = −7…−6 (Zahl und Wärmebedarf: Projektleiter/Fachprüfer) | nach der Querung |
+| y = −7 | Gärten | nach der Querung |
+| y = −8 | Ortsrand, dann Wiesenrand und Wolken | – |
+Damit wächst die Karte um 8 Zeilen nach Norden. Gebaut werden kann zunächst nur bis y = 0 wie heute. Kamera-Grenze: Bei Zoom 2,2 muss sich jedes Haus der Reihe y = −6 in die Bildmitte holen lassen.
+
+**Plan (Draufsicht in Feldern, x nach rechts, Norden oben; `:` Randweg, `=` Gleis, `M` Mast bzw. MFH, `~` Fluss bzw. Brücke, `s` Straße, `E/R` Haus. Die Zäune liegen auf den Feldrändern und sind nicht eingezeichnet.)**
+```
+      x 012345678901234567890123
+  y=-7 ............MM.....~~...   Gärten (MFH 2×2 reicht bis hier) ┐
+  y=-6 ..E.R.E.R.R.MM.R.E.~~...   Häuser │ Dunst bis zur
+  y=-5 ...................~~...   Vorgärten │ ersten fertigen
+  y=-4 ssssssssssssssssss.~~...   Bahnstraße (läuft im Westen in die Wolken) │ Querung
+  y=-3 ...................~~...   Grünstreifen / Zielgruben ┘
+  y=-2 :M::M::M::M::M::M::~~:M:   Gleis 2, Randweg, Masten alle 3 Felder, Zaun
+  y=-1 ===================~~===   Gleis 1, Randweg, Zaun am Südrand (über ~~ die Brücke)
+  y= 0 ..........s......s.~~...   Dorf: Haupt- und Ringstraße enden mit Schranke am Zaun
+```
+
+**Querschnitt der Trasse** (in Feldbruchteilen quer zur Bahn, von Süd nach Nord, y = −0,5 … −2,5; 1 Feld = 10 m):
+| Band | von … bis (y) | Aussehen |
+|---|---|---|
+| Zaun Süd | −0,56 | Pfosten alle 0,25 Feld, 0,12 Kachel hoch, 2 Drähte; `bahn.zaun` |
+| Randweg | −0,58 … −0,86 | heller Kies `bahn.randweg` (rahmt die Bahn gegen die Wiese, wie der Gehweg die Straße) |
+| Schotterbett | −0,90 … −2,10 | `bahn.schotter`, Flanken je 0,06 Feld in `bahn.schotter_kante`; Körnung als feste Punkte im Boden-Cache wie beim Asphalt (`tw ≥ 32`) |
+| Gleis 1 / Gleis 2 | Mitte −1,28 / −1,72 (Gleisabstand 0,44 Feld) | Betonschwellen `bahn.schwelle` alle 0,25 Feld (`tw ≥ 32`), zwei Schienen `bahn.schiene` im Abstand 0,144 Feld mit 1-px-Glanzstrich `bahn.schiene_glanz` |
+| Randweg Nord mit Masten | −2,12 … −2,40 | Masten bei x ≡ 1 (mod 3) auf y = −2,26 |
+| Zaun Nord | −2,44 | wie Süd |
+- **Oberleitung:** Mast als senkrechter Strich `bahn.mast`, Breite `max(1, tw × 0,022)`, Höhe 0,62 Kachel, oben ein Ausleger über beide Gleise bis y = −1,28. Fahrdraht je Gleis als Linie in 0,50 Kachel Höhe von Mast zu Mast, `bahn.fahrdraht`, Breite `max(0,75, tw × 0,012)`. Masten stehen bewusst auf der **Nordseite**: Sie verdecken weder Startgruben noch Dorfhäuser. Masten und Fahrdraht gehören in die Objekt-Ebene (Tiefe sortiert wie Laternen), der Rest in den Boden-Cache.
+- **Brücke über den Fluss** (x = 19/20): Das Schotterbett läuft auf einem flachen Trog `bahn.bruecke` weiter (Seitenflächen nach `licht_faktor`), mit Geländerstrich beidseits. Das Wasser unter der Brücke bleibt sichtbar. Keine Masten auf der Brücke.
+- **Straßenende am Zaun:** Hauptstraße (10|0) und Ringstraße (17|0) bekommen am Nordrand des Feldes eine rot-weiße Schranke (zwei Pfosten und ein Balken, `bahn.bake_rot`/Weiß, 0,14 Kachel hoch). Sie steht fest und erzählt: Hier ist Schluss. Eine Straße über die Gleise (Bahnübergang) gibt es nicht. Sonst würde man erwarten, dass Leitungen der Straße folgen dürfen.
+- **Enden:** Die Gleise laufen von x = −2 bis 25 und verschwinden beidseits im Wolkenrand. Die Strecke führt also irgendwohin.
+
+**Zoomstufen** (Kachelbreite `tw`, bei 844×390 gilt `basis` = 26 px):
+| Zoom | tw | Was gezeichnet wird |
+|---|---|---|
+| ≥ 1,25 | ≥ 32 px | alles: Schwellen, zwei Schienen je Gleis, Körnung, Masten mit Ausleger, Fahrdraht |
+| 1,0 … 1,25 | 26–32 px | ohne Schwellen und Körnung. Je Gleis **ein** Strich in `bahn.schiene` (2 px), Masten ohne Ausleger, ein Fahrdraht |
+- **Jahreszeiten:** Schotter, Schienen und Masten bleiben gleich. Im Winter liegt auf den Schotterflanken eine Punktreihe `SCHNEE` (wie die Schneepunkte auf der Wiese). Die dunklen Schienen heben sich auf Schnee am besten ab (8,9:1). Im Herbst trägt der helle Randweg die Abgrenzung, weil Schotter und Herbstwiese fast gleich hell sind (1,5:1).
+- **Baumodus-Raster:** Die Rasterlinien enden am Zaun Süd (die Bahnfelder sind keine Baufelder). Im Modus „Leitung legen“ sind Bahnfelder ohne Querung leicht abgedunkelt (`bahn.gesperrt_schleier`), damit man vor dem Ziehen sieht, wo es nicht weitergeht.
+
+### 14.3 Zug (dezente Animation)
+- **Form:** zwei Wagen je 2 Felder lang, 0,28 Feld breit, 0,34 Kachel hoch, Quader nach `licht_faktor`. Kasten `bahn.zug_kasten`, Fensterband `bahn.zug_fenster`, Dach `bahn.zug_dach`, unten der Rohrnaht-Streifen (vordere Hälfte `menue.farbe.naht_vorlauf`, hintere Hälfte `naht_ruecklauf`). Ein Stromabnehmer (2 Striche) berührt den Fahrdraht. Weicher Schatten wie jedes Objekt, keine Lichter.
+- **Fahrt:** Er kommt aus dem Wolkenrand und fährt mit gleichmäßigem Tempo hinein (3 Felder/s, also etwa 9 s über 27 Felder), ohne Anfahren und Bremsen. Gleis 1 fährt von Ost nach West, Gleis 2 von West nach Ost, im Wechsel. Abstand 90–150 s, fest aus der Uhrzeit berechnet (gleiche Formel wie Rauch, keine Zufallszahl je Bild).
+- **Wofür:** Orientierung: Die Strecke ist befahren. Darum ist sie eingezäunt, und darum ist die Querung teuer. Der Zug ist **keine** Information über das Netz.
+- **Takt (A90/`takt.ts`):** Nur solange der Zug im Bild ist, meldet die Szene Bedarf „flüssig“, sonst „keine“. Außerhalb des Bildes wird nichts gerechnet.
+- **Weniger Bewegung und Sparmodus:** Es fährt kein Zug, und es steht auch keiner herum (ein stehender Zug sähe wie eine Störung aus). Die Strecke ist auch ohne Zug lesbar.
+- Fährt der Zug über eine Querungs-Baustelle, fährt er einfach weiter. Ob das als Aussage stimmt („gebohrt wird unter laufendem Betrieb“), prüft der Fachprüfer **[F]**; sonst fährt während der Bauzeit kein Zug.
+
+### 14.4 Wohngebiet Nord: „noch nicht erreichbar“
+- **Dunst:** Über den Zeilen y ≤ −2,5 (nördlich vom Nordzaun) liegt eine Fläche `bahn.nord_dunst` (Farbe wie der Wolkenrand, 55 % Deckkraft). Sie liegt über Boden **und** Häusern, die Bahn bleibt klar. Am Südrand des Dunsts gibt es einen weichen Übergang über 0,3 Feld (das wäre der zweite Verlauf im Bild nach dem Grund. Erlaubt, weil er dieselbe Rolle wie der Wolkenrand hat).
+- **Häuser im Dunst:** normale Hausgrafik mit kalten Fenstern (`fenster_kalt`). Zwei oder drei Häuser haben grauen Öl-Rauch (wie unversorgte Häuser im Dorf, mit derselben Animation und denselben Regeln für weniger Bewegung). Keine Blasen, kein Auswahlrahmen.
+- **Tippen** auf ein Haus, die Straße oder den Grünstreifen im Dunst: Es öffnet sich kein Blatt, sondern eine Meldung nach 12.17 (Text N1/N2 in 14.6). Tippen auf die Bahn selbst: dieselbe Meldung.
+- **Nach der ersten fertigen Querung** hebt sich der Dunst für das ganze Nordgebiet (Erfolgsmoment 14.8). Danach verhalten sich die Häuser wie alle anderen („kein Anschluss“-Blase, Blatt beim Antippen).
+- Zwischen Stufe 6 und fertiger Querung bleibt der Dunst. Stufe 6 allein erreicht die Häuser noch nicht (Abnahme f).
+
+### 14.5 Bahnquerung als Bauwerk
+**Bedienweg – Empfehlung B, Projektleiter entscheidet:**
+| | A: wie die Spülbohrung (Leitung einfach über die Bahn ziehen, Aufpreis im Bauabschnitt) | **B: eigenes Bauwerk** (erst Querung bauen, dann Leitung hindurchziehen) |
+|---|---|---|
+| Bedienung | keine neue Geste | eine neue, aber bekannte Geste (Platzieren S5) |
+| Bauzeit | Die lange Bauzeit hält den ganzen Bauabschnitt auf. Man kann so lange im Dorf nichts anderes bauen. | Die Querung baut für sich. Bauabschnitte im Dorf laufen weiter. |
+| Bild | Die Querung „versteckt“ sich in einer Leitung. | eigene Baustelle, eigener fertiger Zustand, eigenes Blatt mit Erklärung |
+| Fachlich | – | entspricht dem Vorgehen „erst Schutzrohr, dann Mediumrohr einziehen“ **[F]** |
+Der Rest dieses Abschnitts beschreibt **B**. Bei A entfallen Kasten und Platzieren. Vorschau, Bau und fertiger Zustand bleiben, sie hängen dann an den Leitungsfeldern über der Bahn.
+
+**Größe:** 1 Feld breit, 4 Felder tief: Startgrube (x|0), die zwei Bahnfelder (x|−1) und (x|−2), Zielgrube (x|−3). Erlaubt (Vorschlag): x = 0 … 18, nicht auf der Brücke. Auf (x|0) und (x|−3) darf kein Gebäude stehen, eine Straße ist erlaubt.
+
+**Einstieg im Baumenü, Reiter „Leitungen“:** ein neuer Kasten **„Bahnquerung“** unter dem Kasten „Bauabschnitt“ (Mini-Kopfband nach 12.7, rechts der Info-Knopf (i) nach 13.13 B, der die Erklärkarte 14.7 öffnet).
+```
+╭ Bahnquerung ─────────────────────────────── (i) ╮
+│ Bringt Leitungen unter der Bahn hindurch. [F]    │  Manrope 600 13, gedämpft, ≤ 52 Zeichen
+│ [▓▓▓ Bahnquerung planen ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] │  Knopf `geld`, Zeile 2: Münze 60.000 € · 2 h (Werte aus dem Kern)
+╰──────────────────────────────────────────────────╯
+```
+| Zustand | Kasten zeigt |
+|---|---|
+| gesperrt (< Stufe 6) | Knopf grau nach 12.19: Zeile 2 „Schloss ab Heizzentrale Stufe 6“. Antippen: wackeln + Hinweis Q1. (i) funktioniert trotzdem (13.13 B). |
+| frei | Knopf `geld` mit Preis · Bauzeit |
+| zu wenig Geld | Knopf grau mit Preis in Zeile 2, ohne Schloss, Geld-Regel 12.20 Regel 5 |
+| Querung im Bau | statt Knopf: Balken (12.7) + „noch 1 h 12 min“ + Knopf [Zur Baustelle] (neutral, klein; Kamera fährt hin, Blatt schließt) |
+| fertig | Chip grün „gebaut“ + [Zeigen] (neutral, klein). Ob eine zweite Querung erlaubt ist: Projektleiter. Wenn ja, steht darunter wieder [Bahnquerung planen]. |
+| Bauabschnitt läuft | ohne Einfluss: Die Querung braucht keinen Bauabschnitt. Wer die Querung im Bau hat, kann Leitungen im Dorf weiter planen. |
+
+**Planen (Vorschau, S5 „Platzieren“):**
+- Beim **ersten Mal** öffnet [Bahnquerung planen] zuerst die Erklärkarte (14.7, Variante „vor dem Planen“). Danach und bei jedem weiteren Mal geht es direkt in den Platzier-Modus.
+- Das Blatt schließt. Die Kamera fährt in 1200 ms (`menue.kurve.weich`; bei weniger Bewegung springt sie) auf Zoom 2,2 zur Bahn. Der Geist steht an der erlaubten Stelle, die der Bildmitte am nächsten liegt, sonst an der Hauptstraße (x = 10). Er liegt mittig in der freien Fläche (Regel Abschnitt 5).
+- **Geist:** Bodenrauten `vorschau_ok`/`vorschau_nein` auf Start- und Zielgrube. Auf den zwei Bahnfeldern ein durchscheinendes Band (`vorschau_ok`, 25 %) mit weißer Strichellinie (die künftige Schutzrohr-Trasse) und zwei Ring-Geistern (Schutzrohr-Symbol, 50 %) an den Enden. Das Bohrgerät steht halbtransparent (50 %) an der Startgrube, darüber wippt der vorhandene Pfeil `pfeil_ok`/`pfeil_nein`.
+- **Verschieben:** Ziehen irgendwo auf der Karte verschiebt den Geist **nur an der Bahn entlang**: Der Finger wird auf die Bahnachse projiziert und rastet je Feld ein. Das funktioniert in jedem Kamerawinkel. Links und rechts vom Geist zeigen zwei feste Winkel `‹ ›` (weiß mit Halo `effekt.text_halo`, auf Gleishöhe ±1,2 Felder), dass er sich so bewegen lässt. Sie pulsieren nicht. Pfeiltasten links/rechts verschieben um ein Feld, Enter baut.
+- **Modus-Leiste** (Abschnitt 5, höchstens 132 px hoch): Hilfetext „Bahnquerung – zieh sie an der Bahn entlang“ (42 Zeichen, 12 px) und rechts daneben (i) 44×44. Darunter [Hier bauen] (`geld`, Zeile 2 Preis · Bauzeit; bei Rot gesperrt mit Grund Q6/Q7) und [Abbrechen] (neutral).
+- Nach [Hier bauen]: Federn wie jedes Gebäude (`bau_plopp`), Münzflug weg von der Geld-Pille (vorhanden), dann der Bau-Zustand.
+
+**Bau (Baustelle):**
+```
+ Draufsicht (x|0 … x|−3), Kamera-Winkel 0 – schematisch
+   (x|−3)  ┌─▫─┐  Zielgrube klein, 4 Baken, Monteur steht daneben
+   (x|−2)  ═╪═══   Gleis 2   ┐ Bohrlinie wächst mit dem Baufortschritt
+   (x|−1)  ═╪═══   Gleis 1   ┘ von Süd nach Nord, vorn der Bohrkopf ●
+   (x| 0)  ┌▓▓▓┐  Startgrube mit Verbau, Bohrgerät, 4 Baken, Bautimer darüber
+```
+- **Gruben:** 0,7 × 0,7 Feld, eingesenkt gezeichnet: zwei sichtbare Innenwände `bahn.grube_wand` (dunkler nach `licht_faktor`), Boden `bahn.grube_boden`, Verbau-Bretter in `objekt.geruest` (dieselbe Holzfarbe wie das Baugerüst; man erkennt sofort: Baustelle). Je Grube 4 Baken (rot-weiß, 0,18 Kachel hoch) an den Ecken.
+- **Bohrgerät** an der Startgrube: flacher Quader `bahn.bohrgeraet` mit kleiner Kabine `bahn.zug_fenster`, Lafette als dunkler Keil `bahn.mast`, der zur Bahn zeigt. Haarlinie wie alle Objekte.
+- **Bohrlinie = Fortschritt:** Von der Startgrube zur Zielgrube wächst eine gestrichelte Linie `bahn.bohrlinie` über Schotter und Gleise mit (Striche 0,10 / Lücke 0,07 Feld, Breite `max(1,5, tw × 0,03)`). Vorn sitzt der Bohrkopf als Punkt `bahn.bohrgeraet` mit Haarlinie. Die Länge folgt der Restzeit. Das ist Information: Sie läuft auch bei weniger Bewegung und im Sparmodus (Takt „langsam“ wie der Bautimer).
+- **Bautimer** über der Startgrube (vorhandener Baustein), **Monteur** (vorhandene Figur) an der Zielgrube, er hämmert nicht, sondern steht.
+- **Leben (nur bei Animation an):** Die Haube des Bohrgeräts zittert ±1 px (Periode 180 ms), alle 2,4 s steigt ein kleines Abgaswölkchen (`rauch_hell`, vorhandener Rauch). Dafür Takt „flüssig“ nur, solange die Baustelle im Bild ist.
+- **Antippen** einer der 4 Felder: Seitenblatt „Bahnquerung“ im Bau (siehe unten).
+
+**Fertig:**
+- Gruben zu, die Wiese bzw. Straße ist wieder da. Am Rand vor jedem Zaun (y = −0,38 und −2,62) liegt ein **Schutzrohr-Symbol**: flache Ellipse (Ø 0,26 Feld) mit Außenring `bahn.schutzrohr` (Breite `max(1,5, tw × 0,03)`) und Innenscheibe `bahn.schutzrohr_innen` (leer) bzw. in der Rohrfarbe (`leitung.dNN`), wenn eine Leitung durchläuft. Das Bild ist „Rohr im Rohr“.
+- Daneben ein **Merkpfahl**: weißer Strich `bahn.merkpfahl`, 0,22 Kachel hoch, Kappe in `menue.farbe.naht_vorlauf`. Er macht die Querung auch bei Zoom 1 sichtbar, wo flache Bodensymbole verschwinden.
+- Unter den Gleisen verbindet eine Strichellinie die beiden Ringe: `bahn.schutzrohr` mit 70 % Deckkraft, solange keine Leitung drin ist. Mit Leitung: Striche in der Rohrfarbe, 60 % der Rohrbreite. Die Fließpunkte laufen über die Striche weiter. Das Netz liest sich durchgehend, und man sieht: Hier liegt das Rohr im Boden.
+- Auf den Bahnfeldern wird **nie** ein normales Rohr gezeichnet, auf (x|0) und (x|−3) schon.
+
+**Seitenblatt „Bahnquerung“** (Tafel 12.6, ohne Stufen-Abzeichen):
+| Zustand | Inhalt | Aktionsleiste |
+|---|---|---|
+| im Bau | Chip blau „im Bau“, Balken + Restzeit, Zeile „Bohrstrecke ······ {laenge_m} m“, Kasten „Warum so teuer?“ mit (i) | [Sofort fertig · n Taler] (taler) nur, wenn der Projektleiter Beschleunigen erlaubt; sonst ohne Leiste |
+| fertig, leer | Chip neutral „Schutzrohr frei“, Zeile Bohrstrecke, Satz „Zieh eine Leitung von Süd nach Nord hindurch.“ | [Leitung legen] (los) mit den Sperren B1–B4 aus 12.20 (braucht einen Bauabschnitt) |
+| fertig, belegt | Chip grün „Leitung liegt drin“, Zeile „Leitung ······ 63er · 48 / 120 kW“ | ohne Leiste |
+Kein [Verkaufen], kein [Verschieben] (Vorschlag; Projektleiter).
+
+**Leitung durch die Querung (im Bauabschnitt):** Wer von (x|0) nach (x|−3) zeichnet, sieht über den Bahnfeldern die gestrichelte Vorschau (wie oben) statt eines Rohrs. Kosten: nur die normalen Rohrfelder (Vorschlag; Projektleiter). Wer auf einem Bahnfeld abbiegen oder neben der Querung über die Bahn will: Das Feld wird `vorschau_nein`, die Leitung endet am letzten erlaubten Feld, Meldung Q3/Q4.
+
+### 14.6 Sperren und Meldungen (Stil wie `src/ui/sperrtexte.ts`, Regeln 12.19/12.20)
+Alle Texte ≤ 90 Zeichen (gezählt), Du-Form. Werte wie Stufe, Preis und Restzeit kommen aus dem Kern (`abStufe`, `sperrgrund`), nie fest im Text. **[F]** = Fachprüfer.
+| Nr | Wo / wann | Zeile 2 | Meldung beim Antippen | Schloss |
+|---|---|---|---|---|
+| Q1 | [Bahnquerung planen] vor Stufe 6 | „ab Heizzentrale Stufe 6“ | über `stufenHinweis('bahnquerung')`: „Bahnquerung gibt es ab Heizzentrale Stufe 6. Baue die Heizzentrale aus.“ (71) | ja |
+| Q1g | dito, Geld fehlt | Preis · Zeit | Geld-Regel 5 (`geldHinweis`) | nein |
+| Q2 | Leitung auf ein Bahnfeld ziehen, vor Stufe 6 | – | Muster wie `flussGesperrt()`: „Über die Bahn geht es erst mit einer Bahnquerung – ab Heizzentrale Stufe 6“ (74; Teil nach dem Strich = `sperrgrund`) | – |
+| Q3 | dito, ab Stufe 6, keine Querung an dieser Stelle | – | „Über die Bahn kommt eine Leitung nur durch eine Bahnquerung. Bauen → Leitungen.“ (79) [F] | – |
+| Q4 | Leitung längs auf einem Bahnfeld oder Abzweig darin | – | „Auf dem Bahngelände darf keine Leitung entlanglaufen – nur quer durch eine Bahnquerung.“ (87) [F] | – |
+| Q5 | Leitung durch eine Querung, die noch gebaut wird | – | „Die Bahnquerung wird noch gebaut ({Restzeit}). Danach kannst du eine Leitung durchziehen.“ (≤ 89) | – |
+| Q6 | [Hier bauen], Grube auf einem Gebäude | „hier steht etwas im Weg“ | „Hier steht etwas im Weg – schieb die Querung an der Bahn entlang.“ (65) | nein |
+| Q7 | [Hier bauen], Geist auf der Brücke | „nicht auf der Brücke“ | „Über der Brücke geht es nicht – schieb die Querung weiter.“ (58) | nein |
+| N1 | Tippen ins Nordgebiet oder auf die Bahn, vor Stufe 6 | – | „Hinter der Bahn: Diese Häuser erreichst du über eine Bahnquerung ab Heizzentrale Stufe 6.“ (89; Stufe aus `abStufe`) | – |
+| N2 | dito, ab Stufe 6, noch keine fertige Querung | – | „Diese Häuser erreichst du erst durch eine Bahnquerung. Bauen → Leitungen.“ (73) | – |
+| F1 | Querung fertig (Meldung, Erfolgsmoment) | – | „Bahnquerung fertig! Die Häuser hinter der Bahn kannst du jetzt anschließen.“ (75) | – |
+Neues Merkmal für `freischaltung.ts`: `bahnquerung: 6`, Name „Bahnquerung“ (dann stimmen `stufenSperre`, `stufenHinweis` und `sperrgrund` ohne Sondertext). **Mini-Tutorial** bei der Freischaltung nach 13.13 A: Blase 1 „Was ist das?“ mit Loch um den Kasten „Bahnquerung“, Blase 2 „Wofür gut – wofür nicht?“, [Zeig’s mir] fährt die Kamera zur Bahn und öffnet das Baumenü im Reiter „Leitungen“. Texte vom Fachprüfer.
+
+### 14.7 Erklärkarte „Warum so teuer?“
+**Wo und wann:** (1) automatisch beim ersten [Bahnquerung planen], (2) über (i) im Kasten „Bahnquerung“, in der Modus-Leiste beim Planen und im Seitenblatt der Querung. Als **Popup** (12.6) mittig mit Abdunkeln, weil sie aus Blatt, Leiste und Mini-Tutorial gleich erreichbar sein muss. Ein zweites Blatt wäre im Querformat zu eng.
+```
+844×390, Popup 560 px breit (min(560, Breite − 24)), Höhe nach Inhalt, höchstens Höhe − 24
+┌──────────────────────────────────────────────────────────┐
+│ Warum so teuer?                                    [ ✕ ] │ Kopfband 56, Lilita 26 weiß mit Kontur
+│▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ Rohrnaht 4 + Kontur 3
+│ ┌────────────────┐  Satz 1 [F] ………………………………………………… │ Innenabstand 16, Spalte rechts 330 px,
+│ │ Längsschnitt   │  ……… Satz 2 [F] ……………………………………… │ Manrope 500 14 / Zeile 20, `text`
+│ │ 176 × 132      │  Satz 3 [F] ……………………………………………… │ höchstens 10 Zeilen ohne Scrollen
+│ │ (design/nr27-  │  ……… Satz 4 [F] ……………………………………… │
+│ │  erklaerbild-…)│  Satz 5 [F] (optional) ……………………… │
+│ └────────────────┘                                        │
+│ (Münze 60.000 €) (Uhr 2 h)                                │ Chips gold/neutral unter dem Bild, Werte aus dem Kern
+│ im Spiel                                                  │ 12 px gedämpft: Preise sind Spielwerte (A18)
+├──────────────────────────────────────────────────────────┤
+│ [▓▓▓▓▓ Weiter zum Planen ▓▓▓▓▓]            [ Abbrechen ] │ Aktionsleiste 60 (`kasten_kopf`)
+└──────────────────────────────────────────────────────────┘
+```
+- **Bild:** Längsschnitt (Startgrube mit Bohrgerät, Schutzrohr mit Leitung unter zwei Gleisen, Zielgrube, Zug fährt oben weiter). Skizze: `design/nr27-erklaerbild-querschnitt.svg` (176×132, Farben aus 14.9). Das Bild ist Schmuck mit Sinn: `alt`/Vorlesetext „Skizze: Bohrung unter den Gleisen von Grube zu Grube“. Ob der Zug während der Bohrung weiterfährt, entscheidet der Fachtext. Wenn nicht, entfällt der Zug im Bild.
+- **Textplätze (Fachtext liefert der Fachprüfer, Simon bestätigt; hier nur die Reihenfolge, kein Wortlaut):**
+  1. Was an der Bahn besonders ist (warum man nicht einfach aufgraben darf). [F]
+  2. Wie gebaut wird (grabenlos von Grube zu Grube, mit Schutzrohr). [F]
+  3. Was es teuer macht (Spezialgerät, zwei Gruben, Auflagen bzw. Vertrag mit dem Bahnbetreiber, Sicherung). [F]
+  4. Warum es lange dauert (Genehmigung und Planung). [F]
+  5. optional: Bezug zum Spiel („Im Spiel kostet eine Querung …“, Werte aus dem Kern).
+  **Budget:** 3–5 Sätze, je ≤ 110 Zeichen, zusammen **≤ 420 Zeichen**. Das passt ohne Scrollen bei 844×390 und 667×375 (gerechnet: 330 px Spalte ≈ 45 Zeichen/Zeile, 10 Zeilen à 20 px = 200 px Platz bei 667×375).
+- **Knöpfe je Einstieg:** automatisch vor dem Planen: [Weiter zum Planen] (`los`, öffnet den Platzier-Modus) + [Abbrechen] (neutral, zurück ins Baumenü). Über (i): nur [Verstanden] (`los`). Das ✕ im Kopfband schließt immer ohne weitere Aktion (= Abbrechen bzw. Verstanden).
+- **Zustände:**
+| Zustand | Verhalten |
+|---|---|
+| normal (3–5 Sätze ≤ 420 Zeichen) | kein Scrollen, Popup so hoch wie der Inhalt, mittig |
+| kurz (3 Sätze) | Bildspalte bestimmt die Höhe (132 + 8 + 26 Chips), Text oben bündig |
+| zu lang (> 420 Zeichen oder große Schrift im System) | nur die Textspalte scrollt, unten eine Ausblendmaske 16 px. Aktionsleiste und Kopfband bleiben fest |
+| Fachtext noch nicht freigegeben | Die Erklärkarte wird **nicht** gezeigt, (i) fehlt, der Auto-Start entfällt. Nie Platzhaltertext vor Spielern. Ein Test prüft vor dem Veröffentlichen, dass der Text da ist |
+| 667×375 | gleiche Breite 560, Höhe höchstens 351 |
+| Desktop 1280×800 | gleich, 560 px breit, mittig |
+| weniger Bewegung | kein Aufploppen (12.9), sofort da |
+| Hochformat | wie überall: Dreh-Hinweis deckt alles ab, die Karte bleibt beim Zurückdrehen offen |
+- **Fokus:** beim Öffnen auf die Hauptaktion. Der Fokus bleibt im Popup, Esc schließt. Beim Schließen geht der Fokus zurück auf den auslösenden Knopf ((i) bzw. [Bahnquerung planen]).
+
+### 14.8 Bewegungssprache NR27
+| Was | Wie | Zeit / Kurve | Zweck | weniger Bewegung / Sparmodus |
+|---|---|---|---|---|
+| Zug | gleichmäßige Fahrt über die ganze Strecke | 3 Felder/s, alle 90–150 s | Orientierung | entfällt ganz |
+| Kamera zur Bahn (Planen, [Zeig’s mir], [Zur Baustelle], [Zeigen]) | Fahrt | `kamera_fahrt` 1200 ms, `kurve.weich` | Orientierung | springt |
+| Geist rastet ein | gleitet zum nächsten Feld | 120 ms, `kurve.weich` | Rückmeldung | springt |
+| Bau beginnt | Federn wie jedes Gebäude, Münzflug | `bau_plopp` 450 ms, `muenzflug` | Rückmeldung | nur Zahl an der Geld-Pille (vorhanden) |
+| Bohrlinie | wächst mit dem Fortschritt | Takt „langsam“ (4 Bilder/s) | Information | **bleibt** (Information) |
+| Bohrgerät zittert, Abgaswölkchen | ±1 px, 180 ms; Wölkchen alle 2,4 s | – | Leben, zeigt „hier wird gearbeitet“ | aus |
+| **Erfolgsmoment: Querung fertig** | Funken an beiden Gruben (`effekt.funken`), dann hebt sich der Dunst über dem Nordgebiet, danach erscheinen die „kein Anschluss“-Blasen versetzt (60 ms je Haus, Federn wie Blasen), dazu Meldung F1 | Funken 1000 ms; Dunst 1200 ms `kurve.weich`; Blasen ab 1200 ms | Belohnung: Das neue Gebiet „geht auf“ | Funken aus, Dunst sofort weg, Blasen ohne Federn, Meldung bleibt |
+| Erklärkarte | Popup wie 12.9 | `popup_ein` 220 ms, `kurve.plopp` | Orientierung | sofort |
+Es gibt **einen** Erfolgsmoment. Eine zweite Querung bekommt nur Funken und Meldung, weil der Dunst dann schon weg ist.
+
+### 14.9 Neue Werte (Vorschlag für `design/tokens.json`, Gruppe `farbe.bahn`, wie 13.10 noch nicht eingetragen)
+| Token | Wert | Rolle / gemessen |
+|---|---|---|
+| `schotter` | `#8f887d` | Schotterbett. Auf Wiese 1,8:1, auf Schnee 3,0:1, auf Herbstwiese nur 1,5:1, deshalb trägt der Randweg die Abgrenzung |
+| `schotter_kante` | `#6f675c` | Flanken (auf Wiese 2,9:1) |
+| `randweg` | `#ddd5c4` | Kiesweg beidseits, Rahmen gegen die Wiese (auf Schotter 2,4:1) |
+| `schwelle` | `#cfcac0` | Betonschwellen |
+| `schiene` | `#333b41` | Schienen. Auf Schotter ≥ 3:1, auf Wiese 5,3:1, auf Schnee 8,9:1 |
+| `schiene_glanz` | `rgba(255,255,255,.55)` | 1-px-Lichtkante |
+| `mast` | `#3f4549` | Masten, Lafette |
+| `fahrdraht` | `rgba(47,58,64,.60)` | Oberleitung |
+| `zaun` | `#55605b` | Bahnzaun (auf Wiese 3,4:1, auf Schnee 5,7:1) |
+| `bruecke` | `#7d858a` | Brückentrog |
+| `bake_rot` | `#d23a2c` | Baken und Schranke (= `menue.knopf.gefahr`), dazu Weiß |
+| `zug_kasten` / `zug_fenster` / `zug_dach` | `#f3eee3` / `#2f3d48` / `#9aa1a6` | Zug; Streifen = `menue.farbe.naht_vorlauf` / `naht_ruecklauf` |
+| `grube_wand` / `grube_boden` | `#8a6a4e` / `#5f4532` | Baugruben; Verbau = `objekt.geruest` |
+| `bohrgeraet` | `#f0a53a` | Bohrgerät, Bohrkopf (auf Grubenerde 3,7:1) |
+| `bohrlinie` | `#4a2c14` | Bohrfortschritt (auf Schotter ≥ 3:1) |
+| `schutzrohr` / `schutzrohr_innen` | `#2f3a40` / `#dfe5e8` | Ring (auf Schotter 3,3:1, auf Wiese 6,1:1, auf Schnee 10:1) / leeres Rohr |
+| `merkpfahl` | `#f4f1ea` | Merkpfahl, Kappe = `naht_vorlauf` |
+| `nord_dunst` | `rgba(236,242,245,.55)` | Dunst über dem Nordgebiet (Ton des Wolkenrands) |
+| `gesperrt_schleier` | `rgba(31,42,46,.12)` | Bahnfelder im Leitungsmodus ohne Querung |
+Maße (`karte.bahn`): `gleisabstand` 0,44, `spurweite` 0,144, `schwellen_teilung` 0,25, `mast_teilung` 3, `mast_hoehe` 0,62, `fahrdraht_hoehe` 0,50, `zug_feld_je_s` 3, `zug_pause_s` [90, 150], `detail_ab_kachelbreite` 32. Zeiten (`zeit_ms`): `dunst_heben` 1200, `geist_rasten` 120, `blase_versatz` 60, `bohrgeraet_zittern` 180, `abgas_zyklus` 2400.
+Prüfung der Farben, die Information tragen (Formel WCAG): Schiene, Ring, Bohrlinie, Zaun ≥ 3:1 auf ihrem Grund. Schotter gegen Wiese liegt darunter. Das ist erlaubt, weil Schotter nur Fläche ist und Rand und Schienen die Form tragen.
+
+### 14.10 Barrierefreiheit (Pflichtboden)
+- **Tippflächen ≥ 44 px:** (i) 44×44 (unsichtbar erweitert, 13.13), alle Knöpfe ≥ 44/48, ✕ 44. Den Geist muss man nicht treffen, Ziehen irgendwo auf der Karte reicht.
+- **Ziehen hat eine Alternative (WCAG 2.2):** Beim Planen ändern Pfeiltasten die Lage um ein Feld. Für Touch ohne Ziehen: Tippen auf eine Stelle der Bahn setzt den Geist dorthin (Vorschlag, gleiche Projektion).
+- **Nie nur Farbe:** gesperrt = Schloss **und** Grund in Worten; Vorschau Rot = Raute **und** gesperrter Knopf mit Grund; Nordgebiet = Dunst **und** Meldung beim Antippen **und** keine Blasen; Querung fertig = Ring **und** Merkpfahl.
+- **Vorlesen:** Die Meldungen laufen über `aria-live` (12.17). Die Erklärkarte hat `role="dialog"`, `aria-labelledby` auf den Titel und einen Bild-Alt-Text.
+- **Bewegung:** Der Zug fährt nur bei Animation an. Nichts blinkt, nichts pulsiert. Der Bohrfortschritt bleibt als Information.
+
+### 14.11 Abläufe (Start → Ziel, Rückmeldung nach jedem Schritt)
+1. **Entdecken (ab Spielbeginn):** Karte nach Nordosten schieben oder herauszoomen → Bahn mit Masten, ab und zu ein Zug, dahinter kalte Häuser im Dunst → ins Nordgebiet tippen → Meldung N1.
+2. **Vor Stufe 6 versuchen:** Leitung auf ein Bahnfeld ziehen → Feld rot, Leitung endet vor dem Zaun, Meldung Q2. Baumenü → Leitungen → grauer Knopf mit Schloss → wackeln, Meldung Q1. (i) → Erklärkarte (Variante „Verstanden“).
+3. **Freischaltung Stufe 6:** Mini-Tutorial (13.13 A) → [Zeig’s mir] → Kamera zur Bahn, Baumenü im Reiter Leitungen, Loch um den Kasten „Bahnquerung“.
+4. **Planen:** [Bahnquerung planen] → (erstes Mal) Erklärkarte → [Weiter zum Planen] → Blatt zu, Kamera zur Bahn, Geist mit Pfeil → ziehen: Geist rastet feldweise an der Bahn entlang, grün/rot → [Hier bauen] → Federn, Münzflug, Geld-Pille sinkt.
+5. **Bauen:** Gruben, Bohrgerät, Baken, Bautimer, Bohrlinie wächst → Querung antippen → Blatt mit Restzeit → (falls erlaubt) [Sofort fertig].
+6. **Fertig:** Funken, Dunst hebt sich, Blasen erscheinen, Meldung F1 → Kasten zeigt „gebaut“.
+7. **Anschließen:** Bauabschnitt planen → Leitung von (x|0) durch die Querung nach (x|−3) und weiter in die Bahnstraße zeichnen → über der Bahn gestrichelte Vorschau → bestellen, bauen → Striche in Rohrfarbe, Fließpunkte laufen durch, die Ringe zeigen die Rohrfarbe → Haus anschließen wie üblich.
+8. **Falsch zeichnen:** neben der Querung über die Bahn oder auf der Bahn abbiegen → Feld rot, Meldung Q3 bzw. Q4.
+
+### 14.12 Bildschirme und Zustände (Übersicht für den Bau)
+| Bildschirm | leer / erste Nutzung | gesperrt | laden / im Bau | gefüllt / fertig | Fehler / Konflikt | 844×390 Besonderheit |
+|---|---|---|---|---|---|---|
+| Karte: Bahn + Nordgebiet | Bahn, Zug, Dunst vom ersten Spiel an | Tippen → N1/N2 | – | Dunst weg, Häuser normal | Leitung auf Bahn → Q2–Q5 | Nordkante liegt beim Start unter dem HUD; Masten und Zug ragen ins freie Bild |
+| Kasten „Bahnquerung“ (Baumenü) | Knopf frei | Schloss + Q1 | Balken + [Zur Baustelle] | Chip „gebaut“ + [Zeigen] | Geld fehlt → Preis grau | passt in die Blattbreite 388 px; Zeile 2 ≤ 28 Zeichen |
+| Platzieren (S5 + Modus-Leiste) | Geist an nächster erlaubter Stelle | – | – | grün, [Hier bauen] | Q6, Q7 (rot, Knopf grau mit Grund) | Leiste ≤ 132 px, Geist in der freien Fläche links |
+| Baustelle (Karte) | – | – | Gruben, Bohrgerät, Bohrlinie, Bautimer | → Erfolgsmoment | Kamera-Grenze darf die Zielgrube nicht abschneiden | Bautimer nicht unter dem HUD (Kamera schiebt nach unten) |
+| Seitenblatt „Bahnquerung“ | – | – | im Bau | frei / belegt | Leitung legen ohne Bauabschnitt → B1–B4 | Aktionsleiste fest |
+| Erklärkarte | Auto-Start beim ersten Planen | auch vor Stufe 6 über (i) | – | normal / kurz / zu lang | Fachtext fehlt → nicht zeigen | 560 px, ≤ 10 Zeilen ohne Scrollen |
+| Hochformat | Dreh-Hinweis wie überall | | | | | |
+
+### 14.13 Prüfliste für die Fotos (Designer, Modus `treue`)
+Aufnahme: 844×390 und 667×375, Gerätefaktor 2, Touch, Querformat; einmal Sommer und einmal Winter (Jahreszeit über den Spielstand). Hinweisband „Mehr Platz zum Spielen“ vorher schließen. Standbilder plus ein Video der Abläufe 4–7.
+1. **Bahn lesbar auf einen Blick:** Zoom 1,4 so geschoben, dass die Nordkante mittig liegt: Zaun, Randweg, Schotter, zwei Gleise, Masten mit Fahrdraht sind ohne Erklärung als Bahn zu erkennen. Graustufen- und Unschärfe-Probe: Die Gleise bleiben als zwei dunkle Linien sichtbar.
+2. **Startbild:** Zoom 2,2 auf die Heizzentrale: Die Bahn darf unter dem HUD liegen, aber kein Spielfeld-Feld geht verloren (Zeile y = 0 ist so sichtbar wie heute). Vergleich mit dem Foto des heutigen Nordrands.
+3. **Zoom 1,0:** je Gleis ein Strich, keine Schwellen, keine flimmernden Einzelpixel; Zoom 2,2: zwei Schienen je Gleis, Schwellen klar.
+4. **Herbst und Winter:** Bahn grenzt sich über den Randweg von der Herbstwiese ab; im Winter Schienen dunkel auf hellem Grund.
+5. **Drehen** um 45° und 90°: Gleise, Zaun, Masten, Zug, Querung bleiben richtig liegen (keine Lücken, keine Masten auf den Gleisen).
+6. **Brücke** über dem Fluss: Schotter läuft durch, Wasser sichtbar, keine Masten auf der Brücke; Hauptstraße und Ringstraße enden mit Schranke am Zaun.
+7. **Zug** (Video, Animation an): fährt gleichmäßig aus den Wolken hinein und wieder hinaus, Streifen Orange|Blau sichtbar, kein Ruckeln (Prüfung wie NR12); mit „Weniger Bewegung“ und im Sparmodus fährt kein Zug und keiner steht herum. Im Bild ohne Zug zeichnet das Spiel im Ruhetakt (Bildrate in Ruhe wie vorher).
+8. **Nordgebiet:** Dunst über Häusern und Straße, Bahn klar; kalte Fenster, Öl-Rauch, keine Blasen; Tippen → Meldung N1 (vor Stufe 6) bzw. N2 (ab Stufe 6), kein Blatt.
+9. **Sperre:** Baumenü Reiter Leitungen vor Stufe 6: grauer Knopf, Schloss + „ab Heizzentrale Stufe 6“ in Zeile 2, nicht durchscheinend; nach dem Antippen Wackeln und Meldung Q1 in der freien Kartenfläche. Per Skript: `aria-disabled="true"`, kein `disabled`, Meldung ≤ 90 Zeichen.
+10. **Vorschau:** Platzier-Modus: Geist in der freien Fläche, Rauten auf beiden Gruben, Band mit Strichellinie über den Gleisen, Winkel ‹ ›, Pfeil; Ziehen schräg über die Karte bewegt den Geist nur an der Bahn entlang; auf der Brücke und vor einem Gebäude rot mit Grund im Knopf (Q6/Q7).
+11. **Baustelle:** zwei Gruben mit Holzverbau und Baken, Bohrgerät, Monteur, Bautimer frei vom HUD; Bohrlinie bei etwa 50 % Restzeit halb unter den Gleisen; mit „Weniger Bewegung“ wächst sie trotzdem.
+12. **Fertig + Erfolgsmoment** (Video): Funken, Dunst hebt sich in etwa 1,2 s, Blasen erscheinen nacheinander, Meldung F1; danach Ringe und Merkpfähle an beiden Seiten, Strichellinie unter den Gleisen. Würde man das Video teilen?
+13. **Leitung durch die Querung:** Striche in Rohrfarbe, Fließpunkte laufen durch, Ringe in Rohrfarbe; kein normales Rohr auf den Bahnfeldern; Versuch daneben → rot + Q3.
+14. **Erklärkarte:** 844×390 und 667×375 ohne Scrollen bei ≤ 420 Zeichen, Bild links vollständig, Chips mit Preis und Zeit, „im Spiel“ sichtbar; ✕, [Weiter zum Planen]/[Abbrechen] bzw. [Verstanden] ≥ 44 px (per Skript gemessen); Esc schließt, Fokus zurück auf den Auslöser; mit Testtext 600 Zeichen scrollt nur die Textspalte.
+15. **Alter Spielstand** (Abnahme g): Ein Stand von heute (mit Neubaugebiet) lädt; alle Häuser, Leitungen und Baustellen an ihrem Platz; Bahn und Nordgebiet sind da; keine Leitung liegt auf einem Bahnfeld.
+16. **Kein Text abgeschnitten, keine waagrechte Scrollleiste**, keine Konsolenfehler.
+
+### 14.14 Offene Punkte (mit Empfehlung)
+- **Projektleiter:** Bedienweg A oder B (Empfehlung **B**, 14.5); Koordinaten nach Norden (negative Zeilen oder Verschiebung; die Feldschlüssel im Spielstand sind betroffen); Preis und Bauzeit; nur eine Querung oder mehrere (Empfehlung: mehrere erlaubt, der Erfolgsmoment nur beim ersten Mal); passt nur eine Leitung hindurch (Empfehlung: ja, eine. Das ist leicht zu verstehen und ein Grund, gleich die passende Dicke zu wählen) **[F]**; Sofort fertig mit Talern ja/nein; Zahl und Art der Nordhäuser.
+- **Fachprüfer:** Texte der Erklärkarte (14.7, Punkte 1–4), Erklärsatz im Kasten, Q3/Q4, Mini-Tutorial-Blasen; ob der Zug während der Bohrung weiterfahren darf (Bild und Animation hängen daran); ob „erst Schutzrohr, dann Leitung einziehen“ als Ablauf so stimmt; Bohrstrecke etwa 30–40 m bei zwei Gleisen plus Gruben.
+- **Simon:** bestätigt den Fachtext (Abnahme d).
