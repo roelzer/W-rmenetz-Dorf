@@ -774,3 +774,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 10:08 | ▶ | reviewer | Reviewer P4 NR27 |
 | 2026-11-23 10:16 | ■ 🔴 | reviewer | 🟡 **Ampel: Gelb – P4 kann bleiben, wie es ist. Es gibt 5 kleine Punkte, nichts blockiert.**  ([Bericht](docs/pruefberichte/20261123-101651-reviewer-a2bb8da1da033c4a4.md)) |
 | 2026-11-23 10:17 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT (Kontext voll).** Zwei Zwischenstände sind committet und grün. Gebaut sind die beiden Review-Punkte und ein Teil von Regel 9. Der gr� ([Bericht](docs/pruefberichte/20261123-101718-entwickler-a724d11e50fb82733.md)) |
+| 2026-11-23 10:19 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT (Kontext voll).** Vom P4-Review-Zusatz ist Punkt (1) gebaut und committet. Punkt (2) ist nicht gemacht.  ([Bericht](docs/pruefberichte/20261123-101953-entwickler-a724d11e50fb82733.md)) |
+| 2026-11-23 10:20 | ■ 🔴 | entwickler | 🔴 **BLOCKIERT (Kontext voll).** Ich habe einen Zwischenstand committet. Von P5b ist nur der Fahrplan des Zugs gebaut, dazu die zwei Nachtragstests aus dem P4 ([Bericht](docs/pruefberichte/20261123-102052-entwickler-a5f764b7b5caf127a.md)) |
