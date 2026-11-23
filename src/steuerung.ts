@@ -17,7 +17,7 @@ import { drehFrei } from './render/anschluss';
 import { objektAmPunkt } from './render/treffer';
 import { dreieckFelder, dreieckTreffer } from './render/ueberlast';
 import type { Maler } from './render/maler';
-import type { Szene } from './render/szene';
+import { ABGELEHNT_MS, type Szene } from './render/szene';
 import { chip, knopf, sperren, symbol, type Sperre } from './ui/bausteine';
 import { blattBreite_px, blattOeffnen, blattOffen, type Blatt } from './ui/blatt';
 import { eur, h } from './ui/dom';
@@ -77,6 +77,8 @@ export class Steuerung implements Ui {
   private stempelStart: [number, number] | null = null;
   /** NR27 (AE-NR27-9): Sperrgrund der Nordzone schon gemeldet – höchstens ein Hinweis je Fingerzug, Zugbeginn setzt zurück. */
   private nordHinweisGezeigt = false;
+  /** NR27 (DESIGN 14.5): zuletzt abgelehntes Nordzonenfeld für das rote Feld der Szene */
+  private abgelehnt: NonNullable<Szene['abgelehnt_feld']> | null = null;
   private radieren = false;
   /** A69: Werkzeug „T-Stück mit Vorsehung“: Tippen auf eine geplante Leitung setzt/entfernt die Vorsehung */
   private vorsehen = false;
@@ -693,6 +695,7 @@ export class Steuerung implements Ui {
       // Kritiker NR27 Befund 5: Nordsperre nie still überspringen – Grund zeigen, Leitung endet am letzten erlaubten Feld
       const grund = istLeitung(this.stempelTyp) ? nordSperre(sp.stand, this.stempelTyp, fx, fy) : null;
       if (grund !== null) {
+        this.abgelehnt = { x: fx, y: fy, bis_ms: this.uhr() + ABGELEHNT_MS };
         if (!this.nordHinweisGezeigt) { this.nordHinweisGezeigt = true; toast(grund); }
         break;
       }
@@ -811,13 +814,14 @@ export class Steuerung implements Ui {
     if (v) return { saison, objekte: v.objekte, innen: v.innen, netz: v.netz, spiel: null, auswahl_id: null, modus: 'normal', verschiebe_id: null, jetzt_ms: this.uhr(), geist: null, stempel: null };
     // Je Bild genau eine Suche nach überlasteten Stücken: Saum, Dreiecke, „geplant“ und Vorschau lesen dasselbe Ergebnis.
     const stuecke = this.spiel.ueberlastStuecke();
+    const abgelehnt = this.abgelehnt && this.uhr() < this.abgelehnt.bis_ms ? this.abgelehnt : undefined;
     return {
       saison, objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
       kartenHoehe: this.spiel.kartenHoehe, strassen: spielOrt(this.spiel.stand).strassen, fluss: spielOrt(this.spiel.stand).fluss,
       bahn: spielOrt(this.spiel.stand).bahn, kulisse: nordKulisse(this.spiel.stand), kartenOben: KARTE_OBEN_Y, kw_anzeigen: this.einstellungen.kw_anzeigen,
-      ueberlast: this.ueberlastSzene(stuecke), ueberlast_vorschau: this.ueberlastVorschau(stuecke),
+      ueberlast: this.ueberlastSzene(stuecke), ueberlast_vorschau: this.ueberlastVorschau(stuecke), abgelehnt_feld: abgelehnt,
       ...this.szeneTutorial,
     };
   }

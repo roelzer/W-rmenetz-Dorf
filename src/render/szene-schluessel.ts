@@ -36,6 +36,9 @@ const kulisse = (s: Szene): string => (s.kulisse ?? []).map((h) => `${h.typ},${h
 const koordinaten = (felder: ReadonlyArray<readonly [number, number]> | undefined): string =>
   (felder ?? []).map(([x, y]) => `${x},${y}`).join(';');
 
+/** Steht das rote Feld (DESIGN 14.5) in diesem Bild noch? */
+const abgelehnt = (s: Szene): boolean => !!s.abgelehnt_feld && s.jetzt_ms < s.abgelehnt_feld.bis_ms;
+
 /** DESIGN 13.17.8 Punkt 2: Die Streifen blenden 200 ms ein, ab dem ersten Bild, in dem ein Feld neu in `tutorial_fremd` steht. */
 export const FREMD_EINBLENDEN_MS = 200;
 
@@ -84,7 +87,7 @@ export function szenenSchluessel(s: Szene): string {
   }
   teile.push('innen');
   for (const q of s.innen) teile.push(`${q.typ},${q.stufe},${ja(!!q.bau)}`);
-  const g = s.geist, st = s.stempel;
+  const g = s.geist, st = s.stempel, rot = abgelehnt(s) ? s.abgelehnt_feld : undefined;
   teile.push(
     `netz,${netzNummer(s.netz)}`, s.saison ?? 'sommer', `${s.kartenHoehe ?? ''}`, s.modus, `${s.auswahl_id ?? ''}`, `${s.verschiebe_id ?? ''}`,
     g ? `${g.typ},${g.x},${g.y},${g.kante},${ja(g.ok)}` : '', st ? `${st.x},${st.y},${ja(st.ok)}` : '',
@@ -101,6 +104,8 @@ export function szenenSchluessel(s: Szene): string {
     `vorschau,${s.ueberlast_vorschau?.typ ?? ''},${s.ueberlast_vorschau?.felder.join(';') ?? ''}`,
     // NR27: Bahn, Kulisse und Nordrand ändern das Bild ohne Objektänderung
     `nord,${s.kartenOben ?? ''},${koordinaten(s.bahn)},${kulisse(s)}`,
+    // NR27: rotes Feld erscheint und verschwindet ohne andere Änderung
+    `abgelehnt,${rot ? `${rot.x},${rot.y},${rot.bis_ms}` : ''}`,
   );
   return teile.join('|');
 }
@@ -138,6 +143,7 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean, kamera?: Kamer
     const zug = zugLage(s.jetzt_ms, s.spiel);
     if (zug && (!kamera || zugImBild(kamera, zug))) return 'fluessig';
   }
+  if (abgelehnt(s)) return 'fluessig'; // rotes Feld blendet aus (szene.ts, zeichneAbgelehnt)
   if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
   if (s.ziel?.stecker.length) return 'fluessig'; // Ziel-Stecker wippt wie jede Blase (gebaeude.ts, zeichneBlase)
   // NR22 E7: Überlast blinkt nicht; flüssig nur, solange ein Warndreieck federt (szene.ts, zeichneWarndreiecke)

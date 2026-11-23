@@ -99,7 +99,12 @@ export interface Szene {
   ueberlast?: ReadonlyArray<{ felder: number[]; dreiecke: number[]; geplant: boolean; seit_ms: number }>;
   /** NR22: Leitungsblatt eines überlasteten Stücks offen – Felder, die „Auf {typ} vergrößern“ ersetzen würde */
   ueberlast_vorschau?: { felder: number[]; typ: TypId };
+  /** NR27 (DESIGN 14.5 „Falsch ziehen“): zuletzt abgelehntes Nordzonenfeld, rot bis `bis_ms` (Spieluhr wie `jetzt_ms`) */
+  abgelehnt_feld?: { x: number; y: number; bis_ms: number };
 }
+
+/** So lange steht das rote Feld nach einer Ablehnung (Auftrag P5c: 600–800 ms; DESIGN 14.5 nennt keine Zeit). */
+export const ABGELEHNT_MS = 700;
 
 interface Gras { n: Punkt[]; blume: number; hell: number }
 /** Eine Graskachel je Feld vom Nordrand (KARTE_OBEN_Y) bis zum Südrand des Neubaugebiets. */
@@ -607,6 +612,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     const [cx, cy] = k.mitte(s.stempel.x, s.stempel.y);
     m.raute(cx, cy, 1); X.strokeStyle = s.stempel.ok ? '#fff' : '#d8392f'; X.lineWidth = 2.5; X.stroke();
   }
+  zeichneAbgelehnt(m, k, s);
   if (durchsicht) zeichneLeitungen(m, k, s);
   // 13.17.9 F5: Band und Raute am Feld neben der Heizzentrale liegen über ihr (und über dem zweiten Leitungs-Durchgang)
   if (durchsicht && tutorial.fremd.length) zeichneFremd(m, k, s, tutorial.fremd, tutorial.deckkraft);
@@ -926,6 +932,20 @@ function zeichneWarndreiecke(m: Maler, k: Kamera, s: Szene): void {
 }
 
 /** A37: Beim Planen sind Gebäude durchsichtig, damit nichts dahinter verschwindet. */
+/** Ausblenden des roten Felds am Ende seiner Zeit, so lange wie die Meldung ausblendet. */
+const ABGELEHNT_BLENDE_MS = tokens.zeit_ms.toast_blende;
+
+/** NR27 (DESIGN 14.5 „Falsch ziehen“): abgelehntes Feld in `vorschau_nein` mit rotem Rand; bei „Weniger Bewegung“ ohne Ausblenden. */
+function zeichneAbgelehnt(m: Maler, k: Kamera, s: Szene): void {
+  const f = s.abgelehnt_feld;
+  if (!f || s.jetzt_ms >= f.bis_ms) return;
+  const { X } = m, [cx, cy] = k.mitte(f.x, f.y);
+  X.globalAlpha = m.reduziert ? 1 : Math.min(1, (f.bis_ms - s.jetzt_ms) / ABGELEHNT_BLENDE_MS);
+  m.raute(cx, cy, 1); X.fillStyle = KARTE.vorschau_nein; X.fill();
+  X.strokeStyle = KARTE.pfeil_nein; X.lineWidth = 2.5; X.stroke();
+  X.globalAlpha = 1;
+}
+
 export function istDurchsichtig(modus: string, abschnittPhase?: string): boolean {
   return modus === 'stempel' || modus === 'platzieren' || abschnittPhase === 'offen';
 }
