@@ -1,8 +1,8 @@
 import { ABSCHNITT_HELFER, BAU_KATEGORIEN, istAltanlage, istLeitung, KATALOG, KONSTANTEN, type Kategorie, type TypId } from '../core/katalog';
 import { erzeugerAbStufe } from '../core/freischaltung';
 import { chip, knopf, sperrHinweis, symbol, type Sperre } from './bausteine';
-import { nordHinweisText, nordText } from '../core/nord-texte';
-import { bahnKarteZeigen } from './bahn-karte';
+import { nordHinweisText } from '../core/nord-texte';
+import { bahnInfoKnopf } from './bahn-karte';
 import { NICHTS_GEZEICHNET, ersteSperre, querungKostenText, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
@@ -143,10 +143,7 @@ export class Katalog {
     const text = sp.querungsFelder().length
       ? querungKostenText(sp)
       : nordHinweisText('KATALOG_PREIS', { preis: eur(KONSTANTEN.querung_eur_je_feld) });
-    const infoKnopf = nordText('KARTE_1') !== null
-      ? h('button', { type: 'button', class: 'info-knopf', 'aria-label': `Info: ${nordHinweisText('KARTE_TITEL')}`, 'data-ziel': 'bahn_info', onclick: () => bahnKarteZeigen(sp) }, symbol('frage'))
-      : null;
-    return h('p', { class: 'gedaempft bahn-info', 'data-ziel': 'bahn_infozeile' }, text, infoKnopf);
+    return h('p', { class: 'gedaempft bahn-info', 'data-ziel': 'bahn_infozeile' }, text, bahnInfoKnopf(sp));
   }
 
   private erzeuger(t: TypId): HTMLElement {

@@ -8,6 +8,12 @@ import erklaerbild from '../../design/nr27-erklaerbild-querschnitt.svg?raw';
 
 const SAETZE = ['KARTE_1', 'KARTE_2', 'KARTE_3', 'KARTE_4'] as const;
 
+/** (i) zur Erklärkarte (Katalog-Infozeile und Leitungsblatt, DESIGN 14.7); ohne Fachtext-Freigabe gibt es ihn nicht. */
+export function bahnInfoKnopf(sp: Spiel): HTMLButtonElement | null {
+  if (nordText('KARTE_1') === null) return null;
+  return h('button', { type: 'button', class: 'info-knopf', 'aria-label': `Info: ${nordHinweisText('KARTE_TITEL')}`, 'data-ziel': 'bahn_info', onclick: () => bahnKarteZeigen(sp) }, symbol('frage'));
+}
+
 /**
  * NR27 (DESIGN 14.7): Erklärkarte „Warum so teuer?“. Ohne Fachtext-Freigabe gibt es sie nicht – auch keinen Ersatztext.
  * Sie ist ein eigenes Popup über dem offenen Blatt: blattOeffnen würde das Blatt darunter (Katalog, Leitungsblatt) schließen.
