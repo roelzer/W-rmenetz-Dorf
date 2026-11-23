@@ -15,10 +15,10 @@ const TEXTE = {
   Q5: { text: 'Die Bahnquerung wird noch gebaut. Danach geht es hinter der Bahn weiter.' },
   EXPRESS: { text: 'Eine Bahnquerung lässt sich im Spiel nicht beschleunigen.' },
   SOFORT_GRUND: { text: 'nicht bei Bahnquerung' },
-  KATALOG_ZEILE: { text: 'Hinter die Bahn kommt eine Leitung nur quer unter den Gleisen hindurch – ab Heizzentrale Stufe {stufe}.' },
+  KATALOG_ZEILE: { text: 'Hinter die Bahn nur quer unter den Gleisen hindurch – ab Heizzentrale Stufe {stufe}.' },
   KATALOG_PREIS: { text: 'Unter den Gleisen hindurch nur per Bahnquerung an der Hauptstraße: {preis} je Gleisfeld.' },
   N1: { text: 'Hinter der Bahn: Diese Häuser erreichst du über eine Bahnquerung ab Heizzentrale Stufe {stufe}.' },
-  N2: { text: 'Zeichne im Bauabschnitt eine Leitung quer über die Gleise – in Verlängerung der Hauptstraße.' },
+  N2: { text: 'Zeichne im Bauabschnitt eine Leitung quer über die Gleise – an der Hauptstraße.' },
   F1: { text: 'Bahnquerung fertig! Die Häuser hinter der Bahn kannst du jetzt anschließen.' },
   WISSEN_A: { fach: true, text: 'Gleise werden in der Regel nicht aufgegraben. Die Leitung wird von Grube zu Grube unter ihnen durchgebohrt oder -gepresst.' },
   WISSEN_B: { fach: true, text: 'Vorher muss die Bahn den Plan prüfen und zustimmen. Das braucht Zeit.' },
@@ -37,7 +37,7 @@ const TEXTE = {
   KARTE_CHIP_FELD: { text: '{preis} je Gleisfeld' },
   KARTE_CHIP_ZUSCHLAG: { text: 'Bauzeit +{querung_zeit}' },
   HOECHSTSTUFE: { text: 'höchste Stufe erreicht' },
-  TUTORIAL_2: { text: 'Gut für die Häuser hinter der Bahn. Teuer und langsam – im Spiel kostet ein späterer Rohrtausch dort die Querung noch einmal.' },
+  TUTORIAL_2: { text: 'Gut für Häuser hinter der Bahn. Teuer, langsam – im Spiel kostet ein späterer Rohrtausch dort die Querung noch einmal.' },
 } as const satisfies Record<string, { text: string; fach?: true }>;
 
 export type NordTextId = keyof typeof TEXTE;
