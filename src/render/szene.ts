@@ -10,6 +10,7 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
+import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -281,7 +282,10 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       } // A66: keine Autos mehr (Simon 2026-11-05)
     }
   }
-  if (s.bahn?.length) zeichneGleise(m, k, s.bahn, s.fluss ?? [], winter);
+  if (s.bahn?.length) {
+    zeichneGleise(m, k, s.bahn, s.fluss ?? [], winter);
+    zeichneSchranken(m, k, s.strassen ?? [], s.bahn);
+  }
   const feld = new Set((s.strassen ?? []).map(([x, y]) => y * N + x));
   const anStrasse = (x: number, y: number): boolean => x >= 0 && x < N && y >= oben && y < hoehe && feld.has(y * N + x);
   for (const haus of [...s.objekte, ...kulissenObjekte(s)]) {
@@ -311,6 +315,18 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       X.beginPath(); if (i <= N) { X.moveTo(a[0], a[1] - th / 2); X.lineTo(b[0], b[1] - th / 2); } X.moveTo(c[0], c[1] - th / 2); X.lineTo(d[0], d[1] - th / 2); X.stroke();
     }
   }
+  if (s.modus === 'stempel' && s.bahn?.length) zeichneSchleier(m, k, s.bahn, querungFrei(s.spiel?.stand));
+}
+
+/**
+ * NR27 (DESIGN 14.4): gleicher Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht erreichbar.
+ * Jedes fünfte Haus ab dem zweiten raucht grau (3 von 14, über beide Reihen verteilt); wie der Heizrauch nicht bei weniger Bewegung.
+ */
+function zeichneKulissenhaus(m: Maler, k: Kamera, s: Szene, o: Objekt): void {
+  const kante = groesse(o), [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2), tw = k.tw;
+  zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(o, s.strassen) }, s.jetzt_ms);
+  const i = kulissenObjekte(s).indexOf(o);
+  if (i % 5 === 1 && !m.reduziert) m.wolke(cx + tw * 0.12, cy - tw * 0.62, m.zeit_s + i * 0.37, tw * 0.05, tokens.farbe.objekt.rauch_oel);
 }
 
 /** NR27: Kulissenhäuser als Zeichenvorlage (Objekt ohne Spielbedeutung, Id 0 wie die Platzier-Vorschau). */
@@ -322,13 +338,6 @@ function kulissenObjekte(s: Szene): Objekt[] {
   return v;
 }
 
-/** Farben und Maße aus DESIGN 14.9 (Vorschlag `farbe.bahn`/`karte.bahn`; in design/tokens.json trägt sie P5 ein, 14.15 Punkt 21). */
-const BAHN = {
-  schotter: '#8f887d', schotter_kante: '#6f675c', randweg: '#ddd5c4', schwelle: '#cfcac0', schiene: '#333b41',
-  schiene_glanz: 'rgba(255,255,255,.55)', zaun: '#55605b', bruecke: '#7d858a',
-} as const;
-const BAHN_MASS = { gleisabstand: 0.44, spurweite: 0.144, schwellen_teilung: 0.25, detail_ab_kachelbreite: 32 } as const;
-
 /**
  * NR27 (DESIGN 14.2): Trasse im Boden – Zäune, Randwege, Schotterbett mit Flanken, zwei Gleise; über dem Fluss der Brückentrog.
  * Lage quer zur Bahn in Feldbruchteilen ab der Mitte der Bahnzeilen (−2,5); gezeichnet je Bahnfeld über die Kamera, damit
@@ -338,19 +347,17 @@ function zeichneGleise(m: Maler, k: Kamera, bahn: ReadonlyArray<readonly [number
   const { X } = m, tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
   const zeilen = [...new Set(bahn.map(([, y]) => y))].sort((a, b) => a - b);
   const sued = zeilen[zeilen.length - 1] + 0.5, nord = zeilen[0] - 0.5, mitte = (sued + nord) / 2;
-  const wasser = new Set(fluss.map(([x, y]) => `${x},${y}`));
+  const bruecken = brueckenSpalten(bahn, fluss);
   const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
   const band = (x: number, y0: number, y1: number, farbe: string): void =>
     m.flaeche([k.mitte(x - 0.52, y0), k.mitte(x + 0.52, y0), k.mitte(x + 0.52, y1), k.mitte(x - 0.52, y1)], farbe, false);
   const linie = (x: number, y: number, farbe: string, breite: number): void => {
     X.strokeStyle = farbe; X.lineWidth = breite; X.beginPath(); X.moveTo(...k.mitte(x - 0.5, y)); X.lineTo(...k.mitte(x + 0.5, y)); X.stroke();
   };
-  const spalten = [...new Set(bahn.map(([x]) => x))];
-  for (const x of spalten) {
+  for (const x of gleisSpalten()) {
     const [cx, cy] = k.mitte(x, mitte);
     if (cx < -tw * 2 || cx > W + tw * 2 || cy < -th * 2 || cy > H + tw * 2) continue;
-    // Brücke: Trog über dem Wasser, wo der Fluss die Bahnzeilen kreuzt (Wasserfelder ober- und unterhalb)
-    const bruecke = wasser.has(`${x},${zeilen[0] - 1}`) && wasser.has(`${x},${zeilen[zeilen.length - 1] + 1}`);
+    const bruecke = bruecken.has(x);
     if (bruecke) band(x, sued - 0.02, nord + 0.02, BAHN.bruecke);
     else {
       band(x, sued - 0.08, sued - 0.36, BAHN.randweg);
@@ -467,19 +474,25 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   // A37: Beim Planen (Leitungen einzeichnen) werden Gebäude durchsichtig, die Leitungen dahinter bleiben sichtbar.
   // Zeichenreihenfolge von hinten nach vorn in der gedrehten Ansicht (Mittelpunkt, nach Größe gewichtet)
   const tiefe = (o: Objekt): number => { const kk = groesse(o), [rx, ry] = k.dreheFeld(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2); return rx + ry + kk; };
-  const kulisse = kulissenObjekte(s);
-  const sortiert = [...s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id)), ...kulisse]
+  // NR27 (DESIGN 14.4): Kulisse zuerst, darüber der Dunst; Bahn, Masten und Dorf bleiben klar. Vor der Erschließung steht
+  // hinter der Bahn kein echtes Objekt, darum liegt die Kulisse immer hinter allem, was danach kommt.
+  const kulisse = [...kulissenObjekte(s)].sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
+  kulisse.forEach((o) => zeichneKulissenhaus(m, k, s, o));
+  if (kulisse.length) zeichneDunst(m, k, -WIESENRAND - 1, N + WIESENRAND, (s.kartenOben ?? 0) - WIESENRAND - 1);
+  const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
     .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
   const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
+  // NR27 (DESIGN 14.2): Masten und Fahrdraht nach Tiefe zwischen die Objekte einsortiert (beide Listen sind sortiert)
+  const masten = s.bahn?.length ? mastenNachTiefe(k, s.bahn, s.fluss ?? []) : [];
+  let naechsterMast = 0;
+  const mastenBis = (grenze: number): void => {
+    while (naechsterMast < masten.length && masten[naechsterMast].tiefe < grenze) zeichneMast(m, k, masten[naechsterMast++]);
+  };
   for (const o of sortiert) {
+    mastenBis(tiefe(o));
     const kante = groesse(o), D = KATALOG[o.typ], kat = D.kategorie;
     const [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
-    if (kulisse.includes(o)) {
-      // NR27 (DESIGN 14.4): gleicher Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht erreichbar
-      zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(o, s.strassen) }, s.jetzt_ms);
-      continue;
-    }
     const angeschlossen = s.netz.anschluss.has(o.id);
     const st = {
       strassenseite: strassenseite(o, s.strassen),
@@ -538,6 +551,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       });
     }
   }
+  mastenBis(Infinity);
   const hzObj = heizzentrale(s.objekte);
   const innenBau = s.innen.find((q) => q.bau);
   if (s.spiel && innenBau?.bau && hzObj) {
