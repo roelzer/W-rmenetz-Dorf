@@ -157,6 +157,68 @@ describe('NR27 P5a3 (i)-Knopf im Katalog „netz“ (DESIGN 14.5, 14.7)', () => 
   });
 });
 
+describe('NR27 P5a3 Leitungsblatt der Querung (DESIGN 14.6 T20, 14.7)', () => {
+  /** Spiel mit Leitungen auf den Feldern; `geplant` wie im Bauabschnitt. Liefert Spiel und die Kennungen der Leitungen. */
+  function mitLeitungen(felder: Array<[number, number, boolean]>): { sp: Spiel; ids: number[] } {
+    const sp = spiel(6);
+    const ids = felder.map(([x, y, geplant]) => {
+      const id = sp.stand.naechste_id++;
+      sp.stand.objekte.push({ id, typ: 'd40', x, y, stufe: 1, bau: null, kasse_eur: 0, ...(geplant ? { geplant: true } : {}) });
+      return id;
+    });
+    sp.neuBerechnen();
+    return { sp, ids };
+  }
+  const blattText = (u: EchteUmgebung): string => norm(sichtbarerText(u.dom.html.querySelector('.blatt')!));
+  const kartenKasten = (u: EchteUmgebung): El | undefined => u.dom.html.querySelectorAll('.blatt .kasten').find((k) => norm(k.querySelector('h3')?.textContent ?? '') === t('KARTE_TITEL'));
+
+  // Fehler, die ihn rot machen: Zeile fehlt, Länge falsch (feste Zahl, nur dieses Feld, geplante mitgezählt), Zeile auch auf
+  // normalen oder geplanten Leitungen.
+  it('gebaute Leitung auf Bahnfeld zeigt BLATT_ZEILE mit Länge aller gebauten Bahn-Leitungen; sonst keine Zeile', async () => {
+    schalter.frei = false;
+    expect(KONSTANTEN.feldlaenge_m).toBe(10);
+    const zwei = mitLeitungen([[10, -2, false], [10, -3, false], [10, -1, false]]);
+    await echteSteuerung(zwei.sp, (u) => {
+      u.st.kontext(zwei.ids[0]);
+      expect(blattText(u)).toContain(t('BLATT_ZEILE', { laenge_m: 20 }));
+      expect(blattText(u)).toContain('Bahnquerung · unter den Gleisen · 20 m');
+      u.st.kontext(zwei.ids[2]);
+      expect(blattText(u), 'Leitung neben der Bahn').not.toContain('unter den Gleisen');
+    });
+    const eine = mitLeitungen([[10, -2, false], [10, -3, true]]);
+    await echteSteuerung(eine.sp, (u) => {
+      u.st.kontext(eine.ids[0]);
+      expect(blattText(u), 'geplante zählt nicht').toContain('Bahnquerung · unter den Gleisen · 10 m');
+      u.st.kontext(eine.ids[1]);
+      expect(blattText(u), 'geplante Leitung auf Bahnfeld').not.toContain('unter den Gleisen');
+    });
+  });
+
+  // Fehler, die ihn rot machen: Kasten/(i) auch ohne Freigabe (Platzhalter vor Spielern), mit Freigabe fehlend, (i) öffnet
+  // nichts oder schließt das Leitungsblatt.
+  it('Kasten „Warum so teuer?“ mit (i) nur mit Freigabe; (i) öffnet die Karte über dem Blatt', async () => {
+    const { sp, ids } = mitLeitungen([[10, -2, false], [10, -3, false]]);
+    schalter.frei = false;
+    await echteSteuerung(sp, (u) => {
+      u.st.kontext(ids[0]);
+      expect(kartenKasten(u)).toBeUndefined();
+      expect(u.dom.html.querySelectorAll('[data-ziel="bahn_info"]')).toHaveLength(0);
+      expect(blattText(u)).not.toContain(t('KARTE_TITEL'));
+    });
+    schalter.frei = true;
+    await echteSteuerung(sp, (u) => {
+      u.st.kontext(ids[0]);
+      const kasten = kartenKasten(u);
+      expect(kasten, 'Kasten mit Titel KARTE_TITEL').toBeDefined();
+      const info = kasten!.querySelector('[data-ziel="bahn_info"]');
+      expect(info?.getAttribute('aria-label')).toBe('Info: Warum so teuer?');
+      tippe(info!);
+      expect(karte(u), 'Erklärkarte offen').not.toBeNull();
+      expect(kasten!.isConnected, 'Leitungsblatt bleibt offen').toBe(true);
+    });
+  });
+});
+
 describe('NR27 P5a3 Katalogkarte bei Höchststufe (Bauplan P3 Regel 9, ENTSCHEIDUNGEN 23.11.)', () => {
   /** Spiel mit `n` gebauten 25er-Leitungen außerhalb des Dorfs (Muster tests/nr27-bahnquerung.test.ts „Leitungsgrenze“). */
   function voll(stufe: number, n: number): Spiel {
