@@ -16,7 +16,6 @@ export const BRUECKE_X: readonly number[] = [19, 20];
 /** Einzige Spalte, in der eine Leitung die Gleise quert: Verlängerung der Dorfstraße x = 10. */
 export const QUERUNG_X = 10;
 
-const BREITE = KONSTANTEN.feldanzahl;
 const ERSTE_ZEILE_Y = -10;
 const LETZTE_ZEILE_Y = -1;
 const ERSTE_ZEILE_HINTER_Y = -4;
@@ -36,7 +35,7 @@ export const NORD_PLAN: ReadonlyArray<Haus> = [
 
 export function bahnFelder(): Array<[number, number]> {
   const felder: Array<[number, number]> = [];
-  for (const y of BAHN_ZEILEN_Y) for (let x = 0; x < BREITE; x++) felder.push([x, y]);
+  for (const y of BAHN_ZEILEN_Y) for (let x = 0; x < KONSTANTEN.feldanzahl; x++) felder.push([x, y]);
   return felder;
 }
 
@@ -58,7 +57,7 @@ export function nordFluss(): Array<[number, number]> {
   return felder;
 }
 
-export const istBahn = (x: number, y: number): boolean => BAHN_ZEILEN_Y.includes(y) && x >= 0 && x < BREITE;
+export const istBahn = (x: number, y: number): boolean => BAHN_ZEILEN_Y.includes(y) && x >= 0 && x < KONSTANTEN.feldanzahl;
 export const istBruecke = (x: number, y: number): boolean => istBahn(x, y) && BRUECKE_X.includes(x);
 export const hinterDerBahn = (y: number): boolean => y <= ERSTE_ZEILE_HINTER_Y;
 
