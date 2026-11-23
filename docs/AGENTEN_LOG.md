@@ -808,3 +808,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 12:00 | ■ 🟡 | tester | 🟡 Tester-Vorarbeit NR27 P5d ist fertig. Commit **c3efcd11d4b4678ff10385216b85d500dc941e4f** auf dem Zweig `worktree-agent-a517b3c23e24b13ba`, Basis 9f967ec.  ([Bericht](docs/pruefberichte/20261123-120053-tester-a517b3c23e24b13ba.md)) |
 | 2026-11-23 12:01 | ■ 🟡 | tester | 🟡 Ich habe die zwei Bohrlinien-Tests (4 Bilder/s) wie entschieden umgestellt. Sie rufen `animationBedarf` jetzt mit dem 4. Argument `false` auf. Die Erwartun ([Bericht](docs/pruefberichte/20261123-120132-tester-a517b3c23e24b13ba.md)) |
 | 2026-11-23 12:01 | ▶ | entwickler | Entwickler P5d Nacharbeit Render |
+| 2026-11-23 12:05 | ■ 🔴 | entwickler | 🔴 Status: BRAUCHT_KONTEXT. Die Arbeit ist gebaut und committet, aber ein bestehender Test widerspricht dem Auftrag. Ich darf ihn nicht ändern, deshalb ist d ([Bericht](docs/pruefberichte/20261123-120529-entwickler-ac2c7f5d3e92c00b7.md)) |
+| 2026-11-23 12:05 | ▶ | tester | Tester-Vorarbeit NR27 P5d-2 |
