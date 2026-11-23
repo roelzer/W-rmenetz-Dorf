@@ -27,6 +27,8 @@ const WEICH = zeitkurve(tokens.menue.kurve.weich);
 /** Isometrische Kamera (2:1). Rechnet Felder in Bildschirmpunkte um und zurück. Keine Spiellogik. */
 export class Kamera {
   kartenHoehe: number = N;
+  /** NR27: oberste Kartenzeile (Nordzone, negativ). 0 = Karte ohne Nordzone; die Steuerung setzt KARTE_OBEN_Y. */
+  kartenOben = 0;
   breite = 0;
   hoehe = 0;
   pixelverhaeltnis = 1;
@@ -119,7 +121,8 @@ export class Kamera {
   }
   begrenzen(): void {
     if (this._grenze) { this.inGrenze(this._grenze); return; }
-    const g = this.kartenHoehe * this.tw * 0.5;
+    // Spielraum wächst mit allen Kartenzeilen von kartenOben bis kartenHoehe; ohne Nordzone (0) unverändert wie früher.
+    const g = (this.kartenHoehe - this.kartenOben) * this.tw * 0.5;
     this.schiebe_x = Math.max(-g, Math.min(g, this.schiebe_x));
     this.schiebe_y = Math.max(-g * 0.55, Math.min(g * 0.55, this.schiebe_y));
   }

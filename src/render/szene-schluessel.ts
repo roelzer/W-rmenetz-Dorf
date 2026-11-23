@@ -31,6 +31,7 @@ function ploppAktiv(o: Objekt, jetzt_ms: number): boolean {
 }
 
 const ja = (b: boolean | undefined): string => (b ? '1' : '0');
+const kulisse = (s: Szene): string => (s.kulisse ?? []).map((h) => `${h.typ},${h.x},${h.y}`).join(';');
 const koordinaten = (felder: ReadonlyArray<readonly [number, number]> | undefined): string =>
   (felder ?? []).map(([x, y]) => `${x},${y}`).join(';');
 
@@ -97,6 +98,8 @@ export function szenenSchluessel(s: Szene): string {
     // NR22: Saum, Dreiecke und ihre Deckkraft; `seit_ms` gehört dazu, weil ein neues Federn ein neues Bild braucht
     `ueberlast,${(s.ueberlast ?? []).map((u) => `${u.felder.join(';')}/${u.dreiecke.join(';')}/${ja(u.geplant)}/${u.seit_ms}`).join(':')}`,
     `vorschau,${s.ueberlast_vorschau?.typ ?? ''},${s.ueberlast_vorschau?.felder.join(';') ?? ''}`,
+    // NR27: Bahn, Kulisse und Nordrand ändern das Bild ohne Objektänderung
+    `nord,${s.kartenOben ?? ''},${koordinaten(s.bahn)},${kulisse(s)}`,
   );
   return teile.join('|');
 }
@@ -108,7 +111,7 @@ export function bodenSchluessel(s: Szene, k: Kamera): string {
     .map((o) => `${o.x},${o.y},${o.typ},${o.stufe},${ja(!!o.bau)}`).join(';');
   return [
     runde(k.tw), runde(k.winkel_rad), runde(k.breite), runde(k.hoehe), runde(k.pixelverhaeltnis),
-    s.kartenHoehe ?? KONSTANTEN.feldanzahl, s.saison ?? 'sommer', koordinaten(s.strassen), koordinaten(s.fluss), haeuser, ja(s.modus !== 'normal'),
+    s.kartenHoehe ?? KONSTANTEN.feldanzahl, s.kartenOben ?? 0, koordinaten(s.bahn), kulisse(s), s.saison ?? 'sommer', koordinaten(s.strassen), koordinaten(s.fluss), haeuser, ja(s.modus !== 'normal'),
   ].join('|');
 }
 
