@@ -10,7 +10,7 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
-import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, zeichneMast, zeichneSchranken } from './bahn';
+import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, zeichneDunst, zeichneMast, zeichneSchranken } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -317,6 +317,17 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
   }
 }
 
+/**
+ * NR27 (DESIGN 14.4): gleicher Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht erreichbar.
+ * Jedes fünfte Haus ab dem zweiten raucht grau (3 von 14, über beide Reihen verteilt); wie der Heizrauch nicht bei weniger Bewegung.
+ */
+function zeichneKulissenhaus(m: Maler, k: Kamera, s: Szene, o: Objekt): void {
+  const kante = groesse(o), [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2), tw = k.tw;
+  zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(o, s.strassen) }, s.jetzt_ms);
+  const i = kulissenObjekte(s).indexOf(o);
+  if (i % 5 === 1 && !m.reduziert) m.wolke(cx + tw * 0.12, cy - tw * 0.62, m.zeit_s + i * 0.37, tw * 0.05, tokens.farbe.objekt.rauch_oel);
+}
+
 /** NR27: Kulissenhäuser als Zeichenvorlage (Objekt ohne Spielbedeutung, Id 0 wie die Platzier-Vorschau). */
 const kulissenVorlagen = new WeakMap<NonNullable<Szene['kulisse']>, Objekt[]>();
 function kulissenObjekte(s: Szene): Objekt[] {
@@ -462,8 +473,12 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   // A37: Beim Planen (Leitungen einzeichnen) werden Gebäude durchsichtig, die Leitungen dahinter bleiben sichtbar.
   // Zeichenreihenfolge von hinten nach vorn in der gedrehten Ansicht (Mittelpunkt, nach Größe gewichtet)
   const tiefe = (o: Objekt): number => { const kk = groesse(o), [rx, ry] = k.dreheFeld(o.x + (kk - 1) / 2, o.y + (kk - 1) / 2); return rx + ry + kk; };
-  const kulisse = kulissenObjekte(s);
-  const sortiert = [...s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id)), ...kulisse]
+  // NR27 (DESIGN 14.4): Kulisse zuerst, darüber der Dunst; Bahn, Masten und Dorf bleiben klar. Vor der Erschließung steht
+  // hinter der Bahn kein echtes Objekt, darum liegt die Kulisse immer hinter allem, was danach kommt.
+  const kulisse = [...kulissenObjekte(s)].sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
+  kulisse.forEach((o) => zeichneKulissenhaus(m, k, s, o));
+  if (kulisse.length) zeichneDunst(m, k, -WIESENRAND - 1, N + WIESENRAND, (s.kartenOben ?? 0) - WIESENRAND - 1);
+  const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
     .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
   const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
@@ -477,11 +492,6 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     mastenBis(tiefe(o));
     const kante = groesse(o), D = KATALOG[o.typ], kat = D.kategorie;
     const [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
-    if (kulisse.includes(o)) {
-      // NR27 (DESIGN 14.4): gleicher Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht erreichbar
-      zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(o, s.strassen) }, s.jetzt_ms);
-      continue;
-    }
     const angeschlossen = s.netz.anschluss.has(o.id);
     const st = {
       strassenseite: strassenseite(o, s.strassen),

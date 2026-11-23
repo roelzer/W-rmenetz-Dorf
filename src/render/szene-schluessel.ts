@@ -125,6 +125,7 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean): AnimBedarf {
   if (s.auswahl_id != null) return 'fluessig'; // laufender Auswahlring (szene.ts:218)
   if (s.saison === 'winter' || (s.saison && istHerbst(s.saison) && s.objekte.some((o) => o.typ === 'baum'))) return 'fluessig';
   if (s.fluss?.length) return 'fluessig'; // Wasserglitzern (szene.ts:83)
+  if (s.kulisse?.length) return 'fluessig'; // Öl-Rauch der Kulisse (szene.ts, zeichneKulissenhaus)
   if (s.erreicht?.length) return 'fluessig'; // „Erreicht“-Zeichen wippt und federt (szene.ts, zeichneBlase)
   if (s.ziel?.stecker.length) return 'fluessig'; // Ziel-Stecker wippt wie jede Blase (gebaeude.ts, zeichneBlase)
   // NR22 E7: Überlast blinkt nicht; flüssig nur, solange ein Warndreieck federt (szene.ts, zeichneWarndreiecke)
