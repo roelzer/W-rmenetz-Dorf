@@ -731,3 +731,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:08 | ▶ | designer | Designer: Entwurf Bahn und Viertel |
 | 2026-11-23 08:11 | ■ 🟡 | rechercheur | Ampel GELB. Datei: /home/user/W-rmenetz-Dorf/docs/recherche/bahnquerung.md (Modus recherche, Gegenprüfung steht aus).  ([Bericht](docs/pruefberichte/20261123-081129-rechercheur-a505fa64128e03cb8.md)) |
 | 2026-11-23 08:11 | ▶ | rechercheur | Gegenprüfung Recherche Bahnquerung |
+| 2026-11-23 08:14 | ■ 🟡 | rechercheur | 🟡 GELB. Gegenprüfung geschrieben nach /home/user/W-rmenetz-Dorf/docs/recherche/bahnquerung-gegenpruefung.md  ([Bericht](docs/pruefberichte/20261123-081427-rechercheur-a264d49a4ad48d47a.md)) |
