@@ -213,3 +213,4 @@ Ein zweiter Prüflauf ergab bei Z8/Z9 ebenfalls „erfüllt“ (JS 1× 10,2 ms, 
 | 2026-11-12 12:46 | 11c133a | solo | 🔴 | 1928 | 1 | – |
 | 2026-11-23 10:11 | 4fc810c | entwickler | 🔴 | 2351 | 4 | – |
 | 2026-11-23 10:58 | 001ed66 | entwickler | 🔴 | 2405 | 3 | – |
+| 2026-11-23 11:38 | a71318b | entwickler | 🔴 | 2473 | 4 | – |
