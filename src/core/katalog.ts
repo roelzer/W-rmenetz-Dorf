@@ -338,6 +338,12 @@ export const KONSTANTEN = {
   /** Karte N×N Felder */
   feldanzahl: 24,
   neubau_hoehe: 46,
+  /** NR27: Zeilen der Nordzone über dem alten Nordrand (y = −nord_zeilen … −1, AE-NR27-1) */
+  nord_zeilen: 10,
+  /** NR27 PLATZHALTER: Querung je Bahnfeld; Spielwert ohne Beleg, im Spiel ‚vereinfacht‘ (Fachregel BQ3, docs/recherche/bahnquerung.md) */
+  querung_eur_je_feld: 45000,
+  /** NR27 PLATZHALTER: Zuschlag auf die Abschnitts-Bauzeit – Prüfung und Bau, vereinfacht zusammengelegt; Spielwert ohne Beleg */
+  querung_bau_s: 1440,
   heizzentrale_hoechststufe: 6,
   /** Grundkapazität der Kasse in € (ohne Abrechnungsbüro) */
   grundkasse_eur: 150000,

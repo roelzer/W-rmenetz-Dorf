@@ -1,5 +1,5 @@
 import tokens from '../../design/tokens.json';
-import { KONSTANTEN } from '../core/katalog';
+import { feldVon } from '../core/feld';
 import type { Kamera } from './kamera';
 import type { Szene } from './szene';
 
@@ -51,8 +51,7 @@ export const dreieckKante = (k: Kamera): number => Math.min(U.zeichen_max, Math.
 /** Bildschirmmitte des Warndreiecks über einem Feld (DESIGN 13.17.3): Pfosten von der Leitungsmitte nach oben, darauf die
  *  Unterkante des gleichseitigen Dreiecks. Zeichnen und Treffer nutzen dieselbe Mitte. */
 export function dreieckMitte(k: Kamera, feld: number): [number, number] {
-  const N = KONSTANTEN.feldanzahl;
-  const [x, y] = k.mitte(feld % N, Math.floor(feld / N));
+  const [x, y] = k.mitte(...feldVon(feld));
   return [x, y - k.tw * U.pfosten_faktor - (dreieckKante(k) * Math.sqrt(3)) / 4];
 }
 

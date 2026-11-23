@@ -2,7 +2,8 @@ import { pruefeAuftraege, type Auftrag } from './core/auftraege';
 import type { Engstelle } from './core/engstelle';
 import { rohrVorschauText } from './core/rohrvorschau';
 import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/katalog';
-import { groesse, leitungsNachbarn } from './core/netz';
+import { belegtId, groesse, leitungsNachbarn } from './core/netz';
+import { feldVon } from './core/feld';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
 import { Tutorial } from './core/tutorial';
@@ -747,7 +748,7 @@ export class Steuerung implements Ui {
     if (this.anleitung) { this.kartentippImTutorial(mx, my); return; }
     // NR22 (Bauplan P7): Das Warndreieck steht über Gebäuden; sein Tipp öffnet das Blatt der Leitung auf dem Dreieck-Feld
     const dreieck = dreieckTreffer(this.kamera, this.ueberlastSzene(this.spiel.ueberlastStuecke()), mx, my);
-    if (dreieck !== null) { this.kontext(this.spiel.netz.belegung[dreieck]); return; }
+    if (dreieck !== null) { this.kontext(belegtId(this.spiel.netz.belegung, dreieck)); return; }
     const o = objektAmPunkt(this.kamera, this.spiel.stand.objekte, mx, my); // A80: gezeichnete Form zählt, nicht nur das Bodenfeld
     if (!o) { this.kontextUi.schliessen(); return; }
     this.kontext(o.id);
@@ -1237,7 +1238,7 @@ export class Steuerung implements Ui {
       else if (ev.art === 'sprecher') sprecherZeigen(ev.figur, ev.text);
       else if (ev.art === 'schritt') this.mitSchliessen(() => this.anleitung?.schritt(ev));
       // NR18 (AE-NR18-6): auch bei „Weniger Bewegung“ markieren – die Darstellung lässt dann nur den Puls weg
-      else if (ev.art === 'engstelle') this.effekte.engstelle(ev.felder.map((f) => [f % N, Math.floor(f / N)] as const), ruhig);
+      else if (ev.art === 'engstelle') this.effekte.engstelle(ev.felder.map((f) => feldVon(f)), ruhig);
       else if (ev.art === 'funken') {
         if (ruhig) continue;
         const o = ev.objekt_id === 'heizzentrale' ? this.spiel.hz : this.spiel.objekt(ev.objekt_id);
