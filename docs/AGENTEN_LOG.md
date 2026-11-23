@@ -772,3 +772,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 10:08 | ▶ | entwickler | Entwickler P5a UI und Kern |
 | 2026-11-23 10:08 | ▶ | entwickler | Entwickler P5b Render Inszenierung |
 | 2026-11-23 10:08 | ▶ | reviewer | Reviewer P4 NR27 |
+| 2026-11-23 10:16 | ■ 🔴 | reviewer | 🟡 **Ampel: Gelb – P4 kann bleiben, wie es ist. Es gibt 5 kleine Punkte, nichts blockiert.**  ([Bericht](docs/pruefberichte/20261123-101651-reviewer-a2bb8da1da033c4a4.md)) |
