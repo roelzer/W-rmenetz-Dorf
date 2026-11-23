@@ -746,3 +746,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:45 | ■ 🟢 | designer | 🟢 Die Nacharbeit an DESIGN.md ist fertig: Abschnitt 14.6 ist neu, in 14.15 sind die Punkte 10 und 20 ergänzt. Andere Abschnitte habe ich nicht angefasst. `g ([Bericht](docs/pruefberichte/20261123-084558-designer-ab0cd91f6c8e2ba97.md)) |
 | 2026-11-23 08:46 | ■ 🟡 | kritiker | 🟡 Kritiker – Nachprüfung Bauplan NR27, Fassung 3  ([Bericht](docs/pruefberichte/20261123-084633-kritiker-a6dbe0d6c95a00567.md)) |
 | 2026-11-23 08:47 | ▶ | tester | Tester-Vorarbeit V1 und V2 |
+| 2026-11-23 08:56 | ■ 🟡 | tester | 🟡 Gelb: Beide Vorarbeiten (V1 und V2) für NR27 P1 sind fertig, eingecheckt und nicht gepusht. Alle Tests sind grün. Gelb ist es nur wegen eines alten Befun ([Bericht](docs/pruefberichte/20261123-085647-tester-a17e81774890b117f.md)) |
+| 2026-11-23 08:57 | ▶ | entwickler | Entwickler P1 Raster nach Norden |
+| 2026-11-23 08:57 | ▶ | entwickler | Entwickler P2 Nordzone-Daten |

@@ -7,3 +7,5 @@
 | Planprüfung | `kritiker` | Spielstand-Migration ist das Risiko |
 | Bauen | ich, mit Schranke solo | wie NR23/NR24 |
 | Prüfen | `reviewer`, `designer` treue | wie bisher |
+
+**Änderung 2026-11-23:** Bauen nicht „ich“, sondern `entwickler` je Paket (P1 opus, P2 sonnet parallel; später P3‖P4, P5), wie im Bauplan des Architekten vorgesehen; Tester-Vorarbeit V1/V2 durch `tester`. Grund: P1 berührt ~60 Stellen in 11 Dateien, Review je Paket nötig.

@@ -155,3 +155,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 ## Ampel
 🟡 NR24 ist fertig, als Nächstes kommt NR25. Nicht eilig für Simon: Sollen die Neubauhäuser weniger Wärme brauchen als die alten Häuser im Dorf (ja oder nein)?
 - 2026-11-23: NR27 Bahnquerung: Planung fertig (Bauplan F3.1, Kritiker 🟡 eingearbeitet, Fachprüfer 🟡, Designer DESIGN 14 F2). Läuft: Tester-Vorarbeit V1+V2 (Worktree vorarbeit-p1). Danach P1‖P2 → P3‖P4 → P5. Offen an Simon: BQ1–BQ3, Fachtexte, Preis/Bauzeit (OFFENE_FRAGEN 2026-11-23). NR25 bleibt vor NR27 gebaut-Reihenfolge; NR28 Tal später.
+- 2026-11-23: NR27 V1/V2 fertig (Commits aff6781, 9847def, 1938 Tests grün). Läuft: P1 (nr27/p1) ‖ P2 (nr27/p2). Alter Befund: Prüfsummen-Liste erwartet a88-kundenanfrage unter tests/abnahme/ (liegt unter tests/) – Schranke dort NICHT OK, nicht NR27.
