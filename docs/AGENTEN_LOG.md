@@ -780,3 +780,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 10:22 | ▶ | entwickler | Entwickler P5b2 statische Bahn |
 | 2026-11-23 10:31 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, Kontext voll.** Nur Punkt 1 von 6 ist fertig und committet. Die Punkte 2–6 sind nicht gebaut, die genauen nächsten Schritte stehen  ([Bericht](docs/pruefberichte/20261123-103124-entwickler-aaf5857282c6766a8.md)) |
 | 2026-11-23 10:32 | ▶ | tester | Tester-Vorarbeit NR27 P5a3 |
+| 2026-11-23 10:39 | ■ 🟡 | tester | 🟡 Vorarbeit NR27 P5a3 ist gemacht und committet. Drei Tests sind jetzt absichtlich rot, nicht zwei wie angekündigt (Begründung unten). Die Schranke `--roll ([Bericht](docs/pruefberichte/20261123-103935-tester-af4433fceeac15f54.md)) |
+| 2026-11-23 10:39 | ▶ | entwickler | Entwickler P5a3 Erklärkarte und Blatt |
