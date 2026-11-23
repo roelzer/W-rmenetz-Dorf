@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { domAttrappe, El, sichtbarerText, type DomAttrappe } from './hilfen/dom-attrappe';
 import { neuerSpielstand } from '../src/core/start';
 import { abStufe, FUNKTION_NAME, neuBeiStufe, sperrgrund } from '../src/core/freischaltung';
 import { spielOrt } from '../src/core/neubaugebiet';
@@ -301,7 +302,9 @@ describe('NR27 Texte (AE-NR27-12, -13)', () => {
       'BLATT_ZEILE', 'BRUECKE', 'CHIP', 'EXPRESS', 'F1', 'GLEISE', 'HINTER', 'KARTE_1', 'KARTE_2', 'KARTE_3', 'KARTE_4', 'KARTE_5',
       'KARTE_ALT', 'KARTE_TITEL', 'KATALOG_PREIS', 'KATALOG_ZEILE', 'KOSTEN_ZUSATZ', 'N1', 'N2', 'Q2', 'Q4', 'Q5', 'SOFORT_GRUND',
       'STELLE', 'TUTORIAL_1', 'TUTORIAL_2', 'TUTORIAL_BEDIEN', 'WISSEN_A', 'WISSEN_B',
-    ]);
+      // P5a3 (Entscheidung 23.11.): Chips der Erklärkarte und die Katalogzeile bei Höchststufe – keine Fachtexte.
+      'HOECHSTSTUFE', 'KARTE_CHIP_FELD', 'KARTE_CHIP_ZUSCHLAG',
+    ].sort());
   });
 
   it('jeder Text liefert mit Werten einen Text ohne Platzhalter-Klammern', () => {
@@ -319,6 +322,24 @@ describe('NR27 Texte (AE-NR27-12, -13)', () => {
     expect(nordText('KATALOG_PREIS', WERTE)).toBe('Über die Gleise nur per Bahnquerung an der Hauptstraße: 45.000 € je Gleisfeld.');
     expect(nordText('KATALOG_ZEILE')).toBe('Über die Bahn kommt eine Leitung nur quer über die Gleise – ab Heizzentrale Stufe 6.');
     expect(nordText('SOFORT_GRUND')?.length).toBeLessThanOrEqual(28);
+  });
+
+  // P5a3: Fehler, die ihn rot machen: Chip ohne Wert-Platzhalter (fester Betrag im Text), falscher Platzhaltername,
+  // Kennung als Fachtext markiert (dann fehlte der Chip ohne Freigabe), Höchststufen-Zeile ohne Text.
+  it('test_nr27_d_texte P5a3: Chips tragen {preis} bzw. {querung_zeit}, keine der drei neuen Kennungen ist Fachtext', () => {
+    const neu = ['KARTE_CHIP_FELD', 'KARTE_CHIP_ZUSCHLAG', 'HOECHSTSTUFE'] as string[] as NordTextId[];
+    for (const id of neu) {
+      expect(ids, id).toContain(id);
+      expect(NORD_TEXTE[id]?.fach, id).toBeUndefined();
+      expect(nordText(id, WERTE, false), id).not.toBeNull();
+    }
+    expect(NORD_TEXTE['KARTE_CHIP_FELD' as NordTextId]?.text).toContain('{preis}');
+    expect(NORD_TEXTE['KARTE_CHIP_ZUSCHLAG' as NordTextId]?.text).toContain('{querung_zeit}');
+    expect(nordText('KARTE_CHIP_FELD' as NordTextId, { preis: '12.345 €' })).toContain('12.345 €');
+    expect(nordText('KARTE_CHIP_ZUSCHLAG' as NordTextId, { querung_zeit: '7 min' })).toContain('7 min');
+    expect(() => nordText('KARTE_CHIP_FELD' as NordTextId)).toThrow(/KARTE_CHIP_FELD.*preis/);
+    expect(() => nordText('KARTE_CHIP_ZUSCHLAG' as NordTextId)).toThrow(/KARTE_CHIP_ZUSCHLAG.*querung_zeit/);
+    expect(nordText('HOECHSTSTUFE' as NordTextId)?.toLowerCase()).toContain('höchste stufe');
   });
 
   it('ein fehlender Platzhalterwert wirft mit Kennung und Platzhalter', () => {
@@ -340,16 +361,40 @@ describe('NR27 Texte (AE-NR27-12, -13)', () => {
   });
 });
 
-describe('NR27 Platzhalter Erklärkarte', () => {
-  beforeEach(() => { vi.resetModules(); vi.clearAllMocks(); });
-
-  it('bahnKarteZeigen zeigt vorerst den Satz KARTE_5 als Toast', async () => {
-    const toast = vi.fn();
-    vi.doMock('../src/ui/toast', () => ({ toast }));
-    const { bahnKarteZeigen } = await import('../src/ui/bahn-karte');
-    bahnKarteZeigen({} as never);
-    expect(toast).toHaveBeenCalledTimes(1);
-    expect(toast).toHaveBeenCalledWith('Preis und Bauzeit sind im Spiel vereinfacht.');
-    vi.doUnmock('../src/ui/toast');
+describe('NR27 Erklärkarte ohne Fachtext-Freigabe (Entscheidung 23.11., DESIGN 14.7)', () => {
+  // Regel: Ohne Freigabe gibt es keine Erklärkarte, kein (i) und nie einen Platzhalter – auch keinen Toast mit KARTE_5.
+  // Fehler, die ihn rot machen: Toast als Ersatz (alter Platzhalter), Popup/Blatt trotz fehlender Freigabe, irgendein
+  // neues Element im Dokument, Absturz beim Aufruf.
+  let dom: DomAttrappe;
+  beforeEach(() => {
+    vi.resetModules(); vi.clearAllMocks();
+    dom = domAttrappe();
+    vi.stubGlobal('document', dom.doc); vi.stubGlobal('DOMParser', dom.Parser);
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    vi.stubGlobal('requestAnimationFrame', (f: () => void) => { f(); return 1; });
   });
+  afterEach(() => { vi.doUnmock('../src/ui/toast'); vi.doUnmock('../src/ui/blatt'); vi.unstubAllGlobals(); });
+
+  const knoten = (e: El): number => 1 + e.kinder.reduce((n, k) => n + (k instanceof El ? knoten(k) : 1), 0);
+
+  it('test_nr27_erklaerkarte_ohne_freigabe: bahnKarteZeigen zeigt weder Toast noch Karte noch Popup', async () => {
+    expect(NORD_FACHTEXTE_FREIGEGEBEN).toBe(false);
+    const toast = vi.fn();
+    const blattOeffnen = vi.fn();
+    vi.doMock('../src/ui/toast', () => ({ toast }));
+    vi.doMock('../src/ui/blatt', async (orig) => ({ ...(await orig<typeof import('../src/ui/blatt')>()), blattOeffnen }));
+    const vorher = knoten(dom.html);
+    const { bahnKarteZeigen } = await import('../src/ui/bahn-karte');
+    expect(() => bahnKarteZeigen({} as never)).not.toThrow();
+    expect(toast).not.toHaveBeenCalled();
+    expect(blattOeffnen).not.toHaveBeenCalled();
+    expect(dom.html.querySelectorAll('#bahn-karte, [role="dialog"], .popup, .abdunkeln')).toHaveLength(0);
+    expect(knoten(dom.html)).toBe(vorher);
+    expect(sichtbarerText(dom.html)).not.toContain(nordText('KARTE_5') as string);
+    expect(sichtbarerText(dom.html)).not.toContain(nordText('KARTE_TITEL') as string);
+  });
+
+  // Offen für P5a3 (bewusst kein Platzhalter-Test, die Test-Schranke verbietet ihn): Mit Freigabe (nordText mit freigegeben=true per vi.mock)
+  // öffnet bahnKarteZeigen das Popup „Warum so teuer?“ mit KARTE_1–KARTE_5 und den Chips KARTE_CHIP_FELD / KARTE_CHIP_ZUSCHLAG.
+  // Den Test schreibt der Entwickler im P5a3-Testsatz, sobald Selektor und Aufbau nach DESIGN 14.7 feststehen.
 });
