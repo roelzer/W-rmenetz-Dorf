@@ -759,3 +759,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:22 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, aber nur wegen der Prüf-Schranke.** P1 ist fertig gebaut, alle 2193 Tests sind grün. Die Schranke sagt trotzdem NICHT OK. Grund ist  ([Bericht](docs/pruefberichte/20261123-092216-entwickler-a4a5b369546872879.md)) |
 | 2026-11-23 09:24 | ▶ | reviewer | Reviewer P1 NR27 |
 | 2026-11-23 09:29 | ■ 🟢 | reviewer | ## Ampel: 🟢 freigegeben (mit 2 kleinen Punkten, die den Merge nicht blockieren)  ([Bericht](docs/pruefberichte/20261123-092929-reviewer-a2da690f711207e30.md)) |
+| 2026-11-23 09:32 | ▶ | entwickler | Entwickler P3 Bahnregeln Kern |
+| 2026-11-23 09:32 | ▶ | entwickler | Entwickler P4 Darstellung Bedienung |
