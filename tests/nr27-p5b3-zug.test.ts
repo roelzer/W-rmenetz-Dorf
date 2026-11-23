@@ -113,10 +113,13 @@ describe('NR27 P5b3 Takt: „flüssig“ nur, solange der Zug im Bild ist (DESIG
     expect(animationBedarf(szene({ bahn: undefined }), false, imBild), 'ohne Bahn').toBe('keine');
   });
 
-  it('test_nr27_zug_takt: Querung im Bau → kein Zug, kein Bedarf; ohne Kamera zählt ein fahrender Zug (nie ein eingefrorener)', () => {
+  // Tester-Vorarbeit P5d (Review P5b K2): die Baustelle liegt bei Kamera (8|−2,5) im Bild – DESIGN 14.5 „Leben“ verlangt dann
+  // „flüssig“; der pausierte Zug wird in tests/nr27-p5d-baustelle-takt.test.ts mit einer Kamera ohne Baustelle geprüft.
+  it('test_nr27_zug_takt: Querung im Bau → Baustelle im Bild flüssig, außer Sicht nicht; ohne Kamera zählt ein fahrender Zug (nie ein eingefrorener)', () => {
     const { s: sp } = leeresDorf(1_700_000_000_000);
     sp.stand.abschnitt = { phase: 'bau', mit_querung: true, bau: { art: 'neu', start_ms: -1000, ende_ms: 3_600_000 } };
-    expect(animationBedarf(szene({ spiel: sp }), false, kamera([8, -2.5], 1.4))).toBe('keine');
+    expect(animationBedarf(szene({ spiel: sp }), false, kamera([8, -2.5], 1.4)), 'Baustelle im Bild').toBe('fluessig');
+    expect(animationBedarf(szene({ spiel: sp }), false, kamera([10, 40], 2.2)), 'Baustelle außer Sicht').not.toBe('fluessig');
     expect(animationBedarf(szene({}), false)).toBe('fluessig');
   });
 
