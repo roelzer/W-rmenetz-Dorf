@@ -1,7 +1,7 @@
 import { istLeitung, KONSTANTEN, type TypId } from './katalog';
 import { freigeschaltet, sperrgrund } from './freischaltung';
 import { KARTE_OBEN_Y } from './feld';
-import { nordText } from './nord-texte';
+import { nordHinweisText } from './nord-texte';
 import type { Objekt, Spielstand } from './typen';
 
 /**
@@ -90,29 +90,23 @@ export function nordviertelAnlegen(stand: Spielstand): boolean {
   return true;
 }
 
-const text = (id: Parameters<typeof nordText>[0], werte?: Record<string, string>): string => {
-  const t = nordText(id, werte);
-  if (t === null) throw new Error(`nordText ${id}: Sperrtext darf kein Fachtext sein`);
-  return t;
-};
-
 /** Der eine Sperrgrund der Nordzone (AE-NR27-9): `null` = erlaubt. Genutzt vom Platzieren im Kern und vom Ziehen in der Steuerung. */
 export function nordSperre(stand: Spielstand, t: TypId, x: number, y: number): string | null {
   if (istBahn(x, y)) {
-    if (!istLeitung(t)) return text('GLEISE');
-    if (istBruecke(x, y)) return text('BRUECKE');
+    if (!istLeitung(t)) return nordHinweisText('GLEISE');
+    if (istBruecke(x, y)) return nordHinweisText('BRUECKE');
     const grund = sperrgrund(stand, 'bahnquerung');
-    if (grund !== null) return text('Q2', { sperrgrund: grund });
+    if (grund !== null) return nordHinweisText('Q2', { sperrgrund: grund });
     if (x === QUERUNG_X) return null;
     const nachbar = stand.objekte.some((o) => o.y === y && (o.x === x - 1 || o.x === x + 1) && istLeitung(o.typ));
-    return text(nachbar ? 'Q4' : 'STELLE');
+    return nordHinweisText(nachbar ? 'Q4' : 'STELLE');
   }
-  if (hinterDerBahn(y) && !stand.nordviertel) return text(querungImBau(stand) ? 'Q5' : 'HINTER');
+  if (hinterDerBahn(y) && !stand.nordviertel) return nordHinweisText(querungImBau(stand) ? 'Q5' : 'HINTER');
   return null;
 }
 
 /** Hinweis beim Antippen der Bahn oder der Kulisse; nach der Erschließung nichts mehr. */
 export function nordInfo(stand: Spielstand, x: number, y: number): string | null {
   if (stand.nordviertel || !(istBahn(x, y) || hinterDerBahn(y))) return null;
-  return text(freigeschaltet(stand, 'bahnquerung') ? 'N2' : 'N1');
+  return nordHinweisText(freigeschaltet(stand, 'bahnquerung') ? 'N2' : 'N1');
 }

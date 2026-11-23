@@ -58,3 +58,11 @@ export function nordText(
     return String(wert);
   });
 }
+
+/** Text für Hinweise und Sperrgründe, der nie ein Fachtext sein darf (er muss immer erscheinen). Ein Fachtext hier ist ein
+ *  Programmfehler und wirft – sonst stünde vor Spielern ein leerer Hinweis. */
+export function nordHinweisText(id: NordTextId, werte: Readonly<Record<string, string | number>> = {}): string {
+  const text = nordText(id, werte);
+  if (text === null) throw new Error(`nordText ${id}: Hinweis darf kein Fachtext sein`);
+  return text;
+}
