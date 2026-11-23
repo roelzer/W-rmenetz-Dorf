@@ -766,3 +766,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:43 | ▶ | reviewer | Reviewer P3 NR27 |
 | 2026-11-23 09:44 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Grund: Kontext voll. Der Zwischenstand ist committet, alle Tests sind grün, aber die Selbstprüfung ist noch nicht fertig.  ([Bericht](docs/pruefberichte/20261123-094404-entwickler-ac8dd5d291b9740fd.md)) |
 | 2026-11-23 09:50 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten. NR27 P3 „Bahnregeln im Kern“** (Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a50ba9eb51e8c66f1, Basis  ([Bericht](docs/pruefberichte/20261123-095045-reviewer-a1972a376a37f7278.md)) |
+| 2026-11-23 09:52 | ▶ | entwickler | Entwickler P4b Rest Darstellung |
