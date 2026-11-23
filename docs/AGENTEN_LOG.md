@@ -751,3 +751,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:57 | ▶ | entwickler | Entwickler P2 Nordzone-Daten |
 | 2026-11-23 09:06 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-23 09:06 | ■ 🟡 | entwickler | Status: FERTIG_MIT_BEDENKEN. Ampel: 🟡  ([Bericht](docs/pruefberichte/20261123-090604-entwickler-a31eb8ae672903979.md)) |
+| 2026-11-23 09:06 | ▶ | reviewer | Reviewer P2 NR27 |
