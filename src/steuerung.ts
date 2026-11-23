@@ -29,9 +29,10 @@ import { Hud } from './ui/hud';
 import { zieleOeffnen } from './ui/ziele';
 import { spielOrt } from './core/neubaugebiet';
 import { nordInfo, nordKulisse, nordSperre } from './core/nordviertel';
+import { nordHinweisText } from './core/nord-texte';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
-import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
+import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, querungKostenText, schonGemocht } from './ui/sperrtexte';
 import type { Ui } from './ui/schnittstelle';
 import { T } from './ui/tokens';
 import { tempo } from './tempo';
@@ -398,10 +399,15 @@ export class Steuerung implements Ui {
     // enge Leiste: kurzer Grund „ab Stufe X“ (DESIGN.md 12.15); der Hinweis beim Antippen erklärt ausführlich
     const tStueck = umschalter(knopf('T-Stück mit Vorsehung', () => this.stempeln(typ, false, !this.vorsehen), this.vorsehen ? 'gewaehlt' : '', { klein: true, id: 'tstueck', unter: sperreTStueck ? kurzGrund('vorsehung') : eur(KONSTANTEN.vorsehung_eur), aus: sperreTStueck !== null, schloss: true, muenze: true, hinweis: tStueckHinweis() }), this.vorsehen);
     tStueck.classList.add('t-stueck');
+    // NR27 (DESIGN 14.5): solange der Abschnitt ein Bahnfeld enthält; Antippen nennt Aufpreis und Zuschlag wie der Kasten (T04)
+    const querungChip = sp.querungsFelder().length
+      ? h('button', { type: 'button', class: 'bahn-chip', 'data-ziel': 'bahn_chip', onclick: () => toast(querungKostenText(sp)) }, h('span', { class: 'chip gold' }, nordHinweisText('CHIP')))
+      : null;
     this.vorschauEl = h('div', { class: 'rohrvorschau', role: 'status', 'data-ziel': 'rohrvorschau', hidden: true });
     const werkzeug = h('div', { class: 'zeichen-werkzeug', hidden: this.hilfeOffen },
       h('div', { class: 'farbknoepfe' }, ...farben, dicker),
       h('p', { class: 'kennzeile' }, kennzeile),
+      querungChip,
       this.vorschauEl,
       h('div', { class: 'zeichen-reihe' },
         umschalter(knopf('Radierer', () => this.stempeln(typ, !this.radieren), this.radieren ? 'gewaehlt' : '', { klein: true, id: 'radierer' }), this.radieren),

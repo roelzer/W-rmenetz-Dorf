@@ -3,7 +3,7 @@ import { erzeugerAbStufe } from '../core/freischaltung';
 import { chip, knopf, sperrHinweis, symbol, type Sperre } from './bausteine';
 import { nordHinweisText, nordText } from '../core/nord-texte';
 import { bahnKarteZeigen } from './bahn-karte';
-import { NICHTS_GEZEICHNET, ersteSperre, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
+import { NICHTS_GEZEICHNET, ersteSperre, querungKostenText, geldHinweis, geldSperre, stufenSperre, talerHinweis, talerSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { katalogBild } from './bild';
 import { eur, h } from './dom';
@@ -141,7 +141,7 @@ export class Katalog {
     if (sp.stand.nordviertel || (a?.phase === 'bau' && a.mit_querung)) return null;
     if (!sp.freigeschaltet('bahnquerung')) return sperrHinweis(nordHinweisText('KATALOG_ZEILE'));
     const text = sp.querungsFelder().length
-      ? nordHinweisText('KOSTEN_ZUSATZ', { querung_eur: eur(sp.querung_eur()), querung_zeit: dauerText(KONSTANTEN.querung_bau_s * KONSTANTEN.bauzeit_faktor) })
+      ? querungKostenText(sp)
       : nordHinweisText('KATALOG_PREIS', { preis: eur(KONSTANTEN.querung_eur_je_feld) });
     const infoKnopf = nordText('KARTE_1') !== null
       ? h('button', { type: 'button', class: 'info-knopf', 'aria-label': `Info: ${nordHinweisText('KARTE_TITEL')}`, 'data-ziel': 'bahn_info', onclick: () => bahnKarteZeigen(sp) }, symbol('frage'))
