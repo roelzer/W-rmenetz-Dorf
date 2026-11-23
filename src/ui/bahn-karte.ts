@@ -37,13 +37,16 @@ export function bahnKarteZeigen(_sp: Spiel): void {
   const verstanden = knopf('Verstanden', zu, 'los');
   const dialog = h('section', { class: 'blatt popup karte-popup', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'bahn-karte-titel', tabindex: -1 },
     h('div', { class: 'kopf' }, h('h2', { id: 'bahn-karte-titel', class: 'umriss' }, nordHinweisText('KARTE_TITEL')), zuKnopf),
+    // Chips und KARTE_5 stehen in der Bildspalte unter dem Bild (Designer-Treue M4): unter beiden Spalten wurden sie bei
+    // 667×375 abgeschnitten. Wird der Text zu lang, scrollt nur die Textspalte.
     h('div', { class: 'inhalt' },
-      h('div', { class: 'karte-oben' }, document.importNode(bild, true),
-        h('div', { class: 'karte-text' }, ...saetze.map((s) => h('p', {}, s)))),
-      h('div', { class: 'karte-chips' },
-        h('span', { class: 'chip gold' }, symbol('geld', 'sym'), nordHinweisText('KARTE_CHIP_FELD', { preis: eur(KONSTANTEN.querung_eur_je_feld) })),
-        chip(nordHinweisText('KARTE_CHIP_ZUSCHLAG', { querung_zeit: querungZuschlagText() }))),
-      h('p', { class: 'gedaempft karte-hinweis' }, nordHinweisText('KARTE_5'))),
+      h('div', { class: 'karte-oben' },
+        h('div', { class: 'karte-bildspalte' }, document.importNode(bild, true),
+          h('div', { class: 'karte-chips' },
+            h('span', { class: 'chip gold' }, symbol('geld', 'sym'), nordHinweisText('KARTE_CHIP_FELD', { preis: eur(KONSTANTEN.querung_eur_je_feld) })),
+            chip(nordHinweisText('KARTE_CHIP_ZUSCHLAG', { querung_zeit: querungZuschlagText() }))),
+          h('p', { class: 'gedaempft karte-hinweis' }, nordHinweisText('KARTE_5'))),
+        h('div', { class: 'karte-text' }, ...saetze.map((s) => h('p', {}, s))))),
     h('div', { class: 'aktionen' }, verstanden));
 
   // Esc und Tab gehören allein dem Popup: ohne stopPropagation erreichte Esc auch das Blatt darunter und schlösse es.

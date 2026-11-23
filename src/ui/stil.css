@@ -521,12 +521,16 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .bahn-tutorial-knoepfe{justify-content:flex-end}
 #bahn-karte{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px}
 #bahn-karte>.blatt.popup{position:relative;width:min(560px,100%);max-width:none;max-height:100%;margin:0}
-#bahn-karte .inhalt{display:flex;flex-direction:column;gap:8px;padding:16px}
+/* Reicht die Höhe nicht (667×375, Bildspalte mit Chips höher als der Platz), scrollt der Inhalt zwischen Kopfband und
+   Aktionsleiste; unten Ausblendmaske 16 px (Designer-Treue M4). Der Innenabstand unten hält Inhalt, der passt, aus der
+   Maske heraus – ohne echten Überlauf bleibt alles voll deckend. */
+#bahn-karte .inhalt{display:flex;flex-direction:column;padding:16px 16px 16px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent)}
 .karte-oben{display:flex;gap:16px;align-items:flex-start}
+.karte-bildspalte{flex:none;width:176px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .karte-bild{flex:none;width:176px;height:132px}
 .karte-text{flex:1;min-width:0}
 .karte-text p{margin:0 0 4px;font-size:14px;line-height:20px}
-.karte-chips{display:flex;flex-wrap:wrap;gap:8px}
+.karte-chips{display:flex;flex-wrap:wrap;gap:6px}
 .karte-chips .sym{width:14px;height:14px}
 .karte-hinweis{margin:0;font-size:12px}
 #bahn-karte .aktionen{flex:none;display:flex;justify-content:flex-end;padding:8px 12px;background:var(--menue-farbe-kasten-kopf);border-top:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
