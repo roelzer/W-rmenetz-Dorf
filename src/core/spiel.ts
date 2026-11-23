@@ -1099,7 +1099,7 @@ export class Spiel {
     return this.stand.objekte.reduce((summe, o) => !o.ersatz ? summe : summe + this.ersatzPreis_eur(o, o.ersatz.typ), 0);
   }
   /** NR18 (E1): Ersatz einer gebauten Leitung durch `typ` – Neupreis minus 50 % des alten Typs, im Fluss dazu die Spülbohrung;
-   *  eine Gestattung fällt nicht an (die Querung gibt es schon). */
+ *  eine Gestattung fällt nicht an (die Querung gibt es schon). NR27: Unter der Bahn kommt `querung_eur_je_feld` je Bahnfeld noch einmal dazu (Rohrtausch kostet die Querung erneut). */
   ersatzPreis_eur(o: Objekt, typ: TypId): number {
     return (KATALOG[typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0)
       + (istBahn(o.x, o.y) ? KONSTANTEN.querung_eur_je_feld : 0);
