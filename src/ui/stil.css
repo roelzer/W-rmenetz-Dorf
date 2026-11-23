@@ -516,6 +516,8 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 #bahn-tutorial{position:absolute;inset:0;z-index:33}
 /* Infozeile im Kasten „Bauabschnitt“ (DESIGN 14.5): Abstand zum Sockel der Knöpfe darüber, (i) rechts neben dem Text statt darunter */
 .bahn-info{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+/* direkt unter der Kostenzeile (Phase „offen“, DESIGN 14.5): 8 px, dort steht kein Knopfsockel darüber */
+.abschnitt-kurz + .bahn-info{margin-top:8px}
 .bahn-tutorial-knoepfe{justify-content:flex-end}
 #bahn-karte{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px}
 #bahn-karte>.blatt.popup{position:relative;width:min(560px,100%);max-width:none;max-height:100%;margin:0}

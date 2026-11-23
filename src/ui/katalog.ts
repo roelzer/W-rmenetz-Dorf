@@ -86,6 +86,7 @@ export class Katalog {
     const neu = (): void => { this.ui.geaendert(); this.aufbauen(); };
     const rest = (): HTMLElement => { this.restzeit = h('span', {}, this.restText()); return this.restzeit; };
     k.append(h('h3', {}, 'Bauabschnitt')); // Mini-Kopfband wie jeder Kasten (DESIGN.md 12.7)
+    const info = this.bahnInfo();
     if (!a) {
       k.append(h('p', { class: 'gedaempft' }, `Leitungen werden abschnittsweise gebaut: ${ABSCHNITT_HELFER.planung} plant, du zeichnest die Leitungen ein, ${ABSCHNITT_HELFER.material} bestellt das Material, danach dauert der Bau.`),
         h('div', { class: 'knopfreihe' }, ziel(knopf(`${ABSCHNITT_HELFER.planung}: Neuen Bauabschnitt planen`, () => { sp.abschnittPlanen(); neu(); }, 'geld', { unter: eur(KONSTANTEN.abschnitt_planung_eur), sperre: geldSperre(sp, KONSTANTEN.abschnitt_planung_eur) }), 'philipp')));
@@ -102,7 +103,9 @@ export class Katalog {
         sp.freigeschaltet('spuelbohrung') ? `Über den Fluss kommst du im Spiel nur per Spülbohrung (${eur(KONSTANTEN.bohrung_eur_je_feld)} je Feld${sp.bohrungsFelder().length ? `, aktuell ${eur(sp.bohrung_eur())}` : ''}).` : '',
         sp.freigeschaltet('vorsehung') ? `Dockst du an eine laufende Leitung an, muss sie angebohrt werden (${eur(KONSTANTEN.anbohrung_eur)}${sp.anbohrungsFelder().length ? `, aktuell ${sp.anbohrungsFelder().length}× = ${eur(sp.anbohrung_eur())}` : ''}) – außer an einem Leitungsende oder an einem T-Stück mit Vorsehung (${eur(KONSTANTEN.vorsehung_eur)}), das du jetzt beim Bau mit einplanst.` : '',
       ];
+      // Infozeile direkt unter „Eingezeichnet … Kosten …“ (Designer-Treue M2): Aufpreis und Kosten gehören zusammen
       k.append(h('p', { class: 'gedaempft abschnitt-kurz' }, `Wähle unten eine Leitung und zeichne sie in die Karte. Eingezeichnet: ${n} Stück · Kosten ${eur(sp.abschnittKosten_eur())}.`),
+        ...(info ? [info] : []),
         h('details', { class: 'abschnitt-hilfe' }, h('summary', {}, 'Tipps zu Trassen und Anschlüssen'), h('p', { class: 'gedaempft' }, saetze.filter(Boolean).join(' '))),
         h('div', { class: 'knopfreihe' },
           knopf('Abschnitt abschließen', () => { sp.abschnittAbschliessen(); neu(); }, 'los', { klein: true, sperre: n ? null : NICHTS_GEZEICHNET }),
@@ -129,8 +132,7 @@ export class Katalog {
           a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(this.ui.tutorialSperreKnopf('express'), querung, stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
           knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: ersteSperre(this.ui.tutorialSperreKnopf('sofort'), querung, a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null) })));
     }
-    const info = this.bahnInfo();
-    if (info) k.append(info);
+    if (info && a?.phase !== 'offen') k.append(info);
     return k;
   }
 
