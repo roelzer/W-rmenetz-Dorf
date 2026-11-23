@@ -31,8 +31,10 @@ export function blatt(m: Maler, x: number, y: number, r: number, farbe: string, 
   m.flaeche([[x - r, y - r * neigung], [x, y - r * .56], [x + r, y + r * neigung], [x, y + r * .56]], farbe, false);
 }
 
-/** Eine kleine Zahl Flocken im sichtbaren Dorf. Die Wolken außerhalb der Karte bleiben unbewegt. */
-/** `oben`: oberste Kartenzeile (NR27 Nordzone, negativ); ohne Nordzone 0. */
+/**
+ * Eine kleine Zahl Flocken im sichtbaren Dorf. Die Wolken außerhalb der Karte bleiben unbewegt.
+ * `oben`: oberste Kartenzeile (NR27 Nordzone, negativ); ohne Nordzone 0.
+ */
 export function schneefall(m: Maler, k: Kamera, breite: number, hoehe: number, oben = 0): void {
   const { X } = m;
   X.fillStyle = 'rgba(255,255,255,.82)';
