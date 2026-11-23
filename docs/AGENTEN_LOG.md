@@ -755,3 +755,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:10 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** NR27 P2 „Nordzone-Daten und Verträge“, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/p2, Basis 473412c bis ([Bericht](docs/pruefberichte/20261123-091049-reviewer-a184c0c8d84f5ec74.md)) |
 | 2026-11-23 09:12 | ■ 🔴 | entwickler | 🔴 **Status: BRAUCHT_KONTEXT.** P1 ist bis auf drei Stellen gebaut. An diesen drei Stellen widersprechen sich der Bauplan und bestehende Tests, die ich nicht  ([Bericht](docs/pruefberichte/20261123-091251-entwickler-a4a5b369546872879.md)) |
 | 2026-11-23 09:13 | ▶ | tester | Tester-Vorarbeit V3 für P1 |
+| 2026-11-23 09:17 | ■ 🟡 | tester | 🟡 Tester-Vorarbeit V3 ist fertig und committet. Ein Test bleibt rot, und das ist so gewollt: Er beschreibt die Umbauarbeit, die der Entwickler noch machen mu ([Bericht](docs/pruefberichte/20261123-091739-tester-a8d154a5484c53cbd.md)) |
