@@ -10,7 +10,7 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
-import { BAHN, BAHN_MASS, brueckenSpalten, mastenNachTiefe, zeichneMast } from './bahn';
+import { BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, zeichneMast, zeichneSchranken } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -282,7 +282,10 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
       } // A66: keine Autos mehr (Simon 2026-11-05)
     }
   }
-  if (s.bahn?.length) zeichneGleise(m, k, s.bahn, s.fluss ?? [], winter);
+  if (s.bahn?.length) {
+    zeichneGleise(m, k, s.bahn, s.fluss ?? [], winter);
+    zeichneSchranken(m, k, s.strassen ?? [], s.bahn);
+  }
   const feld = new Set((s.strassen ?? []).map(([x, y]) => y * N + x));
   const anStrasse = (x: number, y: number): boolean => x >= 0 && x < N && y >= oben && y < hoehe && feld.has(y * N + x);
   for (const haus of [...s.objekte, ...kulissenObjekte(s)]) {
@@ -339,8 +342,7 @@ function zeichneGleise(m: Maler, k: Kamera, bahn: ReadonlyArray<readonly [number
   const linie = (x: number, y: number, farbe: string, breite: number): void => {
     X.strokeStyle = farbe; X.lineWidth = breite; X.beginPath(); X.moveTo(...k.mitte(x - 0.5, y)); X.lineTo(...k.mitte(x + 0.5, y)); X.stroke();
   };
-  const spalten = [...new Set(bahn.map(([x]) => x))];
-  for (const x of spalten) {
+  for (const x of gleisSpalten()) {
     const [cx, cy] = k.mitte(x, mitte);
     if (cx < -tw * 2 || cx > W + tw * 2 || cy < -th * 2 || cy > H + tw * 2) continue;
     const bruecke = bruecken.has(x);

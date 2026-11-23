@@ -1,3 +1,4 @@
+import tokens from '../../design/tokens.json';
 import { mod } from '../core/feld';
 import { querungImBau } from '../core/nordviertel';
 import type { Spielstand } from '../core/typen';
@@ -41,6 +42,39 @@ const MAST = {
 } as const;
 
 type Felder = ReadonlyArray<readonly [number, number]>;
+
+/** Schranke am Straßenende (DESIGN 14.2 „Straßenende“): `bake_rot` = `menue.knopf.gefahr`, dazu Weiß, 0,14 Kachel hoch. */
+const SCHRANKE = {
+  rot: tokens.menue.knopf.gefahr[0], weiss: '#ffffff', hoehe: 0.14,
+  /** am Nordrand des letzten Straßenfelds; Pfosten knapp außerhalb der Fahrbahn (halbe Breite 0,31 in szene.ts) */
+  rand_y: -0.42, pfosten_x: 0.36,
+} as const;
+
+/**
+ * Feste Schranke, wo eine Straße vor der Bahn endet: Nordnachbar ist keine Straße, und ein oder zwei Felder weiter liegen Gleise.
+ * Aus den Daten abgeleitet statt (10|0)/(17|0) fest zu schreiben – die Grafik folgt den Zeilen aus nordviertel.ts.
+ */
+export function zeichneSchranken(m: Maler, k: Kamera, strassen: Felder, bahn: Felder): void {
+  const { X } = m, tw = k.tw;
+  const strasse = new Set(strassen.map(([x, y]) => `${x},${y}`)), gleis = new Set(bahn.map(([x, y]) => `${x},${y}`));
+  for (const [x, y] of strassen) {
+    if (strasse.has(`${x},${y - 1}`) || !(gleis.has(`${x},${y - 1}`) || gleis.has(`${x},${y - 2}`))) continue;
+    const [cx, cy] = k.mitte(x, y);
+    if (cx < -tw || cx > k.breite + tw || cy < -tw || cy > k.hoehe + tw) continue;
+    const h = SCHRANKE.hoehe * tw, by = y + SCHRANKE.rand_y;
+    const fuss = (dx: number): Punkt => k.mitte(x + dx, by);
+    const kopf = (dx: number): Punkt => { const [px, py] = fuss(dx); return [px, py - h]; };
+    const l = -SCHRANKE.pfosten_x, r = SCHRANKE.pfosten_x, teil = (f: number): number => l + (r - l) * f;
+    X.lineCap = 'butt';
+    X.strokeStyle = SCHRANKE.weiss; X.lineWidth = Math.max(2, tw * 0.05); X.beginPath();
+    X.moveTo(...kopf(l)); X.lineTo(...kopf(r)); X.stroke();
+    // Pfosten und drei rote Felder im Balken (rot-weiß im Wechsel) in einem Strich
+    X.strokeStyle = SCHRANKE.rot; X.beginPath();
+    for (const dx of [l, r]) { X.moveTo(...fuss(dx)); X.lineTo(...kopf(dx)); }
+    for (const [a, b] of [[0, 0.2], [0.4, 0.6], [0.8, 1]]) { X.moveTo(...kopf(teil(a))); X.lineTo(...kopf(teil(b))); }
+    X.stroke();
+  }
+}
 
 /** Gleisspalten von Ende zu Ende: x = −2 … 25, beidseits über die Karte hinaus in den Wolkenrand (DESIGN 14.2 „Enden“). */
 export function gleisSpalten(): number[] {
