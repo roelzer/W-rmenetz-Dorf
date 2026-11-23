@@ -90,7 +90,7 @@ Führende Qualitätsziele:
   y=-1  ...................~~...   Grünstreifen (Dorfseite, normal bebaubar)
   y=0   (heutiger Nordrand; Dorfstraße x=10 läuft hier nach Norden aus, geprüft am Startdorf)
 ```
-14 Häuser (6 EFH, 8 RH), Grundstücksregel wie NR23. Bedarf mit NR23-Werten: 6 × 15.000 + 8 × 24.000 = 282.000 kWh/a, ÷ 1.500 h = 188 kW.
+14 Häuser (5 EFH, 9 RH), Grundstücksregel wie NR23. Bedarf mit NR23-Werten: 6 × 15.000 + 8 × 24.000 = 282.000 kWh/a, ÷ 1.500 h = 188 kW.
 ```
 efh 2 -9, rh 4 -9, rh 6 -9, efh 8 -9, rh 12 -9, rh 14 -9, efh 16 -9,
 rh 2 -5, efh 4 -5, rh 6 -5, rh 8 -5, efh 12 -5, rh 14 -5, rh 16 -5

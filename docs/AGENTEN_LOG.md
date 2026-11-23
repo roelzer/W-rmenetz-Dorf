@@ -749,3 +749,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:56 | ■ 🟡 | tester | 🟡 Gelb: Beide Vorarbeiten (V1 und V2) für NR27 P1 sind fertig, eingecheckt und nicht gepusht. Alle Tests sind grün. Gelb ist es nur wegen eines alten Befun ([Bericht](docs/pruefberichte/20261123-085647-tester-a17e81774890b117f.md)) |
 | 2026-11-23 08:57 | ▶ | entwickler | Entwickler P1 Raster nach Norden |
 | 2026-11-23 08:57 | ▶ | entwickler | Entwickler P2 Nordzone-Daten |
+| 2026-11-23 09:06 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-23 09:06 | ■ 🟡 | entwickler | Status: FERTIG_MIT_BEDENKEN. Ampel: 🟡  ([Bericht](docs/pruefberichte/20261123-090604-entwickler-a31eb8ae672903979.md)) |
