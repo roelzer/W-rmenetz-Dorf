@@ -93,6 +93,8 @@ export interface Abschnitt {
   /** A62: bezahlter Materialpreis (Grundlage für den Express-Aufpreis) und ob schon Express bestellt ist */
   material_eur?: number;
   express?: boolean;
+  /** NR27: Der Abschnitt enthält eine Bahnquerung (kein Express, kein „Sofort fertig“, Bauzeit-Zuschlag) */
+  mit_querung?: true;
 }
 
 export interface Spielstand {
@@ -118,6 +120,10 @@ export interface Spielstand {
   neubaugebiet_layout?: 2 | 3;
   /** NR23: Straßenfelder von Layout 3, auf denen beim Umzug ein angeschlossenes Haus stehen blieb (werden nicht gezeichnet). */
   neubau_strassenluecken?: number[];
+  /** NR27: Die Querung steht, die Häuser hinter der Bahn sind angelegt (einmalig; fehlt in alten Ständen) */
+  nordviertel?: true;
+  /** NR27: Die Erklärkarte zur Bahnquerung wurde schon gezeigt */
+  bahn_hilfe_gesehen?: true;
   garten_layout?: 1;
   /** Felder abseits öffentlicher Straßen, für die die Gestattung des Grundstückseigentümers geklärt und bezahlt ist (A45) */
   gestattungen?: number[];
@@ -170,7 +176,7 @@ export interface Netz {
   reduzierung: Set<number>;
   /** A76: Abzweig, an dem zwei oder mehr Abgänge so dick sind wie die Zuleitung (Zuleitung + diese Abgänge) */
   aufteilung: Set<number>;
-  /** Anschlusspunkt je Gebäude-ID (-1 = direkt am Heizhaus) */
+  /** feld: Schlüssel des Elternfelds; KEIN_FELD (feld.ts) = direkt am Heizhaus */
   anschluss: Map<number, { feld: number; tiefe: number }>;
   warm: Set<number>;
   /** kalt: 'leitung' (Engpass) oder 'waerme' (Erzeugung reicht nicht) */
