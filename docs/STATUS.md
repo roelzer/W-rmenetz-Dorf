@@ -158,3 +158,4 @@ Straßennetz mit an Straßen ausgerichteten Häusern, nur noch ein Dorf (Hilpolt
 - 2026-11-23: NR27 V1/V2 fertig (Commits aff6781, 9847def, 1938 Tests grün). Läuft: P1 (nr27/p1) ‖ P2 (nr27/p2). Alter Befund: Prüfsummen-Liste erwartet a88-kundenanfrage unter tests/abnahme/ (liegt unter tests/) – Schranke dort NICHT OK, nicht NR27.
 - 2026-11-23: P2 gemergt (Review 🟡 → Kleinpunkte erledigt), 2030 Tests grün. Läuft: P1.
 - 2026-11-23: P1 gemergt (Review 🟢), 2307 Tests grün, typecheck+build grün. Weiter: P3‖P4.
+- 2026-11-23: P3 gebaut (Review läuft), P4 Zwischenstand (Kontext voll) → frischer Entwickler nach P3-Merge. Dann P5. Details docs/SITZUNGSUEBERGABE.md
