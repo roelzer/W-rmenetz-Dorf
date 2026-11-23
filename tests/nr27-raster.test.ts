@@ -6,6 +6,7 @@ import { engstellenFinden } from '../src/core/engstelle';
 import { rohrVorschau } from '../src/core/rohrvorschau';
 import { Spiel, neuerSpielstand } from '../src/core/spiel';
 import { tutorialLeitungsLage } from '../src/core/tutorial-netz';
+import { dreieckFelder } from '../src/render/ueberlast';
 import type { Objekt, Spielstand } from '../src/core/typen';
 import { neu, quelle } from './hilfen';
 
@@ -189,6 +190,13 @@ describe('NR27 P1 Tutorial-Lage', () => {
     const netz = netzVon(objekte);
     const lage = tutorialLeitungsLage(netz, objekte, objekte[1].id, objekte[2].id, 'd32', 'd25');
     expect(lage.fremd).toEqual([[3, -2], [3, 20]]);
+  });
+});
+
+describe('NR27 P1 Warndreiecke', () => {
+  it('test_nr27_dreiecke_nord: Feld −1 = (23|−1) und Feld 0 = (0|0) liegen weit auseinander – beide Dreiecke bleiben', () => {
+    const tiefe = new Map<number, number>([[-1, 1], [0, 1]]);
+    expect(dreieckFelder([[-1], [0]], tiefe)).toEqual([[-1], [0]]);
   });
 });
 

@@ -797,7 +797,7 @@ export class Steuerung implements Ui {
    *  Zeitpunkt ihrer ersten Sichtung. `geplant` = jedes Feld hat schon einen Ersatz, der die Last trägt. */
   private ueberlastSzene(stuecke: Engstelle[]): NonNullable<Szene['ueberlast']> {
     const sp = this.spiel, jetzt = this.uhr();
-    const dreiecke = dreieckFelder(stuecke.map((e) => e.felder), sp.netz.tiefe, KONSTANTEN.feldanzahl);
+    const dreiecke = dreieckFelder(stuecke.map((e) => e.felder), sp.netz.tiefe);
     const da = new Set(stuecke.map((e) => e.felder[0]));
     for (const f of [...this.ueberlastSeit.keys()]) if (!da.has(f)) this.ueberlastSeit.delete(f);
     return stuecke.map((e, i) => {

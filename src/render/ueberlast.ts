@@ -13,9 +13,9 @@ const MINDESTABSTAND_FELDER = 1.5;
  * Reihenfolge wie `stuecke`. Gelesen wird nach Tiefe im Netz, nicht nach Listenplatz, damit Verzweigungen nicht von der
  * Feldreihenfolge abhängen: Kandidaten sind die Tiefen t0, t0 + 8, … (je Tiefe das Feld mit der kleinsten Nummer); außer dem
  * ersten entfällt ein Kandidat weniger als 4 Felder vor dem tiefsten Feld (der Saum zeigt den Rest). Danach entfällt über alle
- * Stücke jedes Dreieck, das einem schon gesetzten zu nahe kommt. `feldanzahl` = Kartenbreite (Feldnummer = y × feldanzahl + x).
+ * Stücke jedes Dreieck, das einem schon gesetzten zu nahe kommt. Feldnummern werden mit feldVon zerlegt (stimmt auch für die Nordzone).
  */
-export function dreieckFelder(stuecke: ReadonlyArray<ReadonlyArray<number>>, tiefe: ReadonlyMap<number, number>, feldanzahl: number): number[][] {
+export function dreieckFelder(stuecke: ReadonlyArray<ReadonlyArray<number>>, tiefe: ReadonlyMap<number, number>): number[][] {
   const tiefeVon = (f: number): number => {
     const t = tiefe.get(f);
     if (t === undefined) throw new Error(`Überlast-Dreieck: keine Tiefe für Feld ${f}`);
@@ -37,7 +37,7 @@ export function dreieckFelder(stuecke: ReadonlyArray<ReadonlyArray<number>>, tie
       if (f !== undefined && (t === t0 || tmax - t >= U.abstand_ende_min)) kandidaten.push(f);
     }
     return kandidaten.filter((f) => {
-      const x = f % feldanzahl, y = Math.floor(f / feldanzahl);
+      const [x, y] = feldVon(f);
       if (gesetzt.some(([gx, gy]) => Math.hypot(gx - x, gy - y) < MINDESTABSTAND_FELDER)) return false;
       gesetzt.push([x, y]);
       return true;
