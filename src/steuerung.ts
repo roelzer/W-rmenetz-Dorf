@@ -28,7 +28,7 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { zieleOeffnen } from './ui/ziele';
 import { spielOrt } from './core/neubaugebiet';
-import { BAHN_ZEILEN_Y, QUERUNG_X, nordInfo, nordKulisse, nordSperre } from './core/nordviertel';
+import { BAHN_ZEILEN_Y, QUERUNG_X, istBahn, nordInfo, nordKulisse, nordSperre, querungImBau } from './core/nordviertel';
 import { nordHinweisText } from './core/nord-texte';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
@@ -781,6 +781,9 @@ export class Steuerung implements Ui {
       if (info !== null) toast(info);
       return;
     }
+    // DESIGN 14.5: Ein Bahnfeld der Baustelle antippen → Meldung Q5 statt Blatt; dort gibt es nichts zu ändern
+    const baustelle = istLeitung(o.typ) && o.geplant && istBahn(o.x, o.y) && querungImBau(this.spiel.stand) ? nordInfo(this.spiel.stand, o.x, o.y) : null;
+    if (baustelle !== null) { this.kontextUi.schliessen(); toast(baustelle); return; }
     this.kontext(o.id);
   }
 
