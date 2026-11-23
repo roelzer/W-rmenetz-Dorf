@@ -797,3 +797,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 11:31 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-23 11:31 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN.** Beide roten Tests laufen wieder grün. Alle 2457 Tests bestehen, Typprüfung und Build auch. Zwei Punkte sind offen: Die T ([Bericht](docs/pruefberichte/20261123-113114-entwickler-a63bedda3c6e09e32.md)) |
 | 2026-11-23 11:31 | ■ 🔴 | entwickler | 🔴 BLOCKIERT. Grund: Mein Kontext ist voll. Alle drei Bildpunkte des Pakets sind gebaut, getestet und committet. Die Test-Schranke meldet trotzdem „NICHT OK ([Bericht](docs/pruefberichte/20261123-113140-entwickler-a58e57788306c03ae.md)) |
+| 2026-11-23 11:33 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-23 11:33 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261123-113340-entwickler-a9f86466d8a84191f.md)) |
