@@ -1,5 +1,8 @@
+import { mod } from '../core/feld';
 import { querungImBau } from '../core/nordviertel';
 import type { Spielstand } from '../core/typen';
+import type { Kamera } from './kamera';
+import type { Maler, Punkt } from './maler';
 
 /**
  * NR27 (DESIGN 14.3, 14.8, 14.9): Inszenierung der Bahn. Reine Darstellung, keine Spieldaten.
@@ -25,7 +28,68 @@ export const BAHN = {
 } as const;
 export const BAHN_MASS = { gleisabstand: 0.44, spurweite: 0.144, schwellen_teilung: 0.25, detail_ab_kachelbreite: 32 } as const;
 
+/** Oberleitung (DESIGN 14.2 „Oberleitung“, 14.9 `mast`, `fahrdraht`, `mast_teilung`, `mast_versatz`, `mast_hoehe`, `fahrdraht_hoehe`). */
+const MAST = {
+  farbe: '#3f4549', draht: 'rgba(47,58,64,.60)',
+  teilung: 3, versatz: 2,
+  /** Masten auf dem Randweg Nord (Querschnitt 14.2) */
+  y: -3.26,
+  /** Höhen in Kachelbreiten */
+  hoehe: 0.62, draht_hoehe: 0.50,
+  /** Ausleger knapp unter der Mastspitze, damit die Spitze als Mast lesbar bleibt (Wert der Grafik, kein Fachwert) */
+  ausleger_hoehe: 0.58,
+} as const;
+
 type Felder = ReadonlyArray<readonly [number, number]>;
+
+/** Gleisspalten von Ende zu Ende: x = −2 … 25, beidseits über die Karte hinaus in den Wolkenrand (DESIGN 14.2 „Enden“). */
+export function gleisSpalten(): number[] {
+  const r: number[] = [];
+  for (let x = ZUG_MASS.von_x; x <= ZUG_MASS.bis_x; x++) r.push(x);
+  return r;
+}
+
+/** Mastspalten: x ≡ 2 (mod 3) über die ganze Strecke, nie auf der Brücke. mod() aus feld.ts, weil x = −1 negativ ist. */
+export function mastSpalten(bahn: Felder, fluss: Felder): number[] {
+  const bruecken = brueckenSpalten(bahn, fluss);
+  return gleisSpalten().filter((x) => mod(x, MAST.teilung) === MAST.versatz && !bruecken.has(x));
+}
+
+/** Ein Mast mit seiner Tiefe für die Zeichenreihenfolge der Objekt-Ebene (gleiche Formel wie für Objekte: Mitte + Größe 1). */
+export interface Mast {
+  x: number; tiefe: number;
+  /** Fahrdraht von … bis (Feld-x): vom Mast zum nächsten, beim ersten Mast schon ab dem Gleisanfang */
+  draht_von_x: number; draht_bis_x: number;
+}
+
+export function mastenNachTiefe(k: Kamera, bahn: Felder, fluss: Felder): Mast[] {
+  const xs = mastSpalten(bahn, fluss);
+  return xs.map((x, i) => {
+    const [rx, ry] = k.dreheFeld(x, MAST.y);
+    return { x, tiefe: rx + ry + 1, draht_von_x: i === 0 ? ZUG_MASS.von_x - 0.5 : x, draht_bis_x: xs[i + 1] ?? ZUG_MASS.bis_x + 0.5 };
+  }).sort((a, b) => a.tiefe - b.tiefe);
+}
+
+/**
+ * Mast mit Ausleger über beide Gleise und den Fahrdrähten bis zum nächsten Mast (am Ende bis zum Gleisende).
+ * Unter der Detailstufe ohne Ausleger und mit einem Fahrdraht über der Bahnmitte (DESIGN 14.2 Zoomstufen).
+ */
+export function zeichneMast(m: Maler, k: Kamera, mast: Mast): void {
+  const { X } = m, tw = k.tw;
+  const oben = (x: number, y: number, h: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - h * tw]; };
+  const a = oben(mast.draht_von_x, MAST.y, 0), b = oben(mast.draht_bis_x, MAST.y, 0);
+  const rand = 2 * tw;
+  if (Math.max(a[0], b[0]) < -rand || Math.min(a[0], b[0]) > k.breite + rand || Math.max(a[1], b[1]) < -rand || Math.min(a[1], b[1]) > k.hoehe + rand) return;
+  const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
+  const gleise = details ? [ZUG_MASS.gleis1_y, ZUG_MASS.gleis2_y] : [(ZUG_MASS.gleis1_y + ZUG_MASS.gleis2_y) / 2];
+  X.strokeStyle = MAST.draht; X.lineWidth = Math.max(0.75, tw * 0.012); X.beginPath();
+  for (const g of gleise) { X.moveTo(...oben(mast.draht_von_x, g, MAST.draht_hoehe)); X.lineTo(...oben(mast.draht_bis_x, g, MAST.draht_hoehe)); }
+  X.stroke();
+  X.strokeStyle = MAST.farbe; X.lineWidth = Math.max(1, tw * 0.022); X.beginPath();
+  X.moveTo(...oben(mast.x, MAST.y, 0)); X.lineTo(...oben(mast.x, MAST.y, MAST.hoehe));
+  if (details) { X.moveTo(...oben(mast.x, MAST.y, MAST.ausleger_hoehe)); X.lineTo(...oben(mast.x, ZUG_MASS.gleis1_y, MAST.ausleger_hoehe)); }
+  X.stroke();
+}
 
 /** Spalten mit Brückentrog: Der Fluss kreuzt die Bahnzeilen dort, wo ober- und unterhalb der Bahn Wasser liegt. */
 export function brueckenSpalten(bahn: Felder, fluss: Felder): Set<number> {

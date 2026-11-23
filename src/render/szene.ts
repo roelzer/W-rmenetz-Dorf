@@ -10,7 +10,7 @@ import type { InnenQuelle, Netz, Objekt } from '../core/typen';
 import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
-import { BAHN, BAHN_MASS, brueckenSpalten } from './bahn';
+import { BAHN, BAHN_MASS, brueckenSpalten, mastenNachTiefe, zeichneMast } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
 import { blatt, istHerbst, LANDSCHAFT, LAUB, SCHNEE, schneefall, type Jahreszeit } from './jahreszeiten';
@@ -465,7 +465,14 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
   const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
+  // NR27 (DESIGN 14.2): Masten und Fahrdraht nach Tiefe zwischen die Objekte einsortiert (beide Listen sind sortiert)
+  const masten = s.bahn?.length ? mastenNachTiefe(k, s.bahn, s.fluss ?? []) : [];
+  let naechsterMast = 0;
+  const mastenBis = (grenze: number): void => {
+    while (naechsterMast < masten.length && masten[naechsterMast].tiefe < grenze) zeichneMast(m, k, masten[naechsterMast++]);
+  };
   for (const o of sortiert) {
+    mastenBis(tiefe(o));
     const kante = groesse(o), D = KATALOG[o.typ], kat = D.kategorie;
     const [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
     if (kulisse.includes(o)) {
@@ -531,6 +538,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       });
     }
   }
+  mastenBis(Infinity);
   const hzObj = heizzentrale(s.objekte);
   const innenBau = s.innen.find((q) => q.bau);
   if (s.spiel && innenBau?.bau && hzObj) {
