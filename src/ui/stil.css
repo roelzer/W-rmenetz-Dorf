@@ -510,3 +510,18 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 /* Schleier mit Gang (13.17.1): direkt über der Spielkarte, unter allen Bedienelementen; sperrt nichts */
 #schleier{position:absolute;inset:0;pointer-events:none}
 #schleier svg{display:block;width:100%;height:100%}
+/* Erklärkarte (DESIGN 14.7): eigene Ebene über dem offenen Blatt – das Blatt darunter bleibt offen –, unter dem Dreh-Hinweis (#drehen, Ebene 10) */
+#bahn-karte{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px}
+#bahn-karte>.blatt.popup{position:relative;width:min(560px,100%);max-width:none;max-height:100%;margin:0}
+#bahn-karte .inhalt{display:flex;flex-direction:column;gap:8px;padding:16px}
+.karte-oben{display:flex;gap:16px;align-items:flex-start}
+.karte-bild{flex:none;width:176px;height:132px}
+.karte-text{flex:1;min-width:0}
+.karte-text p{margin:0 0 4px;font-size:14px;line-height:20px}
+.karte-chips{display:flex;flex-wrap:wrap;gap:8px}
+.karte-chips .sym{width:14px;height:14px}
+.karte-hinweis{margin:0;font-size:12px}
+#bahn-karte .aktionen{flex:none;display:flex;justify-content:flex-end;padding:8px 12px;background:var(--menue-farbe-kasten-kopf);border-top:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
+/* (i) zur Erklärkarte: Symbol 24 px, Tippfläche 44 × 44 px (CLAUDE.md, DESIGN 14.15) */
+.info-knopf{display:inline-grid;place-items:center;width:var(--groesse-px-tippflaeche-min);height:var(--groesse-px-tippflaeche-min);padding:0;border:0;background:none;color:inherit;vertical-align:middle;flex:none}
+.info-knopf .sym{width:24px;height:24px}

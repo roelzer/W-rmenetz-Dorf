@@ -10,6 +10,8 @@ import { balken, chip, knopf, kasten, sperrChip, sperrHinweis, stepper, symbol, 
 import { ANSCHLUSS_GEPLANT, OHNE_ABSCHNITT_HINWEIS_HAUS, OHNE_STATION, RAND, ZIELE_OFFEN, abschnittSperre, abschnittSperreKurz, baugebietSperre, ersteSperre, geldSperre, helferSperre, stufenHinweis, stufenSperre, vertragSperre } from './sperrtexte';
 import { blattOeffnen, type Blatt } from './blatt';
 import { eur, h, zahl } from './dom';
+import { nordHinweisText } from '../core/nord-texte';
+import { bahnInfoKnopf } from './bahn-karte';
 /** kW mit einer Nachkommastelle (8,3 kW). Erst auf 12 gültige Stellen glätten, dann auf eine Nachkommastelle runden: 15,75 kW
  *  entsteht als 15,7499…, und toLocaleString allein zeigte dann „15,7“. */
 const kw = (n: number): string => (Math.round(Number(n.toPrecision(12)) * 10) / 10).toLocaleString('de-DE', { maximumFractionDigits: 1 });
@@ -501,6 +503,13 @@ export class Kontext {
     const stueck = sp.ueberlastStuecke().find((e) => e.felder.includes(key));
     if (stueck) this.ueberlastBereich(c, stueck, key);
     c.append(h('p', { class: 'gedaempft' }, anHaus ? 'Hausanschlussleitung: ab dem Abzweig zum einzelnen Haus, hier darf das Rohr dünner sein.' : 'Hauptleitung: versorgt weiter hinten mehrere Häuser. Entscheidend ist, ob ihre Kapazität für die benötigte Wärme ausreicht.'));
+    // NR27 (DESIGN 14.6 T20, 14.7): Die fertige Querung ist eine Leitung über alle Bahnfelder – die Länge zählt alle gebauten.
+    if (!o.geplant && sp.istBahn(o.x, o.y)) {
+      const bahnFelder = sp.stand.objekte.filter((l) => istLeitung(l.typ) && !l.geplant && sp.istBahn(l.x, l.y)).length;
+      c.append(h('p', {}, nordHinweisText('BLATT_ZEILE', { laenge_m: bahnFelder * KONSTANTEN.feldlaenge_m })));
+      const info = bahnInfoKnopf(sp);
+      if (info) c.append(kasten(nordHinweisText('KARTE_TITEL'), info));
+    }
     c.append(zeile('Last', `${zahl(last)} / ${kap} kW`), balken(kap ? last / kap : 0));
     // Fachprüfung A73: Unter 1 liegt der Faktor, wenn der Vorlauf so niedrig ist, dass bis 40 °C Rücklauf wenig Spreizung bleibt.
     if (n.spreizung_faktor > 1.01) c.append(h('p', { class: 'gedaempft' }, `Bei der Spreizung deines Netzes (kälterer Rücklauf) schafft die Leitung ${Math.round((n.spreizung_faktor - 1) * 100)} % mehr als nominal.`));
