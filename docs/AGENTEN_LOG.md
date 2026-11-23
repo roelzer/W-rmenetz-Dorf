@@ -767,3 +767,8 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:44 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Grund: Kontext voll. Der Zwischenstand ist committet, alle Tests sind grün, aber die Selbstprüfung ist noch nicht fertig.  ([Bericht](docs/pruefberichte/20261123-094404-entwickler-ac8dd5d291b9740fd.md)) |
 | 2026-11-23 09:50 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten. NR27 P3 „Bahnregeln im Kern“** (Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/agent-a50ba9eb51e8c66f1, Basis  ([Bericht](docs/pruefberichte/20261123-095045-reviewer-a1972a376a37f7278.md)) |
 | 2026-11-23 09:52 | ▶ | entwickler | Entwickler P4b Rest Darstellung |
+| 2026-11-23 10:06 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-23 10:06 | ■ 🟡 | entwickler | 🟡 **Status: FERTIG_MIT_BEDENKEN**  ([Bericht](docs/pruefberichte/20261123-100644-entwickler-a3a891d6826c6789b.md)) |
+| 2026-11-23 10:08 | ▶ | entwickler | Entwickler P5a UI und Kern |
+| 2026-11-23 10:08 | ▶ | entwickler | Entwickler P5b Render Inszenierung |
+| 2026-11-23 10:08 | ▶ | reviewer | Reviewer P4 NR27 |
