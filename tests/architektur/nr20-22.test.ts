@@ -36,13 +36,16 @@ describe('NR20–NR22: Struktur', { timeout: 30000 }, () => {
     expect(fremd).toEqual([]);
   });
 
-  it('N4 (AE-NR21-1): Tutorial-Netzprüfung ohne Kreis – tutorial-netz.ts importiert nur Katalog/Typen/Vertrag/Start/Netz, genutzt nur von spiel.ts (greift ab der Datei)', () => {
+  it('N4 (AE-NR21-1): Tutorial-Netzprüfung ohne Kreis – tutorial-netz.ts importiert nur Katalog/Typen/Vertrag/Start/Netz/Feld, genutzt nur von spiel.ts (greift ab der Datei)', () => {
     const f = 'src/core/tutorial-netz.ts';
     if (!existsSync(f)) return;
     // Fassung 2 (Kritiker B2): ./netz ist erlaubt, damit „Leitungsende“ eine Regel bleibt (leitungsNachbarn). Kein Kreis,
     // solange netz.ts weder tutorial-netz noch spiel importiert – das prüft die zweite Erwartung.
-    const erlaubt = ['./katalog', './typen', './tutorial-vertrag', './start', './netz'];
+    // NR27 P1 (Entscheidung 2026-11-23, Tester-Vorarbeit V3): ./feld (KEIN_FELD, feldVon) ist erlaubt; feld.ts darf dafür
+    // ebenfalls weder tutorial-netz noch spiel importieren.
+    const erlaubt = ['./katalog', './typen', './tutorial-vertrag', './start', './netz', './feld'];
     expect(importe('src/core/netz.ts').filter((i) => /(^|\/)(tutorial-netz|spiel)$/.test(i))).toEqual([]);
+    if (existsSync('src/core/feld.ts')) expect(importe('src/core/feld.ts').filter((i) => /(^|\/)(tutorial-netz|spiel)$/.test(i))).toEqual([]);
     expect(importe(f).filter((i) => !erlaubt.includes(i))).toEqual([]);
     const nutzer = dateien('src').map(norm)
       .filter((d) => d !== f && importe(d).some((i) => /(^|\/)tutorial-netz$/.test(i)) && !/import\s+type\s[^;]*tutorial-netz/.test(lesen(d)));
