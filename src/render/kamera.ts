@@ -21,8 +21,8 @@ function zeitkurve(css: string): (p: number) => number {
     return kurve(ay, by, (lo + hi) / 2);
   };
 }
-/** DESIGN 13.6: Kamerafahrt mit `kurve.weich` */
-const WEICH = zeitkurve(tokens.menue.kurve.weich);
+/** DESIGN 13.6: Kamerafahrt mit `kurve.weich`; auch der Dunst im Erfolgsmoment NR27 (DESIGN 14.8) */
+export const WEICH = zeitkurve(tokens.menue.kurve.weich);
 
 /** Isometrische Kamera (2:1). Rechnet Felder in Bildschirmpunkte um und zurück. Keine Spiellogik. */
 export class Kamera {

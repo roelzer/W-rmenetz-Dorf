@@ -11,7 +11,7 @@ import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import {
-  BAHN, BAHN_MASS, bauFortschritt, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken,
+  BAHN, BAHN_MASS, bauFortschritt, brueckenSpalten, grubenFelder, unterDemDunst, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken,
   schutzrohrY, STRICHEL_VORSCHAU, zeichneBaustelle, zeichneSchutzrohr, zeichneStrichellinie, zeichneZugTeil, zugLage, zugTeile, zugTeilTiefe,
 } from './bahn';
 import { blase } from './blase';
@@ -481,12 +481,24 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   // hinter der Bahn kein echtes Objekt, darum liegt die Kulisse immer hinter allem, was danach kommt.
   const kulisse = [...kulissenObjekte(s)].sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   kulisse.forEach((o) => zeichneKulissenhaus(m, k, s, o));
-  if (kulisse.length) zeichneDunst(m, k, -WIESENRAND - 1, N + WIESENRAND, (s.kartenOben ?? 0) - WIESENRAND - 1);
+  const dunst = (deckkraft?: number): void => zeichneDunst(m, k, -WIESENRAND - 1, N + WIESENRAND, (s.kartenOben ?? 0) - WIESENRAND - 1, deckkraft);
+  if (kulisse.length) dunst();
+  // NR27 Erfolgsmoment (DESIGN 14.8): Querung fertig, das Viertel ist erschlossen – die Kulisse ist weg. Kein Kernereignis, nur der
+  // Wechsel im Bild. Funken an beiden Gruben; bei „Weniger Bewegung“ leuchten sie stattdessen kurz auf (Effekte).
+  if (s.spiel && effekte.nordWechsel(s.spiel, kulisse.length > 0)) {
+    effekte.erfolgsmoment(grubenFelder(), m.reduziert);
+    if (!m.reduziert) for (const [x, y] of grubenFelder()) { const [cx, cy] = k.mitte(x, y); effekte.funken(cx, cy, tw); }
+  }
   // NR27 (DESIGN 14.5 „Bau“): Baustelle über dem Dunst (die Zielgrube liegt hinter dem Zaun), unter Masten und Häusern
   const bau_anteil = s.bahn?.length && s.spiel ? bauFortschritt(s.spiel, s.jetzt_ms) : null;
   if (bau_anteil !== null) zeichneBaustelle(m, k, bau_anteil);
+  // Solange sich der Dunst hebt, liegen die neuen Häuser noch darunter – zuerst gezeichnet wie vorher die Kulisse, damit nichts springt
+  const dunst_heben = kulisse.length ? 0 : effekte.dunstDeckkraft();
+  const unterDunst = (o: Objekt): boolean => dunst_heben > 0 && unterDemDunst(o.y);
   const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
-    .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
+    .sort((a, b) => Number(unterDunst(b)) - Number(unterDunst(a)) || tiefe(a) - tiefe(b) || a.x - b.x);
+  let dunst_offen = dunst_heben > 0;
+  const dunstHeben = (): void => { if (dunst_offen) { dunst_offen = false; dunst(dunst_heben); } };
   const oben: Array<() => void> = [];
   const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
   // NR27 (DESIGN 14.2, 14.3): Masten mit Fahrdraht und die Wagen des Zugs nach Tiefe zwischen die Objekte einsortiert (beide
@@ -503,6 +515,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     while (naechsterMast < bahnTeile.length && bahnTeile[naechsterMast].tiefe < grenze) bahnTeile[naechsterMast++].zeichne();
   };
   for (const o of sortiert) {
+    if (!unterDunst(o)) dunstHeben();
     mastenBis(tiefe(o));
     const kante = groesse(o), D = KATALOG[o.typ], kat = D.kategorie;
     const [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
@@ -564,6 +577,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
       });
     }
   }
+  dunstHeben();
   mastenBis(Infinity);
   const hzObj = heizzentrale(s.objekte);
   const innenBau = s.innen.find((q) => q.bau);

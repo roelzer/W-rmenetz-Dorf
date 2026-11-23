@@ -85,15 +85,23 @@ const DUNST = { farbe: 'rgba(236,242,245,.55)', klar: 'rgba(236,242,245,0)', sue
 /**
  * Eine Fläche von `west_x` … `ost_x` und vom Nordzaun bis `nord_y`. Der Verlauf läuft senkrecht zur Zaunlinie im Bild
  * (nicht entlang der Feld-y-Achse, die in der Schrägansicht schief zur Linie steht), damit der Rand überall gleich weich ist.
+ * `deckkraft` < 1 nur, während sich der Dunst im Erfolgsmoment hebt (DESIGN 14.8).
  */
-export function zeichneDunst(m: Maler, k: Kamera, west_x: number, ost_x: number, nord_y: number): void {
+export function zeichneDunst(m: Maler, k: Kamera, west_x: number, ost_x: number, nord_y: number, deckkraft = 1): void {
   const { X } = m;
+  if (deckkraft !== 1) { X.save(); X.globalAlpha = deckkraft; }
   const a = k.mitte(west_x, DUNST.sued_y), b = k.mitte(ost_x, DUNST.sued_y), innen = k.mitte(west_x, DUNST.sued_y - DUNST.rand_felder);
   const lx = b[0] - a[0], ly = b[1] - a[1], laenge = Math.hypot(lx, ly);
   const nx = -ly / laenge, ny = lx / laenge, tiefe = (innen[0] - a[0]) * nx + (innen[1] - a[1]) * ny;
   const g = X.createLinearGradient(a[0], a[1], a[0] + nx * tiefe, a[1] + ny * tiefe);
   g.addColorStop(0, DUNST.klar); g.addColorStop(1, DUNST.farbe);
   m.flaeche([a, b, k.mitte(ost_x, nord_y), k.mitte(west_x, nord_y)], g, false);
+  if (deckkraft !== 1) X.restore();
+}
+
+/** Liegt ein Feld unter dem Dunst (nördlich der Zaunlinie)? Dort stand vor der Erschließung die Kulisse. */
+export function unterDemDunst(y: number): boolean {
+  return y < DUNST.sued_y;
 }
 
 /** DESIGN 14.9 `gesperrt_schleier`; Rasterstrich wie das Baumodus-Raster in szene.ts (zeichneBoden). */
@@ -370,6 +378,11 @@ const BAUSTELLE = {
   zittern_s: 0.18, abgas_s: 2.4,
   rauch: tokens.farbe.objekt.rauch_hell, rauch_rand: tokens.farbe.objekt.rauch_hell_rand,
 } as const;
+
+/** Mitten der beiden Gruben: dort sprühen im Erfolgsmoment die Funken (DESIGN 14.8). */
+export function grubenFelder(): Array<[number, number]> {
+  return [[QUERUNG_X, BAUSTELLE.start_y], [QUERUNG_X, BAUSTELLE.ziel_y]];
+}
 
 /** Anteil der Bauzeit (0 … 1) der Querung, oder null, wenn keine Querung gebaut wird. */
 export function bauFortschritt(stand: Pick<Spielstand, 'abschnitt'>, jetzt_ms: number): number | null {

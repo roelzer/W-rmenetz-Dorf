@@ -1,3 +1,4 @@
+import { WEICH } from './kamera';
 import type { Maler } from './maler';
 
 interface Funke { x: number; y: number; vx: number; vy: number; r: number; t: number; leben: number; farbe: string }
@@ -12,12 +13,23 @@ const WARNROT = '#d8392f';
 
 interface Engstelle { felder: ReadonlyArray<readonly [number, number]>; ruhig: boolean; t: number }
 
+/**
+ * NR27 Erfolgsmoment (DESIGN 14.8, 14.9 `dunst_heben`): der Dunst hebt sich in 1,2 s mit `kurve.weich`. Bei „Weniger Bewegung“
+ * ist er sofort weg; stattdessen leuchten die Grubenfelder kurz und ruhig auf (Dauer und Deckkraft sind Werte der Grafik).
+ */
+const DUNST_HEBEN_S = 1.2;
+const AUFLEUCHTEN = { dauer_s: 0.4, deckkraft: 0.5, farbe: '#ffe14d' } as const;
+interface Erfolg { felder: ReadonlyArray<readonly [number, number]>; ruhig: boolean; t: number }
+
 /** Kurzlebige Effekte (Funken, fliegende Münzen, Schwebetexte). Reine Darstellung, laufen über Zeitdifferenzen. */
 export class Effekte {
   private funken_: Funke[] = [];
   private muenzen_: Muenze[] = [];
   private texte: Schwebtext[] = [];
   private engstelle_: Engstelle | null = null;
+  private erfolg_: Erfolg | null = null;
+  /** Zuletzt gesehener Stand hinter der Bahn: welches Spiel, und ob dort noch Kulisse stand. null = noch kein Bild. */
+  private nord_: { spiel: object; kulisse: boolean } | null = null;
   /** Sparmodus: weniger Teilchen für ältere Handys (6 statt 24 Funken, höchstens 2 Münzen). */
   sparsam = false;
 
@@ -42,7 +54,29 @@ export class Effekte {
   engstelle(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {
     this.engstelle_ = felder.length ? { felder: felder.map(([x, y]) => [x, y] as const), ruhig, t: 0 } : null;
   }
-  aktiv(): boolean { return this.funken_.length + this.muenzen_.length + this.texte.length > 0 || this.engstelle_ !== null; }
+  /**
+   * NR27: Merkt sich je Bild, ob hinter der Bahn noch Kulisse steht. true genau beim Wechsel „Kulisse da → leer“ im selben Spiel –
+   * nie im ersten Bild und nie, wenn ein anderes Spiel geladen wurde (sonst feierte jedes Laden eines erschlossenen Stands).
+   */
+  nordWechsel(spiel: object, kulisse: boolean): boolean {
+    const vorher = this.nord_;
+    this.nord_ = { spiel, kulisse };
+    return !!vorher && vorher.spiel === spiel && vorher.kulisse && !kulisse;
+  }
+  /** Startet den Erfolgsmoment; `felder` = Grubenfelder fürs Aufleuchten, `ruhig` = „Weniger Bewegung“. */
+  erfolgsmoment(felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean): void {
+    this.erfolg_ = { felder, ruhig, t: 0 };
+  }
+  /** Deckkraft des Dunsts über dem neuen Viertel: 1 beim Auslösen, nach 1,2 s und bei „Weniger Bewegung“ 0. */
+  dunstDeckkraft(): number {
+    const e = this.erfolg_;
+    if (!e || e.ruhig || e.t >= DUNST_HEBEN_S) return 0;
+    // Im Auslösebild genau 1: die Zeitkurve löst x durch Halbierung und trifft 0 nur auf 1e-12 genau
+    return e.t <= 0 ? 1 : 1 - WEICH(e.t / DUNST_HEBEN_S);
+  }
+  aktiv(): boolean {
+    return this.funken_.length + this.muenzen_.length + this.texte.length > 0 || this.engstelle_ !== null || this.erfolg_ !== null;
+  }
 
   /** dt_s = Sekunden seit dem letzten Bild (auf 0,1 begrenzt, damit nach Pausen nichts springt). */
   zeichnen(m: Maler, dt_s: number, mitte: (x: number, y: number) => [number, number]): void {
@@ -63,6 +97,7 @@ export class Effekte {
       X.ellipse(x, y, 9 * Math.abs(Math.cos(c.t * 10)) + 2, 9, 0, 0, Math.PI * 2); X.fill(); X.stroke();
     }
     this.engstelleZeichnen(m, dt, mitte);
+    this.erfolgZeichnen(m, dt, mitte);
     this.texte = this.texte.filter((f) => (f.t += dt) < SCHWEBZEIT_S);
     for (const f of this.texte) {
       const [cx, cy] = mitte(f.x, f.y);
@@ -70,6 +105,20 @@ export class Effekte {
       m.text(f.text, cx, cy - m.tw * (0.9 + f.t * 0.7), Math.max(16, m.tw * 0.32), f.farbe);
       X.globalAlpha = 1;
     }
+  }
+
+  /** Zeit des Erfolgsmoments fortschreiben; bei „Weniger Bewegung“ das ruhige Aufleuchten (kein Puls, einfach an, dann aus). */
+  private erfolgZeichnen(m: Maler, dt: number, mitte: (x: number, y: number) => [number, number]): void {
+    const e = this.erfolg_;
+    if (!e) return;
+    if (e.ruhig && e.t < AUFLEUCHTEN.dauer_s) {
+      const { X } = m;
+      X.globalAlpha = AUFLEUCHTEN.deckkraft;
+      for (const [x, y] of e.felder) { const [cx, cy] = mitte(x, y); m.raute(cx, cy, 1); X.fillStyle = AUFLEUCHTEN.farbe; X.fill(); }
+      X.globalAlpha = 1;
+    }
+    e.t += dt;
+    if (e.t >= (e.ruhig ? AUFLEUCHTEN.dauer_s : DUNST_HEBEN_S)) this.erfolg_ = null;
   }
 
   private engstelleZeichnen(m: Maler, dt: number, mitte: (x: number, y: number) => [number, number]): void {
