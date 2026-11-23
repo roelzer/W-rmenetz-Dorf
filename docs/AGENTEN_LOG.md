@@ -753,3 +753,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:06 | ■ 🟡 | entwickler | Status: FERTIG_MIT_BEDENKEN. Ampel: 🟡  ([Bericht](docs/pruefberichte/20261123-090604-entwickler-a31eb8ae672903979.md)) |
 | 2026-11-23 09:06 | ▶ | reviewer | Reviewer P2 NR27 |
 | 2026-11-23 09:10 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** NR27 P2 „Nordzone-Daten und Verträge“, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/p2, Basis 473412c bis ([Bericht](docs/pruefberichte/20261123-091049-reviewer-a184c0c8d84f5ec74.md)) |
+| 2026-11-23 09:12 | ■ 🔴 | entwickler | 🔴 **Status: BRAUCHT_KONTEXT.** P1 ist bis auf drei Stellen gebaut. An diesen drei Stellen widersprechen sich der Bauplan und bestehende Tests, die ich nicht  ([Bericht](docs/pruefberichte/20261123-091251-entwickler-a4a5b369546872879.md)) |
+| 2026-11-23 09:13 | ▶ | tester | Tester-Vorarbeit V3 für P1 |
