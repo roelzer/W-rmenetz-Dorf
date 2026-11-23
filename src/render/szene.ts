@@ -486,8 +486,10 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   if (kulisse.length) dunst();
   // NR27 Erfolgsmoment (DESIGN 14.8): Querung fertig, das Viertel ist erschlossen – die Kulisse ist weg. Kein Kernereignis, nur der
   // Wechsel im Bild. Funken an beiden Gruben; bei „Weniger Bewegung“ leuchten sie stattdessen kurz auf (Effekte).
+  // Neue Häuser hinter der Bahn: sie liegen unter dem sich hebenden Dunst und bekommen ihre Blasen versetzt (DESIGN 14.8).
+  const istNeu = (o: Objekt): boolean => !istLeitung(o.typ) && unterDemDunst(o.y);
   if (s.spiel && effekte.nordWechsel(s.spiel, kulisse.length > 0)) {
-    effekte.erfolgsmoment(grubenFelder(), m.reduziert);
+    effekte.erfolgsmoment(grubenFelder(), m.reduziert, s.objekte.filter(istNeu).length);
     if (!m.reduziert) for (const [x, y] of grubenFelder()) { const [cx, cy] = k.mitte(x, y); effekte.funken(cx, cy, tw); }
   }
   // NR27 (DESIGN 14.5 „Bau“): Baustelle über dem Dunst (die Zielgrube liegt hinter dem Zaun), unter Masten und Häusern
@@ -502,6 +504,7 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   const dunstHeben = (): void => { if (dunst_offen) { dunst_offen = false; dunst(dunst_heben); } };
   const oben: Array<() => void> = [];
   const erreicht = new Map((s.erreicht ?? []).map((e) => [e.id, e.seit_ms]));
+  let neuRang = 0;
   // NR27 (DESIGN 14.2, 14.3): Masten mit Fahrdraht und die Wagen des Zugs nach Tiefe zwischen die Objekte einsortiert (beide
   // Listen sind sortiert). Kein Zug bei weniger Bewegung/Sparmodus: ein stehender Zug sähe wie eine Störung aus.
   const bahnTeile: Array<{ tiefe: number; zeichne: () => void }> = [];
@@ -557,7 +560,8 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
     } else if (s.spiel && !s.ruhe) {
       // NR20 B1: In Kapitel 3 ruhen die übrigen Kunden-Blasen
       const b = blase(s.spiel, s.netz, o, st.warm, angeschlossen);
-      if (b) oben.push(() => zeichneBlase(m, cx, topY, b));
+      const frei = !istNeu(o) || effekte.blaseFrei(neuRang++);
+      if (b && frei) oben.push(() => zeichneBlase(m, cx, topY, b));
     }
     // A25: Verbrauch jedes Kunden als kleines Schild am Fuß des Gebäudes
     const DK = KATALOG[o.typ];
