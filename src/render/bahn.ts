@@ -47,6 +47,21 @@ const MAST = {
 
 type Felder = ReadonlyArray<readonly [number, number]>;
 
+/** Bildpunkt `h` Kachelbreiten über dem Feldpunkt (x|y) – für Masten, Fahrdraht und Stromabnehmer. */
+function oben(k: Kamera, x: number, y: number, h: number): Punkt {
+  const [px, py] = k.mitte(x, y);
+  return [px, py - h * k.tw];
+}
+
+/**
+ * Liegt die Hülle der Bodenpunkte `p` im Bild? Seitlich `rand` Spielraum, nach oben ebenso (für das, was über dem Boden steht:
+ * Dach, Stromabnehmer, Haube, Wölkchen); nach unten keiner, weil darunter nichts mehr gezeichnet wird.
+ */
+function imBild(k: Kamera, p: readonly Punkt[], rand: number): boolean {
+  const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+  return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
+}
+
 /** Schranke am Straßenende (DESIGN 14.2 „Straßenende“): `bake_rot` = `menue.knopf.gefahr`, dazu Weiß, 0,14 Kachel hoch. */
 const SCHRANKE = {
   rot: F.bake_rot, weiss: F.schranke_weiss, hoehe: 0.14,
@@ -247,18 +262,17 @@ export function mastenNachTiefe(k: Kamera, bahn: Felder, fluss: Felder): Mast[] 
  */
 export function zeichneMast(m: Maler, k: Kamera, mast: Mast): void {
   const { X } = m, tw = k.tw;
-  const oben = (x: number, y: number, h: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - h * tw]; };
-  const a = oben(mast.draht_von_x, MAST.y, 0), b = oben(mast.draht_bis_x, MAST.y, 0);
+  const a = oben(k, mast.draht_von_x, MAST.y, 0), b = oben(k, mast.draht_bis_x, MAST.y, 0);
   const rand = 2 * tw;
   if (Math.max(a[0], b[0]) < -rand || Math.min(a[0], b[0]) > k.breite + rand || Math.max(a[1], b[1]) < -rand || Math.min(a[1], b[1]) > k.hoehe + rand) return;
   const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
   const gleise = details ? [ZUG_MASS.gleis1_y, ZUG_MASS.gleis2_y] : [(ZUG_MASS.gleis1_y + ZUG_MASS.gleis2_y) / 2];
   X.strokeStyle = MAST.draht; X.lineWidth = Math.max(0.75, tw * 0.012); X.beginPath();
-  for (const g of gleise) { X.moveTo(...oben(mast.draht_von_x, g, MAST.draht_hoehe)); X.lineTo(...oben(mast.draht_bis_x, g, MAST.draht_hoehe)); }
+  for (const g of gleise) { X.moveTo(...oben(k, mast.draht_von_x, g, MAST.draht_hoehe)); X.lineTo(...oben(k, mast.draht_bis_x, g, MAST.draht_hoehe)); }
   X.stroke();
   X.strokeStyle = MAST.farbe; X.lineWidth = Math.max(1, tw * 0.022); X.beginPath();
-  X.moveTo(...oben(mast.x, MAST.y, 0)); X.lineTo(...oben(mast.x, MAST.y, MAST.hoehe));
-  if (details) { X.moveTo(...oben(mast.x, MAST.y, MAST.ausleger_hoehe)); X.lineTo(...oben(mast.x, ZUG_MASS.gleis1_y, MAST.ausleger_hoehe)); }
+  X.moveTo(...oben(k, mast.x, MAST.y, 0)); X.lineTo(...oben(k, mast.x, MAST.y, MAST.hoehe));
+  if (details) { X.moveTo(...oben(k, mast.x, MAST.y, MAST.ausleger_hoehe)); X.lineTo(...oben(k, mast.x, ZUG_MASS.gleis1_y, MAST.ausleger_hoehe)); }
   X.stroke();
 }
 
@@ -419,21 +433,18 @@ export function zeichneZugTeil(m: Maler, k: Kamera, teil: ZugTeil): void {
   m.flaeche(boden.map((q) => auf(q, 1)), ZUG.dach);
   if (!teil.lok) return;
   // Stromabnehmer: zwei Striche vom Dach bis an den Fahrdraht (Höhe `fahrdraht_hoehe` über der Gleismitte)
-  const mx = (x0 + x1) / 2, oben = (x: number, y: number, hh: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - hh * tw]; };
+  const mx = (x0 + x1) / 2;
   X.strokeStyle = MAST.farbe; X.lineWidth = Math.max(1, tw * 0.015); X.beginPath();
-  X.moveTo(...oben(mx - 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
-  X.moveTo(...oben(mx + 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
+  X.moveTo(...oben(k, mx - 0.25, g, ZUG.hoehe)); X.lineTo(...oben(k, mx, g, MAST.draht_hoehe));
+  X.moveTo(...oben(k, mx + 0.25, g, ZUG.hoehe)); X.lineTo(...oben(k, mx, g, MAST.draht_hoehe));
   X.stroke();
 }
 
 /** Liegt ein Teil des Zugs im Bild (mit Rand für Dach und Stromabnehmer)? Außerhalb braucht er keinen flüssigen Takt. */
 export function zugImBild(k: Kamera, lage: ZugLage): boolean {
-  const tw = k.tw, rand = tw * MAST.draht_hoehe;
-  return zugTeile(lage).some((t) => {
-    const p = [t.von_x, t.bis_x].flatMap((x) => [k.mitte(x, t.gleis_y - ZUG.halb_breite), k.mitte(x, t.gleis_y + ZUG.halb_breite)]);
-    const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
-    return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
-  });
+  const rand = k.tw * MAST.draht_hoehe;
+  return zugTeile(lage).some((t) =>
+    imBild(k, [t.von_x, t.bis_x].flatMap((x) => [k.mitte(x, t.gleis_y - ZUG.halb_breite), k.mitte(x, t.gleis_y + ZUG.halb_breite)]), rand));
 }
 
 /**
@@ -462,10 +473,8 @@ export function grubenFelder(): Array<[number, number]> {
  * über dem Boden. Außerhalb braucht sie keinen flüssigen Takt.
  */
 export function baustelleImBild(k: Kamera): boolean {
-  const halb = BAUSTELLE.grube / 2, tw = k.tw, rand = tw;
-  const p = [QUERUNG_X - halb, QUERUNG_X + halb].flatMap((x) => [BAUSTELLE.ziel_y - halb, BAUSTELLE.start_y + halb].map((y) => k.mitte(x, y)));
-  const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
-  return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
+  const halb = BAUSTELLE.grube / 2;
+  return imBild(k, [QUERUNG_X - halb, QUERUNG_X + halb].flatMap((x) => [BAUSTELLE.ziel_y - halb, BAUSTELLE.start_y + halb].map((y) => k.mitte(x, y))), k.tw);
 }
 
 /** Anteil der Bauzeit (0 … 1) der Querung, oder null, wenn keine Querung gebaut wird. */
