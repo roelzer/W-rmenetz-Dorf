@@ -81,6 +81,14 @@ describe('NR27 P5c Blasen der neuen Häuser im Erfolgsmoment (DESIGN 14.8)', () 
     expect(d.e.aktiv(), 'jetzt vorbei').toBe(false);
   });
 
+  // Fehler, der ihn rot macht: der Versatz trifft auch Häuser im Dorf – deren Blasen verschwänden im Erfolgsmoment für 1,2 s.
+  it('test_nr27_p5c_blasen_dorf_bleiben: ein Dorfhaus behält seine Blase im Auslösebild', () => {
+    const d = darstellung(false), sp = neuesSpiel(), dorf = neu('efh', 5, 3, { station: 'klein', ohne_station: true });
+    const mit = (kulisse: boolean): Szene => ({ ...szene(sp, kulisse), objekte: [...szene(sp, kulisse).objekte, dorf] });
+    expect(blasen(d.bild(mit(true))), 'vorher: nur das Dorfhaus').toBe(1);
+    expect(blasen(d.bild(mit(false))), 'Auslösebild: Dorfhaus ja, neue Häuser noch nicht').toBe(1);
+  });
+
   // Fehler, der ihn rot macht: bei „Weniger Bewegung“ warten die Blasen trotzdem (Versatz ist Bewegung, DESIGN 14.8 rechte Spalte).
   it('test_nr27_p5c_blasen_weniger_bewegung: alle Blasen im Auslösebild', () => {
     const d = darstellung(true), sp = neuesSpiel();
