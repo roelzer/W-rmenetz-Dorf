@@ -894,10 +894,15 @@ export class Steuerung implements Ui {
   }
 
   /** Designer-Treue M8: zurückgehaltene Meldungen nach dem Schließen des Mini-Tutorials, mit derselben Pause wie nach dem
-   *  Pflicht-Tutorial – keine geht verloren. */
+   *  Pflicht-Tutorial. Nacheinander, je nach Lesezeit und Blende (12.17): Es steht immer nur eine Meldung, eine neue ersetzt
+   *  die alte – alle auf einmal hätten nur die letzte lesbar gelassen. Eine Meldung, die in dieser Zeit neu entsteht, kann
+   *  eine nachgeholte weiterhin verdrängen. */
   private zurueckgehalteneMeldungen(): void {
-    const liste = this.nachBahnTutorialMeldungen.splice(0);
-    if (liste.length) window.setTimeout(() => { for (const text of liste) toast(text); }, NACH_TUTORIAL_MS);
+    let ab_ms = NACH_TUTORIAL_MS;
+    for (const text of this.nachBahnTutorialMeldungen.splice(0)) {
+      window.setTimeout(() => toast(text), ab_ms);
+      ab_ms += toastDauer_ms(text) + T.menue.zeit_ms.toast_blende;
+    }
   }
 
   /** [Zeig’s mir] (14.15 Punkt 20): Baumenü im Reiter „Leitungen“, Kamera auf die Querungsstelle (10|−2,5), Zoom 2,2. Das Menü
