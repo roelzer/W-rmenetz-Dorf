@@ -4,6 +4,7 @@ import { freigeschaltet } from '../core/freischaltung';
 import { QUERUNG_X, querungImBau } from '../core/nordviertel';
 import type { Spielstand } from '../core/typen';
 import { schatten } from './farben';
+import { zeichneMonteur } from './gebaeude';
 import type { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 
@@ -352,4 +353,94 @@ export function zugImBild(k: Kamera, lage: ZugLage): boolean {
     const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
     return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
   });
+}
+
+/**
+ * Baustelle der Querung (DESIGN 14.5 „Bau“, 14.9): Startgrube über dem Leitungsfeld (10|−1), Zielgrube auf der Böschung (10|−4),
+ * je 0,7 × 0,7 Feld. Die Bohrlinie läuft von Grubenrand zu Grubenrand. Tiefe der Grube, Maße von Bohrgerät, Kabine und Lafette
+ * und die Größe des Wölkchens sind Werte der Grafik, keine Fachwerte.
+ */
+const BAUSTELLE = {
+  start_y: -1, ziel_y: -4, grube: 0.7, grube_tiefe: 0.12,
+  grube_wand: '#8a6a4e', grube_boden: '#5f4532', verbau: tokens.farbe.objekt.geruest,
+  bake_hoehe: 0.18,
+  bohrgeraet: '#f0a53a', bohrlinie: '#4a2c14', kabine: ZUG.fenster, lafette: MAST.farbe,
+  geraet: 0.34, geraet_hoehe: 0.12, kabine_breite: 0.14, kabine_hoehe: 0.14, kopf_radius: 0.06,
+  /** `bohrgeraet_zittern` 180 ms (±1 px), `abgas_zyklus` 2400 ms (DESIGN 14.9 `zeit_ms`) */
+  zittern_s: 0.18, abgas_s: 2.4,
+  rauch: tokens.farbe.objekt.rauch_hell, rauch_rand: tokens.farbe.objekt.rauch_hell_rand,
+} as const;
+
+/** Anteil der Bauzeit (0 … 1) der Querung, oder null, wenn keine Querung gebaut wird. */
+export function bauFortschritt(stand: Pick<Spielstand, 'abschnitt'>, jetzt_ms: number): number | null {
+  if (!querungImBau(stand)) return null;
+  const bau = stand.abschnitt?.bau;
+  // Die Bauphase hat immer eine Bauzeit (Spiel setzt beide zusammen); fehlt sie, ist der Spielstand kaputt – nicht still raten.
+  if (!bau) throw new Error('Querung im Bau ohne Bauzeit im Abschnitt');
+  return Math.min(1, Math.max(0, (jetzt_ms - bau.start_ms) / (bau.ende_ms - bau.start_ms)));
+}
+
+/** Eingesenkte Grube: Rückwände und Boden innerhalb der Öffnung, Verbau-Bretter und Rand in Gerüstfarbe, Baken an den Ecken. */
+function zeichneGrube(m: Maler, k: Kamera, y: number): void {
+  const { X } = m, tw = k.tw, [cx, cy] = k.mitte(QUERUNG_X, y), tiefe = BAUSTELLE.grube_tiefe * tw;
+  const rand = m.ecken(cx, cy, BAUSTELLE.grube), unten = (p: Punkt, f = 1): Punkt => [p[0], p[1] + tiefe * f];
+  X.save(); m.bahn(rand); X.clip();
+  for (let i = 0; i < 4; i++) {
+    const a = rand[i], b = rand[(i + 1) % 4], nx = b[1] - a[1], ny = -(b[0] - a[0]), nl = Math.hypot(nx, ny) || 1;
+    // Von innen sieht man die Wände, deren Außennormale im Bild nach oben zeigt (die hinteren)
+    if (ny >= 0) continue;
+    m.flaeche([a, b, unten(b), unten(a)], schatten(BAUSTELLE.grube_wand, -0.08 + 0.179 * (nx / nl)), false);
+    X.strokeStyle = BAUSTELLE.verbau; X.lineWidth = Math.max(1, tw * 0.015); X.beginPath();
+    for (const f of [0.33, 0.66]) { X.moveTo(...unten(a, f)); X.lineTo(...unten(b, f)); }
+    X.stroke();
+  }
+  m.flaeche(rand.map((p) => unten(p)), BAUSTELLE.grube_boden, false);
+  X.restore();
+  m.bahn(rand); X.strokeStyle = BAUSTELLE.verbau; X.lineWidth = Math.max(1.5, tw * 0.03); X.lineJoin = 'round'; X.stroke();
+  // Baken rot-weiß wie die Schranke: weißer Pfosten, darauf zwei rote Felder
+  const h = BAUSTELLE.bake_hoehe * tw;
+  X.lineCap = 'butt'; X.lineWidth = Math.max(2, tw * 0.04);
+  X.strokeStyle = SCHRANKE.weiss; X.beginPath();
+  for (const [px, py] of rand) { X.moveTo(px, py); X.lineTo(px, py - h); }
+  X.stroke();
+  X.strokeStyle = SCHRANKE.rot; X.beginPath();
+  for (const [px, py] of rand) for (const [a, b] of [[0, 0.33], [0.66, 1]]) { X.moveTo(px, py - h * a); X.lineTo(px, py - h * b); }
+  X.stroke();
+}
+
+/**
+ * Baustelle nach dem Fortschritt (0 … 1). Bohrlinie und Bohrkopf sind Information und laufen immer; Zittern und Abgas nur bei
+ * Animation an (`m.reduziert` aus), sonst steht das Gerät still.
+ */
+export function zeichneBaustelle(m: Maler, k: Kamera, fortschritt: number): void {
+  const { X } = m, tw = k.tw, x = QUERUNG_X, halb = BAUSTELLE.grube / 2;
+  zeichneGrube(m, k, BAUSTELLE.ziel_y);
+  const [mx, my] = k.mitte(x + halb + 0.12, BAUSTELLE.ziel_y);
+  zeichneMonteur(m, mx, my);
+
+  const von_y = BAUSTELLE.start_y - halb, bis_y = BAUSTELLE.ziel_y + halb, kopf_y = von_y + (bis_y - von_y) * fortschritt;
+  const a = k.mitte(x, von_y), b = k.mitte(x, kopf_y);
+  X.setLineDash([QUERUNG.strich * tw, QUERUNG.luecke * tw]); X.lineCap = 'butt';
+  X.strokeStyle = BAUSTELLE.bohrlinie; X.lineWidth = Math.max(1.5, tw * 0.03); X.beginPath();
+  X.moveTo(...a); X.lineTo(...b); X.stroke(); X.setLineDash([]);
+  X.lineWidth = 1; m.kreis(b[0], b[1], Math.max(2.5, BAUSTELLE.kopf_radius * tw), BAUSTELLE.bohrgeraet, true);
+
+  zeichneGrube(m, k, BAUSTELLE.start_y);
+  const animiert = !m.reduziert;
+  const zittern = animiert ? Math.sin((2 * Math.PI * m.zeit_s) / BAUSTELLE.zittern_s) : 0;
+  // Lafette: dunkler Keil vom Gerät zur Bahn hin, darauf das Gerät mit Kabine am Südende (Haube zittert, Lafette nicht)
+  const hg = BAUSTELLE.geraet_hoehe * tw, auf = (p: Punkt, h: number): Punkt => [p[0], p[1] - h];
+  m.flaeche([auf(k.mitte(x - 0.06, BAUSTELLE.start_y - 0.05), hg), auf(k.mitte(x + 0.06, BAUSTELLE.start_y - 0.05), hg),
+    k.mitte(x, BAUSTELLE.start_y - 0.32)], BAUSTELLE.lafette);
+  const [gx, gy] = k.mitte(x, BAUSTELLE.start_y + 0.12);
+  m.quader(gx, gy - zittern, BAUSTELLE.geraet, hg, BAUSTELLE.bohrgeraet);
+  const [kx, ky] = k.mitte(x + 0.04, BAUSTELLE.start_y + 0.2);
+  m.quader(kx, ky - hg - zittern, BAUSTELLE.kabine_breite, BAUSTELLE.kabine_hoehe * tw, BAUSTELLE.kabine);
+  if (!animiert) return;
+  // Ein Wölkchen je Zyklus: steigt vom Auspuff auf, wächst und verblasst
+  const f = (m.zeit_s % BAUSTELLE.abgas_s) / BAUSTELLE.abgas_s, [ax, ay] = k.mitte(x - 0.1, BAUSTELLE.start_y + 0.2);
+  X.globalAlpha = (1 - f) * 0.8;
+  m.kreis(ax, ay - hg - f * tw * 0.4, tw * 0.04 * (1 + f * 1.5), BAUSTELLE.rauch);
+  X.strokeStyle = BAUSTELLE.rauch_rand; X.lineWidth = 1; X.stroke();
+  X.globalAlpha = 1;
 }

@@ -11,8 +11,8 @@ import { zufall } from '../core/zufall';
 import { BodenEbene, flaechenGroesse, type FlaechenFabrik } from './ebenen';
 import { Effekte } from './effekte';
 import {
-  BAHN, BAHN_MASS, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken,
-  schutzrohrY, STRICHEL_VORSCHAU, zeichneSchutzrohr, zeichneStrichellinie, zeichneZugTeil, zugLage, zugTeile, zugTeilTiefe,
+  BAHN, BAHN_MASS, bauFortschritt, brueckenSpalten, gleisSpalten, mastenNachTiefe, querungFrei, zeichneDunst, zeichneMast, zeichneSchleier, zeichneSchranken,
+  schutzrohrY, STRICHEL_VORSCHAU, zeichneBaustelle, zeichneSchutzrohr, zeichneStrichellinie, zeichneZugTeil, zugLage, zugTeile, zugTeilTiefe,
 } from './bahn';
 import { blase } from './blase';
 import { FEDERN_MS, zeichneBalken, zeichneBlase, zeichneGeruest, zeichneObjekt } from './gebaeude';
@@ -482,6 +482,9 @@ export function zeichneSzene(m: Maler, k: Kamera, s: Szene, effekte: Effekte, dt
   const kulisse = [...kulissenObjekte(s)].sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   kulisse.forEach((o) => zeichneKulissenhaus(m, k, s, o));
   if (kulisse.length) zeichneDunst(m, k, -WIESENRAND - 1, N + WIESENRAND, (s.kartenOben ?? 0) - WIESENRAND - 1);
+  // NR27 (DESIGN 14.5 „Bau“): Baustelle über dem Dunst (die Zielgrube liegt hinter dem Zaun), unter Masten und Häusern
+  const bau_anteil = s.bahn?.length && s.spiel ? bauFortschritt(s.spiel, s.jetzt_ms) : null;
+  if (bau_anteil !== null) zeichneBaustelle(m, k, bau_anteil);
   const sortiert = s.objekte.filter((o) => !istLeitung(o.typ) && !(s.modus === 'verschieben' && o.id === s.verschiebe_id))
     .sort((a, b) => tiefe(a) - tiefe(b) || a.x - b.x);
   const oben: Array<() => void> = [];
