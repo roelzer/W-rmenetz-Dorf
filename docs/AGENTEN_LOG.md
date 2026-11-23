@@ -827,3 +827,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 12:49 | ▶ | entwickler | Fix-Runde Render/Tokens |
 | 2026-11-23 13:03 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT** – das gilt nur formal. Mein Teil (Render/Tokens) ist komplett gebaut, committet und getestet. Die Test-Schranke meldet trotzdem „ ([Bericht](docs/pruefberichte/20261123-130334-entwickler-a363f43842c206a3e.md)) |
 | 2026-11-23 13:03 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Meine Punkte (Wortlaut, M1, M2, M3, M4, M8) sind fertig, committet und getestet. Blockiert ist nur der Abschluss: Die Test-Schranke  ([Bericht](docs/pruefberichte/20261123-130345-entwickler-a702335fee1444ca2.md)) |
+| 2026-11-23 13:06 | ▶ | reviewer | Re-Review Fix-Runde NR27 |
+| 2026-11-23 13:06 | ▶ | produktpruefer | Produktprüfung NR27 |
+| 2026-11-23 13:17 | ■ 🔴 | reviewer | 🔴 **Nachbesserung nötig** (zwei kleine, schnell behebbare Punkte). Review der Fix-Runde NR27 (Bahnquerung), Modus `paket`, Diff f232a8a..f49f037  ([Bericht](docs/pruefberichte/20261123-131708-reviewer-ad537429587517852.md)) |
+| 2026-11-23 13:17 | ▶ | entwickler | Nachbesserung Review NR27 |
