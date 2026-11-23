@@ -733,3 +733,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:11 | ▶ | rechercheur | Gegenprüfung Recherche Bahnquerung |
 | 2026-11-23 08:14 | ■ 🟡 | rechercheur | 🟡 GELB. Gegenprüfung geschrieben nach /home/user/W-rmenetz-Dorf/docs/recherche/bahnquerung-gegenpruefung.md  ([Bericht](docs/pruefberichte/20261123-081427-rechercheur-a264d49a4ad48d47a.md)) |
 | 2026-11-23 08:21 | ■ 🟢 | designer | 🟢 Entwurf NR27 ist fertig: neuer Abschnitt 14 in docs/DESIGN.md und eine Skizze für das Erklärbild. Code habe ich nicht angefasst und nichts committet. Ich ([Bericht](docs/pruefberichte/20261123-082108-designer-a00a0118d8fba4eb8.md)) |
+| 2026-11-23 08:23 | ■ 🟢 | architekt | 🟢 **Architekt, Modus entwurf, NR27 Bahnstrecke und Bahnquerung: Entwurf fertig**  ([Bericht](docs/pruefberichte/20261123-082349-architekt-ab2541f73ea05da95.md)) |
