@@ -129,17 +129,18 @@ describe('NR27 P5b2 Dunst und Öl-Rauch (14.15 Punkt 8)', () => {
     expect(zahl(bild(szene({ bahn: bahnFelder(), kulisse: nordKulisse({ nordviertel: true }) }), MITTE_NORD, 1.4), DUNST)).toBe(0);
   });
 
-  // Fehler, die ihn rot machen: kein Rauch; Rauch an allen 14 Häusern; Rauch trotz „Weniger Bewegung“.
-  // Von Hand: 3 Häuser × 4 Rauchballen (maler.ts wolke) = 12 Farbstopps in rauch_oel.
-  it('test_nr27_oelrauch: drei Kulissenhäuser rauchen grau, bei weniger Bewegung keins', () => {
+  // Fix-Runde NR27 (Designer-Treue M7): Kulissenhäuser rauchen nicht mehr – sonst endete der Rauch beim Wechsel, obwohl echte
+  // unversorgte Häuser auch nicht rauchen. Fehler, der ihn rot macht: irgendein Kulissenhaus raucht noch (mit oder ohne Bewegung).
+  it('test_nr27_oelrauch: kein Kulissenhaus raucht, weder mit noch ohne „Weniger Bewegung“', () => {
     const s = szene({ bahn: bahnFelder(), kulisse: NORD_PLAN });
-    expect(zahl(bild(s, MITTE_NORD, 1.4, false), OEL)).toBe(12);
+    expect(zahl(bild(s, MITTE_NORD, 1.4, false), OEL)).toBe(0);
     expect(zahl(bild(s, MITTE_NORD, 1.4, true), OEL)).toBe(0);
   });
 
-  // Fehler, der ihn rot macht: der Rauch steht still, weil die Szene keinen Bildtakt anfordert.
-  it('test_nr27_oelrauch_takt: Kulisse mit Rauch braucht flüssigen Takt, ohne Kulisse nicht', () => {
-    expect(animationBedarf(szene({ kulisse: NORD_PLAN }), false)).toBe('fluessig');
+  // Fix-Runde NR27 (M7): ohne Rauch braucht die Kulisse keinen Bildtakt.
+  // Fehler, der ihn rot macht: die stille Kulisse hält die Karte weiter auf flüssigem Takt (Akku).
+  it('test_nr27_oelrauch_takt: Kulisse ohne Rauch braucht keinen Takt', () => {
+    expect(animationBedarf(szene({ kulisse: NORD_PLAN }), false)).toBe('keine');
     expect(animationBedarf(szene({ kulisse: [] }), false)).toBe('keine');
   });
 });

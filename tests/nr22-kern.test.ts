@@ -5,7 +5,7 @@ import { bedarfKw } from '../src/core/netz';
 import type { Objekt } from '../src/core/typen';
 import tokens from '../design/tokens.json';
 import { Kamera } from '../src/render/kamera';
-import { dreieckFelder as dreieckFelderRoh, dreieckTreffer } from '../src/render/ueberlast';
+import { dreieckFelder, dreieckTreffer } from '../src/render/ueberlast';
 import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18';
 
 // Bauplan docs/bauplaene/NR20-22.md Fassung 2.4, P6 (E5, E6). Erwartungen von Hand aus dem Startdorf hergeleitet:
@@ -16,11 +16,6 @@ import { abschnittOeffnen, objektBei, vorstellen, type Uhr } from './hilfen/nr18
 const T0 = 1_000_000_000_000;
 const N = KONSTANTEN.feldanzahl;
 const feld = (x: number, y: number): number => y * N + x;
-// NR27 P1 (Tester-Vorarbeit V3): Die Kartenbreite ist für immer 24 (Entscheidung 2026-11-23). Die Tests hängen deshalb nicht
-// mehr an einem Breite-Parameter von dreieckFelder: Sie rufen über diese Hülle auf, die mit und ohne dritten Parameter passt
-// (überzähliges N wird ignoriert, ein vorhandener Parameter bekommt die echte Breite 24).
-const dreieckFelder = (stuecke: ReadonlyArray<ReadonlyArray<number>>, tiefe: ReadonlyMap<number, number>): number[][] =>
-  (dreieckFelderRoh as unknown as (s: ReadonlyArray<ReadonlyArray<number>>, t: ReadonlyMap<number, number>, n: number) => number[][])(stuecke, tiefe, N);
 const STAMM: ReadonlyArray<[number, number]> = [[10, 10], [10, 9], [9, 9], [8, 9], [7, 9], [6, 9]];
 const ENDE: ReadonlyArray<[number, number]> = [[5, 9], [4, 9], [3, 9], [2, 9], [2, 8]];
 const STAMM_FELDER = STAMM.map(([x, y]) => feld(x, y));

@@ -202,7 +202,7 @@ describe('NR27 P5a3 Leitungsblatt der Querung (DESIGN 14.6 T20, 14.7)', () => {
     await echteSteuerung(sp, (u) => {
       u.st.kontext(ids[0]);
       expect(kartenKasten(u)).toBeUndefined();
-      expect(u.dom.html.querySelectorAll('[data-ziel="bahn_info"]')).toHaveLength(0);
+      expect(u.dom.html.querySelectorAll('[data-ziel="bahn_info"]').length).toBe(0);
       expect(blattText(u)).not.toContain(t('KARTE_TITEL'));
     });
     schalter.frei = true;
