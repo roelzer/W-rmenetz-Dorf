@@ -785,3 +785,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 10:44 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-23 10:44 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261123-104443-entwickler-a5a7ce8f4c4f9bd3a.md)) |
 | 2026-11-23 10:45 | ▶ | entwickler | Entwickler P5b3 Zug und Querung |
+| 2026-11-23 10:55 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-23 10:55 | ■ 🟡 | entwickler | ## Paket P5a3 NR27 (Oberfläche): FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261123-105519-entwickler-a59f44b2b1c6ae9ae.md)) |
+| 2026-11-23 10:56 | ▶ | entwickler | Entwickler P5a4 Mini-Tutorial und Tokens |
+| 2026-11-23 10:56 | ▶ | reviewer | Reviewer P5a UI-Pakete |
