@@ -428,7 +428,8 @@ function zeichneGrube(m: Maler, k: Kamera, y: number): void {
 export function zeichneBaustelle(m: Maler, k: Kamera, fortschritt: number): void {
   const { X } = m, tw = k.tw, x = QUERUNG_X, halb = BAUSTELLE.grube / 2;
   zeichneGrube(m, k, BAUSTELLE.ziel_y);
-  const [mx, my] = k.mitte(x + halb + 0.12, BAUSTELLE.ziel_y);
+  // Monteur westlich der Zielgrube: östlich steht bei x = 11 ein Mast (mast_teilung 3, Versatz 2), der ihn verdecken würde
+  const [mx, my] = k.mitte(x - halb - 0.12, BAUSTELLE.ziel_y);
   zeichneMonteur(m, mx, my);
 
   const von_y = BAUSTELLE.start_y - halb, bis_y = BAUSTELLE.ziel_y + halb, kopf_y = von_y + (bis_y - von_y) * fortschritt;
