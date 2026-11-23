@@ -19,8 +19,9 @@ export const OHNE_ABSCHNITT_HINWEIS = `Erst mit ${ABSCHNITT_HELFER.planung} eine
 /** DESIGN.md 12.22: dasselbe im Hausblatt, wo der Knopf „Bauabschnitt planen lassen“ direkt über dem gesperrten Knopf steht. */
 export const OHNE_ABSCHNITT_HINWEIS_HAUS = `Erst mit ${ABSCHNITT_HELFER.planung} einen Bauabschnitt planen – Knopf direkt darüber.`;
 
-/** NR27 (DESIGN 14.5, T04): Zusatz zur Kostenzeile, solange der Abschnitt ein Bahnfeld enthält – Kasten „Bauabschnitt“ und
- *  Chip der Zeichenleiste sagen dasselbe. Summe und Zuschlag kommen aus dem Kern. */
+/** NR27 (DESIGN 14.5, T04): Zusatz zur Kostenzeile im Kasten „Bauabschnitt“, solange der Abschnitt ein Bahnfeld enthält. Die
+ *  Zeichenleiste zeigt dafür nur „+ Bahnquerung“ im Abschlussknopf, Aufpreis und Zuschlag stehen allein hier. Summe und
+ *  Zuschlag kommen aus dem Kern. */
 export const querungKostenText = (sp: Spiel): string =>
   nordHinweisText('KOSTEN_ZUSATZ', { querung_eur: eur(sp.querung_eur()), querung_zeit: querungZuschlagText() });
 

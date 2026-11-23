@@ -758,10 +758,17 @@ export class Spiel {
     return ok();
   }
 
+  /** Geplante Leitungen eines bestellten oder gerade geplanten Abschnitts bleiben stehen – Material und Planung laufen schon.
+   *  Eine Stelle für Kern (entfernen) und Leitungsblatt (kein Knopf). */
+  abschnittSperrtEntfernen(o: Objekt): boolean {
+    const phase = this.stand.abschnitt?.phase;
+    return !!o.geplant && (phase === 'bau' || phase === 'planung');
+  }
+
   entfernen(id: number): Ergebnis {
     const o = this.objekt(id);
     if (!o || o.landschaft || !(istLeitung(o.typ) || KATALOG[o.typ].kategorie === 'deko')) return { ok: false };
-    if (o.geplant && (this.stand.abschnitt?.phase === 'bau' || this.stand.abschnitt?.phase === 'planung')) return this.nein('Der Abschnitt ist schon bestellt oder in Planung – hier lässt sich nichts mehr entfernen');
+    if (this.abschnittSperrtEntfernen(o)) return this.nein('Der Abschnitt ist schon bestellt oder in Planung – hier lässt sich nichts mehr entfernen');
     // W5: Der Ersatz ist schon bezahlt und unterwegs; ohne die Leitung hätte er keinen Platz mehr.
     if (o.ersatz && this.stand.abschnitt?.phase === 'bau') return this.nein(ERSATZ_IM_BAU);
     // A30: 50 % des alten Typs zurück; ein geplanter Ersatz ist noch nicht bezahlt und verfällt mit der Leitung.
