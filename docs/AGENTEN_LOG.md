@@ -799,3 +799,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 11:31 | ■ 🔴 | entwickler | 🔴 BLOCKIERT. Grund: Mein Kontext ist voll. Alle drei Bildpunkte des Pakets sind gebaut, getestet und committet. Die Test-Schranke meldet trotzdem „NICHT OK ([Bericht](docs/pruefberichte/20261123-113140-entwickler-a58e57788306c03ae.md)) |
 | 2026-11-23 11:33 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-23 11:33 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261123-113340-entwickler-a9f86466d8a84191f.md)) |
+| 2026-11-23 11:34 | ▶ | entwickler | Entwickler P5c rotes Feld |
+| 2026-11-23 11:35 | ▶ | reviewer | Reviewer P5b Render |
