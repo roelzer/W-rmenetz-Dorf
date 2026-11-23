@@ -738,3 +738,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 08:24 | ▶ | kritiker | Kritiker: Plan NR27 |
 | 2026-11-23 08:28 | ■ 🔴 | kritiker | 🔴 **Kritiker, Planprüfung NR27 (Bahnquerung): noch nicht baufertig. Eine Überarbeitung des Plans reicht, die Grundidee steht.**  ([Bericht](docs/pruefberichte/20261123-082814-kritiker-a4fada11aaad9ea39.md)) |
 | 2026-11-23 08:28 | ■ 🟡 | fachpruefer | 🟡 GELB – Fachprüfer, Modus plan, NR27 Bahnquerung (2026-11-23)  ([Bericht](docs/pruefberichte/20261123-082815-fachpruefer-a46c33305f23907d2.md)) |
+| 2026-11-23 08:28 | ▶ | architekt | Architekt: Bauplan NR27 überarbeiten |
+| 2026-11-23 08:28 | ▶ | designer | Designer: DESIGN 14 anpassen |
