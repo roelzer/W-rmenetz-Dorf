@@ -752,3 +752,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:06 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
 | 2026-11-23 09:06 | ■ 🟡 | entwickler | Status: FERTIG_MIT_BEDENKEN. Ampel: 🟡  ([Bericht](docs/pruefberichte/20261123-090604-entwickler-a31eb8ae672903979.md)) |
 | 2026-11-23 09:06 | ▶ | reviewer | Reviewer P2 NR27 |
+| 2026-11-23 09:10 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit kleinen Punkten.** NR27 P2 „Nordzone-Daten und Verträge“, Worktree /home/user/W-rmenetz-Dorf/.claude/worktrees/p2, Basis 473412c bis ([Bericht](docs/pruefberichte/20261123-091049-reviewer-a184c0c8d84f5ec74.md)) |
