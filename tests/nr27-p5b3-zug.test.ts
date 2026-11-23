@@ -142,9 +142,10 @@ describe('NR27 P5b3 Takt: „flüssig“ nur, solange der Zug im Bild ist (DESIG
 
 describe('NR27 P5b3 Takt: die Bildschleife gibt die Kamera mit', () => {
   // Fehler, der ihn rot macht: main.ts ruft animationBedarf ohne Kamera – dann hält ein Zug außer Sicht den Takt flüssig.
-  it('test_nr27_zug_takt main.ts: animationBedarf bekommt die Kamera der Karte', () => {
+  // Seit P5d darf nach der Kamera ein 4. Argument folgen (animation_an); die Kamera muss weiterhin das 3. Argument sein.
+  it('test_nr27_zug_takt main.ts: animationBedarf bekommt die Kamera der Karte (als 3. Argument)', () => {
     const main = readFileSync('src/main.ts', 'utf8');
-    expect(main).toMatch(/animationBedarf\(\s*szene\s*,\s*effekte_aktiv\s*,\s*kamera\s*\)/);
+    expect(main).toMatch(/animationBedarf\(\s*szene\s*,\s*effekte_aktiv\s*,\s*kamera\b/);
     expect(main).toMatch(/const kamera = steuerung\.kamera;/);
   });
 });
