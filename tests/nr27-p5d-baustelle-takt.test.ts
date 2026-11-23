@@ -94,7 +94,8 @@ describe('NR27 P5d Bohrlinie: bei weniger Bewegung und im Sparmodus mindestens 4
     ['weniger Bewegung', false],
     ['Sparmodus', true],
   ])('test_nr27_baustelle_takt: %s, Baustelle im Bild → nach 250 ms ein neues Bild', (_name, sparmodus) => {
-    const bedarf = animationBedarf(szene({ spiel: spielImBau(true) }), false, IM_BILD());
+    // 4. Argument animation_an = false (Entscheidung Projektleiter P5d): Weniger Bewegung und Sparmodus schalten die Animation aus
+    const bedarf = animationBedarf(szene({ spiel: spielImBau(true) }), false, IM_BILD(), false);
     const eingabe = (jetzt_ms: number): TaktEingabe => ({
       jetzt_ms, szene: 's', kamera: 'k', bedarf, effekte_aktiv: false, animation: 'aus', sparmodus, verdeckt: false, erzwingen: false,
     });
