@@ -77,6 +77,12 @@ describe('NR27 P5b2 Masten (14.15 Punkt 6)', () => {
     expect(zahl(bild(szene({ bahn: bahnFelder(), fluss: [] }), GANZ, 1.0), MAST)).toBe(9);
   });
 
+  // Fehler, der ihn rot macht: Masten werden nur vor Objekten gezeichnet, die vor ihnen liegen – fehlt so ein Objekt, fehlen sie.
+  // Von Hand: Heizzentrale (0|−14), Größe 2 → Tiefe 0,5 − 13,5 + 2 = −11, kleiner als jeder Mast (ab −1 − 2,26 = −3,26).
+  it('test_nr27_masten_hinter_allen_objekten: liegt jedes Objekt hinter den Masten, kommen trotzdem alle 8', () => {
+    expect(zahl(bild(szene({ bahn: bahnFelder(), fluss: nordFluss() }, [neu('hz', 0, -14)]), GANZ, 1.0), MAST)).toBe(8);
+  });
+
   it('ohne Bahn keine Masten (Nachbardorf)', () => {
     expect(zahl(bild(szene({}), GANZ, 1.0), MAST)).toBe(0);
   });
@@ -108,6 +114,8 @@ describe('NR27 P5b2 Gleisenden und Schranken (14.15 Punkt 7)', () => {
     expect(zwei).toBe(2 * eine);
     // Straße läuft weiter nach Süden, endet aber nicht vor der Bahn → keine Schranke
     expect(zahl(bild(szene({ bahn: bahnFelder(), strassen: [[10, 5], [10, 6]] }), [10, 5], 2.2), BAKE)).toBe(0);
+    // Fehler, der ihn rot macht: Straße mit Nordnachbar gilt als Ende. Läuft sie bis (10|−1), steht nur dort die eine Schranke.
+    expect(zahl(bild(szene({ bahn: bahnFelder(), strassen: [...ende(10), [10, -1]] }), [12, 0], 2.2), BAKE)).toBe(eine);
     // ohne Bahn (Nachbardorf) keine Schranke
     expect(zahl(bild(szene({ strassen: [...ende(10), ...ende(17)] }), [12, 0], 2.2), BAKE)).toBe(0);
   });
