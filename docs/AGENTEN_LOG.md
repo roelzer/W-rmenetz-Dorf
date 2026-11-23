@@ -811,3 +811,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 12:05 | ■ 🔴 | entwickler | 🔴 Status: BRAUCHT_KONTEXT. Die Arbeit ist gebaut und committet, aber ein bestehender Test widerspricht dem Auftrag. Ich darf ihn nicht ändern, deshalb ist d ([Bericht](docs/pruefberichte/20261123-120529-entwickler-ac2c7f5d3e92c00b7.md)) |
 | 2026-11-23 12:05 | ▶ | tester | Tester-Vorarbeit NR27 P5d-2 |
 | 2026-11-23 12:11 | ■ 🟢 | tester | 🟢 Tester-Vorarbeit NR27 P5d-2 ist erledigt. Geändert sind nur Testdateien, keine Produktivdatei.  ([Bericht](docs/pruefberichte/20261123-121113-tester-a35752a64c9bca8e6.md)) |
+| 2026-11-23 12:12 | ▶ | tester | Tester pruefen NR27 gesamt |
+| 2026-11-23 12:12 | ▶ | designer | Designer treue NR27 |
+| 2026-11-23 12:12 | ▶ | fachpruefer | Fachpruefer ergebnis NR27 |
+| 2026-11-23 12:12 | ▶ | reviewer | Reviewer gesamt NR27 |
