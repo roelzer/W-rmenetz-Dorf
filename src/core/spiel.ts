@@ -4,7 +4,9 @@ import {
 import {
   belegtId, belegungskarte, berechneNetz, leitungsNachbarn, mittlereSpreizung_k, spreizungHaus_k, bedarfKw, nutzungsfaktor, dorfwert, groesse, heizzentrale, istAktiv, istKunde, stationReicht, pufferStationReicht, randFelder, trassenUebergang,
 } from './netz';
-import { feldVon } from './feld';
+import { feldVon, KARTE_OBEN_Y } from './feld';
+import { istBahn, nordSperre, nordviertelAnlegen, querungGebaut } from './nordviertel';
+import { nordText, type NordTextId } from './nord-texte';
 import type { Abrechnung, Bau, InnenQuelle, Netz, Objekt, Spielstand } from './typen';
 import { neubaugebietAnlegen, neubaugebietLayout2Anlegen, neubauPlan, neubauStrassen, spielOrt } from './neubaugebiet';
 import { abStufe, erzeugerAbStufe, freigeschaltet, merkmalName, neuBeiStufe, sperrgrund, type Merkmal } from './freischaltung';
@@ -48,6 +50,15 @@ export const WANDSTATION_TUTORIAL = 'Im Tutorial nimmst du den Standard. Die Wan
 const ERSATZ_NUR_IM_ABSCHNITT = `Dickere Leitungen entstehen nur im Bauabschnitt – lass ${ABSCHNITT_HELFER.planung} einen planen.`;
 const ERSATZ_IM_BAU = 'Diese Leitung wird gerade ersetzt – warte, bis der Abschnitt gebaut ist.';
 const RINGSCHLUSS = 'Diese Verbindung würde einen Ringschluss erzeugen. Baue die Trasse als Abzweig weiter.';
+/** NR27: erste Zeile des Dorfs vor der Nordzone (die Karte vor NR27 begann hier). */
+const DORF_OBEN_Y = KARTE_OBEN_Y + KONSTANTEN.nord_zeilen;
+const HOECHSTE_STUFE = 'gehen nicht – die Heizzentrale hat schon die höchste Stufe';
+/** NR27: Text der Nordzone, der im Kern als Hinweis erscheint; ein Fachtext (kann null sein) wäre hier ein Programmfehler. */
+const nordHinweis = (id: NordTextId): string => {
+  const text = nordText(id);
+  if (text === null) throw new Error(`nordText ${id}: Hinweis im Kern darf kein Fachtext sein`);
+  return text;
+};
 const istHausOderGross = (o: Objekt): boolean => ['haus', 'gross'].includes(KATALOG[o.typ].kategorie);
 const brauchtFestenPlatz = (typ: TypId): boolean =>
   istLeitung(typ) || ['haus', 'gross', 'hindernis'].includes(KATALOG[typ].kategorie);
@@ -248,7 +259,8 @@ export class Spiel {
       if (plaetze.length >= typen.length) break;
       const t = typen[plaetze.length], k = KATALOG[t].groesse ?? 1;
       const nahe = [...haeuser, ...plaetze.map((p) => ({ ...p, typ: p.typ }))].some((o) => KATALOG[o.typ].kategorie === 'haus' && Math.abs(o.x - x) < k + 1 && Math.abs(o.y - y) < k + 1);
-      if (nahe || !this.kannPlatzieren(t, x, y)) continue;
+      // NR27: Das Baugebiet bleibt im alten Dorf; Häuser auf dem Grünstreifen vor der Bahn könnten die Querungsstelle verbauen.
+      if (nahe || y < DORF_OBEN_Y || !this.kannPlatzieren(t, x, y)) continue;
       plaetze.push({ typ: t, x, y });
     }
     if (!plaetze.length) return this.nein('Auf dieser Seite ist kein Platz für ein Baugebiet');
@@ -414,6 +426,9 @@ export class Spiel {
   }
   get hz(): Objekt { return heizzentrale(this.stand.objekte); }
   get kartenHoehe(): number { return this.stand.neubaugebiet ? KONSTANTEN.neubau_hoehe : N; }
+  /** NR27: oberste Kartenzeile (Nordzone hinter der Bahn). */
+  get kartenOben(): number { return KARTE_OBEN_Y; }
+  istBahn(x: number, y: number): boolean { return istBahn(x, y); }
   get hzStufe(): number { return this.hz.stufe; }
   anzahl(t: TypId): number {
     return KATALOG[t].kategorie === 'innen'
@@ -484,7 +499,7 @@ export class Spiel {
 
   kannPlatzieren(t: TypId, x: number, y: number, ohneId = 0, kante?: number): boolean {
     const s = kante ?? KATALOG[t].groesse ?? 1;
-    if (x < 0 || y < 0 || x + s > N || y + s > this.kartenHoehe) return false;
+    if (x < 0 || y < KARTE_OBEN_Y || x + s > N || y + s > this.kartenHoehe) return false;
     const alt = this.objekt(ohneId);
     if (t === 'hz' && alt && s === 2 && (x !== alt.x || y !== alt.y)) {
       const reserve = this.hzAusbauReserve({ ...alt, x, y });
@@ -496,6 +511,7 @@ export class Spiel {
       if (belegtId(belegung, (y + dy) * N + x + dx)) return false;
       // A46: Auf Straßen steht nichts (außer Leitungen, Laternen, Bänke); im Fluss nur Leitungen (per Spülbohrung)
       const fx = x + dx, fy = y + dy;
+      if (nordSperre(this.stand, t, fx, fy) !== null) return false;
       if (!istLeitung(t) && this.istFluss(fx, fy)) return false;
       if (!istLeitung(t) && KATALOG[t].kategorie !== 'deko' && this.istStrasse(fx, fy)) return false;
     }
@@ -588,12 +604,14 @@ export class Spiel {
     const sperre = this.gesperrt(t);
     if (sperre) return sperre;
     if (this.sperrtAusbaureserve(t, x, y)) return this.nein('Dieses Feld ist für den Ausbau der Heizzentrale reserviert');
+    const nord = nordSperre(this.stand, t, x, y);
+    if (nord) return this.nein(nord);
     if (!this.kannPlatzieren(t, x, y)) return this.nein('Hier ist kein Platz');
     if (istLeitung(t) && this.istFluss(x, y) && !freigeschaltet(this.stand, 'spuelbohrung')) return this.nein(this.flussGesperrt());
     if (istLeitung(t)) {
       if (this.leitungsanzahl() >= this.grenze(t))
-        return this.nein(this.grenze(t) ? 'Mehr Leitungen ab der nächsten Heizzentralen-Stufe' : `${D.name} ab Heizzentrale Stufe 2`);
-    } else if (this.anzahl(t) >= this.grenze(t)) return this.nein(`Mehr ${D.name} ab der nächsten Heizzentralen-Stufe`);
+        return this.nein(!this.grenze(t) ? `${D.name} ab Heizzentrale Stufe 2` : this.hoechststufe ? `Mehr Leitungen ${HOECHSTE_STUFE}` : 'Mehr Leitungen ab der nächsten Heizzentralen-Stufe');
+    } else if (this.anzahl(t) >= this.grenze(t)) return this.nein(this.hoechststufe ? `Mehr ${D.name} ${HOECHSTE_STUFE}` : `Mehr ${D.name} ab der nächsten Heizzentralen-Stufe`);
     if (istLeitung(t)) {
       // A41: Leitungen entstehen nur in einem Bauabschnitt, bezahlt wird erst bei der Materialbestellung.
       if (this.stand.abschnitt?.phase !== 'offen') return this.nein(this.stand.abschnitt ? 'Der Bauabschnitt ist gerade nicht zum Einzeichnen offen' : `Leitungen entstehen in Bauabschnitten – erst mit ${ABSCHNITT_HELFER.planung} einen Abschnitt planen`);
@@ -605,6 +623,7 @@ export class Spiel {
       this.stand.objekte.push({ id, typ: t, x, y, stufe: 1, bau: null, kasse_eur: 0, geplant: true, _pop: this.uhr(),
         ...(Object.keys(trassenUebergaenge).length ? { trassenUebergaenge } : {}) });
       this.schritt('leitung_gezeichnet', id);
+      if (istBahn(x, y) && this.querungsFelder().length === 1) this.querungErklaeren();
       this.erreichtAbgleichen();
       return ok();
     }
@@ -716,6 +735,7 @@ export class Spiel {
 
   beschleunigen(bau: Bau | null | undefined): Ergebnis {
     if (!bau) return { ok: false };
+    if (bau === this.stand.abschnitt?.bau && this.stand.abschnitt.mit_querung) return this.nein(nordHinweis('EXPRESS'));
     const c = this.beschleunigungskosten_taler(bau);
     const b = this.bezahlen({ taler: c });
     if (!b.ok) return b;
@@ -1055,16 +1075,24 @@ export class Spiel {
   gestattungsFelder(): number[] {
     if (!freigeschaltet(this.stand, 'gestattung')) return []; // A88/F1: vor der Freischaltung kostenlos
     const geklaert = new Set(this.stand.gestattungen ?? []);
-    return this.stand.objekte.filter((o) => o.geplant && !this.istStrasse(o.x, o.y) && !this.istFluss(o.x, o.y) && !geklaert.has(o.y * N + o.x)).map((o) => o.y * N + o.x);
+    return this.stand.objekte.filter((o) => o.geplant && !this.istStrasse(o.x, o.y) && !this.istFluss(o.x, o.y) && !istBahn(o.x, o.y) && !geklaert.has(o.y * N + o.x)).map((o) => o.y * N + o.x);
   }
   /** A46: Geplante Leitungsfelder im Fluss: dort ist eine Spülbohrung nötig. */
   bohrungsFelder(): number[] { return this.stand.objekte.filter((o) => o.geplant && this.istFluss(o.x, o.y)).map((o) => o.y * N + o.x); }
   bohrung_eur(): number { return this.bohrungsFelder().length * KONSTANTEN.bohrung_eur_je_feld; }
   gestattung_eur(): number { return this.gestattungsFelder().length * KONSTANTEN.gestattung_eur_je_feld; }
-  /** Summe der Leitungskosten des Abschnitts in € (Material, Gestattungen, Spülbohrung, Vorsehungen, Anbohrungen). */
+  /** NR27 (AE-NR27-6): geplante Leitungen auf Bahnfeldern – die Bahnquerung des Abschnitts. */
+  querungsFelder(): number[] { return this.stand.objekte.filter((o) => o.geplant && istLeitung(o.typ) && istBahn(o.x, o.y)).map((o) => o.y * N + o.x); }
+  querung_eur(): number { return this.querungsFelder().length * KONSTANTEN.querung_eur_je_feld; }
+  /** NR27: Eine Querung (neu oder Ersatz unter der Bahn) verlängert den ganzen Abschnitt um den Zuschlag. */
+  private abschnittMitQuerung(): boolean {
+    return this.querungsFelder().length > 0 || this.stand.objekte.some((o) => o.ersatz && istBahn(o.x, o.y));
+  }
+  abschnittBau_s(): number { return KONSTANTEN.abschnitt_bau_s + (this.abschnittMitQuerung() ? KONSTANTEN.querung_bau_s : 0); }
+  /** Summe der Leitungskosten des Abschnitts in € (Material, Gestattungen, Spülbohrung, Querung, Vorsehungen, Anbohrungen). */
   abschnittKosten_eur(): number {
     return this.stand.objekte.filter((o) => o.geplant).reduce((a, o) => a + (KATALOG[o.typ].kosten_eur as number[])[0], 0) + this.gestattung_eur() + this.bohrung_eur()
-      + this.vorsehungen_eur() + this.anbohrung_eur() + this.ersatz_eur();
+      + this.querung_eur() + this.vorsehungen_eur() + this.anbohrung_eur() + this.ersatz_eur();
   }
   /** NR18 (E1): Summe aller geplanten Ersatz-Leitungen. */
   ersatz_eur(): number {
@@ -1073,7 +1101,8 @@ export class Spiel {
   /** NR18 (E1): Ersatz einer gebauten Leitung durch `typ` – Neupreis minus 50 % des alten Typs, im Fluss dazu die Spülbohrung;
    *  eine Gestattung fällt nicht an (die Querung gibt es schon). */
   ersatzPreis_eur(o: Objekt, typ: TypId): number {
-    return (KATALOG[typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0);
+    return (KATALOG[typ].kosten_eur as number[])[0] - this.rueckkauf_eur(o.typ, 1) + (this.istFluss(o.x, o.y) ? KONSTANTEN.bohrung_eur_je_feld : 0)
+      + (istBahn(o.x, o.y) ? KONSTANTEN.querung_eur_je_feld : 0);
   }
   /** A69: geplante Vorsehungen (T-Stück mit verschlossenem Abgang) im Abschnitt. */
   vorsehungen_eur(): number { return this.stand.objekte.filter((o) => o.geplant && o.vorsehung).length * KONSTANTEN.vorsehung_eur; }
@@ -1216,7 +1245,7 @@ export class Spiel {
       if (!g.geplant) continue;
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = g.x + dx, ny = g.y + dy;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= this.kartenHoehe) continue;
+        if (nx < 0 || ny < KARTE_OBEN_Y || nx >= N || ny >= this.kartenHoehe) continue;
         const o = this.objekt(belegtId(bel, ny * N + nx));
         if (o && trassenUebergang(g, o) !== false && this.brauchtAnbohrung(o)) felder.add(ny * N + nx);
       }
@@ -1251,7 +1280,7 @@ export class Spiel {
   /** NR24: nötige Leitungsgröße auf Feld (x|y) im Netz „wie nach dem Bau“ (eingezeichnete Leitungen zählen). `frei_ab_stufe`:
    *  Stufe, ab der die nötige Leitung frei ist, null = schon frei. null, wenn dort keine verbundene Leitung liegt. */
   rohrVorschau(x: number, y: number): (RohrVorschau & { frei_ab_stufe: number | null }) | null {
-    if (x < 0 || y < 0 || x >= N || y >= this.kartenHoehe) return null;
+    if (x < 0 || y < KARTE_OBEN_Y || x >= N || y >= this.kartenHoehe) return null;
     const v = rohrVorschau(this.probeGespeichert(), this.stand.objekte, y * N + x);
     if (!v) return null;
     return { ...v, frei_ab_stufe: v.noetig === null || freigeschaltet(this.stand, v.noetig) ? null : abStufe(v.noetig) };
@@ -1361,8 +1390,9 @@ export class Spiel {
     if (!b.ok) return b;
     a.material_eur = kost;
     this.stand.gestattungen = [...new Set([...(this.stand.gestattungen ?? []), ...this.gestattungsFelder()])];
+    if (this.abschnittMitQuerung()) a.mit_querung = true;
     a.phase = 'bau';
-    a.bau = this.stand.tutorial ? this.neuerBau('neu', KONSTANTEN.tutorial_bau_s, 1) : this.neuerBau('neu', KONSTANTEN.abschnitt_bau_s);
+    a.bau = this.stand.tutorial ? this.neuerBau('neu', KONSTANTEN.tutorial_bau_s, 1) : this.neuerBau('neu', this.abschnittBau_s());
     this.warnliste = [];
     // Laura nennt die tatsächliche Wartezeit (im Tutorial 20 s = 1 Tag), nicht die normale.
     const t = this.liefertage(a.bau.ende_ms - a.bau.start_ms);
@@ -1392,6 +1422,7 @@ export class Spiel {
   expressLiefern(): Ergebnis {
     const a = this.stand.abschnitt;
     if (a?.phase !== 'bau' || !a.bau) return { ok: false };
+    if (a.mit_querung) return this.nein(nordHinweis('EXPRESS'));
     const sperre = this.gesperrt('express');
     if (sperre) return sperre;
     if (a.express) return this.nein('Express ist schon bestellt');
@@ -1456,6 +1487,18 @@ export class Spiel {
     const namen = neuBeiStufe(stufe).map(merkmalName);
     if (namen.length) this.hinweis(`Neu ab Stufe ${stufe}: ${namen.slice(0, 4).join(', ')}${namen.length > 4 ? ' …' : ''}`);
   }
+  /** NR27 (AE-NR27-8): Steht die Querung, werden die Häuser hinter der Bahn einmalig angelegt. */
+  private nordviertelErschliessen(): void {
+    if (this.stand.nordviertel || !querungGebaut(this.stand.objekte) || !nordviertelAnlegen(this.stand)) return;
+    this.hinweis(nordHinweis('F1'));
+    this.neuBerechnen();
+  }
+  /** NR27: Wissenstext beim ersten Bahnfeld des Abschnitts – nur, wenn die Fachtexte freigegeben sind (AE-NR27-13). */
+  private querungErklaeren(): void {
+    const a = nordText('WISSEN_A'), b = nordText('WISSEN_B');
+    if (a !== null && b !== null) this.sagt(ABSCHNITT_HELFER.planung, `${a} ${b}`);
+  }
+  private get hoechststufe(): boolean { return this.hzStufe >= KONSTANTEN.heizzentrale_hoechststufe; }
   private flussGesperrt(): string { return `Über den Fluss geht es erst mit Spülbohrung – ${sperrgrund(this.stand, 'spuelbohrung')}`; }
   /** A88/F2: Haus mit gültiger offener Anfrage; ein unbekannter Wert (z. B. aus einem veränderten Spielstand) wird dabei gelöscht. */
   private offeneAnfrage(id: number): Objekt | null {
@@ -1596,6 +1639,7 @@ export class Spiel {
         delete s.abschnitt; this.warnliste = [];
         this.hinweis('Bauabschnitt fertig – die Leitungen liegen'); this.ereignisse.push({ art: 'funken', objekt_id: 'heizzentrale' });
         this.schritt('abschnitt_gebaut');
+        this.nordviertelErschliessen();
       }
       geaendert = true;
     }

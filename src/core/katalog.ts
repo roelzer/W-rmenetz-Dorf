@@ -23,7 +23,7 @@ export interface Definition {
   /** Kantenlänge in Feldern (1 = 1×1, 2 = 2×2) */
   groesse?: number;
   kategorie: Kategorie;
-  /** Stückzahl-Obergrenze je Heizzentralen-Stufe 1..5 */
+  /** Stückzahl-Obergrenze je Heizzentralen-Stufe 1..6 (fehlt ein Eintrag, gilt der letzte) */
   grenze?: number[];
   /** Kosten je Stufe 1..5 in € */
   kosten_eur?: number[];
@@ -189,57 +189,57 @@ export const KATALOG: Record<TypId, Definition> = {
   },
   d25: {
     name: '25er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 15, durchmesser_mm: 25,
-    kosten_eur: [10], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.06, farbe: '#d8392f',
+    kosten_eur: [10], sofort: true, grenze: [60, 90, 130, 180, 240, 360], breite: 0.06, farbe: '#d8392f',
     beschreibung: 'Für ein einzelnes Haus. Durchmesser 25 mm (rot), überträgt im Spiel bis 15 kW.',
   },
   d32: {
     name: '32er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 25, durchmesser_mm: 32,
-    kosten_eur: [14], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.07, farbe: '#4caf3e',
+    kosten_eur: [14], sofort: true, grenze: [60, 90, 130, 180, 240, 360], breite: 0.07, farbe: '#4caf3e',
     beschreibung: 'Für ein bis zwei Häuser. Durchmesser 32 mm (grün), überträgt im Spiel bis 25 kW.',
   },
   d40: {
     name: '40er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 40, durchmesser_mm: 40,
-    kosten_eur: [20], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.08, farbe: '#6ec6ff',
+    kosten_eur: [20], sofort: true, grenze: [60, 90, 130, 180, 240, 360], breite: 0.08, farbe: '#6ec6ff',
     beschreibung: 'Für eine kurze Stichleitung. Durchmesser 40 mm (hellblau), überträgt im Spiel bis 40 kW.',
   },
   d50: {
     name: '50er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 60, durchmesser_mm: 50,
-    kosten_eur: [28], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.09, farbe: '#1f4fa8',
+    kosten_eur: [28], sofort: true, grenze: [60, 90, 130, 180, 240, 360], breite: 0.09, farbe: '#1f4fa8',
     beschreibung: 'Für eine Straße mit mehreren Häusern. Durchmesser 50 mm (dunkelblau), überträgt im Spiel bis 60 kW.',
   },
   d63: {
     name: '63er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 120, durchmesser_mm: 63,
-    kosten_eur: [38], sofort: true, grenze: [60, 90, 130, 180, 240], breite: 0.11, farbe: '#e86aa0',
+    kosten_eur: [38], sofort: true, grenze: [60, 90, 130, 180, 240, 360], breite: 0.11, farbe: '#e86aa0',
     beschreibung: 'Für ein Wohngebiet. Durchmesser 63 mm (pink), überträgt im Spiel bis 120 kW.',
   },
   d75: {
     name: '75er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 180, durchmesser_mm: 75,
-    kosten_eur: [50], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.125, farbe: '#f6c22c',
+    kosten_eur: [50], sofort: true, grenze: [0, 90, 130, 180, 240, 360], breite: 0.125, farbe: '#f6c22c',
     beschreibung: 'Verbindet mehrere Straßen. Durchmesser 75 mm (gelb), überträgt im Spiel bis 180 kW.',
   },
   d90: {
     name: '90er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 270, durchmesser_mm: 90,
-    kosten_eur: [68], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.145, farbe: '#8a5a2b',
+    kosten_eur: [68], sofort: true, grenze: [0, 90, 130, 180, 240, 360], breite: 0.145, farbe: '#8a5a2b',
     beschreibung: 'Starke Verteilleitung. Durchmesser 90 mm (braun), überträgt im Spiel bis 270 kW.',
   },
   d110: {
     name: '110er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 400, durchmesser_mm: 110,
-    kosten_eur: [90], sofort: true, grenze: [0, 90, 130, 180, 240], breite: 0.165, farbe: '#1f6b3a',
+    kosten_eur: [90], sofort: true, grenze: [0, 90, 130, 180, 240, 360], breite: 0.165, farbe: '#1f6b3a',
     beschreibung: 'Hauptleitung (110 mm, dunkelgrün), überträgt im Spiel bis 400 kW. Nur dort sinnvoll, wo viel Wärme fließt – für ein einzelnes Haus ist sie zu teuer.',
   },
   d125: {
     name: '125er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 550, durchmesser_mm: 125,
-    kosten_eur: [115], sofort: true, grenze: [0, 0, 0, 180, 240], breite: 0.18, farbe: '#8455bb',
+    kosten_eur: [115], sofort: true, grenze: [0, 0, 0, 180, 240, 360], breite: 0.18, farbe: '#8455bb',
     beschreibung: 'Hauptleitung (125 mm, violett), überträgt im Spiel bis 550 kW.',
   },
   d140: {
     name: '140er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 700, durchmesser_mm: 140,
-    kosten_eur: [145], sofort: true, grenze: [0, 0, 0, 180, 240], breite: 0.195, farbe: '#007e81',
+    kosten_eur: [145], sofort: true, grenze: [0, 0, 0, 180, 240, 360], breite: 0.195, farbe: '#007e81',
     beschreibung: 'Hauptleitung (140 mm, petrol), überträgt im Spiel bis 700 kW.',
   },
   d160: {
     name: '160er-Leitung', groesse: 1, kategorie: 'netz', kapazitaet_kw: 900, durchmesser_mm: 160,
-    kosten_eur: [185], sofort: true, grenze: [0, 0, 0, 0, 240], breite: 0.21, farbe: '#db681b',
+    kosten_eur: [185], sofort: true, grenze: [0, 0, 0, 0, 240, 360], breite: 0.21, farbe: '#db681b',
     beschreibung: 'Größte Hauptleitung (160 mm, orange), überträgt im Spiel bis 900 kW.',
   },
   efh: {
