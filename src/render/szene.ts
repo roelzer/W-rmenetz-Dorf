@@ -329,13 +329,11 @@ function zeichneBoden(m: Maler, k: Kamera, s: Szene): void {
 
 /**
  * NR27 (DESIGN 14.4): gleicher Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht erreichbar.
- * Jedes fünfte Haus ab dem zweiten raucht grau (3 von 14, über beide Reihen verteilt); wie der Heizrauch nicht bei weniger Bewegung.
+ * Kein Rauch (Designer-Treue M7): sonst endete er beim Wechsel, obwohl echte unversorgte Häuser auch nicht rauchen.
  */
 function zeichneKulissenhaus(m: Maler, k: Kamera, s: Szene, o: Objekt): void {
-  const kante = groesse(o), [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2), tw = k.tw;
+  const kante = groesse(o), [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
   zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen: s.innen, oel: false, strassenseite: strassenseite(o, s.strassen) }, s.jetzt_ms);
-  const i = kulissenObjekte(s).indexOf(o);
-  if (i % 5 === 1 && !m.reduziert) m.wolke(cx + tw * 0.12, cy - tw * 0.62, m.zeit_s + i * 0.37, tw * 0.05, tokens.farbe.objekt.rauch_oel);
 }
 
 /** NR27: Kulissenhäuser als Zeichenvorlage (Objekt ohne Spielbedeutung, Id 0 wie die Platzier-Vorschau). */
