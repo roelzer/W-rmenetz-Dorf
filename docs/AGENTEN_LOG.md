@@ -761,3 +761,7 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 09:29 | ■ 🟢 | reviewer | ## Ampel: 🟢 freigegeben (mit 2 kleinen Punkten, die den Merge nicht blockieren)  ([Bericht](docs/pruefberichte/20261123-092929-reviewer-a2da690f711207e30.md)) |
 | 2026-11-23 09:32 | ▶ | entwickler | Entwickler P3 Bahnregeln Kern |
 | 2026-11-23 09:32 | ▶ | entwickler | Entwickler P4 Darstellung Bedienung |
+| 2026-11-23 09:43 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-23 09:43 | ■ 🔴 | entwickler | 🔴 BLOCKIERT (Kontext fast voll). Die Kernregeln von P3 sind fertig, getestet und committet. Offen sind die Anzeige im Baumenü (Regel 9, `ui/katalog.ts`) und ([Bericht](docs/pruefberichte/20261123-094332-entwickler-a50ba9eb51e8c66f1.md)) |
+| 2026-11-23 09:43 | ▶ | reviewer | Reviewer P3 NR27 |
+| 2026-11-23 09:44 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Grund: Kontext voll. Der Zwischenstand ist committet, alle Tests sind grün, aber die Selbstprüfung ist noch nicht fertig.  ([Bericht](docs/pruefberichte/20261123-094404-entwickler-ac8dd5d291b9740fd.md)) |
