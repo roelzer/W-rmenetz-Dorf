@@ -117,6 +117,9 @@ export class Katalog {
       // DESIGN 12.22: roter Streifen im Kasten „Bauabschnitt“ statt eines Kastens im Kasten
       if (warnungen.length) k.append(h('div', { class: 'warnstreifen', role: 'note' }, h('h3', {}, 'Nach dem Bau zu dünn'), ...warnungen.map((w) => h('p', {}, w))));
       k.append(h('p', { class: 'gedaempft' }, `${sp.abschnittLeitungen()} Leitungsfelder (${sp.abschnittLeitungen() * KONSTANTEN.feldlaenge_m} m Trasse) sind geplant${sp.gestattungsFelder().length ? `, dazu Gestattungen für ${sp.gestattungsFelder().length} Felder über private Grundstücke (${eur(sp.gestattung_eur())})` : ''}${sp.bohrungsFelder().length ? `, dazu eine Spülbohrung unter dem Fluss (${eur(sp.bohrung_eur())})` : ''}${sp.vorsehungen_eur() ? `, dazu ${sp.vorsehungen_eur() / KONSTANTEN.vorsehung_eur} T-Stück(e) mit Vorsehung (${eur(sp.vorsehungen_eur())})` : ''}${sp.anbohrungsFelder().length ? `, dazu ${sp.anbohrungsFelder().length} Anbohrung(en) an laufender Leitung (${eur(sp.anbohrung_eur())})` : ''}. Nach der Bestellung dauert der Bau etwa ${dauerText(sp.abschnittBau_s() * KONSTANTEN.bauzeit_faktor)}`),
+        // Aufpreis der Querung direkt unter der Kostenangabe, vor den Knöpfen (Produktabnahme NR27 Befund 2): unter den
+        // Knöpfen lag sie bei 844×390 und 667×375 außerhalb des Bildes
+        ...(info ? [info] : []),
         h('div', { class: 'knopfreihe' },
           ziel(knopf('Material bei Laura bestellen', () => { sp.materialBestellen(); neu(); }, 'geld', { unter: eur(kost), sperre: geldSperre(sp, kost) }), 'laura'),
           knopf('Weiter einzeichnen', () => { sp.abschnittWiederOeffnen(); neu(); }, '', { klein: true, sperre: this.ui.tutorialSperreKnopf('weiter_einzeichnen') }),
@@ -132,7 +135,7 @@ export class Katalog {
           a.express ? null : knopf(`${ABSCHNITT_HELFER.material}: Expresslieferung`, () => { sp.expressLiefern(); neu(); }, 'geld', { klein: true, unter: eur(ex), sperre: ersteSperre(this.ui.tutorialSperreKnopf('express'), querung, stufenSperre(sp, 'express'), geldSperre(sp, ex)) }),
           knopf('Sofort fertig', () => { sp.beschleunigen(a.bau); neu(); }, 'taler', { klein: true, unter: `${c} Taler`, sperre: ersteSperre(this.ui.tutorialSperreKnopf('sofort'), querung, a.bau ? talerSperre(sp, () => sp.beschleunigungskosten_taler(a.bau!)) : null) })));
     }
-    if (info && a?.phase !== 'offen') k.append(info);
+    if (info && a?.phase !== 'offen' && a?.phase !== 'bestellen') k.append(info);
     return k;
   }
 
