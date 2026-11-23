@@ -782,3 +782,6 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 10:32 | ▶ | tester | Tester-Vorarbeit NR27 P5a3 |
 | 2026-11-23 10:39 | ■ 🟡 | tester | 🟡 Vorarbeit NR27 P5a3 ist gemacht und committet. Drei Tests sind jetzt absichtlich rot, nicht zwei wie angekündigt (Begründung unten). Die Schranke `--roll ([Bericht](docs/pruefberichte/20261123-103935-tester-af4433fceeac15f54.md)) |
 | 2026-11-23 10:39 | ▶ | entwickler | Entwickler P5a3 Erklärkarte und Blatt |
+| 2026-11-23 10:44 | ⚠ | entwickler | Fertigmeldung ohne Beleg zurückgewiesen |
+| 2026-11-23 10:44 | ■ 🟡 | entwickler | ## Status: FERTIG_MIT_BEDENKEN 🟡  ([Bericht](docs/pruefberichte/20261123-104443-entwickler-a5a7ce8f4c4f9bd3a.md)) |
+| 2026-11-23 10:45 | ▶ | entwickler | Entwickler P5b3 Zug und Querung |
