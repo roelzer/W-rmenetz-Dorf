@@ -763,7 +763,9 @@ export class Steuerung implements Ui {
     if (!o) {
       this.kontextUi.schliessen();
       // NR27 (DESIGN 14.4): Bahnfeld oder Kulisse hinter der Bahn antippen → Hinweis statt Blatt
-      const info = nordInfo(this.spiel.stand, x, y);
+      // Außerhalb der Karte gibt es nichts zu erklären (14.4); nordInfo kennt nur Zeilen, keine Kartenränder
+      const aufKarte = x >= 0 && x < N && y >= KARTE_OBEN_Y;
+      const info = aufKarte ? nordInfo(this.spiel.stand, x, y) : null;
       if (info !== null) toast(info);
       return;
     }
