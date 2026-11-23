@@ -140,7 +140,6 @@ export function animationBedarf(s: Szene, effekte_aktiv: boolean, kamera?: Kamer
   if (s.auswahl_id != null) return 'fluessig'; // laufender Auswahlring (szene.ts:218)
   if (s.saison === 'winter' || (s.saison && istHerbst(s.saison) && s.objekte.some((o) => o.typ === 'baum'))) return 'fluessig';
   if (s.fluss?.length) return 'fluessig'; // Wasserglitzern (szene.ts:83)
-  if (s.kulisse?.length) return 'fluessig'; // Öl-Rauch der Kulisse (szene.ts, zeichneKulissenhaus)
   if (s.bahn?.length) { // Zug (szene.ts, zeichneZugTeil in der Tiefenliste)
     const zug = zugLage(s.jetzt_ms, s.spiel);
     if (zug && (!kamera || zugImBild(kamera, zug))) return 'fluessig';

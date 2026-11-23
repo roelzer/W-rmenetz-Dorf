@@ -2,21 +2,21 @@ import tokens from '../../design/tokens.json';
 import { mod } from '../core/feld';
 import { freigeschaltet } from '../core/freischaltung';
 import { QUERUNG_X, querungImBau } from '../core/nordviertel';
-import type { Spielstand } from '../core/typen';
+import { groesse } from '../core/netz';
+import type { InnenQuelle, Objekt, Spielstand } from '../core/typen';
 import { schatten } from './farben';
-import { zeichneMonteur } from './gebaeude';
+import { zeichneMonteur, zeichneObjekt } from './gebaeude';
+import { SCHNEE } from './jahreszeiten';
 import type { Kamera } from './kamera';
 import type { Maler, Punkt } from './maler';
 
-/**
- * NR27 (DESIGN 14.3, 14.8, 14.9): Inszenierung der Bahn. Reine Darstellung, keine Spieldaten.
- * Maße aus DESIGN 14.9 (`karte.bahn`), bis sie in design/tokens.json stehen (14.15 Punkt 21).
- */
+/** Farben und Maße der Bahn aus design/tokens.json (`farbe.bahn`, `karte.bahn`, DESIGN 14.9). */
+const F = tokens.farbe.bahn, M = tokens.karte.bahn;
+
+/** NR27 (DESIGN 14.3, 14.8, 14.9): Inszenierung der Bahn. Reine Darstellung, keine Spieldaten. */
 export const ZUG_MASS = {
-  /** `zug_feld_je_s` */
-  feld_je_s: 3,
-  /** `zug_pause_s` [90, 150] */
-  pause_min_s: 90, pause_max_s: 150,
+  feld_je_s: M.zug_feld_je_s,
+  pause_min_s: M.zug_pause_s[0], pause_max_s: M.zug_pause_s[1],
   /** Gleise laufen von x = −2 bis 25 (DESIGN 14.2 „Enden“) */
   von_x: -2, bis_x: 25,
   /** zwei Wagen je 2 Felder (DESIGN 14.3 „Form“) */
@@ -25,30 +25,46 @@ export const ZUG_MASS = {
   gleis1_y: -2.28, gleis2_y: -2.72,
 } as const;
 
-/** Farben und Maße aus DESIGN 14.9 (Vorschlag `farbe.bahn`/`karte.bahn`; in design/tokens.json trägt sie 14.15 Punkt 21 ein). */
-export const BAHN = {
-  schotter: '#8f887d', schotter_kante: '#6f675c', randweg: '#ddd5c4', schwelle: '#cfcac0', schiene: '#333b41',
-  schiene_glanz: 'rgba(255,255,255,.55)', zaun: '#55605b', bruecke: '#7d858a',
+const BAHN = {
+  schotter: F.schotter, schotter_kante: F.schotter_kante, randweg: F.randweg, schwelle: F.schwelle, schiene: F.schiene,
+  schiene_glanz: F.schiene_glanz, zaun: F.zaun, bruecke: F.bruecke,
 } as const;
-export const BAHN_MASS = { gleisabstand: 0.44, spurweite: 0.144, schwellen_teilung: 0.25, detail_ab_kachelbreite: 32 } as const;
+const BAHN_MASS = {
+  gleisabstand: M.gleisabstand, spurweite: M.spurweite, schwellen_teilung: M.schwellen_teilung, detail_ab_kachelbreite: M.detail_ab_kachelbreite,
+} as const;
 
 /** Oberleitung (DESIGN 14.2 „Oberleitung“, 14.9 `mast`, `fahrdraht`, `mast_teilung`, `mast_versatz`, `mast_hoehe`, `fahrdraht_hoehe`). */
 const MAST = {
-  farbe: '#3f4549', draht: 'rgba(47,58,64,.60)',
-  teilung: 3, versatz: 2,
+  farbe: F.mast, draht: F.fahrdraht,
+  teilung: M.mast_teilung, versatz: M.mast_versatz,
   /** Masten auf dem Randweg Nord (Querschnitt 14.2) */
   y: -3.26,
   /** Höhen in Kachelbreiten */
-  hoehe: 0.62, draht_hoehe: 0.50,
+  hoehe: M.mast_hoehe, draht_hoehe: M.fahrdraht_hoehe,
   /** Ausleger knapp unter der Mastspitze, damit die Spitze als Mast lesbar bleibt (Wert der Grafik, kein Fachwert) */
   ausleger_hoehe: 0.58,
 } as const;
 
 type Felder = ReadonlyArray<readonly [number, number]>;
 
+/** Bildpunkt `h` Kachelbreiten über dem Feldpunkt (x|y) – für Masten, Fahrdraht und Stromabnehmer. */
+function oben(k: Kamera, x: number, y: number, h: number): Punkt {
+  const [px, py] = k.mitte(x, y);
+  return [px, py - h * k.tw];
+}
+
+/**
+ * Liegt die Hülle der Bodenpunkte `p` im Bild? Seitlich `rand` Spielraum, nach oben ebenso (für das, was über dem Boden steht:
+ * Dach, Stromabnehmer, Haube, Wölkchen); nach unten keiner, weil darunter nichts mehr gezeichnet wird.
+ */
+function imBild(k: Kamera, p: readonly Punkt[], rand: number): boolean {
+  const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+  return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
+}
+
 /** Schranke am Straßenende (DESIGN 14.2 „Straßenende“): `bake_rot` = `menue.knopf.gefahr`, dazu Weiß, 0,14 Kachel hoch. */
 const SCHRANKE = {
-  rot: tokens.menue.knopf.gefahr[0], weiss: '#ffffff', hoehe: 0.14,
+  rot: F.bake_rot, weiss: F.schranke_weiss, hoehe: 0.14,
   /** am Nordrand des letzten Straßenfelds; Pfosten knapp außerhalb der Fahrbahn (halbe Breite 0,31 in szene.ts) */
   rand_y: -0.42, pfosten_x: 0.36,
 } as const;
@@ -80,7 +96,7 @@ export function zeichneSchranken(m: Maler, k: Kamera, strassen: Felder, bahn: Fe
 }
 
 /** Dunst über dem Gebiet hinter der Bahn (DESIGN 14.4, 14.9 `nord_dunst`): ab dem Nordzaun, weicher Südrand über 0,3 Feld. */
-const DUNST = { farbe: 'rgba(236,242,245,.55)', klar: 'rgba(236,242,245,0)', sued_y: -3.5, rand_felder: 0.3 } as const;
+const DUNST = { farbe: F.nord_dunst, klar: F.nord_dunst_klar, sued_y: -3.5, rand_felder: 0.3 } as const;
 
 /**
  * Eine Fläche von `west_x` … `ost_x` und vom Nordzaun bis `nord_y`. Der Verlauf läuft senkrecht zur Zaunlinie im Bild
@@ -104,8 +120,17 @@ export function unterDemDunst(y: number): boolean {
   return y < DUNST.sued_y;
 }
 
+/**
+ * NR27 (DESIGN 14.4): Kulissenhaus mit dem gleichen Hauszeichner, kalte Fenster; keine Blase, kein Schild – die Häuser sind nicht
+ * erreichbar. Kein Rauch (Designer-Treue M7): sonst endete er beim Wechsel, obwohl echte unversorgte Häuser auch nicht rauchen.
+ */
+export function zeichneKulissenhaus(m: Maler, k: Kamera, o: Objekt, innen: InnenQuelle[], jetzt_ms: number, strassenseite: number | undefined): void {
+  const kante = groesse(o), [cx, cy] = k.mitte(o.x + (kante - 1) / 2, o.y + (kante - 1) / 2);
+  zeichneObjekt(m, o, cx, cy, { warm: false, laeuft: false, innen, oel: false, strassenseite }, jetzt_ms);
+}
+
 /** DESIGN 14.9 `gesperrt_schleier`; Rasterstrich wie das Baumodus-Raster in szene.ts (zeichneBoden). */
-const SCHLEIER = { farbe: 'rgba(31,42,46,.12)', raster: 'rgba(255,255,255,.25)' } as const;
+const SCHLEIER = { farbe: F.gesperrt_schleier, raster: F.schleier_raster } as const;
 
 /** Ab Stufe 6 (Freischaltung „bahnquerung“) bleibt die Querungsstelle frei; ohne Spielstand (Nachbardorf) nie. */
 export function querungFrei(stand: Spielstand | undefined): boolean {
@@ -141,10 +166,10 @@ export function zeichneSchleier(m: Maler, k: Kamera, bahn: Felder, frei: boolean
  */
 const QUERUNG = {
   strich: 0.10, luecke: 0.07, breite_anteil: 0.6, ring_abstand: 0.62, ring_radius: 0.13, vorschau_deckkraft: 0.5,
-  schutzrohr: '#2f3a40', merkpfahl: '#f4f1ea', kappe: tokens.menue.farbe.naht_vorlauf,
+  schutzrohr: F.schutzrohr, merkpfahl: F.merkpfahl, kappe: tokens.menue.farbe.naht_vorlauf,
   /** Merkpfahl 0,22 Kachel hoch, neben dem Ring (Abstand und Kappenlänge sind Werte der Grafik) */
   pfahl_hoehe: 0.22, pfahl_versatz: 0.22, kappe_hoehe: 0.05,
-  haarlinie: 'rgba(31,42,46,.55)',
+  haarlinie: F.haarlinie,
 } as const;
 
 /**
@@ -164,6 +189,19 @@ export function zeichneStrichellinie(m: Maler, tw: number, mitte: Punkt, arme: r
   for (const [ax, ay] of arme) { X.moveTo(cx, cy); X.lineTo(ax, ay); }
   if (!arme.length) { X.moveTo(cx - 1, cy); X.lineTo(cx + 1, cy); }
   X.stroke(); X.setLineDash([]);
+}
+
+/** Ausblenden des roten Felds am Ende seiner Zeit, so lange wie die Meldung ausblendet. */
+const ABGELEHNT_BLENDE_MS = tokens.zeit_ms.toast_blende;
+
+/** NR27 (DESIGN 14.5 „Falsch ziehen“): abgelehntes Feld in `vorschau_nein` mit rotem Rand; bei „Weniger Bewegung“ ohne Ausblenden. */
+export function zeichneAbgelehnt(m: Maler, k: Kamera, f: { x: number; y: number; bis_ms: number } | undefined, jetzt_ms: number): void {
+  if (!f || jetzt_ms >= f.bis_ms) return;
+  const { X } = m, [cx, cy] = k.mitte(f.x, f.y);
+  X.globalAlpha = m.reduziert ? 1 : Math.min(1, (f.bis_ms - jetzt_ms) / ABGELEHNT_BLENDE_MS);
+  m.raute(cx, cy, 1); X.fillStyle = tokens.farbe.karte.vorschau_nein; X.fill();
+  X.strokeStyle = tokens.farbe.karte.pfeil_nein; X.lineWidth = 2.5; X.stroke();
+  X.globalAlpha = 1;
 }
 
 /** Feld-y des Rings vor dem Zaun, wenn (y) eine äußere Bahnzeile ist, sonst null. `bahn_zeilen` = alle y der Bahnfelder. */
@@ -224,18 +262,17 @@ export function mastenNachTiefe(k: Kamera, bahn: Felder, fluss: Felder): Mast[] 
  */
 export function zeichneMast(m: Maler, k: Kamera, mast: Mast): void {
   const { X } = m, tw = k.tw;
-  const oben = (x: number, y: number, h: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - h * tw]; };
-  const a = oben(mast.draht_von_x, MAST.y, 0), b = oben(mast.draht_bis_x, MAST.y, 0);
+  const a = oben(k, mast.draht_von_x, MAST.y, 0), b = oben(k, mast.draht_bis_x, MAST.y, 0);
   const rand = 2 * tw;
   if (Math.max(a[0], b[0]) < -rand || Math.min(a[0], b[0]) > k.breite + rand || Math.max(a[1], b[1]) < -rand || Math.min(a[1], b[1]) > k.hoehe + rand) return;
   const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
   const gleise = details ? [ZUG_MASS.gleis1_y, ZUG_MASS.gleis2_y] : [(ZUG_MASS.gleis1_y + ZUG_MASS.gleis2_y) / 2];
   X.strokeStyle = MAST.draht; X.lineWidth = Math.max(0.75, tw * 0.012); X.beginPath();
-  for (const g of gleise) { X.moveTo(...oben(mast.draht_von_x, g, MAST.draht_hoehe)); X.lineTo(...oben(mast.draht_bis_x, g, MAST.draht_hoehe)); }
+  for (const g of gleise) { X.moveTo(...oben(k, mast.draht_von_x, g, MAST.draht_hoehe)); X.lineTo(...oben(k, mast.draht_bis_x, g, MAST.draht_hoehe)); }
   X.stroke();
   X.strokeStyle = MAST.farbe; X.lineWidth = Math.max(1, tw * 0.022); X.beginPath();
-  X.moveTo(...oben(mast.x, MAST.y, 0)); X.lineTo(...oben(mast.x, MAST.y, MAST.hoehe));
-  if (details) { X.moveTo(...oben(mast.x, MAST.y, MAST.ausleger_hoehe)); X.lineTo(...oben(mast.x, ZUG_MASS.gleis1_y, MAST.ausleger_hoehe)); }
+  X.moveTo(...oben(k, mast.x, MAST.y, 0)); X.lineTo(...oben(k, mast.x, MAST.y, MAST.hoehe));
+  if (details) { X.moveTo(...oben(k, mast.x, MAST.y, MAST.ausleger_hoehe)); X.lineTo(...oben(k, mast.x, ZUG_MASS.gleis1_y, MAST.ausleger_hoehe)); }
   X.stroke();
 }
 
@@ -244,6 +281,56 @@ export function brueckenSpalten(bahn: Felder, fluss: Felder): Set<number> {
   const zeilen = bahn.map(([, y]) => y), nord = Math.min(...zeilen), sued = Math.max(...zeilen);
   const wasser = new Set(fluss.map(([x, y]) => `${x},${y}`));
   return new Set(bahn.map(([x]) => x).filter((x) => wasser.has(`${x},${nord - 1}`) && wasser.has(`${x},${sued + 1}`)));
+}
+
+/**
+ * NR27 (DESIGN 14.2): Trasse im Boden – Zäune, Randwege, Schotterbett mit Flanken, zwei Gleise; über dem Fluss der Brückentrog.
+ * Lage quer zur Bahn in Feldbruchteilen ab der Mitte der Bahnzeilen (−2,5); gezeichnet je Bahnfeld über die Kamera, damit
+ * es in jedem Drehwinkel stimmt. Ab `detail_ab_kachelbreite` Schwellen, zwei Schienen je Gleis, Glanzstrich und Körnung.
+ */
+export function zeichneGleise(m: Maler, k: Kamera, bahn: Felder, fluss: Felder, winter: boolean): void {
+  const { X } = m, tw = k.tw, th = k.th, W = k.breite, H = k.hoehe;
+  const zeilen = [...new Set(bahn.map(([, y]) => y))].sort((a, b) => a - b);
+  const sued = zeilen[zeilen.length - 1] + 0.5, nord = zeilen[0] - 0.5, mitte = (sued + nord) / 2;
+  const bruecken = brueckenSpalten(bahn, fluss);
+  const details = tw >= BAHN_MASS.detail_ab_kachelbreite;
+  const band = (x: number, y0: number, y1: number, farbe: string): void =>
+    m.flaeche([k.mitte(x - 0.52, y0), k.mitte(x + 0.52, y0), k.mitte(x + 0.52, y1), k.mitte(x - 0.52, y1)], farbe, false);
+  const linie = (x: number, y: number, farbe: string, breite: number): void => {
+    X.strokeStyle = farbe; X.lineWidth = breite; X.beginPath(); X.moveTo(...k.mitte(x - 0.5, y)); X.lineTo(...k.mitte(x + 0.5, y)); X.stroke();
+  };
+  for (const x of gleisSpalten()) {
+    const [cx, cy] = k.mitte(x, mitte);
+    if (cx < -tw * 2 || cx > W + tw * 2 || cy < -th * 2 || cy > H + tw * 2) continue;
+    const bruecke = bruecken.has(x);
+    if (bruecke) band(x, sued - 0.02, nord + 0.02, BAHN.bruecke);
+    else {
+      band(x, sued - 0.08, sued - 0.36, BAHN.randweg);
+      band(x, nord + 0.10, nord + 0.38, BAHN.randweg);
+    }
+    band(x, sued - 0.40, nord + 0.40, BAHN.schotter_kante);
+    band(x, sued - 0.46, nord + 0.46, BAHN.schotter);
+    if (winter) for (let i = 0; i < 4; i++) m.kreis(...k.mitte(x - 0.375 + i * 0.25, sued - 0.43), Math.max(0.8, tw * 0.012), SCHNEE);
+    if (details) {
+      X.fillStyle = F.schotter_koernung;
+      for (let i = 0; i < 6; i++) { const [px, py] = k.mitte(x - 0.42 + i * 0.17, mitte + ((i * 7) % 5 - 2) * 0.1); X.fillRect(px, py, Math.max(0.65, tw * 0.011), Math.max(0.45, tw * 0.006)); }
+    }
+    for (const g of [mitte + BAHN_MASS.gleisabstand / 2, mitte - BAHN_MASS.gleisabstand / 2]) {
+      if (details) {
+        for (let i = 0; i < 4; i++) {
+          const sx = x - 0.375 + i * BAHN_MASS.schwellen_teilung;
+          X.strokeStyle = BAHN.schwelle; X.lineWidth = Math.max(1.5, tw * 0.04); X.beginPath();
+          X.moveTo(...k.mitte(sx, g - BAHN_MASS.spurweite)); X.lineTo(...k.mitte(sx, g + BAHN_MASS.spurweite)); X.stroke();
+        }
+        for (const d of [-BAHN_MASS.spurweite / 2, BAHN_MASS.spurweite / 2]) {
+          linie(x, g + d, BAHN.schiene, Math.max(1.5, tw * 0.03));
+          linie(x, g + d - 0.01, BAHN.schiene_glanz, 1);
+        }
+      } else linie(x, g, BAHN.schiene, 2);
+    }
+    if (bruecke) for (const y of [sued, nord]) linie(x, y, BAHN.zaun, Math.max(1, tw * 0.02));
+    else for (const y of [sued - 0.06, nord + 0.06]) linie(x, y, BAHN.zaun, Math.max(1, tw * 0.015));
+  }
 }
 
 /** Die Spitze fährt vom westlichen Gleisende bis der letzte Wagen das östliche verlassen hat (oder umgekehrt). */
@@ -305,13 +392,13 @@ export function zugTeile(lage: ZugLage): ZugTeil[] {
 
 /** Form und Farben nach DESIGN 14.3/14.9 (`zug_kasten`, `zug_fenster`, `zug_dach`; Streifen = `menue.farbe.naht_*`). */
 const ZUG = {
-  kasten: '#f3eee3', fenster: '#2f3d48', dach: '#9aa1a6',
+  kasten: F.zug_kasten, fenster: F.zug_fenster, dach: F.zug_dach,
   vorlauf: tokens.menue.farbe.naht_vorlauf, ruecklauf: tokens.menue.farbe.naht_ruecklauf,
   /** halbe Breite 0,28 Feld, Höhe 0,34 Kachel */
   halb_breite: 0.14, hoehe: 0.34,
   /** Fensterband und Streifen als Anteil der Kastenhöhe; Abstand der Fenster zum Wagenende in Feldern (Werte der Grafik) */
   fenster_unten: 0.5, fenster_oben: 0.78, streifen: 0.14, fenster_rand: 0.12,
-  schatten: 'rgba(30,50,35,.22)',
+  schatten: F.zug_schatten,
 } as const;
 
 /** Tiefe wie bei Masten und Objekten (Mitte + Größe 1), damit Häuser davor und Masten dahinter richtig liegen. */
@@ -346,21 +433,18 @@ export function zeichneZugTeil(m: Maler, k: Kamera, teil: ZugTeil): void {
   m.flaeche(boden.map((q) => auf(q, 1)), ZUG.dach);
   if (!teil.lok) return;
   // Stromabnehmer: zwei Striche vom Dach bis an den Fahrdraht (Höhe `fahrdraht_hoehe` über der Gleismitte)
-  const mx = (x0 + x1) / 2, oben = (x: number, y: number, hh: number): Punkt => { const [px, py] = k.mitte(x, y); return [px, py - hh * tw]; };
+  const mx = (x0 + x1) / 2;
   X.strokeStyle = MAST.farbe; X.lineWidth = Math.max(1, tw * 0.015); X.beginPath();
-  X.moveTo(...oben(mx - 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
-  X.moveTo(...oben(mx + 0.25, g, ZUG.hoehe)); X.lineTo(...oben(mx, g, MAST.draht_hoehe));
+  X.moveTo(...oben(k, mx - 0.25, g, ZUG.hoehe)); X.lineTo(...oben(k, mx, g, MAST.draht_hoehe));
+  X.moveTo(...oben(k, mx + 0.25, g, ZUG.hoehe)); X.lineTo(...oben(k, mx, g, MAST.draht_hoehe));
   X.stroke();
 }
 
 /** Liegt ein Teil des Zugs im Bild (mit Rand für Dach und Stromabnehmer)? Außerhalb braucht er keinen flüssigen Takt. */
 export function zugImBild(k: Kamera, lage: ZugLage): boolean {
-  const tw = k.tw, rand = tw * MAST.draht_hoehe;
-  return zugTeile(lage).some((t) => {
-    const p = [t.von_x, t.bis_x].flatMap((x) => [k.mitte(x, t.gleis_y - ZUG.halb_breite), k.mitte(x, t.gleis_y + ZUG.halb_breite)]);
-    const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
-    return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
-  });
+  const rand = k.tw * MAST.draht_hoehe;
+  return zugTeile(lage).some((t) =>
+    imBild(k, [t.von_x, t.bis_x].flatMap((x) => [k.mitte(x, t.gleis_y - ZUG.halb_breite), k.mitte(x, t.gleis_y + ZUG.halb_breite)]), rand));
 }
 
 /**
@@ -370,9 +454,9 @@ export function zugImBild(k: Kamera, lage: ZugLage): boolean {
  */
 const BAUSTELLE = {
   start_y: -1, ziel_y: -4, grube: 0.7, grube_tiefe: 0.12,
-  grube_wand: '#8a6a4e', grube_boden: '#5f4532', verbau: tokens.farbe.objekt.geruest,
+  grube_wand: F.grube_wand, grube_boden: F.grube_boden, verbau: tokens.farbe.objekt.geruest,
   bake_hoehe: 0.18,
-  bohrgeraet: '#f0a53a', bohrlinie: '#4a2c14', kabine: ZUG.fenster, lafette: MAST.farbe,
+  bohrgeraet: F.bohrgeraet, bohrlinie: F.bohrlinie, kabine: ZUG.fenster, lafette: MAST.farbe,
   geraet: 0.34, geraet_hoehe: 0.12, kabine_breite: 0.14, kabine_hoehe: 0.14, kopf_radius: 0.06,
   /** `bohrgeraet_zittern` (±1 px) und `abgas_zyklus` aus design/tokens.json `zeit_ms` */
   zittern_s: tokens.zeit_ms.bohrgeraet_zittern / 1000, abgas_s: tokens.zeit_ms.abgas_zyklus / 1000,
@@ -389,10 +473,8 @@ export function grubenFelder(): Array<[number, number]> {
  * über dem Boden. Außerhalb braucht sie keinen flüssigen Takt.
  */
 export function baustelleImBild(k: Kamera): boolean {
-  const halb = BAUSTELLE.grube / 2, tw = k.tw, rand = tw;
-  const p = [QUERUNG_X - halb, QUERUNG_X + halb].flatMap((x) => [BAUSTELLE.ziel_y - halb, BAUSTELLE.start_y + halb].map((y) => k.mitte(x, y)));
-  const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
-  return Math.max(...xs) >= -rand && Math.min(...xs) <= k.breite + rand && Math.max(...ys) >= 0 && Math.min(...ys) - rand <= k.hoehe;
+  const halb = BAUSTELLE.grube / 2;
+  return imBild(k, [QUERUNG_X - halb, QUERUNG_X + halb].flatMap((x) => [BAUSTELLE.ziel_y - halb, BAUSTELLE.start_y + halb].map((y) => k.mitte(x, y))), k.tw);
 }
 
 /** Anteil der Bauzeit (0 … 1) der Querung, oder null, wenn keine Querung gebaut wird. */
