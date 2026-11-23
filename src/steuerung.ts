@@ -3,7 +3,7 @@ import type { Engstelle } from './core/engstelle';
 import { rohrVorschauText } from './core/rohrvorschau';
 import { KATALOG, KONSTANTEN, LEITUNGEN, istLeitung, type TypId } from './core/katalog';
 import { belegtId, groesse, leitungsNachbarn } from './core/netz';
-import { feldVon } from './core/feld';
+import { feldVon, KARTE_OBEN_Y } from './core/feld';
 import { nachbardoerfer, type Nachbardorf } from './core/nachbarn';
 import type { Spiel } from './core/spiel';
 import { Tutorial } from './core/tutorial';
@@ -28,6 +28,7 @@ import { einstellungenLesen, einstellungenOeffnen, einstellungenSchreiben } from
 import { Hud } from './ui/hud';
 import { zieleOeffnen } from './ui/ziele';
 import { spielOrt } from './core/neubaugebiet';
+import { nordInfo, nordKulisse, nordSperre } from './core/nordviertel';
 import { Katalog } from './ui/katalog';
 import { Kontext, dickereFarbknopf, kurzGrund, tStueckHinweis } from './ui/kontext';
 import { HAUSANSCHLUSS_KURZ, NICHTS_GEZEICHNET_KURZ, NICHTS_ZURUECK, abschnittSperreKurz, ersteSperre, schonGemocht } from './ui/sperrtexte';
@@ -70,6 +71,8 @@ export class Steuerung implements Ui {
   private stempelAchse: 'h' | 'v' | null = null;
   /** NR20 V1 (E4): Feld S, auf dem ein Zug auf einer vorhandenen Leitung begann; entschieden wird erst, wenn der Finger S verlässt. */
   private stempelStart: [number, number] | null = null;
+  /** NR27 (AE-NR27-9): Sperrgrund der Nordzone schon gemeldet – höchstens ein Hinweis je Fingerzug, Zugbeginn setzt zurück. */
+  private nordHinweisGezeigt = false;
   private radieren = false;
   /** A69: Werkzeug „T-Stück mit Vorsehung“: Tippen auf eine geplante Leitung setzt/entfernt die Vorsehung */
   private vorsehen = false;
@@ -140,6 +143,7 @@ export class Steuerung implements Ui {
     // Der Schleier (ui/spotlight.ts) hängt sich direkt hinter #karte ein; main.ts setzt die id schon über index.html
     if (!leinwand.id) leinwand.id = 'karte';
     this.kamera.kartenHoehe = spiel.kartenHoehe;
+    this.kamera.kartenOben = KARTE_OBEN_Y;
     this.katalogUi = new Katalog(this);
     this.kontextUi = new Kontext(this, () => { this.auswahl = null; });
     this.hud = new Hud(() => this.spiel, {
@@ -535,7 +539,7 @@ export class Steuerung implements Ui {
       this.zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (this.zeiger.size === 1) {
         this.start = { x: e.clientX, y: e.clientY }; this.zieht = false; this.geistGreifen = this.nahAmGeist(e.clientX, e.clientY);
-        if (this.modus === 'stempel') { this.stempelLetzte = null; this.stempelAchse = null; this.stempelStart = null; this.anleitung?.zugBeginnt(); this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
+        if (this.modus === 'stempel') { this.nordHinweisGezeigt = false; this.stempelLetzte = null; this.stempelAchse = null; this.stempelStart = null; this.anleitung?.zugBeginnt(); this.anleitung?.handlung(); this.stempelnBei(e.clientX, e.clientY, true); }
       } else if (this.zeiger.size === 2) { this.start = null; this.pinch = this.pinchMass(); this.drehSumme = 0; this.drehAktiv = false; }
     });
     l.addEventListener('pointermove', (e) => {
@@ -618,13 +622,13 @@ export class Steuerung implements Ui {
   private geistSetzen(mx: number, my: number): void {
     const g = this.geist!, [fx, fy] = this.kamera.feldGenau(mx, my);
     g.x = Math.max(0, Math.min(N - g.kante, Math.round(fx - (g.kante - 1) / 2)));
-    g.y = Math.max(0, Math.min(this.spiel.kartenHoehe - g.kante, Math.round(fy - (g.kante - 1) / 2)));
+    g.y = Math.max(KARTE_OBEN_Y, Math.min(this.spiel.kartenHoehe - g.kante, Math.round(fy - (g.kante - 1) / 2)));
   }
   /** `gesteStart`: erstes Feld einer Geste (Finger aufgesetzt) – nur dort meldet ein abgelehnter Ersatz etwas. */
   private stempelnBei(mx: number, my: number, gesteStart = false): void {
     if (!this.stempelTyp) return;
     const [x, y] = this.kamera.feld(mx, my);
-    if (x < 0 || y < 0 || x >= N || y >= this.spiel.kartenHoehe) {
+    if (x < 0 || y < KARTE_OBEN_Y || x >= N || y >= this.spiel.kartenHoehe) {
       // E4 Regel 2: Verlässt der Finger S über den Kartenrand, ist F „außerhalb“ – S bleibt, auch beim Abheben dort
       this.stempelStart = null;
       return;
@@ -676,6 +680,12 @@ export class Steuerung implements Ui {
         if (verbunden || this.ueberzeichnen(this.stempelTyp, fx, fy, gesteStart && felder.length === 1)) geaendert = true;
         this.stempelLetzte = [fx, fy];
         continue;
+      }
+      // Kritiker NR27 Befund 5: Nordsperre nie still überspringen – Grund zeigen, Leitung endet am letzten erlaubten Feld
+      const grund = istLeitung(this.stempelTyp) ? nordSperre(sp.stand, this.stempelTyp, fx, fy) : null;
+      if (grund !== null) {
+        if (!this.nordHinweisGezeigt) { this.nordHinweisGezeigt = true; toast(grund); }
+        break;
       }
       if (!sp.kannPlatzieren(this.stempelTyp, fx, fy)) {
         if (sp.sperrtAusbaureserve(this.stempelTyp, fx, fy)) {
@@ -750,7 +760,13 @@ export class Steuerung implements Ui {
     const dreieck = dreieckTreffer(this.kamera, this.ueberlastSzene(this.spiel.ueberlastStuecke()), mx, my);
     if (dreieck !== null) { this.kontext(belegtId(this.spiel.netz.belegung, dreieck)); return; }
     const o = objektAmPunkt(this.kamera, this.spiel.stand.objekte, mx, my); // A80: gezeichnete Form zählt, nicht nur das Bodenfeld
-    if (!o) { this.kontextUi.schliessen(); return; }
+    if (!o) {
+      this.kontextUi.schliessen();
+      // NR27 (DESIGN 14.4): Bahnfeld oder Kulisse hinter der Bahn antippen → Hinweis statt Blatt
+      const info = nordInfo(this.spiel.stand, x, y);
+      if (info !== null) toast(info);
+      return;
+    }
     this.kontext(o.id);
   }
 
@@ -788,7 +804,8 @@ export class Steuerung implements Ui {
       saison, objekte: this.spiel.stand.objekte, innen: this.spiel.stand.innen, netz: this.spiel.netz, spiel: this.spiel,
       auswahl_id: this.auswahl, modus: this.modus, verschiebe_id: this.verschiebeId, jetzt_ms: this.uhr(),
       geist: g ? { ...g, ok: this.geistOk() } : null, stempel: null,
-      kartenHoehe: this.spiel.kartenHoehe, strassen: spielOrt(this.spiel.stand).strassen, fluss: spielOrt(this.spiel.stand).fluss, kw_anzeigen: this.einstellungen.kw_anzeigen,
+      kartenHoehe: this.spiel.kartenHoehe, strassen: spielOrt(this.spiel.stand).strassen, fluss: spielOrt(this.spiel.stand).fluss,
+      bahn: spielOrt(this.spiel.stand).bahn, kulisse: nordKulisse(this.spiel.stand), kartenOben: KARTE_OBEN_Y, kw_anzeigen: this.einstellungen.kw_anzeigen,
       ueberlast: this.ueberlastSzene(stuecke), ueberlast_vorschau: this.ueberlastVorschau(stuecke),
       ...this.szeneTutorial,
     };
@@ -953,8 +970,8 @@ export class Steuerung implements Ui {
   /** Freie Fläche in T13: unter der Anzeigenreihe, über der Anleiter-Karte − 16, links von der Zeichenleiste. */
   private t13Flaeche(a: TutorialAnsicht, frei: Rechteck): Rechteck {
     const M = T.menue.mass_px, oben = T.groesse_px.blatt_oben_quer;
-    const kartenOben = this.kamera.hoehe - M.anleiter_rand - this.anleiterHoehe(a);
-    return { x: frei.x, y: oben, b: frei.b, h: kartenOben - M.anleiter_ziel_abstand - oben };
+    const blaseUnten = this.kamera.hoehe - M.anleiter_rand - this.anleiterHoehe(a);
+    return { x: frei.x, y: oben, b: frei.b, h: blaseUnten - M.anleiter_ziel_abstand - oben };
   }
   /** Höhe der stehenden Karte (aus dem letzten Bild): ändert sie sich mit dem Text, wird der Platz neu gewählt (13.3).
    *  Die kompakte Karte in Kapitel 3 hat eine feste Höhe (ui/anleiter.ts, Klasse `kompakt`). */
