@@ -841,3 +841,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-24 07:39 | ■ 🟡 | designer | 🟡 Gelb: Die Erklärkarte ist in Ordnung, die Dokumente sind nachgezogen und committet. Eine Abweichung im Code bleibt offen: Die Funken beim Erfolgsmoment si ([Bericht](docs/pruefberichte/20261124-073932-designer-a55f53560978f0bae.md)) |
 | 2026-11-24 07:39 | ▶ | entwickler | Funken an Häusern statt Gruben |
 | 2026-11-24 07:43 | ■ 🔴 | entwickler | 🔴 Status: BRAUCHT_KONTEXT. Ich habe nichts gebaut und nichts committet. Die Änderung macht einen bestehenden Test rot, und den darf ich nicht ändern.  ([Bericht](docs/pruefberichte/20261124-074348-entwickler-a1c877a53ea64a9cd.md)) |
+| 2026-11-24 08:02 | ▶ | tester | Tester-Vorarbeit Funken Erfolgsmoment |
