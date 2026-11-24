@@ -842,3 +842,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-24 07:39 | ▶ | entwickler | Funken an Häusern statt Gruben |
 | 2026-11-24 07:43 | ■ 🔴 | entwickler | 🔴 Status: BRAUCHT_KONTEXT. Ich habe nichts gebaut und nichts committet. Die Änderung macht einen bestehenden Test rot, und den darf ich nicht ändern.  ([Bericht](docs/pruefberichte/20261124-074348-entwickler-a1c877a53ea64a9cd.md)) |
 | 2026-11-24 08:02 | ▶ | tester | Tester-Vorarbeit Funken Erfolgsmoment |
+| 2026-11-24 08:06 | ■ 🟡 | tester | 🟡 Vorarbeit fertig und committet. 6 neue Tests sind wie gewollt rot, weil sie das neue Verhalten beschreiben, das noch nicht gebaut ist. Alle anderen Tests s ([Bericht](docs/pruefberichte/20261124-080654-tester-ac3b7badae3b1d9a7.md)) |
+| 2026-11-24 08:07 | ▶ | entwickler | Funken an Häusern bauen |
