@@ -838,3 +838,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-24 07:26 | ▶ | entwickler | Erklärkarte W1 bauen |
 | 2026-11-24 07:34 | ■ 🔴 | entwickler | ## Status: BLOCKIERT 🔴 (fachlich und technisch fertig – nur die Test-Schranke meldet einen Fehler, der nicht von meiner Änderung kommt)  ([Bericht](docs/pruefberichte/20261124-073405-entwickler-a6083d240e0362c92.md)) |
 | 2026-11-24 07:35 | ▶ | designer | Designer: Doku nachziehen, Karte prüfen |
+| 2026-11-24 07:39 | ■ 🟡 | designer | 🟡 Gelb: Die Erklärkarte ist in Ordnung, die Dokumente sind nachgezogen und committet. Eine Abweichung im Code bleibt offen: Die Funken beim Erfolgsmoment si ([Bericht](docs/pruefberichte/20261124-073932-designer-a55f53560978f0bae.md)) |
+| 2026-11-24 07:39 | ▶ | entwickler | Funken an Häusern statt Gruben |
