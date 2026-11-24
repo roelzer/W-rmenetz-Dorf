@@ -19,13 +19,17 @@ interface Engstelle { felder: ReadonlyArray<readonly [number, number]>; ruhig: b
  * ist er sofort weg, ohne Ersatz-Effekt (das frühere gelbe Aufleuchten hatte keinen DESIGN-Beleg, Designer-Treue NR27).
  */
 const DUNST_HEBEN_S = tokens.zeit_ms.dunst_heben / 1000;
-/** DESIGN 14.8: nach dem Dunst erscheinen die Blasen der neuen Häuser nacheinander, je Haus `blase_versatz` später. */
-const BLASE_VERSATZ_S = tokens.zeit_ms.blase_versatz / 1000;
-interface Erfolg { ruhig: boolean; t: number; haeuser: number }
+/** DESIGN 14.8: Funken an allen neuen Häusern, je Haus um `blase_versatz` später (Entscheidung PL), damit sie über das Viertel
+ *  laufen statt auf einen Schlag zu sprühen. */
+const FUNKEN_VERSATZ_S = tokens.zeit_ms.blase_versatz / 1000;
+interface Erfolg { ruhig: boolean; t: number }
+/** Funken, die erst nach `rest_s` Sekunden starten (Startpunkt wie bei `funken`). */
+interface WartendeFunken { rest_s: number; cx: number; cy: number; tw: number }
 
 /** Kurzlebige Effekte (Funken, fliegende Münzen, Schwebetexte). Reine Darstellung, laufen über Zeitdifferenzen. */
 export class Effekte {
   private funken_: Funke[] = [];
+  private wartend_: WartendeFunken[] = [];
   private muenzen_: Muenze[] = [];
   private texte: Schwebtext[] = [];
   private engstelle_: Engstelle | null = null;
@@ -43,6 +47,13 @@ export class Effekte {
         farbe: farbe || ['#ffe14d', '#9be36a', '#fff', '#ff9a4a'][i % 4],
       });
     }
+  }
+  /** Funken an mehreren Stellen nacheinander: die erste sofort, jede weitere `blase_versatz` später, in der gegebenen Reihenfolge. */
+  funkenNacheinander(orte: ReadonlyArray<readonly [number, number]>, tw: number): void {
+    orte.forEach(([cx, cy], i) => {
+      if (i === 0) this.funken(cx, cy, tw);
+      else this.wartend_.push({ rest_s: i * FUNKEN_VERSATZ_S, cx, cy, tw });
+    });
   }
   muenzen(x0: number, y0: number, x1: number, y1: number, betrag_eur: number): void {
     const n = Math.min(this.sparsam ? 2 : 8, 2 + Math.floor(betrag_eur / 40));
@@ -65,17 +76,11 @@ export class Effekte {
     this.nord_ = { spiel, kulisse };
     return !!vorher && vorher.spiel === spiel && vorher.kulisse && !kulisse;
   }
-  /** Startet den Erfolgsmoment; `_felder` = Grubenfelder (bleiben in der Schnittstelle, gezeichnet wird an ihnen nichts mehr –
-   *  die Funken setzt szene.ts), `ruhig` = „Weniger Bewegung“, `haeuser` = neue Häuser, deren Blasen versetzt erscheinen
-   *  (der Moment läuft, bis das letzte seine Blase hat). */
-  erfolgsmoment(_felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean, haeuser = 0): void {
-    this.erfolg_ = { ruhig, t: 0, haeuser };
-  }
-  /** Darf das neue Haus Nummer `rang` (0 = erstes) seine Blase schon zeigen? Ohne laufenden Erfolgsmoment und bei „Weniger
-   *  Bewegung“ immer. */
-  blaseFrei(rang: number): boolean {
-    const e = this.erfolg_;
-    return !e || e.ruhig || e.t >= DUNST_HEBEN_S + rang * BLASE_VERSATZ_S;
+  /** Startet den Erfolgsmoment (Dunst heben); `ruhig` = „Weniger Bewegung“. `_felder` (Grubenfelder) und `_haeuser` (Zahl der
+   *  neuen Häuser) bleiben in der Schnittstelle, werden aber nicht mehr gebraucht: Funken an den Gruben und der Blasen-Versatz
+   *  sind entfallen (DESIGN 14.8, Stand 2026-11-24); die Funken an den Häusern setzt szene.ts über `funkenNacheinander`. */
+  erfolgsmoment(_felder: ReadonlyArray<readonly [number, number]>, ruhig: boolean, _haeuser = 0): void {
+    this.erfolg_ = { ruhig, t: 0 };
   }
   /** Deckkraft des Dunsts über dem neuen Viertel: 1 beim Auslösen, nach 1,2 s und bei „Weniger Bewegung“ 0. */
   dunstDeckkraft(): number {
@@ -85,12 +90,19 @@ export class Effekte {
     return e.t <= 0 ? 1 : 1 - WEICH(e.t / DUNST_HEBEN_S);
   }
   aktiv(): boolean {
-    return this.funken_.length + this.muenzen_.length + this.texte.length > 0 || this.engstelle_ !== null || this.erfolg_ !== null;
+    return this.funken_.length + this.wartend_.length + this.muenzen_.length + this.texte.length > 0 || this.engstelle_ !== null || this.erfolg_ !== null;
   }
 
   /** dt_s = Sekunden seit dem letzten Bild (auf 0,1 begrenzt, damit nach Pausen nichts springt). */
   zeichnen(m: Maler, dt_s: number, mitte: (x: number, y: number) => [number, number]): void {
     const { X } = m, dt = Math.min(0.1, Math.max(0, dt_s));
+    // Wartende Funken, deren Zeit gekommen ist, starten vor dem Zeichnen – so sind sie schon in diesem Bild zu sehen
+    this.wartend_ = this.wartend_.filter((w) => {
+      w.rest_s -= dt;
+      if (w.rest_s > 0) return true;
+      this.funken(w.cx, w.cy, w.tw);
+      return false;
+    });
     this.funken_ = this.funken_.filter((p) => (p.t += dt) < p.leben);
     for (const p of this.funken_) {
       const k = dt * 60;
@@ -121,10 +133,8 @@ export class Effekte {
   private erfolgWeiter(dt: number): void {
     const e = this.erfolg_;
     if (!e) return;
-    // Erst enden, wenn das eben gezeichnete Bild auch die letzte Blase zeigen durfte – sonst fehlte der Grund für ein weiteres Bild.
-    const letzteBlase = e.haeuser > 0 && !this.blaseFrei(e.haeuser - 1);
     e.t += dt;
-    if ((e.ruhig || e.t >= DUNST_HEBEN_S) && !letzteBlase) this.erfolg_ = null;
+    if (e.ruhig || e.t >= DUNST_HEBEN_S) this.erfolg_ = null;
   }
 
   private engstelleZeichnen(m: Maler, dt: number, mitte: (x: number, y: number) => [number, number]): void {
