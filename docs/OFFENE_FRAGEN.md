@@ -96,3 +96,4 @@ Neubaugebiet nutzt dieselben Werte wie das Altdorf (EFH 15.000 kWh/a = 10 kW, Sp
 
 - NR27 vor Fachtext-Freigabe: (1) Erklärkarte W1/M4 fertigbauen (Tester→Designer→Entwickler); (2) Längen der Fachtexte WISSEN_A (122 Zeichen) und A+B zusammen (~190) sind über der Blasengrenze 120 – Kürzung braucht Fachprüfer + Simon; (3) Bauplan-Texttabelle und DESIGN 14.5/14.9/14.11–14.13 auf neuen Stand (Chip entfällt, Token schotter_koernung).
 - NR27 später: Preis schon beim Zeichnen anzeigen; Meldung „Hinter der Bahn …“ nach Abschließen entfernen; Startgrube (10|−1) ohne Q5.
+- NR27 Feinschliff (Entwickler-Abbruch BRAUCHT_KONTEXT): Funken im Erfolgsmoment an die 14 neuen Häuser (je 60 ms versetzt) statt an die Gruben. Vorher Tester: tests/nr27-p5b4-erfolg.test.ts `test_nr27_erfolg_wechsel` und tests/nr27-p5c-blasen.test.ts (versetzte Blasen) ersetzen; dann Effekte-Warteliste bauen. Siehe docs/SIMON_AUFGABEN.md.
