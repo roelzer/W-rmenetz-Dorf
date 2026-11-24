@@ -103,31 +103,35 @@ Wortlaut-Herkunft: **F** = Fachprüfer (`docs/recherche/bahnquerung-texte.md`), 
 |---|---|---|---|
 | `Q2` | | Über die Bahn geht es erst mit einer Bahnquerung – {sperrgrund} | D · Leitung auf Bahnfeld vor Stufe 6 |
 | `Q4` | | Unter der Bahn geht es im Spiel nur quer hindurch, nicht an den Gleisen entlang. | F · Leitung auf Bahnfeld neben einer Bahn-Leitung derselben Zeile |
-| `STELLE` | | Über die Gleise geht es nur an einer Stelle: in Verlängerung der Hauptstraße. | D (14.6) · Leitung auf anderem Bahnfeld als x = 10 |
+| `STELLE` | | Unter den Gleisen geht es nur an einer Stelle hindurch: in Verlängerung der Hauptstraße. | D (14.6), Wortlaut Fachprüfer · Leitung auf anderem Bahnfeld als x = 10 |
 | `BRUECKE` | | Über die Bahnbrücke führt im Spiel keine Leitung. | F · x = 19–20 |
 | `GLEISE` | | Auf den Gleisen kann nichts gebaut werden. | A · Nicht-Leitung auf Bahnfeld |
 | `HINTER` | | Hinter der Bahn geht es erst weiter, wenn die Bahnquerung gebaut ist. | A · y ≤ −4 vor Erschließung |
 | `Q5` | | Die Bahnquerung wird noch gebaut. Danach geht es hinter der Bahn weiter. | D gekürzt (ohne Restzeit: der Kern formatiert keine Zeiten; Restzeit steht am Bauabschnitt) · y ≤ −4, Abschnitt mit Querung im Bau |
-| `EXPRESS` | | Eine Bahnquerung lässt sich nicht beschleunigen. | F · Express und Sofort fertig |
+| `EXPRESS` | | Eine Bahnquerung lässt sich im Spiel nicht beschleunigen. | F · Express und Sofort fertig |
 | `SOFORT_GRUND` | | nicht bei Bahnquerung | A · Zeile 2 am gesperrten Knopf (≤ 28 Zeichen) |
-| `KATALOG_ZEILE` | | Über die Bahn kommt eine Leitung nur quer über die Gleise – ab Heizzentrale Stufe {stufe}. | F (ersetzt Q3) · Bauen-Blatt vor Stufe 6 |
-| `KATALOG_PREIS` | | Über die Gleise nur per Bahnquerung an der Hauptstraße: {preis} je Gleisfeld. | D (14.6) · Bauen-Blatt ab Stufe 6 |
+| `KATALOG_ZEILE` | | Hinter die Bahn nur quer unter den Gleisen hindurch – ab Heizzentrale Stufe {stufe}. | F (ersetzt Q3) · Bauen-Blatt vor Stufe 6 |
+| `KATALOG_PREIS` | | Unter den Gleisen hindurch nur per Bahnquerung an der Hauptstraße: {preis} je Gleisfeld. | D (14.6) · Bauen-Blatt ab Stufe 6 |
 | `N1` | | Hinter der Bahn: Diese Häuser erreichst du über eine Bahnquerung ab Heizzentrale Stufe {stufe}. | D · Antippen vor Stufe 6 |
-| `N2` | | Zeichne im Bauabschnitt eine Leitung über die Gleise – in Verlängerung der Hauptstraße. | D (14.6) · Antippen ab Stufe 6, Viertel nicht erschlossen |
+| `N2` | | Zeichne im Bauabschnitt eine Leitung quer über die Gleise – an der Hauptstraße. | D (14.6), gekürzt (≤ 90) · Antippen ab Stufe 6, Viertel nicht erschlossen |
 | `F1` | | Bahnquerung fertig! Die Häuser hinter der Bahn kannst du jetzt anschließen. | D · Erschließung |
 | `WISSEN_A` | ja | Gleise werden in der Regel nicht aufgegraben. Die Leitung wird von Grube zu Grube unter ihnen durchgebohrt oder -gepresst. | F · erste Bahn-Leitung im Abschnitt |
 | `WISSEN_B` | ja | Vorher muss die Bahn den Plan prüfen und zustimmen. Das braucht Zeit. | F · dito |
 | `KARTE_1` … `KARTE_4` | ja | Erklärkarte Sätze 1–4 wörtlich aus bahnquerung-texte.md Abschnitt 1 | F · Erklärkarte |
 | `KARTE_5` | | Preis und Bauzeit sind im Spiel vereinfacht. | F · Erklärkarte, immer |
 | `TUTORIAL_1` | ja | Mit einer Bahnquerung bringst du eine Leitung unter den Gleisen durch zum Wohngebiet dahinter. | F · Mini-Tutorial |
-| `KOSTEN_ZUSATZ` | | dazu eine Bahnquerung ({querung_eur}) · Bauzeit +{querung_zeit} | D (14.6) · Infozeile im Kasten „Bauabschnitt“ |
-| `TUTORIAL_BEDIEN` | | Neu: Bahnquerung. Zieh an der Hauptstraße eine Leitung über die Gleise. | D (14.6) · Mini-Tutorial, auch ohne Fachtext-Freigabe |
+| `KOSTEN_ZUSATZ` | | davon Bahnquerung {querung_eur} · Bauzeit +{querung_zeit} | D (14.6, Designer-Treue Entscheidung 3) · direkt unter der Kostenzeile im Kasten „Bauabschnitt“ |
+| `TUTORIAL_BEDIEN` | | Neu: Bahnquerung. Zieh an der Hauptstraße eine Leitung quer über die Gleise. | D (14.6) · Mini-Tutorial, auch ohne Fachtext-Freigabe |
 | `BLATT_ZEILE` | | Bahnquerung · unter den Gleisen · {laenge_m} m | D (14.6) · Seitenblatt |
 | `KARTE_TITEL` | | Warum so teuer? | D (14.6) · Erklärkarte |
 | `KARTE_ALT` | | Skizze: zwei Gruben, Leitung unter zwei Gleisen | D (14.6) · Alt-Text Erklärbild |
-| `CHIP` | | + Bahnquerung | D (14.6) · Chip in der Zeichenleiste |
-| `TUTORIAL_2` | | Gut für die Häuser hinter der Bahn. Teuer und langsam – ein späterer Rohrtausch dort kostet die Querung noch einmal. | F · Mini-Tutorial |
+| `CHIP` | | + Bahnquerung | D (14.6) · zweite Zeile im Knopf „Abschnitt abschließen“ der Zeichenleiste (kein eigener Chip mehr, Designer-Treue M1) |
+| `KARTE_CHIP_FELD` | | {preis} je Gleisfeld | D (14.7) · Chip gold unter dem Erklärbild |
+| `KARTE_CHIP_ZUSCHLAG` | | Bauzeit +{querung_zeit} | D (14.7) · Chip neutral unter dem Erklärbild |
+| `HOECHSTSTUFE` | | höchste Stufe erreicht | A · Leitungsgrenze im Bauen-Blatt bei Höchststufe (statt „mehr ab nächster Stufe“) |
+| `TUTORIAL_2` | | Gut für Häuser hinter der Bahn. Teuer, langsam – im Spiel kostet ein späterer Rohrtausch dort die Querung noch einmal. | F, gekürzt (≤ 120) · Mini-Tutorial |
 Platzhalter: `{stufe}` füllt `nordText` selbst aus `abStufe('bahnquerung')`; `{sperrgrund}`, `{preis}`, `{querung_eur}`, `{querung_zeit}`, `{laenge_m}` übergibt der Aufrufer.
+Längen: Meldungen und Hinweise ≤ 90 Zeichen nach dem Einsetzen der Werte (12.20), Blasen im Mini-Tutorial ≤ 120 (13.13). **Stand 2026-11-24:** Tabelle abgeglichen mit `src/core/nord-texte.ts` (HEAD nach NR27 W1); bei Abweichung gilt der Code, diese Tabelle wird nachgezogen.
 
 ---
 

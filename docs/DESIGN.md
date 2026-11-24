@@ -1655,7 +1655,7 @@ Die Spalte x = 10 ist die **Sichtachse**: Hauptstraße – Schranke – Querung 
 - **Dunst:** Über allem nördlich vom Nordzaun (y ≤ −3,5, also Böschung, Häuser, Straßen, Wiesenrand) liegt eine Fläche `bahn.nord_dunst` (Ton des Wolkenrands, 55 % Deckkraft). Sie liegt über Boden **und** Kulissenhäusern, die Bahn bleibt klar. Am Südrand ein weicher Übergang über 0,3 Feld (zweiter Verlauf im Bild nach dem Grund; erlaubt, weil er dieselbe Rolle wie der Wolkenrand hat).
 - **Häuser im Dunst = Kulisse** (Bauplan AE-NR27-8, `nordKulisse`): normale Hausgrafik, gleicher Hauszeichner, genau an den Plätzen aus `NORD_PLAN`, kalte Fenster (`fenster_kalt`). Zwei oder drei Häuser haben grauen Öl-Rauch (wie unversorgte Häuser im Dorf, gleiche Animation, gleiche Regeln für weniger Bewegung). Keine Blasen, kein Auswahlrahmen.
 - **Antippen** eines Bahnfelds oder eines Kulissenhauses: kein Blatt, sondern eine Meldung nach 12.17 mit dem Text aus `nordInfo` (Tabelle 14.6, Zeilen T05–T07). Antippen einer anderen leeren Fläche im Dunst: nichts (wie leere Wiese heute).
-- **Nach der fertigen Querung** wird das Viertel angelegt (`nordviertelAnlegen`), die Kulisse verschwindet, an denselben Plätzen stehen echte Häuser. Weil Kulisse und Häuser gleich gezeichnet sind, springt nichts; sichtbar ändern sich nur Dunst und Blasen (Erfolgsmoment 14.8). Danach verhalten sich die Häuser wie alle anderen.
+- **Nach der fertigen Querung** wird das Viertel angelegt (`nordviertelAnlegen`), die Kulisse verschwindet, an denselben Plätzen stehen echte Häuser. Weil Kulisse und Häuser gleich gezeichnet sind, springt nichts; sichtbar ändern sich nur der Dunst und die Funken (Erfolgsmoment 14.8). Neue Häuser bekommen keine Blasen, solange sie keine Anfrage haben – wie Häuser im Dorf auch. Danach verhalten sich die Häuser wie alle anderen.
 - Zwischen Stufe 6 und fertiger Querung bleibt der Dunst. Stufe 6 allein erreicht die Häuser nicht (Abnahme f).
 
 ### 14.5 Bahnquerung = Leitung mit Aufpreis (Variante A, Entscheidung 2026-11-23)
@@ -1673,8 +1673,8 @@ Die Spalte x = 10 ist die **Sichtachse**: Hauptstraße – Schranke – Querung 
 | nach der Erschließung | Infozeile entfällt |
 
 **Zeichnen (Vorschau im Bauabschnitt):**
-- Wer die Leitung von (10|−1) auf (10|−2) und (10|−3) zieht, sieht auf den Bahnfeldern **kein Rohr**, sondern die **Strichellinie** in Vorschau-Farbe (`vorschau_ok`, Striche 0,10 / Lücke 0,07 Feld, Breite 60 % der Rohrbreite) und an den Enden kurz vor den Zäunen (y = −1,38 und −3,62) zwei Schutzrohr-Ringe mit 50 % Deckkraft. Das normale Rohrbild gibt es auf (10|−1) und (später) ab (10|−4); auf (10|−2) und (10|−3) immer nur die Strichellinie.
-- Neben dem Mengen-Chip der Zeichenleiste (12.18) erscheint ein Chip „+ Bahnquerung“ in `geld`-Gold, solange der Abschnitt ein Bahnfeld enthält. Antippen = Infozeile T04 als Meldung.
+- Wer die Leitung von (10|−1) auf (10|−2) und (10|−3) zieht, sieht auf den Bahnfeldern **kein Rohr**, sondern die **Strichellinie** in deckendem Grün (`karte.pfeil_ok` `#2e7a4e`, Striche 0,10 / Lücke 0,07 Feld, Breite 60 % der Rohrbreite; Stand 2026-11-24, Designer-Treue Entscheidung 1 – das Flächengrün `vorschau_ok` mit 40 % Deckkraft war auf dem Schotter kaum zu sehen) und an den Enden kurz vor den Zäunen (y = −1,38 und −3,62) zwei Schutzrohr-Ringe mit 50 % Deckkraft. Das normale Rohrbild gibt es auf (10|−1) und (später) ab (10|−4); auf (10|−2) und (10|−3) immer nur die Strichellinie.
+- **Kein eigener Chip in der Zeichenleiste** (Stand 2026-11-24, Designer-Treue M1): Solange der Abschnitt ein Bahnfeld enthält, trägt der Knopf **[Abschnitt abschließen]** eine **zweite Zeile „+ Bahnquerung“** (`CHIP`; Manrope 800 in `menue.schrift.groesse_px.knopf_unter`, ohne Kontur, Zeilenhöhe 1,1). Ein eigener Chip schob Radierer und Zurück bei kleinen Handys unter den Knopf. Aufpreis und Zuschlag stehen nur im Kasten „Bauabschnitt“ (`KOSTEN_ZUSATZ`, T04, direkt unter der Kostenzeile).
 - **Falsch ziehen:** Das abgelehnte Feld wird `vorschau_nein`, die Leitung endet am letzten erlaubten Feld, und es erscheint **ein** Hinweis (T09–T14) – einmal je Zug des Fingers, nicht je Feld (Kritiker Befund 5: kein stilles Überspringen). Reihenfolge der Prüfung, damit genau ein Text kommt: Brücke (T13) → vor Stufe 6 (T09) → längs (T10) → andere Stelle als x = 10 (T12) → hinter der Bahn (T11) → kein Leitungsbaustein auf den Gleisen (T14).
 
 **Bau (Baustelle, solange der Abschnitt mit `mit_querung` in der Bauphase ist):**
@@ -1703,7 +1703,7 @@ Die Spalte x = 10 ist die **Sichtachse**: Hauptstraße – Schranke – Querung 
 **Blatt beim Antippen der fertigen Querung:** das normale Leitungsblatt, dazu eine Zeile T20 und – nur bei freigegebenem Text – der Kasten „Warum so teuer?“ mit (i). [Ersetzen] zeigt den Preis mit Aufpreis (Bauplan P3 Regel 3), sonst keine Sonderknöpfe.
 
 ### 14.6 Texte NR27 – Verweis auf die Kennungen (Fassung 3)
-**Die einzige Texttabelle steht im Bauplan** `docs/bauplaene/NR27-bahnquerung-entwurf.md` Abschnitt 3 („Texttabelle `src/core/nord-texte.ts`“, AE-NR27-12). Wortlaute stehen nur dort. Hier steht nur, welche Kennung wo im Bild erscheint. Regeln: Meldungen ≤ 90 Zeichen (12.20), Blasen im Mini-Tutorial ≤ 120 Zeichen (13.13). Kennungen mit `fach = ja` erscheinen nur bei `NORD_FACHTEXTE_FREIGEGEBEN = true` (Standard aus, 14.7).
+**Die einzige Texttabelle steht im Bauplan** `docs/bauplaene/NR27-bahnquerung-entwurf.md` Abschnitt 3 („Texttabelle `src/core/nord-texte.ts`“, AE-NR27-12). Wortlaute stehen nur dort. Hier steht nur, welche Kennung wo im Bild erscheint. Regeln (Stand 2026-11-24, per Skript gezählt): Meldungen und Hinweise ≤ 90 Zeichen nach dem Einsetzen der Werte (12.20) – auch `N2` (heute 79); Blasen im Mini-Tutorial ≤ 120 Zeichen (13.13) – `TUTORIAL_1` 94, `TUTORIAL_2` 118, `TUTORIAL_BEDIEN` 76. Kennungen mit `fach = ja` erscheinen nur bei `NORD_FACHTEXTE_FREIGEGEBEN = true` (Standard aus, 14.7).
 Bei Variante A entfallen Q1, Q3, Q6, Q7. Q5 steht ohne Restzeit da (die Restzeit zeigt der Bauabschnitt).
 
 **Zuordnung** (die Nummern T01–T22 aus Fassung 2 werden in 14.4–14.13 weiter benutzt):
@@ -1728,11 +1728,12 @@ Bei Variante A entfallen Q1, Q3, Q6, Q7. Q5 steht ohne Restzeit da (die Restzeit
 | T18 | `TUTORIAL_1` (fach), `TUTORIAL_2` | Mini-Tutorial |
 | T19 | `WISSEN_A`, `WISSEN_B` (fach) | Sprecherblase beim ersten Bahnfeld |
 | T20 | **neu** `BLATT_ZEILE` | Zeile im Leitungsblatt der Querung |
-| T21 | **neu** `KARTE_TITEL`, `KARTE_ALT`; Chip-Zusatz = `KARTE_5` | Erklärkarte |
+| T21 | `KARTE_TITEL`, `KARTE_ALT`, Chips `KARTE_CHIP_FELD`/`KARTE_CHIP_ZUSCHLAG`, Hinweis `KARTE_5` | Erklärkarte |
 | T22 | `KARTE_1` … `KARTE_4` (fach) | Erklärkarte |
-| – | **neu** `CHIP` | Chip in der Zeichenleiste |
+| – | `CHIP` | zweite Zeile im Knopf [Abschnitt abschließen] (14.5) |
+| – | `HOECHSTSTUFE` | Leitungsgrenze im Bauen-Blatt bei Höchststufe |
 
-**Wortlaut-Meldung an den Bauplan** (Designer prüft die A-Texte und schlägt neue Kennungen vor; Zeichen per Skript gezählt, mit Beispielwerten). Der Projektleiter trägt das in den Bauplan ein; danach gilt nur noch der Bauplan.
+**Wortlaut-Meldung an den Bauplan (Fassung 3, 2026-11-23 – erledigt und überholt).** Die Vorschläge unten sind eingearbeitet und danach vom Fachprüfer weiter geändert worden („quer unter den Gleisen“, „im Spiel“, Kürzungen). **Gültig ist allein der Wortlaut in `src/core/nord-texte.ts` und in der Bauplan-Tabelle** (am 2026-11-24 abgeglichen). Die Tabelle bleibt nur als Begründung stehen.
 | Kennung | Vorschlag | Zeichen | Grund |
 |---|---|---|---|
 | `GLEISE` | unverändert: „Auf den Gleisen kann nichts gebaut werden.“ | 42 | klar |
@@ -1742,13 +1743,13 @@ Bei Variante A entfallen Q1, Q3, Q6, Q7. Q5 steht ohne Restzeit da (die Restzeit
 | `KATALOG_PREIS` | „Über die Gleise nur per Bahnquerung an der Hauptstraße: {preis} je Gleisfeld.“ | 78 | Mit `{aktuell}` wären es 96 Zeichen (über 90). Die aktuelle Summe zeigt `KOSTEN_ZUSATZ`; „im Spiel vereinfacht“ sagt `KARTE_5` |
 | `N2` | „Zeichne im Bauabschnitt eine Leitung über die Gleise – in Verlängerung der Hauptstraße.“ | 87 | „Bauen → Leitungen“ zeigt bei Variante A auf keinen Kasten „Bahnquerung“ mehr |
 | `Q5` | unverändert: „Die Bahnquerung wird noch gebaut. Danach geht es hinter der Bahn weiter.“ | 72 | passt auch beim Antippen |
-| neu `KOSTEN_ZUSATZ` | „dazu eine Bahnquerung ({querung_eur}) · Bauzeit +{querung_zeit}“ | 50 | Aufrufer übergibt die Werte |
+| neu `KOSTEN_ZUSATZ` | ~~„dazu eine Bahnquerung ({querung_eur}) · Bauzeit +{querung_zeit}“~~ → heute „davon Bahnquerung {querung_eur} · Bauzeit +{querung_zeit}“ | 57 | „davon“, weil die Summe darüber den Aufpreis schon enthält (Designer-Treue Entscheidung 3) |
 | neu `TUTORIAL_BEDIEN` | „Neu: Bahnquerung. Zieh an der Hauptstraße eine Leitung über die Gleise.“ | 71 | reine Bedienung, kein Fachtext |
 | neu `BLATT_ZEILE` | „Bahnquerung · unter den Gleisen · {laenge_m} m“ | 38 | – |
 | neu `KARTE_TITEL` | „Warum so teuer?“ | 15 | – |
 | neu `KARTE_ALT` | „Skizze: zwei Gruben, Leitung unter zwei Gleisen“ | 47 | enthält „Gleis“, darum in nord-texte.ts |
-| neu `CHIP` | „+ Bahnquerung“ | 13 | – |
-`N1` (89), `F1`, `Q2`, `Q4`, `BRUECKE`, `EXPRESS`, `KATALOG_ZEILE` (84) und alle F-Texte bleiben wie im Bauplan. `TUTORIAL_1` (94) und `TUTORIAL_2` (116) sind Blasen und halten die 120er-Grenze ein.
+| neu `CHIP` | „+ Bahnquerung“ | 13 | heute zweite Zeile im Abschlussknopf, kein Chip |
+`N1` (89), `F1`, `Q2`, `Q4`, `BRUECKE`, `EXPRESS`, `KATALOG_ZEILE` (84) und alle F-Texte bleiben wie im Bauplan. `TUTORIAL_1` (94) und `TUTORIAL_2` (heute 118) sind Blasen und halten die 120er-Grenze ein.
 Prüfreihenfolge beim Ziehen (ein Hinweis je Fingerzug): `BRUECKE` → `Q2` → `Q4` → `STELLE` → `HINTER`/`Q5` → `GLEISE`.
 
 ### 14.7 Erklärkarte „Warum so teuer?“
@@ -1756,33 +1757,34 @@ Prüfreihenfolge beim Ziehen (ein Hinweis je Fingerzug): `BRUECKE` → `Q2` → 
 
 **Wo und wann (nur mit Schalter an):** über (i) in der Infozeile des Kastens „Bauabschnitt“ (14.5) und im Leitungsblatt der fertigen Querung. Kein Auto-Start mitten beim Zeichnen (das würde den Finger unterbrechen); beim ersten Bahnfeld erscheint stattdessen die kurze Sprecherblase T19. Als **Popup** (12.6) mittig mit Abdunkeln.
 ```
-844×390, Popup 560 px breit (min(560, Breite − 24)), Höhe nach Inhalt, höchstens Höhe − 24
+844×390, Popup 560 px breit (min(560, Breite − 16)), Höhe nach Inhalt, höchstens Höhe − 16 (Rand 8 px rundum)
 ┌──────────────────────────────────────────────────────────┐
 │ Warum so teuer?                                    [ ✕ ] │ Kopfband 56, Lilita 26 weiß mit Kontur
 │▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀│ Rohrnaht 4 + Kontur 3
-│ ┌────────────────┐  Satz 1 [F] ………………………………………………… │ Innenabstand 16, Spalte rechts 330 px,
-│ │ Längsschnitt   │  ……… Satz 2 [F] ……………………………………… │ Manrope 500 14 / Zeile 20, `text`
-│ │ 176 × 132      │  Satz 3 [F] ……………………………………………… │ höchstens 10 Zeilen ohne Scrollen
-│ │ (design/nr27-  │  ……… Satz 4 [F] ……………………………………… │
-│ │  erklaerbild-…)│  Satz 5 [F] (optional) ……………………… │
-│ └────────────────┘                                        │
-│ (Münze {eur_je_feld} je Feld) (Uhr +{querung_zeit})       │ Chips gold/neutral, Werte aus dem Kern
-│ im Spiel vereinfacht                                      │ 12 px gedämpft
-├──────────────────────────────────────────────────────────┤
-│                                     [▓▓▓ Verstanden ▓▓▓] │ Aktionsleiste 60 (`kasten_kopf`)
-└──────────────────────────────────────────────────────────┘
+│ ┌────────────────┐  KARTE_1 [F] ……………………………………………… │ Innenabstand oben/unten 12, seitlich 16,
+│ │ Längsschnitt   │  KARTE_2 [F] ……………………………………………… │ Lücke zwischen den Spalten 16,
+│ │ 176 × 132      │  ……………………………………………………………………… │ Textspalte Manrope 500 14 / Zeile 20, `text`,
+│ │ (design/nr27-  │  KARTE_3 [F] ……………………………………………… │ Absatzabstand 4
+│ │  erklaerbild-…)│  KARTE_4 [F] ……………………………………………… │
+│ └────────────────┘  ……………………………………………………………………… │
+│ (Münze {preis} je Feld)  KARTE_5 „Preis und Bauzeit …“   │ KARTE_5 als letzte Zeile der Textspalte,
+│ (Bauzeit +{zeit})                                        │ Manrope 12 / 16 gedämpft, ohne Abstand darunter
+├──────────────────────────────────────────────────────────┤ Chips (gold / neutral, Werte aus dem Kern)
+│                                     [▓▓▓ Verstanden ▓▓▓] │ untereinander unter dem Bild, Lücke 6
+└──────────────────────────────────────────────────────────┘ Aktionsleiste (`kasten_kopf`), Innenabstand 8/12
 ```
+**Aufbau (Stand 2026-11-24, NR27 W1 und Designer-Treue M4):** links die Bildspalte (176 px fest: Bild, darunter die beiden Chips), rechts die Textspalte (Rest der Breite: `KARTE_1` … `KARTE_4`, zuletzt `KARTE_5`). Unter beiden Spalten steht nichts mehr – dort wurden Chips und Hinweis bei 667×375 abgeschnitten. Rand des Popups zum Bildschirm 8 px. Innenabstand des Inhalts oben und unten 12 px, seitlich 16 px. Die Ausblendmaske unten ist **12 px**, also genau so hoch wie der Innenabstand unten: Passt der Inhalt, liegt die letzte Zeile (`KARTE_5`) nie in der Maske und bleibt voll deckend; nur bei echtem Überlauf blendet sie aus.
 - **Bild:** Längsschnitt mit zwei Gruben (links mit Bohrgerät), Leitung im Schutzrohr unter zwei Gleisen, Zäune, Maß der Bohrstrecke. **Kein Zug** über der Bohrung (Fachprüfer F3), keine Merkpfähle, keine Aussage über die Reihenfolge („erst Schutzrohr, dann Leitung“ entfällt). Skizze: `design/nr27-erklaerbild-querschnitt.svg` (176×132, Farben aus 14.9), Alt-Text T21.
-- **Textplätze 1–5 [F]:** Wortlaut aus `docs/recherche/bahnquerung-texte.md` Abschnitt 1 (287 Zeichen ohne Satz 5). Budget bleibt: höchstens 5 Sätze, zusammen **≤ 420 Zeichen** – passt ohne Scrollen bei 844×390 und 667×375 (330 px Spalte ≈ 45 Zeichen/Zeile, 10 Zeilen à 20 px).
+- **Textplätze `KARTE_1` … `KARTE_4` [F] und `KARTE_5`:** Wortlaut aus `docs/recherche/bahnquerung-texte.md` Abschnitt 1 (heute 284 Zeichen für die vier Fachsätze, dazu `KARTE_5` mit 44). Budget bleibt: höchstens 5 Sätze, zusammen **≤ 420 Zeichen**. Geprüft am 2026-11-24 (Fotos): bei 844×390 und 667×375 ohne Scrollen, `KARTE_5` voll sichtbar.
 - **Knöpfe:** nur [Verstanden] (`los`). Das ✕ schließt ebenso.
 - **Zustände:**
 | Zustand | Verhalten |
 |---|---|
 | normal (≤ 420 Zeichen) | kein Scrollen, Popup so hoch wie der Inhalt, mittig |
-| kurz (3 Sätze) | Bildspalte bestimmt die Höhe (132 + 8 + 26 Chips), Text oben bündig |
-| zu lang (> 420 Zeichen oder große Systemschrift) | nur die Textspalte scrollt, unten Ausblendmaske 16 px; Kopfband und Aktionsleiste fest |
+| kurz (3 Sätze) | Bildspalte bestimmt die Höhe (132 + 6 + zwei Chips untereinander), Text oben bündig |
+| zu lang (> 420 Zeichen oder große Systemschrift) | der Inhalt zwischen Kopfband und Aktionsleiste scrollt, unten Ausblendmaske 12 px; Kopfband und Aktionsleiste fest |
 | Schalter aus | Karte und (i) gibt es nicht |
-| 667×375 | gleiche Breite 560, Höhe höchstens 351 |
+| 667×375 | gleiche Breite 560, Höhe höchstens 359 (375 − 2 × 8) |
 | Desktop 1280×800 | gleich, 560 px breit, mittig |
 | weniger Bewegung | kein Aufploppen (12.9), sofort da |
 | Hochformat | Dreh-Hinweis deckt alles ab, die Karte bleibt beim Zurückdrehen offen |
@@ -1797,11 +1799,11 @@ Prüfreihenfolge beim Ziehen (ein Hinweis je Fingerzug): `BRUECKE` → `Q2` → 
 | Bau beginnt | Münzflug wie bei jedem Abschnitt, Gruben erscheinen mit `bau_plopp` | 450 ms | Rückmeldung | ohne Federn |
 | Bohrlinie | wächst mit dem Fortschritt | Takt „langsam“ (4 Bilder/s) | Information | **bleibt** |
 | Bohrgerät zittert, Abgaswölkchen | ±1 px, 180 ms; Wölkchen alle 2,4 s | – | zeigt „hier wird gearbeitet“ | aus |
-| **Erfolgsmoment: Querung fertig** | Funken an beiden Gruben (`effekt.funken`), dann hebt sich der Dunst über dem Nordgebiet, danach erscheinen die „kein Anschluss“-Blasen versetzt (60 ms je Haus, Federn wie Blasen), dazu Meldung T16 | Funken 1000 ms; Dunst 1200 ms `kurve.weich`; Blasen ab 1200 ms | Belohnung: das neue Gebiet „geht auf“ | Funken aus, Dunst sofort weg, Blasen ohne Federn, Meldung bleibt |
+| **Erfolgsmoment: Querung fertig** (Stand 2026-11-24, Designer-Treue Entscheidungen 2 und 4) | Der Dunst über dem Nordgebiet hebt sich, dazu Funken (`farbe.effekt.funken`) **an allen 14 neuen Häusern**, dazu Meldung T16 (`F1`) nach der Abschnitts-Meldung. **Keine Blasen** an den neuen Häusern (sie haben keine Anfrage, wie Häuser im Dorf), **kein Aufleuchten** | Dunst 1200 ms `kurve.weich`; Funken `zeit_ms.funken` 1000 ms | Belohnung: das neue Gebiet „geht auf“, man sieht, wo jetzt Kunden warten | Funken aus (kein Ersatz-Aufleuchten), Dunst sofort weg, Meldung bleibt |
 | Erklärkarte | Popup wie 12.9 | `popup_ein` 220 ms, `kurve.plopp` | Orientierung | sofort |
-Es gibt **einen** Erfolgsmoment, und weil es nur eine Querungsstelle gibt, kommt er genau einmal.
+Es gibt **einen** Erfolgsmoment, und weil es nur eine Querungsstelle gibt, kommt er genau einmal. Entfallen gegenüber Fassung 2: Blasen mit Versatz und Federn, das gelbe Aufleuchten der Gruben bei „Weniger Bewegung“, Funken an den Gruben (die Gruben sind im selben Moment schon zugeschüttet – Funken gehören dahin, wo der Nutzen entsteht).
 
-### 14.9 Neue Werte (Vorschlag für `design/tokens.json`, Gruppe `farbe.bahn`, wie 13.10 noch nicht eingetragen)
+### 14.9 Neue Werte (eingetragen in `design/tokens.json`, Gruppen `farbe.bahn`, `karte.bahn`, `zeit_ms`; Stand 2026-11-24)
 | Token | Wert | Rolle / gemessen |
 |---|---|---|
 | `schotter` | `#8f887d` | Schotterbett. Auf Wiese 1,8:1, auf Schnee 3,0:1, auf Herbstwiese nur 1,5:1, deshalb trägt der Randweg die Abgrenzung |
@@ -1823,7 +1825,14 @@ Es gibt **einen** Erfolgsmoment, und weil es nur eine Querungsstelle gibt, kommt
 | `merkpfahl` | `#f4f1ea` | Merkpfahl, Kappe = `naht_vorlauf` |
 | `nord_dunst` | `rgba(236,242,245,.55)` | Dunst über dem Nordgebiet (Ton des Wolkenrands) |
 | `gesperrt_schleier` | `rgba(31,42,46,.12)` | Bahnfelder im Leitungsmodus (außer x = 10 ab Stufe 6) |
-Maße (`karte.bahn`): `gleisabstand` 0,44, `spurweite` 0,144, `schwellen_teilung` 0,25, `mast_teilung` 3, `mast_versatz` 2, `mast_hoehe` 0,62, `fahrdraht_hoehe` 0,50, `zug_feld_je_s` 3, `zug_pause_s` [90, 150], `detail_ab_kachelbreite` 32. Zeiten (`zeit_ms`): `dunst_heben` 1200, `blase_versatz` 60, `bohrgeraet_zittern` 180, `abgas_zyklus` 2400. Entfallen gegenüber Fassung 1: `schutzrohr_innen`, `geist_rasten`.
+| **neu** `schotter_koernung` | `rgba(60,54,46,.22)` | Körnung im Schotter ab der Detailstufe (`tw ≥ 32`) |
+| **neu** `schranke_weiss` | `#ffffff` | Weiß der Schranke und der Baken |
+| **neu** `haarlinie` | `rgba(31,42,46,.55)` | Rand des Merkpfahls (lesbar auf Schnee) |
+| **neu** `zug_schatten` | `rgba(30,50,35,.22)` | flacher Schatten unter dem Zug |
+| **neu** `nord_dunst_klar` | `rgba(236,242,245,0)` | durchsichtiges Ende des Dunst-Verlaufs am Südrand |
+| **neu** `schleier_raster` | `rgba(255,255,255,.25)` | Rasterstrich der freien Querungsfelder, wie das Baumodus-Raster |
+Strichellinie in der Vorschau: kein eigenes Bahn-Token, sondern `farbe.karte.pfeil_ok` (`#2e7a4e`, 14.5).
+Maße (`karte.bahn`): `gleisabstand` 0,44, `spurweite` 0,144, `schwellen_teilung` 0,25, `mast_teilung` 3, `mast_versatz` 2, `mast_hoehe` 0,62, `fahrdraht_hoehe` 0,50, `zug_feld_je_s` 3, `zug_pause_s` [90, 150], `detail_ab_kachelbreite` 32. Zeiten (`zeit_ms`): `dunst_heben` 1200, `funken` 1000, `bohrgeraet_zittern` 180, `abgas_zyklus` 2400. `blase_versatz` 60 steht noch in tokens.json, wird aber nach Entscheidung 4 (keine Blasen im Erfolgsmoment) nicht mehr gebraucht und kann entfallen. Entfallen gegenüber Fassung 1: `schutzrohr_innen`, `geist_rasten`.
 Farben, die Information tragen (Formel WCAG): Schiene, Ring, Bohrlinie, Zaun ≥ 3:1 auf ihrem Grund. Schotter gegen Wiese liegt darunter; erlaubt, weil Schotter nur Fläche ist und Rand und Schienen die Form tragen.
 
 ### 14.10 Barrierefreiheit (Pflichtboden)
@@ -1837,9 +1846,9 @@ Farben, die Information tragen (Formel WCAG): Schiene, Ring, Bohrlinie, Zaun ≥
 1. **Entdecken (ab Spielbeginn):** Karte nach Norden schieben oder herauszoomen → Bahn mit Masten, ab und zu ein Zug, dahinter kalte Häuser im Dunst → Haus oder Gleis antippen → Meldung T05.
 2. **Vor Stufe 6 versuchen:** im Bauabschnitt Leitung auf ein Bahnfeld ziehen → Feld rot, Leitung endet am Grünstreifen, Meldung T09. Baumenü → Leitungen → Infozeile mit Schloss T02.
 3. **Freischaltung Stufe 6:** Mini-Tutorial (13.13 A) → [Zeig’s mir] → Kamera zur Querungsstelle, Baumenü im Reiter Leitungen.
-4. **Planen:** Bauabschnitt planen → Leitung von der Hauptstraße über (10|−1) auf die Gleise ziehen → Strichellinie statt Rohr, Chip „+ Bahnquerung“, Kostenzeile T04 → (Text frei) Sprecherblase T19 → [Material bestellen] → Münzflug, Geld-Pille sinkt.
+4. **Planen:** Bauabschnitt planen → Leitung von der Hauptstraße über (10|−1) auf die Gleise ziehen → Strichellinie (grün) statt Rohr, Knopf [Abschnitt abschließen] zeigt zweite Zeile „+ Bahnquerung“, im Kasten „Bauabschnitt“ unter der Kostenzeile T04 → (Text frei) Sprecherblase T19 → [Material bestellen] → Münzflug, Geld-Pille sinkt.
 5. **Bauen:** Gruben, Bohrgerät, Baken, Bohrlinie wächst, kein Zug → Gleis antippen → T07; [Express] grau → T15.
-6. **Fertig:** Funken, Dunst hebt sich, Blasen erscheinen, Meldung T16; Ringe, Merkpfähle, Strichellinie in Rohrfarbe; der Zug fährt wieder.
+6. **Fertig:** Dunst hebt sich, Funken an den 14 neuen Häusern, Meldung T16 (keine Blasen); Ringe, Merkpfähle, Strichellinie in Rohrfarbe; der Zug fährt wieder.
 7. **Anschließen:** neuer Bauabschnitt → von (10|−3) über die Böschung zur Wohnstraße und zu den Häusern zeichnen → bauen → Häuser anschließen wie üblich.
 8. **Falsch zeichnen:** neben x = 10 über die Bahn (T12), entlang der Gleise (T10), auf die Brücke (T13), vor der Erschließung hinter die Bahn (T11) → Feld rot, Leitung endet am letzten erlaubten Feld, ein Hinweis.
 
@@ -1848,7 +1857,7 @@ Farben, die Information tragen (Formel WCAG): Schiene, Ring, Bohrlinie, Zaun ≥
 |---|---|---|---|---|---|---|
 | Karte: Bahn + Nordgebiet | Bahn, Zug, Dunst, Kulisse vom ersten Spiel an | Antippen → T05/T06 | Baustelle x = 10, kein Zug, T07 | Dunst weg, echte Häuser | Ziehen → T09–T14 | Nordkante liegt beim Start unter dem HUD; Masten und Zug ragen ins freie Bild |
 | Infozeile im Kasten „Bauabschnitt“ | T03 | Schloss + T02 | Balken, Express grau → T15 | entfällt nach Erschließung | – | Zeile ≤ 2 Zeilen in 388 px Blattbreite |
-| Zeichnen im Bauabschnitt | Querungsstelle ohne Schleier, mit Raster | Schleier auf allen Bahnfeldern | – | Strichellinie + Chip „+ Bahnquerung“ | rotes Feld + ein Hinweis | Chip passt in die Zeichenleiste (12.18) ohne Scrollen |
+| Zeichnen im Bauabschnitt | Querungsstelle ohne Schleier, mit Raster | Schleier auf allen Bahnfeldern | – | grüne Strichellinie + zweite Zeile „+ Bahnquerung“ im Knopf [Abschnitt abschließen] | rotes Feld + ein Hinweis | Radierer und Zurück bleiben über dem Knopf, nichts scrollt (12.18) |
 | Leitungsblatt der Querung | – | – | – | Zeile T20, (i) nur mit Schalter | – | Aktionsleiste fest |
 | Erklärkarte | nur über (i) | – | – | normal / kurz / zu lang | Schalter aus → gibt es nicht | 560 px, ≤ 10 Zeilen ohne Scrollen |
 | Hochformat | Dreh-Hinweis wie überall | | | | | |
@@ -1865,11 +1874,11 @@ Aufnahme: 844×390 und 667×375, Gerätefaktor 2, Touch, Querformat; Sommer und 
 8. **Zug** (Video): gleichmäßig, Streifen Orange|Blau, kein Ruckeln; weniger Bewegung/Sparmodus: kein Zug; während des Querungsbaus: kein Zug (2 Minuten beobachtet).
 9. **Nordgebiet:** Dunst über Häusern und Straßen, Bahn klar; 14 Häuser, kein MFH, kalte Fenster, Öl-Rauch, keine Blasen; Antippen → T05 bzw. T06, kein Blatt.
 10. **Sperre:** Infozeile mit Schloss + T02; Ziehen aufs Gleis → rot + T09 (≤ 90 Zeichen per Skript).
-11. **Zeichnen ab Stufe 6:** Schleier überall außer x = 10; Strichellinie statt Rohr auf beiden Bahnfeldern; Chip „+ Bahnquerung“; Kostenzeile T04 mit Werten aus dem Kern; neben x = 10 → T12, längs → T10, Brücke → T13, hinter die Bahn → T11, je genau ein Hinweis pro Fingerzug.
+11. **Zeichnen ab Stufe 6:** Schleier überall außer x = 10; grüne Strichellinie statt Rohr auf beiden Bahnfeldern; „+ Bahnquerung“ als zweite Zeile im Knopf [Abschnitt abschließen] (kein Chip); Kostenzeile T04 („davon Bahnquerung …“) mit Werten aus dem Kern; neben x = 10 → T12, längs → T10, Brücke → T13, hinter die Bahn → T11, je genau ein Hinweis pro Fingerzug.
 12. **Baustelle:** zwei Gruben mit Verbau und Baken, Bohrgerät, Monteur, Timer frei vom HUD; Bohrlinie bei etwa 50 % halb unter den Gleisen; mit weniger Bewegung wächst sie trotzdem; [Express] → T15.
-13. **Erfolgsmoment** (Video): Funken, Dunst hebt sich in etwa 1,2 s, Blasen nacheinander, T16 nach der Abschnitts-Meldung; kein Sprung beim Wechsel Kulisse → Häuser. Würde man das Video teilen?
+13. **Erfolgsmoment** (Video): Dunst hebt sich in etwa 1,2 s, Funken an den neuen Häusern, keine Blasen, kein Aufleuchten, T16 nach der Abschnitts-Meldung; kein Sprung beim Wechsel Kulisse → Häuser. Würde man das Video teilen?
 14. **Fertige Querung:** Ringe und Merkpfähle beidseits, Strichellinie in Rohrfarbe mit Fließpunkten, kein Rohr auf den Bahnfeldern; Blatt mit T20.
-15. **Erklärkarte:** mit Schalter aus nicht erreichbar (kein (i)); mit Schalter an: 844×390 und 667×375 ohne Scrollen bei ≤ 420 Zeichen, Bild ohne Zug, Chips, „im Spiel vereinfacht“; ✕ und [Verstanden] ≥ 44 px; Esc schließt, Fokus zurück; mit 600 Zeichen Testtext scrollt nur die Textspalte.
+15. **Erklärkarte:** mit Schalter aus nicht erreichbar (kein (i)); mit Schalter an: 844×390 und 667×375 ohne Scrollen bei ≤ 420 Zeichen, Bild ohne Zug, Chips unter dem Bild, `KARTE_5` als letzte Zeile rechts und nicht von der Maske angegriffen; ✕ und [Verstanden] ≥ 44 px; Esc schließt, Fokus zurück; mit 600 Zeichen Testtext scrollt der Inhalt, Kopfband und Aktionsleiste bleiben fest.
 16. **Alter Spielstand:** lädt, alles an seinem Platz, Bahn und Kulisse da, keine Leitung auf einem Bahnfeld.
 17. **Kein Text abgeschnitten, keine waagrechte Scrollleiste**, keine Konsolenfehler.
 
@@ -1890,19 +1899,19 @@ Was P4 laut Bauplan schon liefert (Grundgleis: Schotter, Schienen, Schwellen, Br
 8. **P5** – Dunst über dem Nordgebiet mit weichem Südrand; Öl-Rauch an 2–3 Kulissenhäusern.
 9. **P5** – Zug: Form, Lackierung, Fahrt, Fahrplan aus der Uhrzeit, Takt „flüssig“ nur im Bild, aus bei weniger Bewegung/Sparmodus, **Pause während des Querungsbaus**.
 10. **P5** – **Schleier:** Nur im Modus „Leitung legen“ (Zeichenleiste offen) liegt auf jedem Bahnfeld (y = −2/−3, x = 0 … 23, auch auf der Brücke) eine Raute in `bahn.gesperrt_schleier` (`rgba(31,42,46,.12)`), gezeichnet über Schotter und Gleisen und unter Masten und Zug. Vor Stufe 6 liegt er auf allen Bahnfeldern. Ab Stufe 6 bleiben (10|−2) und (10|−3) frei und bekommen die normalen Rasterlinien eines Baufelds. Nach der Erschließung bleibt das so. Ohne Animation (er blendet nicht ein, er ist einfach da), gleich bei weniger Bewegung. Außerhalb des Leitungsmodus gibt es keinen Schleier.
-11. **P5** – Vorschau: Strichellinie und halbe Ringe statt Rohr auf den Bahnfeldern; Chip „+ Bahnquerung“ in der Zeichenleiste.
+11. **P5** – Vorschau: grüne Strichellinie (`karte.pfeil_ok`) und halbe Ringe statt Rohr auf den Bahnfeldern; „+ Bahnquerung“ als zweite Zeile im Knopf [Abschnitt abschließen] (kein eigener Chip).
 12. **P5** – Rotes Feld + genau ein Hinweis je Fingerzug beim Ziehen (T09–T14), Prüfreihenfolge 14.5 (zusammen mit Kritiker-Befund 5, `steuerung.ts`).
 13. **P5** – Infozeile im Kasten „Bauabschnitt“ (T02–T04), [Express] grau mit T15.
 14. **P5** – Baustelle: zwei Gruben mit Verbau und Baken, Bohrgerät, Monteur, Bohrlinie mit Bohrkopf nach Fortschritt, Zittern und Abgas nur bei Animation an.
 15. **P5** – Fertige Querung: Schutzrohr-Ringe, Merkpfähle, Strichellinie in Rohrfarbe mit Fließpunkten, Überlast-Zeichen daneben.
-16. **P5** – Erfolgsmoment: Funken, Dunst heben, Blasen versetzt, Meldung T16 nach der Abschnitts-Meldung; Varianten für weniger Bewegung.
+16. **P5** – Erfolgsmoment: Dunst heben, Funken an allen neuen Häusern, Meldung T16 nach der Abschnitts-Meldung; keine Blasen, kein Aufleuchten; bei weniger Bewegung nur Dunst weg und Meldung.
 17. **P5** – Leitungsblatt der Querung mit Zeile T20 und Kasten „Warum so teuer?“.
 18. **P5** – Erklärkarte (Popup, Bild nach `design/nr27-erklaerbild-querschnitt.svg`, Chips, Zustände, Fokus) nur mit Schalter „Text freigegeben“; Test „ohne Freigabe kein Text“.
 19. **P5** – Sprecherblase T19 bei der ersten Leitung auf einem Bahnfeld, nur mit Schalter.
 20. **P5** – **Mini-Tutorial** bei der Freischaltung (Stufe 6, Muster 13.13 A, Anleiter-Karte Simon). Es kommt nach der Stufen-Meldung, nicht gleichzeitig mit „Neubaugebiet Süd erschlossen“, sondern in der Warteschlange danach.
     - **Schalter an:** Blase 1 = `TUTORIAL_1`, Blase 2 = `TUTORIAL_2`, dann Blase 3 = `TUTORIAL_BEDIEN` mit den Knöpfen [Zeig’s mir] (`los`) und [Später] (neutral).
     - **Schalter aus:** nur Blase 1 = `TUTORIAL_BEDIEN` mit denselben Knöpfen. `TUTORIAL_2` entfällt mit, weil sie ohne den Fachsatz davor in der Luft hängt.
-    - **[Zeig’s mir]:** Kamera fährt in 1200 ms (`kurve.weich`; bei weniger Bewegung springt sie) auf (10|−2,5), Zoom 2,2. Danach öffnet das Baumenü im Reiter „Leitungen“, mit Loch um den Kasten „Bauabschnitt“ und dessen Infozeile `KATALOG_PREIS`.
+    - **[Zeig’s mir]:** Kamera fährt in 1200 ms (`kurve.weich`; bei weniger Bewegung springt sie) auf (10|−2,5), Zoom 2,2. Danach öffnet das Baumenü im Reiter „Leitungen“ (ohne Loch und ohne Finger – gestrichen nach Designer-Treue Entscheidung 5; die Infozeile steht seit M2 direkt unter der Kostenzeile und ist ohne Hervorhebung zu finden). Längen: jede Blase ≤ 120 Zeichen.
     - **[Später]:** schließt; das Mini-Tutorial gilt als gesehen und kommt über (i) nach 13.13 wieder.
-21. **P5** – Neue Werte aus 14.9 in `design/tokens.json` eintragen (Gruppe `farbe.bahn`, `karte.bahn`, `zeit_ms`).
+21. **P5** – Neue Werte aus 14.9 in `design/tokens.json` eintragen (Gruppe `farbe.bahn`, `karte.bahn`, `zeit_ms`) – erledigt.
 22. **P5** – Darstellungstests: Zug pausiert bei `mit_querung`; kein Rohr auf Bahnfeldern; Schleier-Aussparung nur ab Stufe 6; Schalter aus → kein (i), keine Karte, keine Blase.
