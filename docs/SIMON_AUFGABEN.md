@@ -13,3 +13,7 @@ Das Spiel ist fertig gebaut und geprüft (alle Tests grün). Nur diese Punkte ka
 Danach: NR25 (kW-Anzeige), später NR28 (Tal und Höhenübergabe).
 
 Bekannt, kleiner Feinschliff (kein Blocker): Erfolgsmoment-Funken sitzen noch an den Gruben statt an den Häusern (Test vorher anpassen); Preis schon beim Zeichnen; veraltete Meldung nach „Abschließen“.
+
+## Nachtrag 2026-11-24
+- Dev-Team auf 3.22.2 aktualisiert. a88 erledigt (Freigabe erteilt, Prüfsumme gesetzt). Schranke `projektleiter` mit Basis 79469fd (Beginn NR27): OK – alles grün.
+- Offen für Simon bleiben nur noch: Fachtexte freigeben (1), Spielwerte (2), Ausprobieren (4).
