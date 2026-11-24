@@ -836,3 +836,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-24 07:21 | ▶ | tester | Tester-Vorarbeit Erklärkarte W1 |
 | 2026-11-24 07:26 | ■ 🟡 | tester | 🟡 Vorarbeit fertig und committet. Die neuen Tests sind wie verlangt absichtlich rot. Wichtig: Der Vorschlag-Patch des Entwicklers erfüllt die neue Vorgabe n ([Bericht](docs/pruefberichte/20261124-072640-tester-ac90058fb664ccb07.md)) |
 | 2026-11-24 07:26 | ▶ | entwickler | Erklärkarte W1 bauen |
+| 2026-11-24 07:34 | ■ 🔴 | entwickler | ## Status: BLOCKIERT 🔴 (fachlich und technisch fertig – nur die Test-Schranke meldet einen Fehler, der nicht von meiner Änderung kommt)  ([Bericht](docs/pruefberichte/20261124-073405-entwickler-a6083d240e0362c92.md)) |
+| 2026-11-24 07:35 | ▶ | designer | Designer: Doku nachziehen, Karte prüfen |
