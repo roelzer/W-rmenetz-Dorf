@@ -834,3 +834,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-23 13:22 | ■ 🟡 | produktpruefer | AMPEL GELB. NR27 a–c und e–g sind belegt erfüllt. d ist wegen des bewusst ausgeschalteten Fachtext-Schalters nicht bewertbar. h: Fotos erstellt und angeseh ([Bericht](docs/pruefberichte/20261123-132212-produktpruefer-ab3088f10407e5839.md)) |
 | 2026-11-23 13:35 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT.** Ich habe fünf von sieben Punkten gebaut, getestet und committet. Fertig melden kann ich trotzdem nicht, aus zwei Gründen:  ([Bericht](docs/pruefberichte/20261123-133508-entwickler-a15c8e38c0420d968.md)) |
 | 2026-11-24 07:21 | ▶ | tester | Tester-Vorarbeit Erklärkarte W1 |
+| 2026-11-24 07:26 | ■ 🟡 | tester | 🟡 Vorarbeit fertig und committet. Die neuen Tests sind wie verlangt absichtlich rot. Wichtig: Der Vorschlag-Patch des Entwicklers erfüllt die neue Vorgabe n ([Bericht](docs/pruefberichte/20261124-072640-tester-ac90058fb664ccb07.md)) |
+| 2026-11-24 07:26 | ▶ | entwickler | Erklärkarte W1 bauen |
