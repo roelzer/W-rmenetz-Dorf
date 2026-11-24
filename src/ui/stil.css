@@ -519,12 +519,13 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 /* direkt unter der Kostenzeile (Phase „offen“, DESIGN 14.5): 8 px, dort steht kein Knopfsockel darüber */
 .abschnitt-kurz + .bahn-info{margin-top:8px}
 .bahn-tutorial-knoepfe{justify-content:flex-end}
-#bahn-karte{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:12px}
+#bahn-karte{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;padding:8px}
 #bahn-karte>.blatt.popup{position:relative;width:min(560px,100%);max-width:none;max-height:100%;margin:0}
 /* Reicht die Höhe nicht (667×375, Bildspalte mit Chips höher als der Platz), scrollt der Inhalt zwischen Kopfband und
-   Aktionsleiste; unten Ausblendmaske 16 px (Designer-Treue M4). Der Innenabstand unten hält Inhalt, der passt, aus der
-   Maske heraus – ohne echten Überlauf bleibt alles voll deckend. */
-#bahn-karte .inhalt{display:flex;flex-direction:column;padding:16px 16px 16px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent)}
+   Aktionsleiste; unten Ausblendmaske 12 px (Designer-Treue M4, NR27 W1). Die Maske ist nicht höher als der Innenabstand
+   unten: so liegt Inhalt, der passt (letzte Zeile KARTE_5), nie in der Maske – ohne echten Überlauf bleibt alles voll
+   deckend. Rand 8 px und Innenabstand 12 px geben bei 667×375 die Höhe, damit KARTE_5 ohne Scrollen passt. */
+#bahn-karte .inhalt{display:flex;flex-direction:column;padding:12px 16px 12px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 12px),transparent)}
 .karte-oben{display:flex;gap:16px;align-items:flex-start}
 .karte-bildspalte{flex:none;width:176px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .karte-bild{flex:none;width:176px;height:132px}
@@ -532,7 +533,8 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .karte-text p{margin:0 0 4px;font-size:14px;line-height:20px}
 .karte-chips{display:flex;flex-wrap:wrap;gap:6px}
 .karte-chips .sym{width:14px;height:14px}
-.karte-hinweis{margin:0;font-size:12px}
+/* Hinweis KARTE_5 als letzte Zeile der Textspalte: kleiner als die Sätze, ohne Abstand darunter (schlägt .karte-text p) */
+.karte-text .karte-hinweis{margin:0;font-size:12px;line-height:16px}
 #bahn-karte .aktionen{flex:none;display:flex;justify-content:flex-end;padding:8px 12px;background:var(--menue-farbe-kasten-kopf);border-top:var(--menue-mass-px-kontur-fein) solid var(--menue-farbe-tafel-linie)}
 /* (i) zur Erklärkarte: Symbol 24 px, Tippfläche 44 × 44 px (CLAUDE.md, DESIGN 14.15) */
 .info-knopf{display:inline-grid;place-items:center;width:var(--groesse-px-tippflaeche-min);height:var(--groesse-px-tippflaeche-min);padding:0;border:0;background:none;color:inherit;vertical-align:middle;flex:none}
