@@ -1,3 +1,4 @@
 # Prüfsummen der verdeckten Abnahmetests (sha256, Zeilenenden vereinheitlicht)
 # Automatisch geschrieben von abnahme_pruefsummen.py – nicht von Hand ändern. Wird nur ergänzt.
-3490d982c0402d5baaab36151411e97c52b181f81fd6c678b7abe5aa85bbd5ae  a88-kundenanfrage.test.ts
+2f6455c724c63c267b48f818699b34e5391199f53699b5bf2fe997a4c5b18443  a88-kundenanfrage.test.ts
+# freigegeben: 2f6455c724c63c267b48f818699b34e5391199f53699b5bf2fe997a4c5b18443 A88-Pruefsumme a88-kundenanfrage.test.ts
