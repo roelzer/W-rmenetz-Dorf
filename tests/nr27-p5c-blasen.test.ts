@@ -10,12 +10,9 @@ import { neu } from './hilfen';
 import { aufnahme, leeresDorf } from './hilfen/nr22';
 
 // NR27 P5c (Review P5b4 Bedenken 3; DESIGN 14.8 Zeile „Erfolgsmoment“, design/tokens.json zeit_ms.dunst_heben 1200, blase_versatz 60):
-// Die Blasen der neuen Häuser hinter der Bahn erscheinen erst nach dem Dunst-Heben, je Haus 60 ms später; bei „Weniger Bewegung“
-// sofort. Muster wie tests/nr27-p5b4-erfolg.test.ts.
-//
-// Werte von Hand: Bildzeiten 0,0625 s (im Gleitkomma exakt). Im Bild Nummer j nach dem Auslösebild (j = 0) gilt die Erfolgszeit
-// t = j · 0,0625 s. Haus 1 ab 1,20 s → erst ab j = 20 (1,25 s; j = 19 ist 1,1875 s); Haus 2 ab 1,26 s → ab j = 21 (1,3125 s);
-// Haus 3 ab 1,32 s → ab j = 22 (1,375 s). Abstand jeder Grenze zum Bildraster ≥ 5 ms, weit über dem Rundungsfehler.
+// Fassung bis 2026-11-23: Blasen der neuen Häuser erst nach dem Dunst-Heben, je Haus 60 ms später. Seit DESIGN 14.8 vom
+// 2026-11-24 entfällt der Versatz: die Blasen folgen sofort den normalen Regeln, mit und ohne „Weniger Bewegung“.
+// Muster wie tests/nr27-p5b4-erfolg.test.ts. Bildzeiten 0,0625 s.
 // Erkennungszeichen der „kein Anschluss“-Blase (gebaeude.ts zeichneBlase, Art 'stecker'): Scheibe in '#8d99a5'.
 const DT = 0.0625, STECKER = 'fillStyle=#8d99a5';
 
@@ -52,41 +49,25 @@ function darstellung(reduziert: boolean) {
 const blasen = (b: string[]): number => b.filter((c) => c === STECKER).length;
 
 describe('NR27 P5c Blasen der neuen Häuser im Erfolgsmoment (DESIGN 14.8)', () => {
-  // Fehler, die ihn rot machen: die Blasen kommen sofort (Altverhalten), alle auf einmal statt versetzt, der Versatz beginnt nicht
-  // nach den 1200 ms des Dunsts, oder der Erfolgsmoment endet, bevor das letzte Haus seine Blase bekommen hat.
-  it('test_nr27_p5c_blasen_versetzt: keine Blase bis 1,2 s, dann je 60 ms ein Haus mehr', () => {
+  // Tester-Vorarbeit NR27 Feinschliff (DESIGN 14.8 Stand 2026-11-24: „Entfallen … Blasen mit Versatz“; 14.4: „Danach verhalten
+  // sich die Häuser wie alle anderen“): die Blasen der neuen Häuser warten nicht mehr auf den Dunst, sie folgen den normalen Regeln.
+  // Ersetzt die Tests „keine Blase bis 1,2 s, dann je 60 ms ein Haus mehr“ und „der Moment läuft, bis ein Bild alle Blasen gezeigt
+  // hat“ (beide schrieben den Versatz fest).
+  // Fehler, die ihn rot machen: die Blasen warten noch (1,2 s oder je Haus versetzt), oder sie verschwinden im Lauf des Moments.
+  it('test_nr27_p5c_blasen_sofort: alle Blasen der neuen Häuser schon im Auslösebild und danach durchgehend', () => {
     const d = darstellung(false), sp = neuesSpiel();
     d.bild(szene(sp, true));
     const je: number[] = [];
     for (let j = 0; j <= 23; j++) je.push(blasen(d.bild(szene(sp, false))));
-    expect(je[0], 'Auslösebild').toBe(0);
-    expect(je[19], 'bei 1,1875 s').toBe(0);
-    expect(je[20], 'bei 1,25 s').toBe(1);
-    expect(je[21], 'bei 1,3125 s').toBe(2);
-    expect(je[22], 'bei 1,375 s').toBe(3);
-    expect(je[23], 'danach bleiben alle').toBe(3);
-    expect(d.e.aktiv(), 'nach dem letzten Haus vorbei').toBe(false);
+    expect(je, 'Bild 0 … 23 (0 … 1,4375 s)').toEqual(new Array(24).fill(3));
   });
 
-  // Fehler, der ihn rot macht: der Erfolgsmoment endet nach der Zeit statt nach dem Bild, das die letzte Blase zeigt. Bei langen
-  // Bildern (3/32 s, exakt darstellbar) zeigt das Bild bei 1,3125 s erst zwei Blasen (Haus 3 ab 1,32 s); danach ist die Zeit
-  // 1,40625 s schon über 1,2 + 3 · 0,06 = 1,38 s. Endete der Effekt hier, fiele der Grund für das nächste Bild weg (effekte_aktiv).
-  it('test_nr27_p5c_blasen_letztes_bild: der Moment läuft, bis ein Bild alle Blasen gezeigt hat', () => {
-    const d = darstellung(false), sp = neuesSpiel(), dt = 3 / 32;
-    d.bild(szene(sp, true), dt);
-    for (let j = 0; j < 14; j++) d.bild(szene(sp, false), dt);
-    expect(blasen(d.bild(szene(sp, false), dt)), 'bei 1,3125 s').toBe(2);
-    expect(d.e.aktiv(), 'läuft weiter').toBe(true);
-    expect(blasen(d.bild(szene(sp, false), dt)), 'bei 1,40625 s').toBe(3);
-    expect(d.e.aktiv(), 'jetzt vorbei').toBe(false);
-  });
-
-  // Fehler, der ihn rot macht: der Versatz trifft auch Häuser im Dorf – deren Blasen verschwänden im Erfolgsmoment für 1,2 s.
-  it('test_nr27_p5c_blasen_dorf_bleiben: ein Dorfhaus behält seine Blase im Auslösebild', () => {
+  // Fehler, der ihn rot macht: im Erfolgsmoment verschwinden Blasen im Dorf, oder die neuen Häuser warten noch.
+  it('test_nr27_p5c_blasen_dorf_bleiben: Dorfhaus und neue Häuser zeigen ihre Blasen im Auslösebild', () => {
     const d = darstellung(false), sp = neuesSpiel(), dorf = neu('efh', 5, 3, { station: 'klein', ohne_station: true });
     const mit = (kulisse: boolean): Szene => ({ ...szene(sp, kulisse), objekte: [...szene(sp, kulisse).objekte, dorf] });
     expect(blasen(d.bild(mit(true))), 'vorher: nur das Dorfhaus').toBe(1);
-    expect(blasen(d.bild(mit(false))), 'Auslösebild: Dorfhaus ja, neue Häuser noch nicht').toBe(1);
+    expect(blasen(d.bild(mit(false))), 'Auslösebild: Dorfhaus und drei neue Häuser').toBe(4);
   });
 
   // Fehler, der ihn rot macht: bei „Weniger Bewegung“ warten die Blasen trotzdem (Versatz ist Bewegung, DESIGN 14.8 rechte Spalte).

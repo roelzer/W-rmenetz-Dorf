@@ -13,8 +13,8 @@ import { aufnahme, leeresDorf } from './hilfen/nr22';
 // (stand.nordviertel false → true) im selben Spiel, kein Kernereignis. Muster wie tests/nr27-p5b3-zug.test.ts.
 //
 // Werte von Hand: Dunst hebt sich in 1200 ms (`dunst_heben`). Bildzeiten 0,0625 s (im Gleitkomma exakt, Lektion Grenzwerte):
-// nach 18 Bildern = 1,125 s ist noch Dunst da, nach 20 Bildern = 1,25 s nicht mehr. Funken je Grube 24 Teilchen, jede vierte in
-// '#9be36a' (effekte.ts) → 6 je Grube, 12 an beiden Gruben. Weniger Bewegung: keine Funken, kein Dunst und (Fix-Runde NR27)
+// nach 18 Bildern = 1,125 s ist noch Dunst da, nach 20 Bildern = 1,25 s nicht mehr. Funken an den neuen Häusern (Feinschliff,
+// Werte im Block unten). Weniger Bewegung: keine Funken, kein Dunst und (Fix-Runde NR27)
 // auch kein Aufleuchten der Grubenfelder mehr (früher 0,4 s in '#ffe14d').
 const DT = 0.0625, FUNKE = 'fillStyle=#9be36a', LEUCHTEN = 'fillStyle=#ffe14d';
 
@@ -48,6 +48,21 @@ function darstellung(reduziert: boolean, winkel_rad = 0) {
   };
 }
 const zahl = (b: string[], c: string): number => b.filter((x) => x === c).length;
+/** Startpunkte der grünen Funken (Kreis direkt nach fillStyle=#9be36a, siehe Effekte.zeichne) in Zeichenreihenfolge. */
+const gruen = (b: string[]): number[][] =>
+  b.flatMap((c, i) => (c.startsWith('arc(') && b[i - 2] === FUNKE ? [c.slice(4, -1).split(',').map(Number).slice(0, 2)] : []));
+const KURZ = 1 / 1024;
+/** Drei neue Häuser aus dem Nordplan (Zeile −5, je 1 Feld groß) und ein Dorfhaus vor der Bahn. */
+const NEUE: Objekt[] = NORD_PLAN.filter((h) => h.y === -5).slice(0, 3).map((h) => neu(h.typ, h.x, h.y));
+const DORFHAUS = neu('efh', 5, 3);
+/** Vor dem Wechsel: Kulisse, keine echten Häuser hinter der Bahn; danach: die neuen Häuser stehen (wie nordviertelAnlegen). */
+const mitHaeusern = (sp: Szene['spiel'], mit_kulisse: boolean, dazu: Objekt[] = []): Szene =>
+  ({ ...szene(sp, mit_kulisse), objekte: [HZ, ...dazu, ...(mit_kulisse ? [] : NEUE)] });
+/** Abstand eines Punkts vom Funken-Start des Hauses o (0,4 Kachel über der Mitte). */
+const abstand = (k: Kamera, o: Objekt, x: number, y: number): number => {
+  const [cx, cy] = k.mitte(o.x, o.y);
+  return Math.hypot(x - cx, y - (cy - k.tw * 0.4));
+};
 /** Stelle in der Aufnahme, an der der Dunst gezeichnet wird, sonst −1. */
 function dunstStelle(b: string[]): number {
   // Kennzeichen des Dunsts (zeichneDunst): der Verlauf beginnt genau am ersten Eckpunkt der Fläche, der Südwestecke am Zaun.
@@ -84,23 +99,94 @@ describe('NR27 P5b4 Erfolgsmoment nur beim Wechsel, nie beim Laden (DESIGN 14.8)
     expect(d2.e.aktiv(), 'anderes Spiel').toBe(false);
   });
 
-  // Fehler, der ihn rot macht: der Wechsel wird nicht erkannt, die Funken fehlen oder stehen nur an einer Grube.
-  it('test_nr27_erfolg_wechsel: Kulisse → leer im selben Spiel: Funken an beiden Gruben, Dunst noch ganz da', () => {
-    const d = darstellung(false), sp = neuesSpiel(), k = kamera();
-    expect(dunst(d.bild(szene(sp, true))), 'vorher: Dunst über der Kulisse').toBe(1);
-    // sehr kurzes Bild (1 ms): Funken fliegen 60 × dt × (|v| ≤ 6 + Auftrieb 4) ≤ 0,6 px weit, ihr Start bleibt prüfbar
-    const b = d.bild(szene(sp, false), 0.001);
-    expect(zahl(b, FUNKE)).toBe(12);
+  // Tester-Vorarbeit NR27 Feinschliff (DESIGN 14.8 Stand 2026-11-24, Designer-Treue NR27 W1 Befund 1): die Funken stehen an den
+  // neuen Häusern, nicht mehr an den Gruben. Die Funken-Tests mit Häusern stehen im eigenen Block unten.
+  // Fehler, die ihn rot machen: der Wechsel wird nicht erkannt (kein Dunst, kein laufender Effekt) oder er löst ein zweites Mal aus.
+  it('test_nr27_erfolg_wechsel: Kulisse → leer im selben Spiel: Dunst noch ganz da, Effekt läuft, nur einmal', () => {
+    const d = darstellung(false), sp = neuesSpiel();
+    expect(dunst(d.bild(mitHaeusern(sp, true))), 'vorher: Dunst über der Kulisse').toBe(1);
+    const b = d.bild(mitHaeusern(sp, false), KURZ);
     expect(dunst(b), 'erstes Bild des Wechsels').toBe(1);
     expect(d.e.aktiv(), 'läuft').toBe(true);
-    // Funken starten 0,4 Kachel über der Mitte der Gruben (10|−1) und (10|−4), effekte.ts
-    const kreise = b.flatMap((c, i) => (c.startsWith('arc(') && b[i - 2] === FUNKE ? [c.slice(4, -1).split(',').map(Number)] : []));
-    for (const y of [-1, -4]) {
-      const [cx, cy] = k.mitte(10, y), oy = cy - k.tw * 0.4;
-      expect(kreise.filter(([x, yy]) => Math.hypot(x - cx, yy - oy) < 1), `Grube y = ${y}`).toHaveLength(6);
+    // einmalig: über 0,3 s ohne Kulisse kommen nie mehr als 3 × 6 grüne Funken zusammen (Funken leben mindestens 0,8 s)
+    let n = 0;
+    for (let i = 0; i < 300; i++) n = gruen(d.bild(mitHaeusern(sp, false), KURZ)).length;
+    expect(n, 'keine zweite Auslösung').toBe(18);
+  });
+});
+
+// Werte von Hand (DESIGN 14.8 „Funken an allen neuen Häusern“, Entscheidung PL: je Haus um zeit_ms.blase_versatz = 60 ms versetzt):
+// Effekte.funken setzt 24 Teilchen, jedes vierte in '#9be36a' → 6 grüne je Haus. Start 0,4 Kachel über der Hausmitte
+// (efh/rh sind 1 Feld groß, Mitte = k.mitte(x, y)). Bildzeit KURZ = 1/1024 s (exakt): Funken fliegen je Bild höchstens
+// 60 × 1/1024 × (|v| ≤ 6 + Auftrieb 4) ≈ 0,59 px, im Bild ihres Entstehens liegt jede Funke also < 1 px vom Start.
+// Versatz: Haus 2 ab 60 ms = 61,44 Bilder, Haus 3 ab 120 ms = 122,88 Bilder nach dem Auslösebild (Bild 0). Je nachdem, ob die
+// Umsetzung die Zeit des Auslösebilds mitzählt und vor oder nach dem Weiterzählen prüft, erscheinen sie in Bild 61–63 bzw.
+// 122–124; die Tests lassen je ein Bild Spielraum (60–64, 121–125). Welches Haus zuerst kommt, legt DESIGN nicht fest – geprüft
+// wird, dass jeder Schritt an einem anderen neuen Haus sprüht und am Ende alle drei dran waren.
+// Gruben (10|−1), (10|−4) aus grubenFelder(); die drei Häuser (2|−5), (4|−5), (6|−5) liegen weit weg (≥ 4 Felder).
+describe('NR27 Feinschliff Erfolgsmoment: Funken an den neuen Häusern, je 60 ms versetzt (DESIGN 14.8)', () => {
+  // Fehler, die ihn rot machen: Funken weiter an den Gruben, an allen Häusern auf einmal, auch an Dorfhäusern, an der falschen
+  // Stelle (nicht 0,4 Kachel über der Mitte) oder gar keine.
+  it('test_nr27_erfolg_funken_erstes_haus: Auslösebild: 6 grüne Funken an genau einem neuen Haus, keine an Gruben oder im Dorf', () => {
+    const d = darstellung(false), sp = neuesSpiel(), k = kamera();
+    d.bild(mitHaeusern(sp, true, [DORFHAUS]));
+    const g = gruen(d.bild(mitHaeusern(sp, false, [DORFHAUS]), KURZ));
+    expect(g, 'grüne Funken im Auslösebild').toHaveLength(6);
+    const treffer = NEUE.filter((o) => g.every(([x, y]) => abstand(k, o, x, y) < 1));
+    expect(treffer, 'alle sechs am selben neuen Haus').toHaveLength(1);
+    for (const [gx, gy] of [[10, -1], [10, -4]] as const) {
+      const [cx, cy] = k.mitte(gx, gy), oy = cy - k.tw * 0.4;
+      expect(g.filter(([x, y]) => Math.hypot(x - cx, y - oy) < 1), `Grube (${gx}|${gy})`).toHaveLength(0);
     }
-    // einmalig: das nächste Bild ohne Kulisse löst nicht noch einmal aus
-    expect(zahl(d.bild(szene(sp, false)), FUNKE), 'keine neuen Funken').toBeLessThanOrEqual(12);
+    expect(g.filter(([x, y]) => abstand(k, DORFHAUS, x, y) < 1), 'Dorfhaus').toHaveLength(0);
+  });
+
+  // Fehler, die ihn rot machen: alle Häuser sprühen auf einmal (kein Versatz), der Versatz ist nicht 60 ms (z. B. 1 Bild, 100 ms
+  // oder über Bilder statt Zeit gezählt), ein Haus sprüht doppelt oder ein Haus wird ausgelassen, oder die Warteliste geht verloren.
+  it('test_nr27_erfolg_funken_versetzt: Haus 2 nach 60 ms, Haus 3 nach 120 ms, jedes an einem anderen Haus', () => {
+    const d = darstellung(false), sp = neuesSpiel(), k = kamera();
+    d.bild(mitHaeusern(sp, true));
+    const zahlen: number[] = [], neueStellen: Array<{ bild: number; punkte: number[][] }> = [];
+    for (let n = 0; n <= 200; n++) {
+      const g = gruen(d.bild(mitHaeusern(sp, false), KURZ));
+      const vorher = zahlen.length ? zahlen[zahlen.length - 1] : 0;
+      if (g.length > vorher) neueStellen.push({ bild: n, punkte: g.slice(vorher) });
+      zahlen.push(g.length);
+    }
+    expect(zahlen[0], 'Auslösebild: ein Haus').toBe(6);
+    expect(zahlen[59], 'bei 59 ms noch ein Haus').toBe(6);
+    expect(zahlen[65], 'bei 65 ms zwei Häuser').toBe(12);
+    expect(zahlen[120], 'bei 120 Bildern (117 ms) noch zwei Häuser').toBe(12);
+    expect(zahlen[126], 'bei 126 Bildern (123 ms) drei Häuser').toBe(18);
+    expect(zahlen[200], 'danach keine weiteren').toBe(18);
+    expect(neueStellen.map((s) => s.punkte.length), 'je Schritt sechs neue grüne Funken').toEqual([6, 6, 6]);
+    expect(neueStellen[1].bild, 'Haus 2 frühestens').toBeGreaterThanOrEqual(60);
+    expect(neueStellen[1].bild, 'Haus 2 spätestens').toBeLessThanOrEqual(64);
+    expect(neueStellen[2].bild, 'Haus 3 frühestens').toBeGreaterThanOrEqual(121);
+    expect(neueStellen[2].bild, 'Haus 3 spätestens').toBeLessThanOrEqual(125);
+    const haus = neueStellen.map(({ punkte }) => NEUE.findIndex((o) => punkte.every(([x, y]) => abstand(k, o, x, y) < 1)));
+    expect(haus.every((i) => i >= 0), 'jeder Schritt an einem neuen Haus').toBe(true);
+    expect(new Set(haus).size, 'drei verschiedene Häuser').toBe(3);
+  });
+
+  // Fehler, der ihn rot macht: ohne neue Häuser fällt die Umsetzung auf Funken an den Gruben (oder anderswo) zurück.
+  it('test_nr27_erfolg_ohne_neue_haeuser: keine Funken, der Dunst hebt sich trotzdem', () => {
+    const d = darstellung(false), sp = neuesSpiel();
+    d.bild(szene(sp, true));
+    const b = d.bild(szene(sp, false), KURZ);
+    expect(dunst(b), 'Wechsel erkannt').toBe(1);
+    let summe = zahl(b, FUNKE);
+    for (let i = 0; i < 200; i++) summe += zahl(d.bild(szene(sp, false), KURZ), FUNKE);
+    expect(summe, 'keine grünen Funken in 0,2 s').toBe(0);
+  });
+
+  // Fehler, der ihn rot macht: bei „Weniger Bewegung“ sprühen die Häuser trotzdem (sofort oder aus der Warteliste).
+  it('test_nr27_erfolg_ruhig_keine_funken: weniger Bewegung mit neuen Häusern: 0 Funken, auch nicht verspätet', () => {
+    const d = darstellung(true), sp = neuesSpiel();
+    d.bild(mitHaeusern(sp, true));
+    let summe = 0;
+    for (let i = 0; i <= 200; i++) summe += zahl(d.bild(mitHaeusern(sp, false), KURZ), FUNKE);
+    expect(summe).toBe(0);
   });
 });
 
