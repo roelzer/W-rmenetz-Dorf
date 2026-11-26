@@ -855,3 +855,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-26 09:18 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, Grund „Kontext voll“.** Alle fünf Punkte sind gebaut und committet. Alle Tests, die Typprüfung, der Build und die Test-Schranke  ([Bericht](docs/pruefberichte/20261126-091819-entwickler-a3853bdeffd7d14d4.md)) |
 | 2026-11-26 09:19 | ▶ | reviewer | Review Härtung + Schild |
 | 2026-11-26 09:19 | ▶ | tester | Tester: Gegenproben Härtung |
+| 2026-11-26 09:26 | ■ 🔴 | tester | 🟡 Die Härtung hält. Alle Tests sind grün, nichts wackelt. Eine Gegenprobe hat aber eine Testlücke gezeigt, die ich mit einer neuen Testdatei geschlossen  ([Bericht](docs/pruefberichte/20261126-092648-tester-a7e2e6bcc6884b90a.md)) |
