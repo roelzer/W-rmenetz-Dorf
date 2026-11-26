@@ -21,6 +21,7 @@ import { vorspannZeigen } from './ui/vorspann';
 import { hinweisMitKnopf } from './ui/toast';
 import { beiEinstellungsAenderung, einstellungenLesen, istEntwickler, type Einstellungen } from './ui/einstellungen';
 import { tempoBegrenzen, tempoSpeichern, uhr } from './tempo';
+import { bildSchritte, fehlerMelder } from './bildschutz';
 import { installationStarten } from './ui/installation';
 
 tokensAnwenden();
@@ -165,9 +166,22 @@ function sparHinweisPruefen(probe: BildProbe, verdeckt: boolean): void {
 let takt = neuerTakt();
 let letzt = performance.now(), letztGezeichnet = letzt, letzteKamera = '';
 const t0 = letzt;
+const fehlerMelden = fehlerMelder({
+  jetzt_ms: () => performance.now(),
+  protokoll: (text, fehler) => console.error(text, fehler),
+  spieler: (text) => steuerung.toast(text),
+});
 function bild(jetzt: number): void {
   const raf_abstand_ms = jetzt - letzt; letzt = jetzt;
-  steuerung.tick(uhr(), jetzt);
+  const spielzeit_ms = uhr();
+  // Spielerbericht 26.11.: Einnahmen laufen auch dann weiter, wenn Oberfläche oder Zeichnen scheitern; das nächste Bild kommt immer.
+  bildSchritte([
+    ['Spielkern', () => spiel.bis(spielzeit_ms)],
+    ['Steuerung', () => steuerung.tick(spielzeit_ms, jetzt)],
+    ['Darstellung', () => darstellen(jetzt, raf_abstand_ms)],
+  ], fehlerMelden, () => requestAnimationFrame(bild));
+}
+function darstellen(jetzt: number, raf_abstand_ms: number): void {
   kamera.schritt(raf_abstand_ms / 1000);
   // Überschreibt steuerung.bewegungAnwenden je Bild absichtlich: der Sparmodus schaltet die Umgebungsanimation ebenfalls ab.
   maler.reduziert = animationAus(einstellungen);
@@ -190,7 +204,6 @@ function bild(jetzt: number): void {
   sparHinweisPruefen({ raf_abstand_ms, zeichen_ms, kamera_bewegt: kameraSchluessel !== letzteKamera }, verdeckt);
   letzteKamera = kameraSchluessel;
   messen(jetzt, raf_abstand_ms, r.zeichnen);
-  requestAnimationFrame(bild);
 }
 requestAnimationFrame(bild);
 
