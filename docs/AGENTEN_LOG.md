@@ -847,3 +847,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-24 08:15 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG**  ([Bericht](docs/pruefberichte/20261124-081539-entwickler-acf109550380ce59c.md)) |
 | 2026-11-26 08:33 | ▶ | entwickler | Fehler: kein Geld seit 3 Tagen |
 | 2026-11-26 08:33 | ▶ | entwickler | Geburtstagsschild Phili |
+| 2026-11-26 08:33 | ■ 🔴 | entwickler | 🔴 Status: BLOCKIERT. Ich habe auf Anweisung des Koordinators angehalten: Simon will zuerst einen Entwurf sehen.  ([Bericht](docs/pruefberichte/20261126-083359-entwickler-a5f6429255cecf33c.md)) |
