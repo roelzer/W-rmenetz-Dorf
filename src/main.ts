@@ -22,6 +22,7 @@ import { hinweisMitKnopf } from './ui/toast';
 import { beiEinstellungsAenderung, einstellungenLesen, istEntwickler, type Einstellungen } from './ui/einstellungen';
 import { tempoBegrenzen, tempoSpeichern, uhr } from './tempo';
 import { bildSchritte, fehlerMelder } from './bildschutz';
+import { aktualisierungPruefen } from './update';
 import { installationStarten } from './ui/installation';
 
 tokensAnwenden();
@@ -229,6 +230,7 @@ try { void (screen.orientation as unknown as { lock?: (o: string) => Promise<voi
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch((f) => console.warn('Offline-Modus nicht verfügbar', f)); });
   // A83: Kommt eine neue Version an, übernimmt der neue Service Worker; der Spieler lädt neu, wann es ihm passt (der Spielstand bleibt).
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) void aktualisierungPruefen(navigator.serviceWorker); });
   const hatteVersion = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hatteVersion) return;
