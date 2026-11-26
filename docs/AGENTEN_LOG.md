@@ -858,3 +858,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-26 09:26 | ■ 🔴 | tester | 🟡 Die Härtung hält. Alle Tests sind grün, nichts wackelt. Eine Gegenprobe hat aber eine Testlücke gezeigt, die ich mit einer neuen Testdatei geschlossen  ([Bericht](docs/pruefberichte/20261126-092648-tester-a7e2e6bcc6884b90a.md)) |
 | 2026-11-26 09:26 | ▶ | entwickler | Objekt-Nummer beim Laden anheben |
 | 2026-11-26 09:27 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit einer Bedingung.** Die Härtung und das Geburtstagsschild machen, was verlangt war. Geld und Bauten gehen in keinem Fall verloren, den ic ([Bericht](docs/pruefberichte/20261126-092749-reviewer-aa3e6e5ce0b3e5061.md)) |
+| 2026-11-26 09:32 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG**  ([Bericht](docs/pruefberichte/20261126-093208-entwickler-a81d99fca32f1725c.md)) |
