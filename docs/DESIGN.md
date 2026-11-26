@@ -3,6 +3,7 @@
 Stand 2026-11-04 · Designer, Modus `entwurf` (Überarbeitung) und `vorgabe` · Werte: `design/tokens.json`, Fassung 2. Im Code stehen keine Farben, Maße oder Zeiten direkt.
 **Nachtrag 2026-11-05: Für alle Menüs und Bedienoberflächen (DOM) gilt ab jetzt Abschnitt 12 „Menü-Stil v2“.** Wo die Abschnitte 1, 4 und 9 für Menüs etwas anderes sagen (Haarlinien, kein Textumriss, eine Schrift), gilt Abschnitt 12. Die Kartengrafik (Abschnitt 3) bleibt unverändert.
 **Nachtrag 2026-11-06: Abschnitt 13 „Tutorial (NR13)“** – Ablauf, Texte, Spotlight und Zustände des Pflicht-Tutorials für neue Spiele.
+**Nachtrag 2026-11-26: Abschnitt 15 „Werbetafel Geburtstage“** – Geburtstage auf einer Tafel im Dorf (Feld 15|5) statt Bildschirm-Schild: Zustände heute/bald/neutral, Überlagerung beim Antippen, Texte, Werte-Vorschlag.
 **Nachtrag 2026-11-23: Abschnitt 14 „NR27 Bahnstrecke und Bahnquerung“** – Bahn im heutigen Wiesenrand am Nordrand, Zug in Rohrnaht-Farben, Nordgebiet im Dunst, Querung als Bauwerk (Vorschau, Baustelle mit Bohrlinie, Schutzrohr-Symbol), Sperrtexte Q1–N2, Erklärkarte „Warum so teuer?“, Prüfliste.
 **Nachtrag 2026-11-08: Abschnitt 13.17.11** – nach Fotocheck NR20–22 final: Saum am überlasteten Rohr schmal (Durchmesser bleibt), Vorschau-Rauten deutlicher, Titel bei Hand-Ersatz, kein doppeltes Zurücknehmen, Pfeil auf Eckfeldern verschoben.
 **Nachtrag 2026-11-07: Abschnitt 13.17.10** – nach Fotocheck P5f-final: Streifen über Gebäuden, Haken live, Rest-Satz, Raute ohne Füllung, Stecker blass beim eigenen Abgang, Klarstellung Abdunkeln/Pfeil.
@@ -1915,3 +1916,125 @@ Was P4 laut Bauplan schon liefert (Grundgleis: Schotter, Schienen, Schwellen, Br
     - **[Später]:** schließt; das Mini-Tutorial gilt als gesehen und kommt über (i) nach 13.13 wieder.
 21. **P5** – Neue Werte aus 14.9 in `design/tokens.json` eintragen (Gruppe `farbe.bahn`, `karte.bahn`, `zeit_ms`) – erledigt.
 22. **P5** – Darstellungstests: Zug pausiert bei `mit_querung`; kein Rohr auf Bahnfeldern; Schleier-Aussparung nur ab Stufe 6; Schalter aus → kein (i), keine Karte, keine Blase.
+
+## 15. Werbetafel Geburtstage (Entwurf 2026-11-26)
+Designer, Modus `entwurf`. Mock: `docs/entwuerfe/geburtstagstafel-entwurf.html` (echte Bildschirmfotos der Startansicht 844×390 und 667×375, Tafel an der gemessenen Stelle darübergelegt; Zustände heute, mehrere heute, bald, neutral, jeweils mit Überlagerung; Detailstufen beim Zoomen). **Ersetzt** das Bildschirm-Schild aus `src/ui/geburtstagsschild.ts` (Ebene über der Karte, nur am 26.11.2026) samt CSS-Block `.geburtstagsschild` in `stil.css` und `geburtstagsschildAktiv` in `src/core/geburtstag.ts`.
+
+### 15.1 Entscheidungen auf einen Blick
+| Frage | Entscheidung | Warum |
+|---|---|---|
+| Wo | **Fuß auf der Mitte von Feld (15|5)**, am Südrand der Querstraße Nord, rechts oben im Startbild | Gemessen in der Startansicht (Zoom 2,2, Projektion des Spiels): 844×390 Fuß bei (679|196), Tafel x 605–754, y 88–162; 667×375 Fuß (581|190), Tafel x 510–653, y 86–157. Abstand zur Anzeigenreihe (Unterkante 44) über 40 px, mit Ballons rund 20 px; zu den Rundknöpfen bei 667×375 7 px (Pfosten) bzw. 40 px (Tafel). Heizzentrale, Büro und Monteurhäuschen bleiben ganz frei. Die Pfosten stehen am Straßenrand – dort stehen echte Plakatwände. |
+| Wie gefunden | Alle freien Felder per Skript geprüft: Tafel samt Ballons ganz im Bild bei beiden Größen, keine Überschneidung mit Anzeigen, Auftragskarte, Zoom und Rundknöpfen, kein eigenes Gebäude dahinter | Übrig blieben nur 4 Felder; (15|5) verdeckt am wenigsten. Der erste Gedanke (14|8) neben der Heizzentrale schied aus: Die Tafel hätte das Monteurhäuschen und das EFH (13|7) verdeckt (im Mock mit 40 % Deckkraft nachgesehen). |
+| Was sie verdeckt | Teile von RH (15|3) (etwa 57 %), EFH (14|5) (43 %) und MFH (11|4) (37 %) – alles Kunden am Nordrand, keine eigenen Gebäude | Im dichten Dorf verdeckt jeder Platz in der Startansicht etwas. Ausgleich: Blasen und kW-Schilder liegen in der Ebene `oben` und bleiben über der Tafel sichtbar; beim Planen und Bauen wird die Tafel durchsichtig (15.5); die Karte lässt sich verschieben und drehen. |
+| Warum nicht am Bahndamm / in der Nordzone | verworfen | Plakatwände an Bahnstrecken wären echt, aber der Grünstreifen y = −1 liegt in der Startansicht nur in der rechten oberen Ecke unter der Anzeigenreihe; bei 667×375 gar nicht. Simon wünscht: sofort im Bild. |
+| Warum nicht auf einem Gebäude (Büro, Heizzentrale, Hütte) | verworfen | Tippen auf die Tafel und Tippen aufs Gebäude wären nicht mehr zu trennen; die Heizzentrale wächst mit der Stufe. |
+| Ausrichtung | Tafelfläche **immer parallel zum Bildschirm**, Pfosten im Bildschirm ±0,92 tw neben dem Fuß | Text bleibt waagrecht und lesbar, auch beim stufenlosen Drehen (A75). Eine schräge Iso-Tafel wäre bei Zoom 2,2 nicht lesbar. |
+| Größe | Tafel 2,6 × 1,3 tw, Pfosten 0,6 tw, Schmuck bis 0,4 tw darüber; zoomt mit der Karte | Bei Start-Zoom 149×74 px (844) bzw. 143×72 px (667): Name 26 px, kleine Zeilen 12 px. |
+| Feld (15|5) | **Kein Gebäude** darf darauf (Sperrgrund „Hier steht die Dorftafel.“ nach 12.20); **Leitungen dürfen darunter** | Die Tafel steht auf Stelzen; Leitungen am Straßenrand bleiben möglich. |
+| Alte Spielstände | Steht auf (15|5) schon ein Gebäude: **keine Tafel**; am Geburtstag einmal beim Start die Meldung H1 nach 12.17 | Ein gleichwertiger Ersatzplatz existiert nicht (die anderen drei Treffer liegen unten rechts über vielen Häusern oder über den Tutorial-Häusern). (15|5) liegt weit von der Heizzentrale; dort steht selten etwas. Projektleiter: beim Laden zählen, wie oft das vorkommt. |
+| Neutral-Zustand | **Tafel bleibt stehen** als Plakat des eigenen Wärmenetzes („Heatville – Wärme fürs ganze Dorf“), ohne Namen und Daten | Eine leere oder halb durchsichtige Tafel sieht kaputt aus. Verschwindet sie, lernt niemand, dass dort Geburtstage erscheinen, und an Geburtstagen tauchte plötzlich ein Ding auf (springendes Bild). Eine Werbetafel mit Werbung fürs eigene Netz passt in die Welt und braucht keine Fachaussage. Den Dorfnamen zeigt sie nicht: Er steht schon im Dorfschild und wird vom Spieler vergeben. |
+| „Bald“-Fenster | **morgen bis in 6 Tagen** (nicht 7) | So ist der Wochentag eindeutig („am Samstag“). In genau 7 Tagen wäre „am Donnerstag“ heute und nächste Woche zugleich. |
+
+### 15.2 Aussehen (Canvas, Objekt-Ebene)
+Maße in Kachelbreiten (tw), Ursprung = Fuß. Stil wie die Kartengrafik (Abschnitt 3): flache Flächen, Licht von links oben, weicher Bodenschatten, keine dunklen Umrisse. Die Tafel ist der einzige „Jahrmarkt“ im Bild – darum gibt es sie genau einmal.
+- **Gerüst:** zwei Holzpfosten 0,09 tw breit bei ±0,92 tw, linke Hälfte `objekt.geruest`, rechte −16 % (`licht_faktor`), graue Fußplatten (`objekt.deko.stein[1]`), Kreuzstrebe 0,028 tw. Bodenschatten wie jedes Objekt (`karte.schatten`, Ellipse 1,15 × 0,22 tw, nach rechts unten versetzt).
+- **Tafel:** Rahmen 0,10 tw, Radius 0,09 tw, Tiefe als Versatz 0,05 tw nach rechts unten in Kontur 28 %, oben eine 0,03-tw-Lichtkante (Glanz 28 %). Innenfläche mit Haarlinie in der dunkleren Rahmenfarbe. **Außen eine 1-px-Linie** in `menue.farbe.kontur` mit 60 % Deckkraft: Auf der Sommerwiese hätte der rote Rahmen allein nur 2,3:1 (Holzrahmen 2,8:1), mit der Linie ist die Tafelkante überall ≥ 3:1.
+- **Glühbirnen** auf dem Rahmen: 11 oben, 11 unten, je 3 an den Seiten; Kern 0,036 tw `objekt.deko.laterne_licht`, Schein 0,075 tw. Aus: 0,032 tw in `geburtstag.birne_aus`.
+- **Schmuck nur „heute“:** zwei Ballons an der linken oberen Ecke in Vorlauf-Orange und Rücklauf-Blau (`menue.farbe.naht_vorlauf`/`naht_ruecklauf` – das Rohrnaht-Paar als Gruß), fünf kleine Konfetti-Schnipsel innen am Rahmen in vorhandenen Menüfarben (Rücklauf, Haupt-Grün, Vorlauf, Ruf-Rot, Taler-Violett). Die alten Tailwind-ähnlichen `geburtstag.konfetti` entfallen.
+- **Winter** (`jahreszeiten`): schmale Schneekante `SCHNEE` auf der Tafel-Oberkante und den Pfostenköpfen, sonst gleich.
+- **Schrift:** Lilita One (`menue.schrift.anzeige`) für alle Zeilen auf der Tafel, Plakat-Look wie die Menütitel; keine Textkontur (dunkle Schrift auf hell, 12.4). Jede Zeile schrumpft, bis sie in die Innenbreite (2,22 tw) passt; der Name höchstens bis 0,28 tw.
+- **Detailstufen:** Die kleinen Zeilen stehen nur da, wenn 0,21 tw ≥ 11 px (`schrift.mindestgroesse_px`), also ab tw 52 (Handy ab Zoom 2). Darunter nur die große Zeile, mittig. Gezeigt im Mock (tw 26/40/57/104).
+- **Zeichenreihenfolge:** Die Tafel wird wie ein Objekt nach Tiefe des Fußfelds einsortiert (wie Masten, 14.2). Blasen, kW-Schilder, Bautimer und Schwebetexte (`oben`) liegen darüber.
+- **60 Bilder/s:** Die Tafel samt Text wird einmal je (Zustandstext, tw auf 2 px gerundet, Jahreszeit, Birnenphase A/B) in eine Zwischenleinwand gezeichnet. Pro Bild nur ein `drawImage` – kein `fillText` je Bild. Neu zeichnen nur bei Zoom-, Text- oder Tageswechsel.
+
+| Rolle | heute | bald | neutral |
+|---|---|---|---|
+| Fläche | `geburtstag.schild_unten` #ffc83d | `geburtstag.schild_oben` #ffe27a | `menue.farbe.tafel` #fff4df |
+| Rahmen / Haarlinie | `geburtstag.rand` #d9461f / `rand_tief` #a8321a | wie heute | `objekt.tuer` #8a6248 / `geburtstag.rahmen_holz_tief` #6b4a34 |
+| Text | `geburtstag.text` #7a1f10 (6,7:1) | #7a1f10 (8,1:1) | `menue.farbe.kontur` #3b1d0a (14,1:1) |
+| Name / Akzent | `rand_tief` #a8321a (4,3:1, groß) | Kopfzeile #a8321a (5,2:1) | Rohrnaht-Streifen 0,05 tw, links Vorlauf, rechts Rücklauf |
+| Birnen | an, Lauflicht | aus | keine |
+| Schmuck | Ballons, Konfetti | keiner | keiner |
+Kontraste nach WCAG-Formel gerechnet. #d9461f auf #ffc83d hätte nur 2,8:1, darum ist der Name dunkler (`rand_tief`) als im alten Schild.
+
+### 15.3 Inhalte und Zustände
+Die Liste pflegt **Simon durch Zuruf**; im Spiel gibt es keine Eingabe. Je Eintrag: Rufname, Tag, Monat, Jahrgang (freiwillig). Das Alter rechnet das Spiel: laufendes Jahr minus Jahrgang. Maßgeblich ist das Gerätedatum in Ortszeit (wie bisher). Wer am 29.02. Geburtstag hat, wird in Nicht-Schaltjahren am 28.02. gefeiert (Vorschlag, Projektleiter entscheidet).
+| Zustand | Wann | Tafel (Zeilen) | Überlagerung |
+|---|---|---|---|
+| **heute (1)** | heute jemand | „Alles Gute zum“ / „**9.** Geburtstag,“ / „**Phili!**“ | wie Tafel, groß; darunter H6 |
+| heute ohne Jahrgang | – | „Alles Gute zum“ / „Geburtstag,“ / „Opa Hans!“ | H2 |
+| **mehrere heute** | 2–3 am Tag | „Alles Gute zum“ / „Geburtstag,“ / „Phili & Lena!“ (3: „Phili, Lena & Max!“) | Zeile H3/H4, darunter je Person „Phili – 9 Jahre“ |
+| 4 und mehr | – | „… Phili, Lena & 2 mehr!“ | alle mit Alter, Liste scrollt |
+| **bald** | niemand heute, nächster in 1–6 Tagen | „Bald Geburtstag“ / „**Phili**“ / „wird am Samstag 10“ (morgen: „Morgen Geburtstag“ / „Phili“ / „wird morgen 10“) | B5 bzw. B6, darunter B8 |
+| bald ohne Jahrgang | – | „… / Opa Hans / feiert am Samstag“ | B7 |
+| bald, mehrere am selben Tag | – | „… / Phili & Lena / feiern am Samstag“ | je Person ein Satz wie B5 |
+| bald, verschiedene Tage | – | nur der nächste | nur der nächste |
+| **neutral** | sonst | „**Heatville**“ / Rohrnaht / „Wärme fürs ganze Dorf“ | „Heatville“, Rohrnaht, N1-Zeile, N2 |
+| keine Tafel | Gebäude auf (15|5) (alter Spielstand) | – | am Geburtstag einmal Meldung H1 |
+- **Tageswechsel:** beim Start, beim Zurückkehren in die App (`visibilitychange`) und einmal pro Minute prüfen. Der Wechsel geschieht ohne Animation (die Tafel ist einfach neu beschriftet).
+- **Tutorial (NR13):** Die Tafel steht und dunkelt mit dem Spotlight ab, ist aber nicht antippbar; das Lauflicht steht still, damit nichts mit Spur und Zielscheibe um Aufmerksamkeit konkurriert.
+- **Besuch eines Nachbardorfs:** keine Tafel (fremdes Dorf, keine Geburtstage aus unserer Liste).
+
+### 15.4 Texte (alle ≤ 90 Zeichen; Längen gezählt)
+| Nr. | Text | Zeichen |
+|---|---|---|
+| H1 | Alles Gute zum 9. Geburtstag, Phili! | 36 |
+| H2 | Alles Gute zum Geburtstag, Opa Hans! | 36 |
+| H3 | Alles Gute zum Geburtstag, Phili & Lena! | 40 |
+| H4 | Alles Gute zum Geburtstag, Phili, Lena & Max! | 45 |
+| H5 | Alles Gute zum Geburtstag, Phili, Lena & 2 mehr! | 48 |
+| H6 | Heute feiert das ganze Dorf mit. | 32 |
+| H7 | Phili – 9 Jahre | 15 |
+| B1 | Bald Geburtstag: Phili wird am Samstag 10 | 41 |
+| B2 | Morgen Geburtstag: Phili wird morgen 10 | 39 |
+| B5 | Phili wird am Samstag, 28. November, 10 Jahre alt. | 50 |
+| B6 | Phili wird morgen 10 Jahre alt. | 31 |
+| B7 | Opa Hans hat am Samstag, 28. November, Geburtstag. | 50 |
+| B8 | Die Tafel gratuliert an dem Tag. | 32 |
+| N1 | Heatville – Wärme fürs ganze Dorf | 33 |
+| N2 | Hier gratuliert das Dorf zu Geburtstagen. Heute hat niemand Geburtstag. | 71 |
+| S1 | Hier steht die Dorftafel. (Sperrgrund für Gebäude auf dem Tafelfeld) | 25 |
+| X1 | Tafel schließen (Vorlesetext ✕) | 15 |
+| X2 | Dorftafel: Alles Gute zum 9. Geburtstag, Phili! Antippen zum Vergrößern (Vorlesetext) | 71 |
+Rufnamen bitte höchstens 14 Zeichen („Oma Rosemarie“ passt); längere schrumpfen auf der Tafel stark. „Phili“, „Lena“, „Max“ und „Opa Hans“ sind Beispiele für Tests, nur „Phili“ (26.11.) ist echt.
+
+### 15.5 Antippen und Überlagerung
+- **Tippfläche** = Tafel samt Rahmen (bei Start-Zoom 149×77 bzw. 143×74 px), mindestens 44×44 px (bei kleinem Zoom um die Mitte vergrößert). Innerhalb dieser Fläche gewinnt die Tafel vor allem, was dahinter liegt. Ziehen ab 7 px verschiebt wie überall die Karte.
+- **Planen, Bauen, Leitung legen, Verschieben** (`istDurchsichtig` bzw. jede Modus-Leiste): Tafel mit 40 % Deckkraft und **nicht antippbar** – der Tipp geht ans Feld darunter. Sie verdeckt beim Bauen nichts.
+- **Überlagerung** (DOM, Ebene wie Popups): Hintergrund `menue.farbe.abdunkeln`; Fläche wie die Tafel (gleiche Farben, Rahmen 8 px, Birnen als gepunktete Linie innen), Breite min(520 px, Bildschirm − 24), Höhe höchstens Bildschirm − 24 (bei 667×375 rund 205 px hoch, passt). Zeilen: Lilita 22 / 34 / Name 54 px, Unterzeile Manrope 700 15 px. **✕** 44×44 oben rechts, 16 px über den Rahmen hinaus, neutraler Menüknopf (Creme, 3 px Kontur, Sockel; 14,8:1).
+- **Schließen:** ✕, Tippen auf die dunkle Fläche, Esc, Zurück-Taste (Android). Der Fokus springt beim Öffnen aufs ✕ und kehrt danach zur Tafel bzw. zur Karte zurück. `role="dialog"`, `aria-modal`, Titel = H1 bzw. die erste Zeile.
+- Seitenblatt oder Modus-Leiste offen: Antippen der Tafel tut nichts (sie ist dann ohnehin durchsichtig oder vom Blatt verdeckt). Nie zwei Überlagerungen gleichzeitig.
+
+### 15.6 Bewegung
+| Was | Wie | Zeit |
+|---|---|---|
+| Lauflicht (nur heute, nur wenn die Tafel im Bild ist) | jede zweite Birne hell, Wechsel in **Schritten** | 500 ms (`zeit_ms.geburtstag_birnen_schritt`) – Takt-Bedarf „langsam“ statt „flüssig“, außerhalb des Bildes „keine“ |
+| Erfolgsmoment (heute, einmal je App-Start, sobald die Tafel ganz im Bild ist) | Konfetti-Puff aus der Tafel-Oberkante, vorhandener Funken-Effekt in den Schmuckfarben | 1000 ms (`zeit_ms.funken`) |
+| Überlagerung öffnen | wächst aus dem Tafel-Rechteck zur Mitte + Hintergrund blendet ein | 240 ms `menue.kurve.plopp` |
+| Überlagerung schließen | schrumpft zurück zur Tafel | 180 ms `menue.kurve.weich` |
+| Ballons | stehen still (Wippen bräuchte „flüssig“ – für Deko zu teuer) | – |
+**Weniger Bewegung** (Spiel-Schalter **oder** `prefers-reduced-motion`) und **Sparmodus:** Birnen leuchten ruhig, kein Konfetti-Puff, Überlagerung erscheint und verschwindet ohne Wachsen (nur sofort da). Takt-Bedarf „keine“.
+
+### 15.7 Barrierefreiheit
+Kontraste siehe 15.2 (Text ≥ 6,7:1, Name 4,3:1 bei ≥ 24 px, Rahmen gegen Schnee ≥ 3:1: #d9461f auf Schnee `SCHNEE` #eaf3f7 = 3,9:1, gemessener Schneeboden #e9f0f3 = 3,8:1; Holzrahmen neutral 4,7:1; auf der Sommerwiese #8dcc55 trägt die äußere Konturlinie die Kante). Tippfläche ≥ 44 px, ✕ 44 px. **Tastatur:** ein unsichtbarer DOM-Knopf „Dorftafel“ (Vorlesetext X2) in der Tab-Reihenfolge nach den Rundknöpfen; hat er den Fokus, zeichnet die Szene einen 3-px-Ring in `menue.farbe.fokus_auf_dunkel` um die Tafel; Enter/Leertaste öffnen. Inhalt für Vorleser im Vorlesetext, weil Canvas-Text nicht vorgelesen wird.
+
+### 15.8 Werte-Vorschlag für `design/tokens.json` (noch nicht eingetragen, wie 13.10)
+- `farbe.geburtstag`: **bleibt** `schild_oben`, `schild_unten`, `rand`, `rand_tief`, `text`. **Neu** `birne_an` = `#fff1c4` (gleich `objekt.deko.laterne_licht`), `birne_schein` = `rgba(255,214,120,0.45)`, `birne_aus` = `#e8c8a0`, `rahmen_holz` = `#8a6248`, `rahmen_holz_tief` = `#6b4a34`, `tiefe` = `rgba(59,29,10,0.28)`, `schmuck` = [`#ff8a1f`, `#3a92ea`, `#2c8638`, `#e8504a`, `#7656d4`] (alles vorhandene Menüfarben). **Entfällt** `glanz`, `schatten`, `knopf`, `knopf_schatten`, `konfetti`.
+- `karte.tafel` (neu): `feld` [15, 5], `breite` 2.6, `hoehe` 1.3, `pfosten` 0.6, `pfosten_abstand` 0.92, `rahmen` 0.1, `birnen` {`oben`: 11, `seite`: 3}, `kleinzeilen_ab_px` 11, `name_min` 0.28, `deckkraft_planen` 0.4, `bald_tage` 6.
+- `zeit_ms`: **neu** `geburtstag_birnen_schritt` 500, `tafel_auf` 240, `tafel_zu` 180; **entfällt** `geburtstag_schweben_zyklus`.
+
+### 15.9 Abläufe (Start → Ziel)
+1. **Geburtstag sehen:** App öffnen → Vorspann → Startansicht, Tafel rechts oben im Bild, Lauflicht, einmal Konfetti → Spieler liest den Namen. Keine Aktion nötig, nichts versperrt das Spiel.
+2. **Genauer lesen:** Tafel antippen → wächst zur Mitte (240 ms) → großer Text, Alter → ✕ oder daneben tippen → schrumpft zurück (180 ms), Karte wie vorher.
+3. **Bauen trotz Tafel:** [Bauen] oder Leitung legen → Tafel wird durchsichtig → Tipp aufs Feld dahinter wirkt → Modus beenden → Tafel wieder voll.
+4. **Gebäude aufs Tafelfeld:** Platzieren auf (15|5) → rotes Feld, Hinweis S1 (nach 12.19) → anderes Feld wählen.
+5. **Unglückliche Wege:** doppelt tippen öffnet nur eine Überlagerung; Neuladen mit offener Überlagerung → Startansicht ohne Überlagerung; Mitternacht bei offener App → Tafel wechselt spätestens nach einer Minute, eine offene Überlagerung bleibt bis zum Schließen beim alten Text.
+
+### 15.10 Prüfliste für die Fotos (Designer, Modus `treue`; 844×390 und 667×375, Gerätefaktor 2, je einmal mit `reducedMotion`)
+1. Startansicht je Zustand (heute, mehrere, bald, morgen, neutral): Tafel ganz im Bild, berührt weder Heizzentrale noch Anzeigenreihe noch Rundknöpfe; Lage ±16 px wie 15.1.
+2. Text gleich 15.4, Name nicht abgeschnitten, kleine Zeilen ≥ 11 px; bei Zoom 1 nur die große Zeile.
+3. Überlagerung je Zustand: passt in 667×375 ohne Scrollen (außer ≥ 4 Namen), ✕ 44×44, Fokus aufs ✕, Esc und Tippen daneben schließen.
+4. Leitung legen: Tafel 40 %, Tipp auf (14|5) trifft das Haus.
+5. Video: Lauflicht in 500-ms-Schritten, Takt „keine“, wenn die Tafel aus dem Bild geschoben ist (Bildrate messen wie A90); mit weniger Bewegung kein Lauflicht, kein Puff, kein Wachsen.
+6. Winter: Schneekante sichtbar; Sommer/Herbst (Datum im Testbrowser umstellen): äußere Konturlinie da, Tafelkante hebt sich von der Wiese ab.
+7. Alter Spielstand mit Gebäude auf (15|5): keine Tafel, am Geburtstag Meldung H1.
