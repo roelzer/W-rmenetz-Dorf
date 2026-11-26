@@ -845,3 +845,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-24 08:06 | ■ 🟡 | tester | 🟡 Vorarbeit fertig und committet. 6 neue Tests sind wie gewollt rot, weil sie das neue Verhalten beschreiben, das noch nicht gebaut ist. Alle anderen Tests s ([Bericht](docs/pruefberichte/20261124-080654-tester-ac3b7badae3b1d9a7.md)) |
 | 2026-11-24 08:07 | ▶ | entwickler | Funken an Häusern bauen |
 | 2026-11-24 08:15 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG**  ([Bericht](docs/pruefberichte/20261124-081539-entwickler-acf109550380ce59c.md)) |
+| 2026-11-26 08:33 | ▶ | entwickler | Fehler: kein Geld seit 3 Tagen |
+| 2026-11-26 08:33 | ▶ | entwickler | Geburtstagsschild Phili |
