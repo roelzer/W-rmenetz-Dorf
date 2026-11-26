@@ -3,6 +3,7 @@ import type { Spiel } from '../core/spiel';
 import { h, zahl } from './dom';
 import { symbol } from './bausteine';
 import type { SymbolName } from './symbole';
+import { KASSE_VOLL } from './sperrtexte';
 
 /** A84 Treue Nr. 3: Monteur-Anzeige; auf schmalen Handys (unter 700 px) ohne „frei“, damit die Kapseln das Zahnrad nicht verdecken */
 export function monteurText(frei: number, gesamt: number, kurz: boolean): string {
@@ -33,6 +34,8 @@ function pille(art: string, sym: SymbolName, etikett: string, bei?: () => void):
 export class Hud {
   readonly wurzel = h('div', { id: 'hud' });
   private geld: Pille;
+  /** Spielerbericht 26.11.: Volle Kasse war nur an der Farbe zu erkennen und wirkte wie „kein Geld mehr“. Sitzt im Geld-Knopf. */
+  private kasseVoll = h('span', { class: 'kasse-voll', hidden: '' }, KASSE_VOLL);
   private waerme = pille('waerme', 'waerme', 'Wärme');
   private ruf = pille('ruf', 'ruf', 'Ruf');
   private taler = pille('taler', 'taler', 'Taler');
@@ -55,6 +58,7 @@ export class Hud {
 
   constructor(private readonly spiel: () => Spiel, a: HudAktionen) {
     this.geld = pille('geld', 'geld', 'Geld', a.geldfluss);
+    this.geld.wurzel.append(this.kasseVoll);
     const schild = h('button', { type: 'button', class: 'dorfschild', 'aria-label': 'Dorf-Einstellungen', onclick: a.einstellungen }, this.name, this.unter, symbol('zahnrad', 'zahnrad'));
     this.auftragKarte = h('button', { type: 'button', class: 'auftrag pergament', onclick: a.auftrag },
       h('span', { class: 'marker', 'aria-hidden': 'true' }, '!'), this.auftragText, this.auftragLohn);
@@ -115,7 +119,9 @@ export class Hud {
     if (sp.testwaehrungUnbegrenzt) this.setze(this.geld, '∞ €', 1, 'Unbegrenzt Euro');
     else this.setze(this.geld, `${zahl(s.geld_eur)} €`, s.geld_eur / grenze, `Geld ${zahl(s.geld_eur)} Euro von höchstens ${zahl(grenze)} Euro im Kassenspeicher${voll ? ' – Kasse voll' : ''}. Die Kunden zahlen am Monatsende automatisch`);
     this.geld.wurzel.classList.toggle('mangel', voll);
-    if (this.geld.wurzel.tagName === 'BUTTON') this.geld.wurzel.setAttribute('aria-label', `Geldfluss öffnen. Kontostand: ${sp.testwaehrungUnbegrenzt ? 'unbegrenzt' : zahl(s.geld_eur)} Euro`);
+    const kasseVoll = voll && !sp.testwaehrungUnbegrenzt;
+    this.kasseVoll.hidden = !kasseVoll;
+    if (this.geld.wurzel.tagName === 'BUTTON') this.geld.wurzel.setAttribute('aria-label', `Geldfluss öffnen. Kontostand: ${sp.testwaehrungUnbegrenzt ? 'unbegrenzt' : zahl(s.geld_eur)} Euro${kasseVoll ? ` – ${KASSE_VOLL}` : ''}`);
     const da = n.verfuegbar_kw, gebraucht = n.genutzt_kw;
     this.setze(this.waerme, `${zahl(gebraucht)}/${zahl(da)} kW`, da > 0 ? gebraucht / da : 0, `Wärme: ${zahl(gebraucht)} von ${zahl(da)} Kilowatt genutzt. Bedarf ${zahl(n.bedarf_kw)} Kilowatt`);
     this.waerme.wurzel.classList.toggle('mangel', n.bedarf_kw > da + 0.01);

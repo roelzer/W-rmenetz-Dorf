@@ -247,6 +247,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pille.monteure .sym{background:var(--menue-hud-symbol-monteur);color:#fff}
 .pille .fuell{background:var(--menue-farbe-hud-spur);height:5px;bottom:4px}
 .pille.mangel .wert,.pille.ruf.schlecht .wert{color:var(--menue-farbe-hud-text-mangel)}
+/* Spielerbericht 26.11.: dauerhafter Hinweis „Kasse voll“ am Geld-Knopf; neben der Pille, damit er keine andere Pille verdeckt */
+.pille .kasse-voll{position:absolute;top:50%;right:calc(100% + 22px);transform:translateY(-50%);padding:1px 8px;border:var(--menue-mass-px-kontur-fein) solid var(--k);border-radius:999px;background:var(--menue-chip-rot-0);color:var(--menue-chip-rot-1);font-family:var(--schrift-text);font-weight:800;font-size:11px;line-height:14px;white-space:nowrap}
 #hud :focus-visible{outline:3px solid var(--menue-farbe-fokus-auf-dunkel);outline-offset:2px}
 .dorfschild,.auftrag{background:var(--menue-farbe-tafel);border:var(--kb) solid var(--k);box-shadow:inset 0 -4px 0 var(--menue-farbe-tafel-linie),0 3px 0 var(--k)}
 .dorfschild .name{font-family:var(--menue-schrift-anzeige);font-weight:400;font-size:var(--menue-schrift-groesse-px-dorfname);letter-spacing:.02em;color:var(--k)}
@@ -312,6 +314,8 @@ button{font:inherit;color:inherit;cursor:pointer}
   .pille{width:auto;min-width:76px;padding-left:20px;margin-left:15px}
   .pille .etikett{display:none}
   .pille .wert{font-size:var(--schrift-groesse-px-text)}
+  /* Pillen in einer Reihe: Hinweis unter der Geld-Pille; Pille und Hinweis bilden zusammen eine Tippfläche über 44 px Höhe */
+  .pille .kasse-voll{top:calc(100% + 3px);right:4px;transform:none}
   .hud-links{width:210px}
   .auftrag .text{-webkit-line-clamp:2}
   .banner{top:auto;bottom:max(var(--groesse-px-rand-bildschirm),env(safe-area-inset-bottom))}
