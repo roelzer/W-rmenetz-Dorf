@@ -1570,6 +1570,7 @@ export class Spiel {
   bis(jetzt_ms: number): void {
     const s = this.stand;
     this.anfragenPruefen();
+    if (jetzt_ms < s.zuletzt_ms) this.zeitNeuAnsetzen(jetzt_ms);
     if (jetzt_ms <= s.zuletzt_ms) { this.fertigstellen(jetzt_ms); return; }
     if (jetzt_ms - s.zuletzt_ms > MAX_OFFLINE_S * 1000) s.zuletzt_ms = jetzt_ms - MAX_OFFLINE_S * 1000;
     // A38/A81: Bei längerer Abwesenheit gibt es statt vieler Einzelmeldungen eine Sammelmeldung.
@@ -1597,6 +1598,28 @@ export class Spiel {
     if (this.abwesend && this.offline_anfragen > 0) this.hinweis(`Während du weg warst: ${this.offline_anfragen === 1 ? '1 Kunde fragt' : `${this.offline_anfragen} Kunden fragen`} nach mehr Wärme`);
     this.offline_anfragen = 0;
     this.abwesend = false;
+  }
+  /**
+   * Spielerbericht 26.11.: Liegt die gespeicherte Spielzeit vor der Uhr (Sicherung von einem Gerät mit Vorführ-Tempo, verstellte
+   * Geräteuhr), stünde das Spiel bis zum Aufholen still – ohne Abrechnung und ohne fertige Bauten. Darum rücken alle Zeitpunkte
+   * des Spielstands um den Vorsprung zurück: Restdauern bleiben gleich, Geld und Bauten werden nicht angefasst.
+   */
+  private zeitNeuAnsetzen(jetzt_ms: number): void {
+    const s = this.stand, vorsprung_ms = s.zuletzt_ms - jetzt_ms;
+    const ruecken = (b: Bau | null | undefined): void => { if (b) { b.start_ms -= vorsprung_ms; b.ende_ms -= vorsprung_ms; } };
+    for (const o of s.objekte) { ruecken(o.bau); if (o.upgrade_auftrag) o.upgrade_auftrag.ende_ms -= vorsprung_ms; }
+    for (const k of s.innen) ruecken(k.bau);
+    ruecken(s.abschnitt?.bau);
+    for (const g of Object.values(s.antraege)) if (g) g.bewilligt_ms -= vorsprung_ms;
+    const pausen = s.helfer_pause_bis_ms ?? {};
+    for (const name of Object.keys(pausen)) pausen[name] -= vorsprung_ms;
+    s.zuletzt_ms = jetzt_ms;
+    // Sonst bliebe die Monatsabrechnung bis zum Aufholen aus (sie zählt Monate ab der gespeicherten Spielzeit)
+    s.abrechnung_monat = Math.floor(jetzt_ms / SPIELMONAT_MS);
+    if (vorsprung_ms < OFFLINE_SCHWELLE_S * 1000) return;
+    const std = Math.round(vorsprung_ms / 3_600_000);
+    const dauer = std >= 24 ? tageText(Math.round(std / 24)) : std >= 1 ? `${std} Std.` : `${Math.round(vorsprung_ms / 60_000)} Min.`;
+    this.hinweis(`Spieluhr war ${dauer} voraus – auf jetzt gestellt, Geld und Bauten bleiben`);
   }
   private naechstesEreignis_ms(): number | null {
     let m: number | null = null;

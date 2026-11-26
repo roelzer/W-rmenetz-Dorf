@@ -10,6 +10,9 @@ import { eur } from './dom';
 // überall gleich spricht. Werte stammen aus Kern und Katalog, nie fest im Text. Im Seitenblatt normale Leerzeichen
 // (ENTSCHEIDUNGEN 2026-11-05, Antwort 1).
 
+/** Dauerhafter Hinweis an der Geld-Pille, solange das Geld die Kassengrenze erreicht hat (A10: dann kommt bei der Abrechnung nichts an). */
+export const KASSE_VOLL = 'Kasse voll';
+
 /** Grund an Knöpfen, die ohne offenen Bauabschnitt nichts tun können (Hausblatt, Zeichenleiste). */
 export const OHNE_ABSCHNITT = 'braucht offenen Bauabschnitt';
 

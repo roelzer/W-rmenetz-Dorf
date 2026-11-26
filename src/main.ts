@@ -21,6 +21,8 @@ import { vorspannZeigen } from './ui/vorspann';
 import { hinweisMitKnopf } from './ui/toast';
 import { beiEinstellungsAenderung, einstellungenLesen, istEntwickler, type Einstellungen } from './ui/einstellungen';
 import { tempoBegrenzen, tempoSpeichern, uhr } from './tempo';
+import { bildSchritte, fehlerMelder } from './bildschutz';
+import { aktualisierungPruefen } from './update';
 import { installationStarten } from './ui/installation';
 import { geburtstagsschildZeigen } from './ui/geburtstagsschild';
 
@@ -45,6 +47,7 @@ const geladen = ladenMitBefund(gelesen, uhr());
 let spiel: Spiel;
 if (geladen.befund === 'defekt') { sichern(gelesen); startWichtig = true; startHinweis = 'Dein alter Spielstand ließ sich nicht lesen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).'; }
 else if (geladen.befund === 'migriert') startHinweis = 'Das Dorf hat jetzt Straßen und einen Fluss: Gebäude auf Straße oder Wasser wurden verschoben, Leitungen im Fluss entfernt und ihr Preis erstattet. Prüfe die Anschlüsse.';
+else if (geladen.befund === 'repariert') startHinweis = 'Dein Spielstand hatte unlesbare Werte – sie sind jetzt auf sichere Werte gesetzt, dein Dorf bleibt.';
 try {
   spiel = new Spiel(geladen.stand, uhr);
   weg = { geld_eur: geladen.stand.geld_eur, seit_ms: geladen.stand.zuletzt_ms, bau: geladen.stand.objekte.filter((o) => o.bau).length };
@@ -165,9 +168,22 @@ function sparHinweisPruefen(probe: BildProbe, verdeckt: boolean): void {
 let takt = neuerTakt();
 let letzt = performance.now(), letztGezeichnet = letzt, letzteKamera = '';
 const t0 = letzt;
+const fehlerMelden = fehlerMelder({
+  jetzt_ms: () => performance.now(),
+  protokoll: (text, fehler) => console.error(text, fehler),
+  spieler: (text) => steuerung.toast(text),
+});
 function bild(jetzt: number): void {
   const raf_abstand_ms = jetzt - letzt; letzt = jetzt;
-  steuerung.tick(uhr(), jetzt);
+  const spielzeit_ms = uhr();
+  // Spielerbericht 26.11.: Einnahmen laufen auch dann weiter, wenn Oberfläche oder Zeichnen scheitern; das nächste Bild kommt immer.
+  bildSchritte([
+    ['Spielkern', () => spiel.bis(spielzeit_ms)],
+    ['Steuerung', () => steuerung.tick(spielzeit_ms, jetzt)],
+    ['Darstellung', () => darstellen(jetzt, raf_abstand_ms)],
+  ], fehlerMelden, () => requestAnimationFrame(bild));
+}
+function darstellen(jetzt: number, raf_abstand_ms: number): void {
   kamera.schritt(raf_abstand_ms / 1000);
   // Überschreibt steuerung.bewegungAnwenden je Bild absichtlich: der Sparmodus schaltet die Umgebungsanimation ebenfalls ab.
   maler.reduziert = animationAus(einstellungen);
@@ -190,7 +206,6 @@ function bild(jetzt: number): void {
   sparHinweisPruefen({ raf_abstand_ms, zeichen_ms, kamera_bewegt: kameraSchluessel !== letzteKamera }, verdeckt);
   letzteKamera = kameraSchluessel;
   messen(jetzt, raf_abstand_ms, r.zeichnen);
-  requestAnimationFrame(bild);
 }
 requestAnimationFrame(bild);
 
@@ -216,6 +231,7 @@ try { void (screen.orientation as unknown as { lock?: (o: string) => Promise<voi
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch((f) => console.warn('Offline-Modus nicht verfügbar', f)); });
   // A83: Kommt eine neue Version an, übernimmt der neue Service Worker; der Spieler lädt neu, wann es ihm passt (der Spielstand bleibt).
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) void aktualisierungPruefen(navigator.serviceWorker); });
   const hatteVersion = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hatteVersion) return;
