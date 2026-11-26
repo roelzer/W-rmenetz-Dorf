@@ -860,3 +860,4 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-26 09:27 | ■ 🟡 | reviewer | 🟡 **Freigegeben mit einer Bedingung.** Die Härtung und das Geburtstagsschild machen, was verlangt war. Geld und Bauten gehen in keinem Fall verloren, den ic ([Bericht](docs/pruefberichte/20261126-092749-reviewer-aa3e6e5ce0b3e5061.md)) |
 | 2026-11-26 09:32 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG**  ([Bericht](docs/pruefberichte/20261126-093208-entwickler-a81d99fca32f1725c.md)) |
 | 2026-11-26 10:07 | ▶ | designer | Designer: Entwurf Werbetafel Geburtstage |
+| 2026-11-26 10:24 | ■ 🟡 | designer | 🟡 Der Entwurf ist fertig und committet (7d96650 auf Branch claude/hopeful-cori-3pa92y). Zwei Punkte brauchen noch eine Entscheidung: der Datenschutz der Gebu ([Bericht](docs/pruefberichte/20261126-102411-designer-af25f5328fc95c962.md)) |
