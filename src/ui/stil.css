@@ -539,3 +539,22 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 /* (i) zur Erklärkarte: Symbol 24 px, Tippfläche 44 × 44 px (CLAUDE.md, DESIGN 14.15) */
 .info-knopf{display:inline-grid;place-items:center;width:var(--groesse-px-tippflaeche-min);height:var(--groesse-px-tippflaeche-min);padding:0;border:0;background:none;color:inherit;vertical-align:middle;flex:none}
 .info-knopf .sym{width:24px;height:24px}
+/* Geburtstagsschild für Phili (nur am 26.11.2026, Entwurf docs/entwuerfe/geburtstagsschild-entwurf.html). Die Ebene liegt über der Karte,
+   lässt Tipps neben dem Schild durch; Schriftgrößen schrumpfen mit Breite und Höhe, damit es auch in 667×375 ganz sichtbar bleibt. */
+.geburtstagsschild{position:fixed;inset:0;z-index:95;display:grid;place-items:center;pointer-events:none;overflow:hidden}
+.gs-schild{position:relative;box-sizing:border-box;width:78%;transform:rotate(-2deg);padding:min(18px,3vh) 28px min(20px,3.4vh);background:linear-gradient(var(--farbe-geburtstag-schild-oben),var(--farbe-geburtstag-schild-unten));border:6px solid var(--farbe-geburtstag-rand);border-radius:22px;box-shadow:0 8px 0 var(--farbe-geburtstag-rand-tief),0 14px 30px var(--farbe-geburtstag-schatten);text-align:center;color:var(--farbe-geburtstag-text);pointer-events:auto}
+.gs-zeile{display:block}
+.gs-oben{font:800 min(22px,2.6vw,5.6vh)/1.2 var(--schrift-anzeige);letter-spacing:.08em;text-transform:uppercase}
+.gs-mitte,.gs-name{font-family:var(--menue-schrift-anzeige);font-weight:400;line-height:1.05;text-shadow:0 3px 0 var(--farbe-geburtstag-glanz)}
+.gs-mitte{margin-top:4px;font-size:min(54px,6.4vw,13vh)}
+.gs-neun{font-size:1.4em;line-height:.9;color:var(--farbe-geburtstag-rand)}
+.gs-name{font-size:min(62px,7.35vw,15vh);color:var(--farbe-geburtstag-rand)}
+.gs-schliessen{position:absolute;right:-14px;top:-14px;width:var(--groesse-px-schliessen-x);height:var(--groesse-px-schliessen-x);display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:var(--farbe-geburtstag-knopf);color:var(--farbe-geburtstag-text);font:800 22px/1 var(--schrift-text);box-shadow:0 2px 6px var(--farbe-geburtstag-knopf-schatten);cursor:pointer}
+.gs-schliessen:focus-visible{outline:3px solid var(--farbe-ui-fokus);outline-offset:2px}
+.gs-zier{position:absolute;font-size:min(44px,11vh);line-height:1}
+.gs-konfetti{position:absolute;width:10px;height:16px;border-radius:2px}
+.geburtstagsschild:not(.ruhig) .gs-zier{animation:gs-schweben var(--zeit-ms-geburtstag-schweben-zyklus) ease-in-out infinite;animation-delay:calc(var(--gs-versatz) * var(--zeit-ms-geburtstag-schweben-zyklus) / 4)}
+@keyframes gs-schweben{50%{transform:translateY(-10px)}}
+.weniger-bewegung .geburtstagsschild .gs-zier{animation:none}
+@media (prefers-reduced-motion:reduce){.geburtstagsschild .gs-zier{animation:none}}
+@media (orientation:portrait) and (max-width:600px){.geburtstagsschild{display:none}}

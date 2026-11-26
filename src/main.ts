@@ -22,6 +22,7 @@ import { hinweisMitKnopf } from './ui/toast';
 import { beiEinstellungsAenderung, einstellungenLesen, istEntwickler, type Einstellungen } from './ui/einstellungen';
 import { tempoBegrenzen, tempoSpeichern, uhr } from './tempo';
 import { installationStarten } from './ui/installation';
+import { geburtstagsschildZeigen } from './ui/geburtstagsschild';
 
 tokensAnwenden();
 /** Nur lesen: Änderungen kommen über beiEinstellungsAenderung; geschrieben wird von der Oberfläche, nie von hier. */
@@ -228,3 +229,5 @@ void navigator.storage?.persist?.().catch((f: unknown) => console.warn('Dauerhaf
 // Der Startstatus funktioniert auch ohne Spielskript. Erst nach erfolgreichem Start übernimmt die Oberfläche.
 document.getElementById('startstatus')?.setAttribute('hidden', '');
 document.getElementById('drehen')?.removeAttribute('hidden');
+// Philis Geburtstag: lokales Gerätedatum beim Start; erst nach erfolgreichem Start, der Vorspann (Ebene 100) liegt noch darüber.
+geburtstagsschildZeigen(new Date(), einstellungen.weniger_bewegung);
