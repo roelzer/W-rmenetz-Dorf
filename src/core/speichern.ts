@@ -57,8 +57,11 @@ function werteReparieren(d: Rohstand & { objekte: unknown[] }, jetzt_ms: number)
   if (!istZahl(d.taler) || d.taler < 0) setze('taler', 0);
   if (!istZahl(d.zuletzt_ms)) setze('zuletzt_ms', jetzt_ms);
   const objekte = d.objekte.filter((o): o is Spielstand['objekte'][number] => !!o && typeof o === 'object');
-  // Fehlt die nächste Nummer, darf keine schon vergebene herauskommen (sonst zwei Objekte mit derselben Id)
-  if (!istZahl(d.naechste_id)) setze('naechste_id', objekte.reduce((m, o) => (istZahl(o.id) ? Math.max(m, o.id) : m), 0) + 1);
+  // Die nächste Nummer darf keine schon vergebene sein (sonst zwei Objekte mit derselben Id, spiel.objekt findet das falsche)
+  const hoechste_id = objekte.reduce((m, o) => (istZahl(o.id) ? Math.max(m, o.id) : m), 0);
+  if (!istZahl(d.naechste_id)) setze('naechste_id', hoechste_id + 1);
+  // Bewusst still (kein 'repariert'): Der Spieler sieht diese Nummer nie, das Anheben verliert nichts von seinem Dorf.
+  else if (d.naechste_id <= hoechste_id) d.naechste_id = hoechste_id + 1;
   // Eine Preisstufe außerhalb der Tabelle lässt die Einnahmenrechnung abstürzen
   const stufe = istZahl(d.preisstufe) ? Math.max(0, Math.min(PREISSTUFEN.length - 1, Math.round(d.preisstufe))) : START_PREISSTUFE;
   if (stufe !== d.preisstufe) setze('preisstufe', stufe);
