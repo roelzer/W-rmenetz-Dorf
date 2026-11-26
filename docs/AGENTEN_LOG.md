@@ -853,3 +853,5 @@ Wird automatisch geschrieben. Jede Zeile: Zeit, Agent, was er bekommen bzw. geme
 | 2026-11-26 08:55 | ▶ | entwickler | Geburtstagsschild bauen |
 | 2026-11-26 09:12 | ■ 🟢 | entwickler | 🟢 **Status: FERTIG**  ([Bericht](docs/pruefberichte/20261126-091214-entwickler-ada9a5b24da7db04b.md)) |
 | 2026-11-26 09:18 | ■ 🔴 | entwickler | 🔴 **Status: BLOCKIERT, Grund „Kontext voll“.** Alle fünf Punkte sind gebaut und committet. Alle Tests, die Typprüfung, der Build und die Test-Schranke  ([Bericht](docs/pruefberichte/20261126-091819-entwickler-a3853bdeffd7d14d4.md)) |
+| 2026-11-26 09:19 | ▶ | reviewer | Review Härtung + Schild |
+| 2026-11-26 09:19 | ▶ | tester | Tester: Gegenproben Härtung |
