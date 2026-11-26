@@ -34,6 +34,23 @@ describe('geburtstagsschildAktiv – nur am 26.11.2026 (lokales Datum)', () => {
     expect(geburtstagsschildAktiv(lokal(2025, 11, 26))).toBe(false);
     expect(geburtstagsschildAktiv(lokal(2027, 11, 26))).toBe(false);
   });
+  // Fehler: UTC-Methoden statt Ortszeit. In UTC+14 ist 26.11. 00:30 Ortszeit noch der 25.11. in UTC, in UTC−11 ist
+  // 26.11. 23:30 Ortszeit schon der 27.11. in UTC. Node übernimmt eine Änderung von process.env.TZ sofort.
+  it('maßgeblich ist der Tag in der Zeitzone des Geräts, nicht UTC', () => {
+    const vorher = process.env.TZ;
+    try {
+      process.env.TZ = 'Pacific/Kiritimati';
+      expect(lokal(2026, 11, 26, 0, 30).toISOString()).toBe('2026-11-25T10:30:00.000Z');
+      expect(geburtstagsschildAktiv(lokal(2026, 11, 26, 0, 30))).toBe(true);
+      expect(geburtstagsschildAktiv(lokal(2026, 11, 27, 0, 30))).toBe(false);
+      process.env.TZ = 'Pacific/Pago_Pago';
+      expect(lokal(2026, 11, 26, 23, 30).toISOString()).toBe('2026-11-27T10:30:00.000Z');
+      expect(geburtstagsschildAktiv(lokal(2026, 11, 26, 23, 30))).toBe(true);
+      expect(geburtstagsschildAktiv(lokal(2026, 11, 25, 23, 30))).toBe(false);
+    } finally {
+      if (vorher === undefined) delete process.env.TZ; else process.env.TZ = vorher;
+    }
+  });
   it('ungültiges Datum nicht aktiv', () => {
     expect(geburtstagsschildAktiv(new Date(Number.NaN))).toBe(false);
   });
