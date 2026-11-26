@@ -551,7 +551,7 @@ body:has(#ebene .blatt.popup) .update-hinweis{display:none}
 .gs-name{font-size:min(62px,7.35vw,15vh);color:var(--farbe-geburtstag-rand)}
 .gs-schliessen{position:absolute;right:-14px;top:-14px;width:var(--groesse-px-schliessen-x);height:var(--groesse-px-schliessen-x);display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:var(--farbe-geburtstag-knopf);color:var(--farbe-geburtstag-text);font:800 22px/1 var(--schrift-text);box-shadow:0 2px 6px var(--farbe-geburtstag-knopf-schatten);cursor:pointer}
 .gs-schliessen:focus-visible{outline:3px solid var(--farbe-ui-fokus);outline-offset:2px}
-.gs-zier{position:absolute;font-size:min(44px,11vh);line-height:1}
+.gs-zier{--gs-versatz:0;position:absolute;font-size:min(44px,11vh);line-height:1}
 .gs-konfetti{position:absolute;width:10px;height:16px;border-radius:2px}
 .geburtstagsschild:not(.ruhig) .gs-zier{animation:gs-schweben var(--zeit-ms-geburtstag-schweben-zyklus) ease-in-out infinite;animation-delay:calc(var(--gs-versatz) * var(--zeit-ms-geburtstag-schweben-zyklus) / 4)}
 @keyframes gs-schweben{50%{transform:translateY(-10px)}}
