@@ -44,6 +44,7 @@ const geladen = ladenMitBefund(gelesen, uhr());
 let spiel: Spiel;
 if (geladen.befund === 'defekt') { sichern(gelesen); startWichtig = true; startHinweis = 'Dein alter Spielstand ließ sich nicht lesen. Es beginnt ein neues Dorf (der alte Stand ist gesichert).'; }
 else if (geladen.befund === 'migriert') startHinweis = 'Das Dorf hat jetzt Straßen und einen Fluss: Gebäude auf Straße oder Wasser wurden verschoben, Leitungen im Fluss entfernt und ihr Preis erstattet. Prüfe die Anschlüsse.';
+else if (geladen.befund === 'repariert') startHinweis = 'Dein Spielstand hatte unlesbare Werte – sie sind jetzt auf sichere Werte gesetzt, dein Dorf bleibt.';
 try {
   spiel = new Spiel(geladen.stand, uhr);
   weg = { geld_eur: geladen.stand.geld_eur, seit_ms: geladen.stand.zuletzt_ms, bau: geladen.stand.objekte.filter((o) => o.bau).length };

@@ -1,4 +1,4 @@
-import { ANDI_BUDGET_SCHRITT, HELFER, KATALOG, KONSTANTEN, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
+import { ANDI_BUDGET_SCHRITT, HELFER, KATALOG, KONSTANTEN, PREISSTUFEN, SPIELMONAT_MS, START_PREISSTUFE, istLeitung, istPufferStation, stationHolen, type TypId } from './katalog';
 import { belegtId, belegungskarte, groesse } from './netz';
 import { ortHolen } from './orte';
 import { ERSTE_HAEUSER, hzAusbauflaecheFreiraeumen, neuesSpielMitTutorial } from './start';
@@ -13,7 +13,8 @@ export function serialisieren(stand: Spielstand): string {
   return JSON.stringify(stand, (k, v) => (k === '_pop' ? undefined : v));
 }
 
-export type LadeBefund = 'neu' | 'ok' | 'migriert' | 'defekt';
+/** 'repariert': einzelne unlesbare Werte wurden auf sichere Werte gesetzt, das Dorf bleibt (die Oberfläche sagt es dem Spieler). */
+export type LadeBefund = 'neu' | 'ok' | 'migriert' | 'repariert' | 'defekt';
 
 /** Leitungs-Namen der Versionen 1 (p1/p2/p3) → Durchmesser (etwa gleiche Rohrgröße). */
 const ALTE_LEITUNGEN: Record<string, TypId> = { p1: 'd25', p2: 'd50', p3: 'd110' };
@@ -39,6 +40,44 @@ function gueltig(d: Partial<Spielstand>): d is Spielstand {
   }
   for (const o of d.objekte) if (o.upgrade !== undefined && !istZahl(o.upgrade)) return false;
   return d.objekte.some((o) => o.typ === 'hz');
+}
+
+type Rohstand = Omit<Partial<Spielstand>, 'version'> & { version?: number };
+
+/**
+ * Spielerbericht 26.11.: Ein einzelner unlesbarer Wert (JSON macht aus NaN null, „1e999“ liest es als Infinity) machte bisher den
+ * ganzen Stand unbrauchbar (neues Dorf) oder verdarb das Geld bei der nächsten Abrechnung (fehlende Münzkasse ergibt NaN).
+ * Solche Werte bekommen hier einen sicheren Wert. Rückgabe: Namen der reparierten Felder (leer = nichts geändert).
+ * Aufbau, Objekttypen und Koordinaten prüft danach weiter `gueltig` – dort lässt sich nichts sinnvoll ergänzen.
+ */
+function werteReparieren(d: Rohstand & { objekte: unknown[] }, jetzt_ms: number): string[] {
+  const repariert: string[] = [];
+  const setze = <K extends keyof Spielstand>(k: K, wert: Spielstand[K]): void => { (d as Spielstand)[k] = wert; repariert.push(k); };
+  if (!istZahl(d.geld_eur) || d.geld_eur < 0) setze('geld_eur', 0);
+  if (!istZahl(d.taler) || d.taler < 0) setze('taler', 0);
+  if (!istZahl(d.zuletzt_ms)) setze('zuletzt_ms', jetzt_ms);
+  const objekte = d.objekte.filter((o): o is Spielstand['objekte'][number] => !!o && typeof o === 'object');
+  // Fehlt die nächste Nummer, darf keine schon vergebene herauskommen (sonst zwei Objekte mit derselben Id)
+  if (!istZahl(d.naechste_id)) setze('naechste_id', objekte.reduce((m, o) => (istZahl(o.id) ? Math.max(m, o.id) : m), 0) + 1);
+  // Eine Preisstufe außerhalb der Tabelle lässt die Einnahmenrechnung abstürzen
+  const stufe = istZahl(d.preisstufe) ? Math.max(0, Math.min(PREISSTUFEN.length - 1, Math.round(d.preisstufe))) : START_PREISSTUFE;
+  if (stufe !== d.preisstufe) setze('preisstufe', stufe);
+  if (typeof d.name !== 'string') setze('name', ortHolen(d.ort).name);
+  for (const k of ['erledigt', 'gemocht', 'antraege'] as const) if (!d[k] || typeof d[k] !== 'object') setze(k, {});
+  if (d.grundgebuehr_eur !== undefined && !istZahl(d.grundgebuehr_eur)) { delete d.grundgebuehr_eur; repariert.push('grundgebuehr_eur'); }
+  if (d.abrechnung_monat !== undefined) {
+    // Ein Abrechnungsmonat nach der Spielzeit hielte jede Abrechnung zurück, bis die Spielzeit ihn erreicht
+    const laufend = Math.floor((d.zuletzt_ms as number) / SPIELMONAT_MS);
+    if (!istZahl(d.abrechnung_monat)) { delete d.abrechnung_monat; repariert.push('abrechnung_monat'); }
+    else if (d.abrechnung_monat > laufend) setze('abrechnung_monat', laufend);
+  }
+  for (const o of objekte) {
+    if (!istZahl(o.kasse_eur)) { o.kasse_eur = 0; repariert.push('kasse_eur'); }
+    for (const k of ['zaehler_kwh', 'zaehler_eur', 'zaehler_grund_eur', 'zufriedenheit_pct'] as const) {
+      if (o[k] !== undefined && !istZahl(o[k])) { delete o[k]; repariert.push(k); }
+    }
+  }
+  return [...new Set(repariert)];
 }
 
 /**
@@ -146,7 +185,7 @@ export function karteAnpassen(stand: Spielstand): boolean {
 export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: Spielstand; befund: LadeBefund } {
   if (!text) return { stand: neuesSpielMitTutorial(jetzt_ms), befund: 'neu' };
   try {
-    const d = JSON.parse(text) as Omit<Partial<Spielstand>, 'version'> & { version?: number };
+    const d = JSON.parse(text) as Rohstand;
     let migriert = false;
     if (d && d.version === 1 && Array.isArray(d.objekte)) {
       d.version = 2 as number;
@@ -158,7 +197,10 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
       d.preisstufe = Math.max(0, Math.min(8, Math.round(ALTE_PREISE_CT[d.preisstufe] ?? 12) - 7));
       d.version = SPEICHER_VERSION; migriert = true;
     }
+    const repariert = d && d.version === SPEICHER_VERSION && Array.isArray(d.objekte) && Array.isArray(d.innen)
+      ? werteReparieren(d as Rohstand & { objekte: unknown[] }, jetzt_ms) : [];
     if (d && d.version === SPEICHER_VERSION && gueltig(d as Partial<Spielstand>)) {
+      if (repariert.length) console.warn('Spielstand: unlesbare Werte auf sichere Werte gesetzt', repariert);
       const andi = d.andi;
       if (andi && (!Number.isInteger(andi.anteil_pct) || andi.anteil_pct < 0 || andi.anteil_pct > 100
         || !Number.isFinite(andi.budget_eur) || andi.budget_eur < 0
@@ -179,7 +221,7 @@ export function ladenMitBefund(text: string | null, jetzt_ms: number): { stand: 
       // A86: Wer den alten Vorgabenamen behalten hat, bekommt den fiktiven Dorfnamen (selbst gewählte Namen bleiben).
       // Bewusst kein 'migriert': der Start-Hinweis dazu spricht von Straßen und Fluss; der neue Name wird beim nächsten Speichern geschrieben.
       if ((d as Spielstand).name === 'Hilpoltstein') (d as Spielstand).name = ortHolen((d as Spielstand).ort).name;
-      return { stand: d as Spielstand, befund: migriert ? 'migriert' : 'ok' };
+      return { stand: d as Spielstand, befund: migriert ? 'migriert' : repariert.length ? 'repariert' : 'ok' };
     }
   } catch (fehler) {
     console.warn('Spielstand nicht lesbar', fehler);
